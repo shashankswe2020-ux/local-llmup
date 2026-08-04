@@ -13,6 +13,9 @@ describe("stripControl", () => {
     ["BiDi override", "a\u202eb", "ab"],
     ["BOM / zero-width no-break", "a\ufeffb", "ab"],
     ["line separator", "a\u2028b", "ab"],
+    ["Arabic Letter Mark (bidi)", "a\u061cb", "ab"],
+    ["soft hyphen", "a\u00adb", "ab"],
+    ["word joiner", "a\u2060b", "ab"],
   ];
 
   for (const [name, input, expected] of cases) {

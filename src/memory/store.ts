@@ -24,6 +24,7 @@ import {
   mkdirSync,
   readFileSync,
   realpathSync,
+  renameSync,
   statSync,
   unlinkSync,
   writeFileSync,
@@ -38,6 +39,19 @@ import { stripControl } from "../sanitize.js";
 /** Bumped when the on-disk memory layout changes incompatibly. */
 export const MEMORY_SCHEMA_VERSION = 1 as const;
 
+/** The embedding model + vector dimension a store's `embeddings/` were built with. */
+const EmbeddingMetaSchema = z
+  .object({
+    /** Embedding model id (e.g. `nomic-embed-text`). */
+    model: z.string().min(1),
+    /** Vector dimension produced by that model. */
+    dimension: z.number().int().positive(),
+  })
+  .strict();
+
+/** Validated embedding descriptor recorded in a store's `meta.json`. */
+export type EmbeddingMeta = z.infer<typeof EmbeddingMetaSchema>;
+
 const MemoryMetaSchema = z
   .object({
     schemaVersion: z.literal(MEMORY_SCHEMA_VERSION),
@@ -45,6 +59,8 @@ const MemoryMetaSchema = z
     modelId: z.string().min(1),
     /** ISO-8601 creation timestamp. */
     createdAt: z.string().min(1),
+    /** Present once the store has an embedding index; fixes its vector space. */
+    embedding: EmbeddingMetaSchema.optional(),
   })
   .strict();
 
@@ -253,4 +269,47 @@ export function openMemoryStore(config: Config, modelId: string): MemoryStore {
   const dir = resolveStoreDir(config, slug, modelId);
   const meta = loadOrCreateMeta(config, dir, modelId);
   return { modelId, dir, meta };
+}
+
+/**
+ * Read and validate the current on-disk `meta.json` for an opened store. Unlike
+ * {@link openMemoryStore}, this never creates the file — the store must already
+ * exist — so callers can observe writes made since the store was opened.
+ */
+export function readMemoryMeta(dir: string, modelId: string): MemoryMeta {
+  const target = join(dir, META_FILE);
+  let raw: string;
+  try {
+    raw = readFileSync(target, "utf8");
+  } catch (error) {
+    throw new MemoryError(`failed to read memory metadata: ${target}`, { cause: error });
+  }
+  return parseMeta(raw, target, modelId);
+}
+
+/**
+ * Atomically overwrite a store's `meta.json` with `meta`. Intended for updating
+ * an existing store (e.g. recording its embedding model) by the single lock
+ * holder, so a temp-file + `rename` swap is the correct atomic replacement.
+ */
+export function writeMemoryMeta(config: Config, dir: string, meta: MemoryMeta): MemoryMeta {
+  const validated = MemoryMetaSchema.parse(meta);
+  ensureDir(config.stagingDir);
+  const json = `${JSON.stringify(validated, null, 2)}\n`;
+  const tempFile = join(config.stagingDir, `meta.${process.pid}.${randomUUID()}.tmp`);
+  const target = join(dir, META_FILE);
+
+  try {
+    writeFileSync(tempFile, json, { mode: FILE_MODE });
+    chmodSync(tempFile, FILE_MODE);
+    // Re-verify containment right before swapping the file into the store.
+    assertWithinRoot(config, dir, validated.modelId);
+    renameSync(tempFile, target);
+  } catch (error) {
+    tryUnlink(tempFile);
+    throw new MemoryError(`failed to write memory metadata: ${target}`, { cause: error });
+  }
+
+  verifyPerms(target, FILE_MODE);
+  return validated;
 }

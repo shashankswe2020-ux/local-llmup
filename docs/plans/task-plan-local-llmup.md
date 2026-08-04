@@ -235,9 +235,9 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] `schemaVersion`'d read/write; id→safe-slug + `realpath` traversal defense; **slug-collision** must not silently overwrite; `0600` verified via `fs.stat` mode (umask-hostile env); corrupt store graceful.
 **Verify:** `npm test tests/memory/store` **Deps:** T1 **Files:** `src/memory/store.ts`, +test **Scope:** M
 
-#### T23: Chat capture logic
+#### T23: Chat capture logic ✅ done
 **Acceptance:**
-- [ ] Appends turns; rule-based fact extraction; optional embeddings with model+dim in `meta.json`; control/ANSI stripped.
+- [x] Appends turns; rule-based fact extraction; optional embeddings with model+dim in `meta.json`; control/ANSI stripped.
 **Verify:** `npm test tests/memory/capture` **Deps:** T17, T22 **Files:** `src/memory/capture.ts`, +test **Scope:** S
 
 #### T24: `chat` command
