@@ -79,22 +79,22 @@ T1►T22 memory store
 
 ### Phase 0 — Scaffold
 
-#### T0: Project scaffold + CLI skeleton
+#### T0: Project scaffold + CLI skeleton ✅ done
 **Description:** TypeScript ESM project + tooling + a `cac` CLI dispatching the
 **nine** spec subcommands (`recommend`, `up`, `chat`, `down`, `switch`,
 `migrate`, `ls`, `catalog`, `doctor`) as stubs.
 **Acceptance:**
-- [ ] `package.json` (ESM, `bin: {llmup, local-llmup}`, scripts §7), strict `tsconfig`, ESLint+Prettier, `vitest.config.ts`.
-- [ ] `--help` and each `<cmd> --help` list the nine commands (asserted against a command registry).
+- [x] `package.json` (ESM, `bin: {llmup, local-llmup}`, scripts §7), strict `tsconfig`, ESLint+Prettier, `vitest.config.ts`.
+- [x] `--help` and each `<cmd> --help` list the nine commands (asserted against a command registry).
 **Verify:** `npm run build && npm run typecheck && npm run lint && npm test`; `node dist/cli.js --help`.
 **Deps:** None **Files:** `package.json`, `tsconfig.json`, `.eslintrc.cjs`, `.prettierrc`, `vitest.config.ts`, `src/cli.ts` **Scope:** M
 
 ### Phase 1 — Foundation
 
-#### T1: Config paths + typed errors
+#### T1: Config paths + typed errors ✅ done
 **Acceptance:**
-- [ ] `config.ts` resolves `~/.local-llmup` paths; honors `LOCAL_LLMUP_HOME` (env cleaned between tests).
-- [ ] `errors.ts` base + subclasses (validation, backend, memory, catalog).
+- [x] `config.ts` resolves `~/.local-llmup` paths; honors `LOCAL_LLMUP_HOME` (env cleaned between tests).
+- [x] `errors.ts` base + subclasses (validation, backend, memory, catalog).
 **Verify:** `npm test tests/config tests/errors` **Deps:** T0 **Files:** `src/config.ts`, `src/errors.ts`, +tests **Scope:** S
 
 #### T2: Shared types
