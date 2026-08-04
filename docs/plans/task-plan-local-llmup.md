@@ -153,11 +153,11 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] Empty-catalog vs all-too-big return **distinct** clean results/messaging.
 **Verify:** `npm test tests/ranking/score` **Deps:** T8 **Files:** `src/ranking/weights.ts`, `src/ranking/rank.ts`, +test **Scope:** M
 
-#### T10: Output formatter
+#### T10: Output formatter ✅ done
 **Description:** Shared, ANSI-safe table + `--json` renderer used by `recommend`,
 `ls`, `doctor`.
 **Acceptance:**
-- [ ] Stable `--json` shape (contract test); control chars stripped in table + json.
+- [x] Stable `--json` shape (contract test); control chars stripped in table + json.
 **Verify:** `npm test tests/output` **Deps:** T1 **Files:** `src/output.ts`, +test **Scope:** S
 
 #### T11: `recommend` command

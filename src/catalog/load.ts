@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CatalogError } from "../errors.js";
+import { stripControl } from "../sanitize.js";
 import type { Catalog } from "../types.js";
 import { CatalogSchema } from "./schema.js";
 
@@ -10,20 +11,6 @@ export const DEFAULT_CATALOG_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "../../data/models.json",
 );
-
-// ANSI escape sequences (CSI/OSC and standalone ESC).
-// eslint-disable-next-line no-control-regex -- sanitizer must match escape bytes
-const ANSI_RE = /\u001b\[[0-?]*[ -/]*[@-~]|\u001b[@-Z\\-_]/g;
-// C0/C1 control characters and DEL.
-// eslint-disable-next-line no-control-regex -- sanitizer must match control bytes
-const CONTROL_RE = /[\u0000-\u001f\u007f-\u009f]/g;
-// BiDi overrides, zero-width, and line/paragraph separators (Trojan-Source class).
-const BIDI_RE = /[\u200b-\u200f\u202a-\u202e\u2066-\u2069\u2028\u2029\ufeff]/g;
-
-/** Remove ANSI escapes, control characters, and BiDi/zero-width codepoints. */
-function stripControl(value: string): string {
-  return value.replace(ANSI_RE, "").replace(CONTROL_RE, "").replace(BIDI_RE, "");
-}
 
 /** Sanitize every model-sourced display string, reporting whether anything changed. */
 function sanitizeCatalog(catalog: Catalog): { catalog: Catalog; changed: boolean } {
