@@ -40,3 +40,22 @@ export class CatalogError extends LocalLlmupError {
     this.name = "CatalogError";
   }
 }
+
+/** How a runtime-state operation failed; lets callers react to each case. */
+export type StateErrorKind =
+  | "io" // filesystem read/write failure
+  | "empty" // state file exists but is zero bytes
+  | "unparseable" // state file is not valid JSON
+  | "invalid" // valid JSON that fails the state schema
+  | "locked"; // the lock is held by a live process
+
+/** Failure reading, writing, or locking the runtime state file. */
+export class StateError extends LocalLlmupError {
+  readonly kind: StateErrorKind;
+
+  constructor(message: string, kind: StateErrorKind, options?: { cause?: unknown }) {
+    super(message, "STATE", options);
+    this.name = "StateError";
+    this.kind = kind;
+  }
+}

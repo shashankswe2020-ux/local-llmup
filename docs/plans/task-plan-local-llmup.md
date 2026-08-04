@@ -170,10 +170,10 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 
 ### Phase 3 — State + Backend + Serve
 
-#### T12: Runtime state + lock
+#### T12: Runtime state + lock ✅ done
 **Acceptance:**
-- [ ] Atomic temp+rename; **deterministic interleave** proves lock serialization (barrier, not timing); stale lock (dead PID) recovered, not deadlocked.
-- [ ] Corrupt state distinguished: unparseable vs schema-invalid vs zero-byte.
+- [x] Atomic temp+rename; **deterministic interleave** proves lock serialization (barrier, not timing); stale lock (dead PID) recovered, not deadlocked.
+- [x] Corrupt state distinguished: unparseable vs schema-invalid vs zero-byte.
 **Verify:** `npm test tests/state` **Deps:** T1 **Files:** `src/state/state.ts`, +test **Scope:** M
 
 #### T13: Backend adapter interface + safety utils
