@@ -110,10 +110,10 @@ primitives-based sizing input) so ranking, hardware, and enrich don't cross-coup
 - [x] Optional `sha256`/`digestVerified`; exports inferred types.
 **Verify:** `npm test tests/catalog/schema` **Deps:** T2 **Files:** `src/catalog/schema.ts`, +fixtures, +test **Scope:** S
 
-#### T4: Catalog loader
+#### T4: Catalog loader ✅ done
 **Acceptance:**
-- [ ] Valid loads; **malformed-JSON vs schema-invalid** distinguished; both throw `CatalogError`.
-- [ ] Control/ANSI stripped from display fields; optional integrity check on seed.
+- [x] Valid loads; **malformed-JSON vs schema-invalid** distinguished; both throw `CatalogError`.
+- [x] Control/ANSI stripped from display fields; optional integrity check on seed.
 **Verify:** `npm test tests/catalog/load` **Deps:** T3 **Files:** `src/catalog/load.ts`, +test **Scope:** S
 
 #### T5: Dev seed + test fixtures (`data/models.json` bootstrap-ready)
