@@ -73,6 +73,58 @@ export interface PullVerification {
 /** Probe the backend store for the integrity facts of a pulled model. */
 export type DigestProbe = (modelId: string) => Promise<PullVerification>;
 
+/** Minimal HTTP response surface used by the readiness probe. */
+export interface FetchResponseLike {
+  readonly ok: boolean;
+  readonly status: number;
+}
+
+/** Perform an HTTP GET; injected in tests. */
+export type FetchFn = (
+  url: string,
+  init?: { signal?: AbortSignal | undefined },
+) => Promise<FetchResponseLike>;
+
+/** Sleep for `ms`, rejecting if `signal` aborts; injected in tests. */
+export type SleepFn = (ms: number, signal?: AbortSignal | undefined) => Promise<void>;
+
+/** Readiness paths probed in order: OpenAI-compatible first, native fallback. */
+const READINESS_PATHS = ["/v1/models", "/api/tags"] as const;
+
+const DEFAULT_READINESS_TIMEOUT_MS = 30_000;
+const DEFAULT_READINESS_RETRIES = 20;
+const READINESS_BACKOFF_BASE_MS = 100;
+const READINESS_BACKOFF_MAX_MS = 2_000;
+/** Upper bound on a single readiness request, so one hung probe can't outlive the deadline. */
+const READINESS_REQUEST_TIMEOUT_MS = 5_000;
+
+/** Exponential backoff (capped) for the Nth readiness attempt (1-based). */
+function readinessBackoffMs(attempt: number): number {
+  return Math.min(READINESS_BACKOFF_BASE_MS * 2 ** (attempt - 1), READINESS_BACKOFF_MAX_MS);
+}
+
+const defaultFetch: FetchFn = (url, init) => fetch(url, { signal: init?.signal ?? null });
+
+const defaultSleep: SleepFn = (ms, signal) =>
+  new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new BackendError("readiness wait aborted"));
+      return;
+    }
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(new BackendError("readiness wait aborted"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+
+/** Outcome of one readiness attempt across all probe paths. */
+type ProbeResult = { readonly ready: true } | { readonly ready: false; readonly lastError: unknown };
+
 function adaptStream(stream: Readable | null): ProcessOutputStream | null {
   if (stream === null) return null;
   stream.setEncoding("utf8");
@@ -315,6 +367,8 @@ export interface OllamaAdapterOptions {
   readonly probe?: DigestProbe | undefined;
   readonly binary?: string | undefined;
   readonly platform?: NodeJS.Platform | undefined;
+  readonly fetch?: FetchFn | undefined;
+  readonly sleep?: SleepFn | undefined;
 }
 
 /** Stateless adapter over the Ollama backend. */
@@ -324,12 +378,16 @@ export class OllamaAdapter implements BackendAdapter {
   private readonly probe: DigestProbe;
   private readonly binary: string;
   private readonly platform: NodeJS.Platform;
+  private readonly fetch: FetchFn;
+  private readonly sleep: SleepFn;
 
   constructor(options: OllamaAdapterOptions = {}) {
     this.spawn = options.spawn ?? defaultSpawn;
     this.probe = options.probe ?? createDefaultDigestProbe();
     this.binary = options.binary ?? OLLAMA_BINARY;
     this.platform = options.platform ?? process.platform;
+    this.fetch = options.fetch ?? defaultFetch;
+    this.sleep = options.sleep ?? defaultSleep;
   }
 
   async isInstalled(): Promise<boolean> {
@@ -412,8 +470,80 @@ export class OllamaAdapter implements BackendAdapter {
     return Promise.reject(new BackendError("ollama serve is implemented in a later task"));
   }
 
-  waitUntilReady(_options: ReadinessOptions): Promise<void> {
-    return Promise.reject(new BackendError("ollama health check is implemented in a later task"));
+  /**
+   * Poll the OpenAI-compatible readiness endpoint (`/v1/models`, falling back to
+   * `/api/tags`) with exponential backoff until it responds, the attempt budget
+   * is spent, or the deadline elapses. Both exhaustion cases throw a typed
+   * {@link BackendError} (distinguished by message) carrying the last transport
+   * error as `cause`. Each request is itself bounded so a hung probe cannot
+   * outlive the deadline. `retries` is the maximum number of attempts.
+   */
+  async waitUntilReady(options: ReadinessOptions): Promise<void> {
+    const timeoutMs = options.timeoutMs ?? DEFAULT_READINESS_TIMEOUT_MS;
+    const maxAttempts = Math.max(1, options.retries ?? DEFAULT_READINESS_RETRIES);
+    const deadline = Date.now() + timeoutMs;
+    let attempt = 0;
+
+    for (;;) {
+      if (options.signal?.aborted) {
+        throw new BackendError(`readiness check aborted for ${options.endpoint}`);
+      }
+
+      attempt += 1;
+      const requestTimeoutMs = Math.min(
+        READINESS_REQUEST_TIMEOUT_MS,
+        Math.max(deadline - Date.now(), 1),
+      );
+      const result = await this.probeReady(options.endpoint, options.signal, requestTimeoutMs);
+      if (result.ready) return;
+      const cause = result.lastError !== undefined ? { cause: result.lastError } : undefined;
+
+      if (attempt >= maxAttempts) {
+        throw new BackendError(
+          `${options.endpoint} did not become ready after ${attempt} attempt(s)`,
+          cause,
+        );
+      }
+      if (Date.now() >= deadline) {
+        throw new BackendError(`${options.endpoint} readiness timed out after ${timeoutMs}ms`, cause);
+      }
+
+      const remaining = Math.max(deadline - Date.now(), 0);
+      await this.sleep(Math.min(readinessBackoffMs(attempt), remaining), options.signal);
+    }
+  }
+
+  /**
+   * One readiness attempt. Tries each probe path with a per-request timeout
+   * (combined with the caller's signal); returns ready on the first 2xx.
+   */
+  private async probeReady(
+    endpoint: string,
+    callerSignal: AbortSignal | undefined,
+    requestTimeoutMs: number,
+  ): Promise<ProbeResult> {
+    const base = endpoint.replace(/\/+$/, "");
+    let lastError: unknown;
+
+    for (const path of READINESS_PATHS) {
+      const controller = new AbortController();
+      const onCallerAbort = (): void => controller.abort();
+      const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
+      if (callerSignal?.aborted) controller.abort();
+      else callerSignal?.addEventListener("abort", onCallerAbort, { once: true });
+
+      try {
+        const response = await this.fetch(`${base}${path}`, { signal: controller.signal });
+        if (response.ok) return { ready: true };
+      } catch (error) {
+        // Connection refused / timeout / network error → try the next path, then retry.
+        lastError = error;
+      } finally {
+        clearTimeout(timer);
+        callerSignal?.removeEventListener("abort", onCallerAbort);
+      }
+    }
+    return { ready: false, lastError };
   }
 
   stop(_handle: ServeHandle): Promise<void> {

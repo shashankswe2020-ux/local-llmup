@@ -193,9 +193,9 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] `spawn(...,{shell:false})` pull w/ progress; SHA-256 verify; **digest-unavailable → defined size-only fallback + `digestVerified:false`** (not fail-open); digest mismatch **fail-closed**.
 **Verify:** `npm test tests/backend/ollama-pull` **Deps:** T13 **Files:** `src/backend/ollama.ts` (pull), +test **Scope:** S
 
-#### T16: Ollama adapter — serve + health
+#### T16: Ollama adapter — serve + health ✅ done
 **Acceptance:**
-- [ ] `/v1/models` (fallback `/api/tags`) readiness with backoff; ready-on-Nth-attempt; **health timeout vs fail** both surface typed errors.
+- [x] `/v1/models` (fallback `/api/tags`) readiness with backoff; ready-on-Nth-attempt; **health timeout vs fail** both surface typed errors.
 **Verify:** `npm test tests/backend/ollama-serve` **Deps:** T15 **Files:** `src/backend/ollama.ts` (serve/health), +test **Scope:** S
 
 #### T17: Ollama adapter — daemon lifecycle + cleanup
