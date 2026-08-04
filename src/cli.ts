@@ -6,6 +6,7 @@ import { runUp } from "./commands/up.js";
 import { runDown } from "./commands/down.js";
 import { runLs } from "./commands/ls.js";
 import { runSwitch } from "./commands/switch.js";
+import { runChat } from "./commands/chat.js";
 import { runDoctor } from "./commands/doctor.js";
 import { stripControl } from "./sanitize.js";
 import { CAPABILITIES, type Capability } from "./types.js";
@@ -141,6 +142,21 @@ function registerSwitch(command: Command): void {
   });
 }
 
+/** Wire the `chat` action onto its cac command. */
+function registerChat(command: Command): void {
+  command
+    .option("-m, --model <model>", "Model to chat with (defaults to the active model)")
+    .action(async (options: { model?: string }) => {
+      try {
+        await runChat(options.model !== undefined ? { model: options.model } : {});
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`chat: ${stripControl(message)}\n`);
+        process.exitCode = 1;
+      }
+    });
+}
+
 /** Wire the `doctor` action onto its cac command. */
 function registerDoctor(command: Command): void {
   command.action(async () => {
@@ -171,6 +187,8 @@ export function buildCli(): ReturnType<typeof cac> {
       registerLs(command);
     } else if (spec.name === "switch") {
       registerSwitch(command);
+    } else if (spec.name === "chat") {
+      registerChat(command);
     } else if (spec.name === "doctor") {
       registerDoctor(command);
     } else {

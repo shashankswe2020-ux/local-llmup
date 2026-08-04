@@ -240,9 +240,9 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] Appends turns; rule-based fact extraction; optional embeddings with model+dim in `meta.json`; control/ANSI stripped.
 **Verify:** `npm test tests/memory/capture` **Deps:** T17, T22 **Files:** `src/memory/capture.ts`, +test **Scope:** S
 
-#### T24: `chat` command
+#### T24: `chat` command ✅ done
 **Acceptance:**
-- [ ] Forwards to backend, streams reply, invokes capture with the **asserted payload** (not just call count).
+- [x] Forwards to backend, streams reply, invokes capture with the **asserted payload** (not just call count).
 **Verify:** `npm test tests/commands/chat` **Deps:** T12, T14, T23 **Files:** `src/commands/chat.ts`, `src/cli.ts`, +test **Scope:** S
 
 #### T25: Migrate logic (remap + summarize + re-embed)
