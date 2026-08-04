@@ -176,9 +176,9 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] Corrupt state distinguished: unparseable vs schema-invalid vs zero-byte.
 **Verify:** `npm test tests/state` **Deps:** T1 **Files:** `src/state/state.ts`, +test **Scope:** M
 
-#### T13: Backend adapter interface + safety utils
+#### T13: Backend adapter interface + safety utils ✅ done
 **Acceptance:**
-- [ ] `BackendAdapter` interface (stateless); model-id allow-list (`^[a-z0-9._:\/-]+$`) and host allow-list reject invalid ids and non-HTTPS/private/`localhost`/`0.0.0.0`/link-local/`::1`/credentialed/odd-port URLs.
+- [x] `BackendAdapter` interface (stateless); model-id allow-list (`^[a-z0-9._:\/-]+$`) and host allow-list reject invalid ids and non-HTTPS/private/`localhost`/`0.0.0.0`/link-local/`::1`/credentialed/odd-port URLs.
 **Verify:** `npm test tests/backend/adapter` **Deps:** T2 **Files:** `src/backend/adapter.ts`, `src/backend/net.ts`, +test **Scope:** S
 
 #### T14: Model resolver
