@@ -181,11 +181,11 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] `BackendAdapter` interface (stateless); model-id allow-list (`^[a-z0-9._:\/-]+$`) and host allow-list reject invalid ids and non-HTTPS/private/`localhost`/`0.0.0.0`/link-local/`::1`/credentialed/odd-port URLs.
 **Verify:** `npm test tests/backend/adapter` **Deps:** T2 **Files:** `src/backend/adapter.ts`, `src/backend/net.ts`, +test **Scope:** S
 
-#### T14: Model resolver
+#### T14: Model resolver ✅ done
 **Description:** Fuzzy `resolve(input) → catalog/installed entry` reused by
 `up`/`down`/`switch`/`migrate`; ambiguity lists candidates.
 **Acceptance:**
-- [ ] Resolves `llama3.1`/`llama3.1:8b`/`…-q4_K_M`; ambiguous→typed error with candidates; traversal-y ids rejected.
+- [x] Resolves `llama3.1`/`llama3.1:8b`/`…-q4_K_M`; ambiguous→typed error with candidates; traversal-y ids rejected.
 **Verify:** `npm test tests/resolver` **Deps:** T4, T12 **Files:** `src/resolver.ts`, +test **Scope:** S
 
 #### T15: Ollama adapter — pull + digest verify

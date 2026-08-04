@@ -2,6 +2,7 @@
 import { pathToFileURL } from "node:url";
 import { cac, type Command } from "cac";
 import { runRecommend } from "./commands/recommend.js";
+import { stripControl } from "./sanitize.js";
 import { CAPABILITIES, type Capability } from "./types.js";
 
 export type CommandName =
@@ -66,7 +67,8 @@ function registerRecommend(command: Command): void {
           ...(options.json === true ? { json: true } : {}),
         });
       } catch (error) {
-        process.stderr.write(`recommend: ${error instanceof Error ? error.message : String(error)}\n`);
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`recommend: ${stripControl(message)}\n`);
         process.exitCode = 1;
       }
     });

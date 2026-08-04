@@ -17,6 +17,22 @@ export class ValidationError extends LocalLlmupError {
   }
 }
 
+/**
+ * A model name could not be resolved to a single catalog entry: either no match
+ * or an ambiguous one. Carries the candidate ids so callers can surface a
+ * "did you mean" list. Extends {@link ValidationError} so generic input-error
+ * handling still catches it.
+ */
+export class ModelResolutionError extends ValidationError {
+  readonly candidates: readonly string[];
+
+  constructor(message: string, candidates: readonly string[] = [], options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "ModelResolutionError";
+    this.candidates = candidates;
+  }
+}
+
 /** Failure interacting with an inference backend (spawn, pull, serve, health). */
 export class BackendError extends LocalLlmupError {
   constructor(message: string, options?: { cause?: unknown }) {
