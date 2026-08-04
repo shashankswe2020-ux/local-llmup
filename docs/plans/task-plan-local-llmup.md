@@ -97,11 +97,11 @@ T1►T22 memory store
 - [x] `errors.ts` base + subclasses (validation, backend, memory, catalog).
 **Verify:** `npm test tests/config tests/errors` **Deps:** T0 **Files:** `src/config.ts`, `src/errors.ts`, +tests **Scope:** S
 
-#### T2: Shared types
+#### T2: Shared types ✅ done
 **Description:** Central `HardwareProfile` and catalog model/quant types (or a
 primitives-based sizing input) so ranking, hardware, and enrich don't cross-couple.
 **Acceptance:**
-- [ ] `HardwareProfile` + catalog types exported; consumed by T6/T7/T8; no hardware import leaks into enrich.
+- [x] `HardwareProfile` + catalog types exported; consumed by T6/T7/T8; no hardware import leaks into enrich.
 **Verify:** `npm run typecheck` **Deps:** T1 **Files:** `src/types.ts`, +test **Scope:** XS
 
 #### T3: Catalog Zod schema (dense/MoE + license gate)
