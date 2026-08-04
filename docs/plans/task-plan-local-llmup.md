@@ -230,9 +230,9 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 
 ### Phase 4 — Memory + Migrate + Chat
 
-#### T22: Memory store
+#### T22: Memory store ✅ done
 **Acceptance:**
-- [ ] `schemaVersion`'d read/write; id→safe-slug + `realpath` traversal defense; **slug-collision** must not silently overwrite; `0600` verified via `fs.stat` mode (umask-hostile env); corrupt store graceful.
+- [x] `schemaVersion`'d read/write; id→safe-slug + `realpath` traversal defense; **slug-collision** must not silently overwrite; `0600` verified via `fs.stat` mode (umask-hostile env); corrupt store graceful.
 **Verify:** `npm test tests/memory/store` **Deps:** T1 **Files:** `src/memory/store.ts`, +test **Scope:** M
 
 #### T23: Chat capture logic
