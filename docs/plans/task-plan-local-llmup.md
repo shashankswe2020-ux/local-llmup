@@ -129,10 +129,10 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 
 ### Phase 2 — Hardware + Ranking (headline slice)
 
-#### T6: Memory math (dense + MoE)
+#### T6: Memory math (dense + MoE) ✅ done
 **Acceptance:**
-- [ ] `usableMemoryBytes`: unified/discrete-VRAM/free-RAM/no-double-count, each with an exactly-fits + off-by-one-byte boundary case.
-- [ ] `requiredMemoryBytes` MoE uses **total** params; guards for zero/negative/NaN/missing quant bytes.
+- [x] `usableMemoryBytes`: unified/discrete-VRAM/free-RAM/no-double-count, each with an exactly-fits + off-by-one-byte boundary case.
+- [x] `requiredMemoryBytes` MoE uses **total** params; guards for zero/negative/NaN/missing quant bytes.
 **Verify:** `npm test tests/hardware/memory-math` **Deps:** T2 **Files:** `src/hardware/memory-math.ts`, +test **Scope:** S
 
 #### T7: Hardware detection
