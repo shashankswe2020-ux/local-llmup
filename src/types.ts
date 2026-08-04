@@ -33,6 +33,32 @@ export const CAPABILITIES = [
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
+/**
+ * Open-weight licenses admitted into the catalog. Non-open (closed API) models
+ * are out of scope; the catalog schema rejects anything not listed here.
+ */
+export const LICENSE_ALLOWLIST = [
+  "apache-2.0",
+  "mit",
+  "modified-mit",
+  "bsd-3-clause",
+  "llama-2-community",
+  "llama-3-community",
+  "llama-3.1-community",
+  "llama-3.2-community",
+  "llama-3.3-community",
+  "gemma",
+  "qwen",
+  "qwen-research",
+  "tongyi-qianwen",
+  "deepseek",
+  "yi-license",
+  "cc-by-4.0",
+  "cc-by-sa-4.0",
+  "openrail",
+] as const;
+export type License = (typeof LICENSE_ALLOWLIST)[number];
+
 /** A single GPU and its dedicated VRAM (0 for integrated/unified). */
 export interface GpuInfo {
   readonly vendor: GpuVendor;
@@ -56,13 +82,15 @@ export interface Quantization {
   readonly minRamBytes: number;
   readonly minVramBytes: number;
   /** Weight digest when the registry publishes one; absent → size-only verify. */
-  readonly sha256?: string;
+  readonly sha256?: string | undefined;
+  /** Whether the published digest was verified; absent until pull-time. */
+  readonly digestVerified?: boolean | undefined;
 }
 
 /** Upstream registry coordinates for a model. */
 export interface ModelSource {
-  readonly ollama?: string;
-  readonly hf?: string;
+  readonly ollama?: string | undefined;
+  readonly hf?: string | undefined;
 }
 
 /** A model entry in the catalog. */
@@ -73,8 +101,8 @@ export interface CatalogModel {
   readonly params: string;
   readonly architecture: ModelArchitecture;
   /** MoE only: parameters active per token; drives speed, not footprint. */
-  readonly activeParams?: string;
-  readonly license: string;
+  readonly activeParams?: string | undefined;
+  readonly license: License;
   readonly openWeight: boolean;
   readonly contextLength: number;
   readonly capabilities: readonly Capability[];
@@ -83,7 +111,7 @@ export interface CatalogModel {
   readonly source: ModelSource;
   readonly quantizations: readonly Quantization[];
   /** Normalized quality proxy in [0, 1]. */
-  readonly benchmarkProxy?: number;
+  readonly benchmarkProxy?: number | undefined;
 }
 
 /** The versioned model catalog (`data/models.json`). */

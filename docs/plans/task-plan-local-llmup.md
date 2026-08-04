@@ -104,10 +104,10 @@ primitives-based sizing input) so ranking, hardware, and enrich don't cross-coup
 - [x] `HardwareProfile` + catalog types exported; consumed by T6/T7/T8; no hardware import leaks into enrich.
 **Verify:** `npm run typecheck` **Deps:** T1 **Files:** `src/types.ts`, +test **Scope:** XS
 
-#### T3: Catalog Zod schema (dense/MoE + license gate)
+#### T3: Catalog Zod schema (dense/MoE + license gate) ✅ done
 **Acceptance:**
-- [ ] Rejects non-allow-listed license (enumerated cases incl. missing/empty/unknown), `moe` without `activeParams`, negative/missing quant bytes.
-- [ ] Optional `sha256`/`digestVerified`; exports inferred types.
+- [x] Rejects non-allow-listed license (enumerated cases incl. missing/empty/unknown), `moe` without `activeParams`, negative/missing quant bytes.
+- [x] Optional `sha256`/`digestVerified`; exports inferred types.
 **Verify:** `npm test tests/catalog/schema` **Deps:** T2 **Files:** `src/catalog/schema.ts`, +fixtures, +test **Scope:** S
 
 #### T4: Catalog loader
