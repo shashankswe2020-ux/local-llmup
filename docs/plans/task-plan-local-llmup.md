@@ -216,9 +216,9 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] `down` stops only `ownedByUs` daemons, idempotent no-op when none; `ls` reflects state.
 **Verify:** `npm test tests/commands/down tests/commands/ls` **Deps:** T12, T14, T17 **Files:** `src/commands/down.ts`, `src/commands/ls.ts`, +tests **Scope:** S
 
-#### T20: `switch`
+#### T20: `switch` ✅ done
 **Acceptance:**
-- [ ] Switches active model; failure preserves prior active; switching to already-active is a defined no-op.
+- [x] Switches active model; failure preserves prior active; switching to already-active is a defined no-op.
 **Verify:** `npm test tests/commands/switch` **Deps:** T12, T14, T17 **Files:** `src/commands/switch.ts`, +test **Scope:** S
 
 #### T21: `doctor`

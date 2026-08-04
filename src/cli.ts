@@ -5,6 +5,7 @@ import { runRecommend } from "./commands/recommend.js";
 import { runUp } from "./commands/up.js";
 import { runDown } from "./commands/down.js";
 import { runLs } from "./commands/ls.js";
+import { runSwitch } from "./commands/switch.js";
 import { stripControl } from "./sanitize.js";
 import { CAPABILITIES, type Capability } from "./types.js";
 
@@ -126,6 +127,19 @@ function registerLs(command: Command): void {
   });
 }
 
+/** Wire the `switch` action onto its cac command. */
+function registerSwitch(command: Command): void {
+  command.action(async (model: string) => {
+    try {
+      await runSwitch({ model });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      process.stderr.write(`switch: ${stripControl(message)}\n`);
+      process.exitCode = 1;
+    }
+  });
+}
+
 export function buildCli(): ReturnType<typeof cac> {
   const cli = cac(NAME);
 
@@ -140,6 +154,8 @@ export function buildCli(): ReturnType<typeof cac> {
       registerDown(command);
     } else if (spec.name === "ls") {
       registerLs(command);
+    } else if (spec.name === "switch") {
+      registerSwitch(command);
     } else {
       command.action(() => {
         notImplemented(spec.name);

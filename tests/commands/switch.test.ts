@@ -1,0 +1,201 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { loadConfig, type Config } from "../../src/config.js";
+import { BackendError, ValidationError } from "../../src/errors.js";
+import { readState, withLock, writeState } from "../../src/state/state.js";
+import { runSwitch, type SwitchDeps } from "../../src/commands/switch.js";
+import type {
+  BackendAdapter,
+  PullOptions,
+  PullResult,
+  ReadinessOptions,
+} from "../../src/backend/adapter.js";
+import type { Catalog, CatalogModel, Quantization } from "../../src/types.js";
+
+function quant(name: string, overrides: Partial<Quantization> = {}): Quantization {
+  return {
+    name,
+    diskBytes: 5_000_000_000,
+    minRamBytes: 6_000_000_000,
+    minVramBytes: 6_000_000_000,
+    ...overrides,
+  };
+}
+
+function model(id: string, quants: readonly Quantization[] = [quant("Q4_K_M")]): CatalogModel {
+  return {
+    id,
+    family: id.split(":")[0]!,
+    params: "8B",
+    architecture: "dense",
+    license: "apache-2.0",
+    openWeight: true,
+    contextLength: 8192,
+    capabilities: ["chat"],
+    releaseDate: "2025-06-01",
+    source: { ollama: id },
+    quantizations: quants,
+  };
+}
+
+function catalog(models: readonly CatalogModel[]): Catalog {
+  return { schemaVersion: 1, generatedAt: "2026-01-01T00:00:00.000Z", models };
+}
+
+interface FakeAdapter extends BackendAdapter {
+  readonly pullArgs: PullOptions[];
+  readonly readyArgs: ReadinessOptions[];
+  pullError?: Error;
+  readyError?: Error;
+}
+
+function fakeAdapter(): FakeAdapter {
+  const pullArgs: PullOptions[] = [];
+  const readyArgs: ReadinessOptions[] = [];
+  const adapter: FakeAdapter = {
+    pullArgs,
+    readyArgs,
+    name: "ollama",
+    isInstalled: () => Promise.resolve(true),
+    installHint: () => "brew install ollama",
+    pull: (opts: PullOptions): Promise<PullResult> => {
+      pullArgs.push(opts);
+      return adapter.pullError
+        ? Promise.reject(adapter.pullError)
+        : Promise.resolve({ modelId: opts.modelId, digestVerified: true });
+    },
+    serve: () => Promise.reject(new Error("unused")),
+    waitUntilReady: (opts: ReadinessOptions): Promise<void> => {
+      readyArgs.push(opts);
+      return adapter.readyError ? Promise.reject(adapter.readyError) : Promise.resolve();
+    },
+    stop: () => Promise.reject(new Error("unused")),
+    chat: () => Promise.reject(new Error("unused")),
+    embed: () => Promise.reject(new Error("unused")),
+  };
+  return adapter;
+}
+
+let home: string;
+let config: Config;
+let stdout: string[];
+let stderr: string[];
+
+beforeEach(() => {
+  home = mkdtempSync(join(tmpdir(), "llmup-switch-"));
+  config = loadConfig({ LOCAL_LLMUP_HOME: home });
+  stdout = [];
+  stderr = [];
+});
+
+afterEach(() => {
+  rmSync(home, { recursive: true, force: true });
+});
+
+const CAT = catalog([model("llama3.1:8b"), model("qwen2.5:7b", [quant("Q4_K_M", { sha256: "b".repeat(64) })])]);
+
+function deps(adapter: FakeAdapter, cat: Catalog = CAT): SwitchDeps {
+  return {
+    config,
+    loadCatalog: () => cat,
+    readState,
+    writeState,
+    withLock,
+    adapter,
+    write: (t) => stdout.push(t),
+    log: (t) => stderr.push(t),
+  };
+}
+
+function seedActive(modelId: string): void {
+  writeState(config, {
+    schemaVersion: 1,
+    active: {
+      modelId,
+      endpoint: "http://127.0.0.1:11434",
+      pid: 9001,
+      port: 11434,
+      ownedByUs: true,
+    },
+  });
+}
+
+describe("runSwitch", () => {
+  it("rejects when no server is active", async () => {
+    const adapter = fakeAdapter();
+
+    await expect(runSwitch({ model: "qwen2.5" }, deps(adapter))).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+
+    expect(adapter.pullArgs).toHaveLength(0);
+    expect(readState(config).active).toBeNull();
+  });
+
+  it("is a defined no-op when the target is already active", async () => {
+    seedActive("llama3.1:8b");
+    const adapter = fakeAdapter();
+
+    await runSwitch({ model: "llama3.1:8b" }, deps(adapter));
+
+    expect(adapter.pullArgs).toHaveLength(0);
+    expect(stdout.join("")).toMatch(/already active/i);
+    expect(readState(config).active).toMatchObject({ modelId: "llama3.1:8b" });
+  });
+
+  it("repoints the active model, preserving the daemon handle", async () => {
+    seedActive("llama3.1:8b");
+    const adapter = fakeAdapter();
+
+    await runSwitch({ model: "qwen2.5" }, deps(adapter));
+
+    expect(adapter.pullArgs[0]?.modelId).toBe("qwen2.5:7b");
+    expect(adapter.readyArgs[0]?.endpoint).toBe("http://127.0.0.1:11434");
+    expect(readState(config).active).toEqual({
+      modelId: "qwen2.5:7b",
+      endpoint: "http://127.0.0.1:11434",
+      pid: 9001,
+      port: 11434,
+      ownedByUs: true,
+    });
+    expect(stdout.join("")).toContain("qwen2.5:7b");
+  });
+
+  it("preserves the prior active model when the pull fails", async () => {
+    seedActive("llama3.1:8b");
+    const adapter = fakeAdapter();
+    adapter.pullError = new BackendError("pull failed");
+
+    await expect(runSwitch({ model: "qwen2.5" }, deps(adapter))).rejects.toBeInstanceOf(
+      BackendError,
+    );
+
+    expect(readState(config).active).toMatchObject({ modelId: "llama3.1:8b" });
+  });
+
+  it("preserves the prior active model when the health check fails", async () => {
+    seedActive("llama3.1:8b");
+    const adapter = fakeAdapter();
+    adapter.readyError = new BackendError("not ready");
+
+    await expect(runSwitch({ model: "qwen2.5" }, deps(adapter))).rejects.toBeInstanceOf(
+      BackendError,
+    );
+
+    expect(readState(config).active).toMatchObject({ modelId: "llama3.1:8b" });
+  });
+
+  it("forwards the catalog digest to pull when an explicit quant is requested", async () => {
+    seedActive("llama3.1:8b");
+    const adapter = fakeAdapter();
+
+    await runSwitch({ model: "qwen2.5:7b-Q4_K_M" }, deps(adapter));
+
+    expect(adapter.pullArgs[0]).toMatchObject({
+      modelId: "qwen2.5:7b",
+      expectedSha256: "b".repeat(64),
+    });
+  });
+});
