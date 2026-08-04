@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-04T00:00:00Z",
+  "models": [
+    {
+      "id": "kimi-k2:instruct",
+      "family": "kimi-k2",
+      "params": "1T",
+      "architecture": "moe",
+      "activeParams": "32B",
+      "license": "modified-mit",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": ["chat", "reasoning", "tools"],
+      "releaseDate": "2025-07-11",
+      "source": { "ollama": "kimi-k2:instruct" },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 600000000000,
+          "minRamBytes": 620000000000,
+          "minVramBytes": 600000000000
+        }
+      ],
+      "benchmarkProxy": 0.82
+    },
+    {
+      "id": "qwen3:30b-a3b",
+      "family": "qwen3",
+      "params": "30B",
+      "architecture": "moe",
+      "activeParams": "3B",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": ["chat", "reasoning", "tools", "code"],
+      "releaseDate": "2025-04-28",
+      "source": { "ollama": "qwen3:30b-a3b", "hf": "Qwen/Qwen3-30B-A3B" },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 18500000000,
+          "minRamBytes": 22000000000,
+          "minVramBytes": 20000000000
+        }
+      ],
+      "benchmarkProxy": 0.74
+    },
+    {
+      "id": "llama3.1:8b",
+      "family": "llama3.1",
+      "params": "8B",
+      "architecture": "dense",
+      "license": "llama-3.1-community",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": ["chat", "code", "tools"],
+      "releaseDate": "2024-07-23",
+      "source": { "ollama": "llama3.1:8b", "hf": "meta-llama/Llama-3.1-8B-Instruct" },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 4900000000,
+          "minRamBytes": 6500000000,
+          "minVramBytes": 6000000000
+        }
+      ],
+      "benchmarkProxy": 0.66
+    },
+    {
+      "id": "llama3.2:3b",
+      "family": "llama3.2",
+      "params": "3B",
+      "architecture": "dense",
+      "license": "llama-3.2-community",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": ["chat", "tools"],
+      "releaseDate": "2024-09-25",
+      "source": { "ollama": "llama3.2:3b", "hf": "meta-llama/Llama-3.2-3B-Instruct" },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 2000000000,
+          "minRamBytes": 3200000000,
+          "minVramBytes": 2800000000
+        }
+      ],
+      "benchmarkProxy": 0.52
+    },
+    {
+      "id": "qwen2.5:7b",
+      "family": "qwen2.5",
+      "params": "7B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": ["chat", "code", "tools"],
+      "releaseDate": "2024-09-19",
+      "source": { "ollama": "qwen2.5:7b", "hf": "Qwen/Qwen2.5-7B-Instruct" },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 4700000000,
+          "minRamBytes": 6300000000,
+          "minVramBytes": 5800000000
+        }
+      ],
+      "benchmarkProxy": 0.64
+    },
+    {
+      "id": "deepseek-r1:7b",
+      "family": "deepseek-r1",
+      "params": "7B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": ["chat", "reasoning", "code"],
+      "releaseDate": "2025-01-20",
+      "source": { "ollama": "deepseek-r1:7b", "hf": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B" },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 4700000000,
+          "minRamBytes": 6300000000,
+          "minVramBytes": 5800000000
+        }
+      ],
+      "benchmarkProxy": 0.68
+    },
+    {
+      "id": "mistral:7b",
+      "family": "mistral",
+      "params": "7B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 32768,
+      "capabilities": ["chat", "code"],
+      "releaseDate": "2023-09-27",
+      "source": { "ollama": "mistral:7b", "hf": "mistralai/Mistral-7B-Instruct-v0.3" },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 4400000000,
+          "minRamBytes": 6000000000,
+          "minVramBytes": 5500000000
+        }
+      ],
+      "benchmarkProxy": 0.58
+    },
+    {
+      "id": "gemma2:2b",
+      "family": "gemma2",
+      "params": "2B",
+      "architecture": "dense",
+      "license": "gemma",
+      "openWeight": true,
+      "contextLength": 8192,
+      "capabilities": ["chat"],
+      "releaseDate": "2024-07-31",
+      "source": { "ollama": "gemma2:2b", "hf": "google/gemma-2-2b-it" },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 1700000000,
+          "minRamBytes": 2900000000,
+          "minVramBytes": 2500000000
+        }
+      ],
+      "benchmarkProxy": 0.49
+    },
+    {
+      "id": "phi3:mini",
+      "family": "phi3",
+      "params": "3.8B",
+      "architecture": "dense",
+      "license": "mit",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": ["chat", "code"],
+      "releaseDate": "2024-04-23",
+      "source": { "ollama": "phi3:mini", "hf": "microsoft/Phi-3-mini-128k-instruct" },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 2300000000,
+          "minRamBytes": 3600000000,
+          "minVramBytes": 3200000000
+        }
+      ],
+      "benchmarkProxy": 0.55
+    },
+    {
+      "id": "glm4:9b",
+      "family": "glm4",
+      "params": "9B",
+      "architecture": "dense",
+      "license": "mit",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": ["chat", "tools"],
+      "releaseDate": "2025-04-14",
+      "source": { "ollama": "glm4:9b", "hf": "THUDM/GLM-4-9B-0414" },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 5500000000,
+          "minRamBytes": 7200000000,
+          "minVramBytes": 6600000000
+        }
+      ],
+      "benchmarkProxy": 0.6
+    },
+    {
+      "id": "smollm2:1.7b",
+      "family": "smollm2",
+      "params": "1.7B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 8192,
+      "capabilities": ["chat"],
+      "releaseDate": "2024-11-01",
+      "source": { "ollama": "smollm2:1.7b", "hf": "HuggingFaceTB/SmolLM2-1.7B-Instruct" },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 1100000000,
+          "minRamBytes": 2200000000,
+          "minVramBytes": 1900000000
+        }
+      ],
+      "benchmarkProxy": 0.44
+    }
+  ]
+}

@@ -116,13 +116,13 @@ primitives-based sizing input) so ranking, hardware, and enrich don't cross-coup
 - [x] Control/ANSI stripped from display fields; optional integrity check on seed.
 **Verify:** `npm test tests/catalog/load` **Deps:** T3 **Files:** `src/catalog/load.ts`, +test **Scope:** S
 
-#### T5: Dev seed + test fixtures (`data/models.json` bootstrap-ready)
+#### T5: Dev seed + test fixtures (`data/models.json` bootstrap-ready) ✅ done
 **Description:** A small, hand-curated `data/models.json` + fixtures sufficient
 for dev and tests. The **exhaustive** production catalog (all open-weight models
 to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 **Acceptance:**
-- [ ] Validates vs schema (test); asserts by **capability class** (≥1 large MoE `kimi-k2`, several small-fit) not brittle IDs.
-- [ ] Covers Kimi + Llama/Qwen/DeepSeek/Mistral/Gemma/Phi/GLM/SmolLM as dev data; fixtures cover ranking/enrich edge cases.
+- [x] Validates vs schema (test); asserts by **capability class** (≥1 large MoE `kimi-k2`, several small-fit) not brittle IDs.
+- [x] Covers Kimi + Llama/Qwen/DeepSeek/Mistral/Gemma/Phi/GLM/SmolLM as dev data; fixtures cover ranking/enrich edge cases.
 **Verify:** `npm test tests/catalog/seed` **Deps:** T3 **Files:** `data/models.json`, +fixtures, +test **Scope:** S
 
 ### Checkpoint: Foundation (T0–T5) — build/typecheck/lint/test green; seed validates.
