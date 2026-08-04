@@ -29,7 +29,7 @@ const PARAM_UNIT_MULTIPLIER: Readonly<Record<string, number>> = {
  * `Q<n>` / float tag in its name. Unknown tags return `undefined` so callers
  * fall back to the catalog's measured on-disk size rather than guessing.
  */
-function quantBitsPerParam(name: string): number | undefined {
+export function quantBitsPerParam(name: string): number | undefined {
   const normalized = name.toLowerCase();
   // Non-linear IK quants (`IQ*`) must be matched before the plain `Q*` rows,
   // otherwise an `IQ4_XS` name would fall through and disable the MoE floor.
@@ -62,14 +62,6 @@ export function parseParamCount(label: string): number {
   return count;
 }
 
-/**
- * Memory the machine can realistically give a single inference process.
- *
- * - Apple unified memory: total RAM shared with the GPU, minus an OS reserve.
- * - Discrete GPU: the single largest VRAM pool (v1 does not split across GPUs,
- *   and never adds VRAM to RAM — that would double-count).
- * - CPU-only: free RAM minus an OS reserve.
- */
 /**
  * Which pool bounds a single inference process on this machine: dedicated GPU
  * VRAM (discrete GPU) or system RAM (Apple unified, integrated, or CPU-only).

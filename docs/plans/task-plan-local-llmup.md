@@ -146,11 +146,11 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] `kimi-k2` excluded `ram-bound`; MoE that fits by active-params but not total → correct rule wins.
 **Verify:** `npm test tests/ranking/fit` **Deps:** T3, T6 **Files:** `src/ranking/fit.ts`, +test **Scope:** S
 
-#### T9: Ranking — scoring + tie-break
+#### T9: Ranking — scoring + tie-break ✅ done
 **Acceptance:**
-- [ ] Five-dim score incl. deterministic `speedScore`; recency pinned to `catalog.generatedAt`; frozen-clock determinism.
-- [ ] Tie-break benchmarkProxy→releaseDate→id (incl. all-keys-equal stable order); weights-sum-to-1 invariant asserted at boundary (0.999/1.001).
-- [ ] Empty-catalog vs all-too-big return **distinct** clean results/messaging.
+- [x] Five-dim score incl. deterministic `speedScore`; recency pinned to `catalog.generatedAt`; frozen-clock determinism.
+- [x] Tie-break benchmarkProxy→releaseDate→id (incl. all-keys-equal stable order); weights-sum-to-1 invariant asserted at boundary (0.999/1.001).
+- [x] Empty-catalog vs all-too-big return **distinct** clean results/messaging.
 **Verify:** `npm test tests/ranking/score` **Deps:** T8 **Files:** `src/ranking/weights.ts`, `src/ranking/rank.ts`, +test **Scope:** M
 
 #### T10: Output formatter
