@@ -245,10 +245,10 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] Forwards to backend, streams reply, invokes capture with the **asserted payload** (not just call count).
 **Verify:** `npm test tests/commands/chat` **Deps:** T12, T14, T23 **Files:** `src/commands/chat.ts`, `src/cli.ts`, +test **Scope:** S
 
-#### T25: Migrate logic (remap + summarize + re-embed)
+#### T25: Migrate logic (remap + summarize + re-embed) ✅ done
 **Acceptance:**
-- [ ] Context remap **smaller** (summarizer called with overflow turns, keeps system+facts) **and larger** (no summarization).
-- [ ] Re-embed **4-way matrix** (model×dim) fires only where required; `facts.json` byte-identical.
+- [x] Context remap **smaller** (summarizer called with overflow turns, keeps system+facts) **and larger** (no summarization).
+- [x] Re-embed **4-way matrix** (model×dim) fires only where required; `facts.json` byte-identical.
 **Verify:** `npm test tests/memory/migrate-logic` **Deps:** T17, T22 **Files:** `src/memory/migrate.ts` (logic), +test **Scope:** M
 
 #### T26: Migrate staging (atomic + rollback)
