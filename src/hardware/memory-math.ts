@@ -70,12 +70,32 @@ export function parseParamCount(label: string): number {
  *   and never adds VRAM to RAM — that would double-count).
  * - CPU-only: free RAM minus an OS reserve.
  */
-export function usableMemoryBytes(hw: HardwareProfile): number {
+/**
+ * Which pool bounds a single inference process on this machine: dedicated GPU
+ * VRAM (discrete GPU) or system RAM (Apple unified, integrated, or CPU-only).
+ * The ranker uses this to label a won't-fit reason as `vram-bound` vs
+ * `ram-bound`, sharing one branch definition with {@link usableMemoryBytes}.
+ */
+export function usableMemoryKind(hw: HardwareProfile): "ram" | "vram" {
   const largestVram = hw.gpu.reduce((max, g) => Math.max(max, g.vramBytes), 0);
   const unified = hw.arch === "arm64" && hw.platform === "darwin";
-  if (unified) return Math.max(0, hw.totalRamBytes - OS_RESERVE_BYTES);
-  if (largestVram === 0) return Math.max(0, hw.freeRamBytes - OS_RESERVE_BYTES);
-  return largestVram;
+  return !unified && largestVram > 0 ? "vram" : "ram";
+}
+
+/**
+ * Memory the machine can realistically give a single inference process.
+ *
+ * - Apple unified memory: total RAM shared with the GPU, minus an OS reserve.
+ * - Discrete GPU: the single largest VRAM pool (v1 does not split across GPUs,
+ *   and never adds VRAM to RAM — that would double-count).
+ * - CPU-only: free RAM minus an OS reserve.
+ */
+export function usableMemoryBytes(hw: HardwareProfile): number {
+  const largestVram = hw.gpu.reduce((max, g) => Math.max(max, g.vramBytes), 0);
+  if (usableMemoryKind(hw) === "vram") return largestVram;
+  const unified = hw.arch === "arm64" && hw.platform === "darwin";
+  const pool = unified ? hw.totalRamBytes : hw.freeRamBytes;
+  return Math.max(0, pool - OS_RESERVE_BYTES);
 }
 
 /**

@@ -140,10 +140,10 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] Mocked `systeminformation` → valid profile; no-GPU, multi-GPU (assert largest-single selection), integrated (VRAM null), **hung-probe timeout via fake timers**, malformed→**conservative** safe default.
 **Verify:** `npm test tests/hardware/detect` **Deps:** T2 (parallel to T6) **Files:** `src/hardware/detect.ts`, +test **Scope:** M
 
-#### T8: Ranking — fit + quant selection
+#### T8: Ranking — fit + quant selection ✅ done
 **Acceptance:**
-- [ ] Best-fitting quant per model; `fits()` filter with headroom; typed won't-fit reasons (`ram-bound`/`vram-bound`/`disk-bound`).
-- [ ] `kimi-k2` excluded `ram-bound`; MoE that fits by active-params but not total → correct rule wins.
+- [x] Best-fitting quant per model; `fits()` filter with headroom; typed won't-fit reasons (`ram-bound`/`vram-bound`/`disk-bound`).
+- [x] `kimi-k2` excluded `ram-bound`; MoE that fits by active-params but not total → correct rule wins.
 **Verify:** `npm test tests/ranking/fit` **Deps:** T3, T6 **Files:** `src/ranking/fit.ts`, +test **Scope:** S
 
 #### T9: Ranking — scoring + tie-break
