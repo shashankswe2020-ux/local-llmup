@@ -203,10 +203,10 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] Attach-vs-spawn returns a handle with `ownedByUs`; serve/health **failure or timeout** cleans up only spawned processes (no orphan); already-running daemon → `ownedByUs:false` and **never** killed.
 **Verify:** `npm test tests/backend/ollama-lifecycle` **Deps:** T16 **Files:** `src/backend/ollama.ts` (lifecycle), +test **Scope:** M
 
-#### T18: `up` command
+#### T18: `up` command ✅ done
 **Acceptance:**
-- [ ] Order: resolve → disk preflight → ensure backend → pull+verify → serve → health → **state write (in command layer)**; binds `127.0.0.1` (rejects `0.0.0.0` regression).
-- [ ] Insufficient disk aborts (injectable disk probe); missing backend prints install cmd + nonzero exit.
+- [x] Order: resolve → disk preflight → ensure backend → pull+verify → serve → health → **state write (in command layer)**; binds `127.0.0.1` (rejects `0.0.0.0` regression).
+- [x] Insufficient disk aborts (injectable disk probe); missing backend prints install cmd + nonzero exit.
 **Verify:** `npm test tests/commands/up` **Deps:** T4, T7, T10, T12, T14, T17 **Files:** `src/commands/up.ts`, `src/cli.ts`, +test **Scope:** M
 
 ### Checkpoint: Serve-core (T12–T18) — `up` serves a model end-to-end (mocked backend), loopback verified.

@@ -18,16 +18,28 @@ import { StateError } from "../errors.js";
 /** Bumped when the on-disk state layout changes in a backward-incompatible way. */
 export const STATE_SCHEMA_VERSION = 1 as const;
 
-/** A running inference server that this CLI knows about. */
+/**
+ * A running inference server that this CLI knows about.
+ *
+ * `pid` is non-negative: a positive pid identifies a daemon we can signal,
+ * while `0` denotes an attached daemon (`ownedByUs: false`) whose pid we never
+ * learned. The refinement enforces the invariant that a server we own always
+ * carries a signalable (positive) pid, so `down`/`stop` can never be handed a
+ * contradictory `{ ownedByUs: true, pid: 0 }` record.
+ */
 const ServerStateSchema = z
   .object({
     modelId: z.string().min(1),
     endpoint: z.string().url(),
-    pid: z.number().int().positive(),
+    pid: z.number().int().nonnegative(),
     port: z.number().int().min(1).max(65535),
     ownedByUs: z.boolean(),
   })
-  .strict();
+  .strict()
+  .refine((server) => !server.ownedByUs || server.pid > 0, {
+    message: "an owned server must have a positive pid",
+    path: ["pid"],
+  });
 
 /** Persisted runtime state: the single active server, if any. */
 const RuntimeStateSchema = z

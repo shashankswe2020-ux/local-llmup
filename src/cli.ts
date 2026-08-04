@@ -2,6 +2,7 @@
 import { pathToFileURL } from "node:url";
 import { cac, type Command } from "cac";
 import { runRecommend } from "./commands/recommend.js";
+import { runUp } from "./commands/up.js";
 import { stripControl } from "./sanitize.js";
 import { CAPABILITIES, type Capability } from "./types.js";
 
@@ -74,6 +75,29 @@ function registerRecommend(command: Command): void {
     });
 }
 
+/** Wire the `up` action onto its cac command. */
+function registerUp(command: Command): void {
+  command
+    .option("--port <port>", "Port for the backend server (default 11434)")
+    .action(async (model: string, options: { port?: string | number }) => {
+      try {
+        const port = options.port === undefined ? undefined : Number(options.port);
+        if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
+          process.stderr.write(
+            `up: invalid --port ${JSON.stringify(options.port)} (expected an integer in 1..65535)\n`,
+          );
+          process.exitCode = 1;
+          return;
+        }
+        await runUp({ model, ...(port !== undefined ? { port } : {}) });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`up: ${stripControl(message)}\n`);
+        process.exitCode = 1;
+      }
+    });
+}
+
 export function buildCli(): ReturnType<typeof cac> {
   const cli = cac(NAME);
 
@@ -82,6 +106,8 @@ export function buildCli(): ReturnType<typeof cac> {
     const command = cli.command(usage, spec.description);
     if (spec.name === "recommend") {
       registerRecommend(command);
+    } else if (spec.name === "up") {
+      registerUp(command);
     } else {
       command.action(() => {
         notImplemented(spec.name);
