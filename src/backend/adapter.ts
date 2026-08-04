@@ -59,6 +59,12 @@ export interface PullResult {
 export interface ServeOptions {
   readonly host?: string | undefined;
   readonly port?: number | undefined;
+  /**
+   * Permit binding a non-loopback host (e.g. `0.0.0.0`). Off by default: the
+   * server is unauthenticated, so exposing it beyond loopback must be an
+   * explicit, deliberate opt-in (spec §8).
+   */
+  readonly allowNonLoopback?: boolean | undefined;
   readonly signal?: AbortSignal | undefined;
 }
 

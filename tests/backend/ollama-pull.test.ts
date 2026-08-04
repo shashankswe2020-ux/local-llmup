@@ -35,10 +35,12 @@ function fakeSpawn(config: FakeSpawnConfig): { spawn: SpawnFn; recorded: Recorde
     const closeListeners: ((code: number | null) => void)[] = [];
     const errorListeners: ((error: Error) => void)[] = [];
     const child: SpawnedProcess = {
+      pid: 4242,
       stdout: { onData: (listener) => dataListeners.stdout.push(listener) },
       stderr: { onData: (listener) => dataListeners.stderr.push(listener) },
       onClose: (listener) => closeListeners.push(listener),
       onError: (listener) => errorListeners.push(listener),
+      kill: () => {},
     };
     setTimeout(() => {
       if (config.error) {

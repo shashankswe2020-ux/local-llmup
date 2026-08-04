@@ -198,9 +198,9 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] `/v1/models` (fallback `/api/tags`) readiness with backoff; ready-on-Nth-attempt; **health timeout vs fail** both surface typed errors.
 **Verify:** `npm test tests/backend/ollama-serve` **Deps:** T15 **Files:** `src/backend/ollama.ts` (serve/health), +test **Scope:** S
 
-#### T17: Ollama adapter — daemon lifecycle + cleanup
+#### T17: Ollama adapter — daemon lifecycle + cleanup ✅ done
 **Acceptance:**
-- [ ] Attach-vs-spawn returns a handle with `ownedByUs`; serve/health **failure or timeout** cleans up only spawned processes (no orphan); already-running daemon → `ownedByUs:false` and **never** killed.
+- [x] Attach-vs-spawn returns a handle with `ownedByUs`; serve/health **failure or timeout** cleans up only spawned processes (no orphan); already-running daemon → `ownedByUs:false` and **never** killed.
 **Verify:** `npm test tests/backend/ollama-lifecycle` **Deps:** T16 **Files:** `src/backend/ollama.ts` (lifecycle), +test **Scope:** M
 
 #### T18: `up` command

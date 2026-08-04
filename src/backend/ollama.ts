@@ -14,19 +14,22 @@ import { readFile as fsReadFile, stat as fsStat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, relative } from "node:path";
 import type { Readable } from "node:stream";
-import { BackendError } from "../errors.js";
-import type {
-  BackendAdapter,
-  ChatRequest,
-  ChatResult,
-  EmbedRequest,
-  EmbedResult,
-  PullOptions,
-  PullProgress,
-  PullResult,
-  ReadinessOptions,
-  ServeHandle,
-  ServeOptions,
+import { BackendError, ValidationError } from "../errors.js";
+import {
+  buildEndpoint,
+  DEFAULT_BIND_HOST,
+  DEFAULT_OLLAMA_PORT,
+  type BackendAdapter,
+  type ChatRequest,
+  type ChatResult,
+  type EmbedRequest,
+  type EmbedResult,
+  type PullOptions,
+  type PullProgress,
+  type PullResult,
+  type ReadinessOptions,
+  type ServeHandle,
+  type ServeOptions,
 } from "./adapter.js";
 import { assertSafeModelId } from "./net.js";
 
@@ -49,18 +52,29 @@ export interface ProcessOutputStream {
 
 /** Minimal child-process surface the adapter depends on (a testability seam). */
 export interface SpawnedProcess {
+  /** OS process id, or undefined when the spawn did not yield one. */
+  readonly pid: number | undefined;
   readonly stdout: ProcessOutputStream | null;
   readonly stderr: ProcessOutputStream | null;
   onClose(listener: (code: number | null) => void): void;
   onError(listener: (error: Error) => void): void;
+  /** Send a termination signal (default SIGTERM) to this child. */
+  kill(signal?: NodeJS.Signals): void;
 }
 
 /** Spawn a child process with `shell: false`; injected in tests. */
 export type SpawnFn = (
   command: string,
   args: readonly string[],
-  options: { readonly signal?: AbortSignal | undefined },
+  options: {
+    readonly signal?: AbortSignal | undefined;
+    readonly env?: NodeJS.ProcessEnv | undefined;
+  },
 ) => SpawnedProcess;
+
+/** Send a signal to a process by pid (used to stop an owned daemon); injected in tests. */
+export type KillFn = (pid: number, signal?: NodeJS.Signals) => void;
+
 
 /** Integrity facts about a freshly pulled model, as observed on disk. */
 export interface PullVerification {
@@ -140,8 +154,10 @@ const defaultSpawn: SpawnFn = (command, args, options) => {
     stdio: ["ignore", "pipe", "pipe"],
     shell: false,
     signal: options.signal,
+    ...(options.env ? { env: options.env } : {}),
   });
   return {
+    pid: child.pid,
     stdout: adaptStream(child.stdout),
     stderr: adaptStream(child.stderr),
     onClose: (listener) => {
@@ -150,8 +166,36 @@ const defaultSpawn: SpawnFn = (command, args, options) => {
     onError: (listener) => {
       child.on("error", (error) => listener(error));
     },
+    kill: (signal) => {
+      child.kill(signal);
+    },
   };
 };
+
+const defaultKill: KillFn = (pid, signal) => {
+  process.kill(pid, signal);
+};
+
+/**
+ * Whether `host` is a loopback bind address. A non-loopback bind exposes the
+ * unauthenticated server beyond the local machine, so it requires opt-in. This
+ * is a lexical check on the bind address, not a DNS resolution.
+ */
+function isLoopbackBindHost(host: string): boolean {
+  const unbracketed = host.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : host;
+  const lower = unbracketed.toLowerCase();
+  return lower === "localhost" || lower === "::1" || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(lower);
+}
+
+/**
+ * A pid we can safely signal: a positive integer. Zero or negative pids address
+ * process *groups* (`kill(0)` → the caller's group), so they must never reach
+ * `process.kill`.
+ */
+function isUsablePid(pid: number | undefined): pid is number {
+  return pid !== undefined && Number.isInteger(pid) && pid > 0;
+}
+
 
 /** Turn a raw output line into a progress event. */
 function toProgress(line: string): PullProgress {
@@ -369,6 +413,7 @@ export interface OllamaAdapterOptions {
   readonly platform?: NodeJS.Platform | undefined;
   readonly fetch?: FetchFn | undefined;
   readonly sleep?: SleepFn | undefined;
+  readonly kill?: KillFn | undefined;
 }
 
 /** Stateless adapter over the Ollama backend. */
@@ -380,6 +425,7 @@ export class OllamaAdapter implements BackendAdapter {
   private readonly platform: NodeJS.Platform;
   private readonly fetch: FetchFn;
   private readonly sleep: SleepFn;
+  private readonly kill: KillFn;
 
   constructor(options: OllamaAdapterOptions = {}) {
     this.spawn = options.spawn ?? defaultSpawn;
@@ -388,6 +434,7 @@ export class OllamaAdapter implements BackendAdapter {
     this.platform = options.platform ?? process.platform;
     this.fetch = options.fetch ?? defaultFetch;
     this.sleep = options.sleep ?? defaultSleep;
+    this.kill = options.kill ?? defaultKill;
   }
 
   async isInstalled(): Promise<boolean> {
@@ -466,8 +513,96 @@ export class OllamaAdapter implements BackendAdapter {
     return { modelId: options.modelId, digestVerified: false };
   }
 
-  serve(_options?: ServeOptions): Promise<ServeHandle> {
-    return Promise.reject(new BackendError("ollama serve is implemented in a later task"));
+  /**
+   * Start the backend, preferring to attach to an already-running daemon over
+   * spawning a duplicate. When we do spawn, we wait for the daemon to pass its
+   * readiness probe and, on any failure, kill the process we started so it can
+   * never leak as an orphan. The returned handle records `ownedByUs` so the
+   * caller (and {@link stop}) only ever terminates daemons this process spawned.
+   */
+  async serve(options?: ServeOptions): Promise<ServeHandle> {
+    const host = options?.host ?? DEFAULT_BIND_HOST;
+    const port = options?.port ?? DEFAULT_OLLAMA_PORT;
+
+    // Defence in depth: never expose the unauthenticated daemon beyond loopback
+    // unless the caller explicitly opts in (spec §8).
+    if (!(options?.allowNonLoopback ?? false) && !isLoopbackBindHost(host)) {
+      throw new ValidationError(
+        `refusing to bind non-loopback host "${host}" without an explicit opt-in`,
+      );
+    }
+
+    const endpoint = buildEndpoint(host, port);
+    const signal = options?.signal;
+
+    if (signal?.aborted) {
+      throw new BackendError(`ollama serve aborted for ${endpoint}`);
+    }
+
+    // Attach to an already-running daemon; its lifecycle is not ours to manage.
+    if (await this.isReachable(endpoint, signal)) {
+      return { endpoint, pid: 0, port, ownedByUs: false };
+    }
+
+    // The probe masks an abort as "not reachable", so re-check before spawning.
+    if (signal?.aborted) {
+      throw new BackendError(`ollama serve aborted for ${endpoint}`);
+    }
+
+    // Spawn our own daemon bound to the requested (loopback by default) address.
+    // The caller's signal is deliberately NOT passed to this (persistent) child:
+    // a successful serve leaves the daemon running, and its shutdown is owned by
+    // stop()/state, not by the caller's request-scoped signal.
+    let child: SpawnedProcess;
+    try {
+      child = this.spawn(this.binary, ["serve"], {
+        env: { ...process.env, OLLAMA_HOST: `${host}:${port}` },
+      });
+    } catch (error) {
+      throw wrapSpawnError(this.binary, error instanceof Error ? error : new Error(String(error)));
+    }
+
+    // `spawn` failures (e.g. ENOENT) and early exits arrive as events, not as a
+    // synchronous throw. Observe them so they cannot crash the host as an
+    // unhandled 'error', and so a crashing daemon short-circuits the wait.
+    const earlyFailure = new Promise<never>((_resolve, reject) => {
+      child.onError((error) => reject(wrapSpawnError(this.binary, error)));
+      child.onClose((code) =>
+        reject(new BackendError(`ollama serve exited before ${endpoint} was ready (code ${code})`)),
+      );
+    });
+    // If readiness wins the race the daemon stays up and this promise may settle
+    // later; swallow it so it never becomes an unhandled rejection.
+    earlyFailure.catch(() => {});
+
+    const pid = child.pid;
+    if (!isUsablePid(pid)) {
+      // Without a usable positive pid we cannot safely track/stop it. Tear it
+      // down and fail.
+      child.kill();
+      throw new BackendError(`ollama serve did not report a usable pid for ${endpoint}`);
+    }
+
+    try {
+      await Promise.race([this.waitUntilReady({ endpoint, signal }), earlyFailure]);
+    } catch (error) {
+      // Readiness failed/timed out or the daemon crashed: clean up our own child.
+      child.kill();
+      throw error instanceof BackendError
+        ? error
+        : new BackendError(`ollama serve failed to become ready at ${endpoint}`, { cause: error });
+    }
+
+    return { endpoint, pid, port, ownedByUs: true };
+  }
+
+  /** One quick readiness attempt used to decide attach-vs-spawn. */
+  private async isReachable(
+    endpoint: string,
+    signal: AbortSignal | undefined,
+  ): Promise<boolean> {
+    const result = await this.probeReady(endpoint, signal, READINESS_REQUEST_TIMEOUT_MS);
+    return result.ready;
   }
 
   /**
@@ -546,8 +681,28 @@ export class OllamaAdapter implements BackendAdapter {
     return { ready: false, lastError };
   }
 
-  stop(_handle: ServeHandle): Promise<void> {
-    return Promise.reject(new BackendError("ollama stop is implemented in a later task"));
+  /**
+   * Stop a daemon. Only processes this adapter spawned (`ownedByUs`) are ever
+   * signalled; an attached (foreign) daemon is left running. A process that has
+   * already exited (`ESRCH`) is treated as a successful, idempotent stop.
+   */
+  async stop(handle: ServeHandle): Promise<void> {
+    if (!handle.ownedByUs) return;
+    // Refuse non-positive pids: `kill(0)`/`kill(-n)` would signal a whole process
+    // group rather than the single daemon we own (handles round-trip through the
+    // untrusted state file).
+    if (!isUsablePid(handle.pid)) {
+      throw new BackendError(`refusing to stop ollama daemon: invalid pid ${handle.pid}`);
+    }
+    try {
+      this.kill(handle.pid);
+    } catch (error) {
+      const code = (error as { code?: unknown }).code;
+      if (code === "ESRCH") return;
+      throw new BackendError(`failed to stop ollama daemon (pid ${handle.pid})`, {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
   }
 
   chat(_request: ChatRequest): Promise<ChatResult> {
