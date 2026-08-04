@@ -3,6 +3,8 @@ import { pathToFileURL } from "node:url";
 import { cac, type Command } from "cac";
 import { runRecommend } from "./commands/recommend.js";
 import { runUp } from "./commands/up.js";
+import { runDown } from "./commands/down.js";
+import { runLs } from "./commands/ls.js";
 import { stripControl } from "./sanitize.js";
 import { CAPABILITIES, type Capability } from "./types.js";
 
@@ -98,6 +100,32 @@ function registerUp(command: Command): void {
     });
 }
 
+/** Wire the `down` action onto its cac command. */
+function registerDown(command: Command): void {
+  command.action(async (model: string | undefined) => {
+    try {
+      await runDown(model !== undefined ? { model } : {});
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      process.stderr.write(`down: ${stripControl(message)}\n`);
+      process.exitCode = 1;
+    }
+  });
+}
+
+/** Wire the `ls` action onto its cac command. */
+function registerLs(command: Command): void {
+  command.action(() => {
+    try {
+      runLs();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      process.stderr.write(`ls: ${stripControl(message)}\n`);
+      process.exitCode = 1;
+    }
+  });
+}
+
 export function buildCli(): ReturnType<typeof cac> {
   const cli = cac(NAME);
 
@@ -108,6 +136,10 @@ export function buildCli(): ReturnType<typeof cac> {
       registerRecommend(command);
     } else if (spec.name === "up") {
       registerUp(command);
+    } else if (spec.name === "down") {
+      registerDown(command);
+    } else if (spec.name === "ls") {
+      registerLs(command);
     } else {
       command.action(() => {
         notImplemented(spec.name);

@@ -1,4 +1,4 @@
-# Implementation Plan: local-llmup
+  # Implementation Plan: local-llmup
 
 > Source spec: [docs/specs/local-llmup.md](../specs/local-llmup.md)
 > Status: **Approved — ready for implementation**
@@ -211,9 +211,9 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 
 ### Checkpoint: Serve-core (T12–T18) — `up` serves a model end-to-end (mocked backend), loopback verified.
 
-#### T19: `down` + `ls`
+#### T19: `down` + `ls` ✅ done
 **Acceptance:**
-- [ ] `down` stops only `ownedByUs` daemons, idempotent no-op when none; `ls` reflects state.
+- [x] `down` stops only `ownedByUs` daemons, idempotent no-op when none; `ls` reflects state.
 **Verify:** `npm test tests/commands/down tests/commands/ls` **Deps:** T12, T14, T17 **Files:** `src/commands/down.ts`, `src/commands/ls.ts`, +tests **Scope:** S
 
 #### T20: `switch`
