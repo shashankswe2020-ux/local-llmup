@@ -188,9 +188,9 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] Resolves `llama3.1`/`llama3.1:8b`/`…-q4_K_M`; ambiguous→typed error with candidates; traversal-y ids rejected.
 **Verify:** `npm test tests/resolver` **Deps:** T4, T12 **Files:** `src/resolver.ts`, +test **Scope:** S
 
-#### T15: Ollama adapter — pull + digest verify
+#### T15: Ollama adapter — pull + digest verify ✅ done
 **Acceptance:**
-- [ ] `spawn(...,{shell:false})` pull w/ progress; SHA-256 verify; **digest-unavailable → defined size-only fallback + `digestVerified:false`** (not fail-open); digest mismatch **fail-closed**.
+- [x] `spawn(...,{shell:false})` pull w/ progress; SHA-256 verify; **digest-unavailable → defined size-only fallback + `digestVerified:false`** (not fail-open); digest mismatch **fail-closed**.
 **Verify:** `npm test tests/backend/ollama-pull` **Deps:** T13 **Files:** `src/backend/ollama.ts` (pull), +test **Scope:** S
 
 #### T16: Ollama adapter — serve + health

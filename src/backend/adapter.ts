@@ -39,6 +39,11 @@ export interface PullOptions {
   readonly modelId: string;
   /** Catalog SHA-256 digest to verify; absent → size-only verification. */
   readonly expectedSha256?: string | undefined;
+  /**
+   * Catalog on-disk size in bytes, used by the size-only fallback when a digest
+   * cannot be obtained. Absent → the fallback only asserts the weights exist.
+   */
+  readonly expectedSizeBytes?: number | undefined;
   readonly onProgress?: ((event: PullProgress) => void) | undefined;
   readonly signal?: AbortSignal | undefined;
 }
