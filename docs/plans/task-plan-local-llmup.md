@@ -135,9 +135,9 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] `requiredMemoryBytes` MoE uses **total** params; guards for zero/negative/NaN/missing quant bytes.
 **Verify:** `npm test tests/hardware/memory-math` **Deps:** T2 **Files:** `src/hardware/memory-math.ts`, +test **Scope:** S
 
-#### T7: Hardware detection
+#### T7: Hardware detection ✅ done
 **Acceptance:**
-- [ ] Mocked `systeminformation` → valid profile; no-GPU, multi-GPU (assert largest-single selection), integrated (VRAM null), **hung-probe timeout via fake timers**, malformed→**conservative** safe default.
+- [x] Mocked `systeminformation` → valid profile; no-GPU, multi-GPU (assert largest-single selection), integrated (VRAM null), **hung-probe timeout via fake timers**, malformed→**conservative** safe default.
 **Verify:** `npm test tests/hardware/detect` **Deps:** T2 (parallel to T6) **Files:** `src/hardware/detect.ts`, +test **Scope:** M
 
 #### T8: Ranking — fit + quant selection
