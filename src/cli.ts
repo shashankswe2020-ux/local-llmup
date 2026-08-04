@@ -6,6 +6,7 @@ import { runUp } from "./commands/up.js";
 import { runDown } from "./commands/down.js";
 import { runLs } from "./commands/ls.js";
 import { runSwitch } from "./commands/switch.js";
+import { runDoctor } from "./commands/doctor.js";
 import { stripControl } from "./sanitize.js";
 import { CAPABILITIES, type Capability } from "./types.js";
 
@@ -140,6 +141,20 @@ function registerSwitch(command: Command): void {
   });
 }
 
+/** Wire the `doctor` action onto its cac command. */
+function registerDoctor(command: Command): void {
+  command.action(async () => {
+    try {
+      const report = await runDoctor();
+      if (!report.ok) process.exitCode = 1;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      process.stderr.write(`doctor: ${stripControl(message)}\n`);
+      process.exitCode = 1;
+    }
+  });
+}
+
 export function buildCli(): ReturnType<typeof cac> {
   const cli = cac(NAME);
 
@@ -156,6 +171,8 @@ export function buildCli(): ReturnType<typeof cac> {
       registerLs(command);
     } else if (spec.name === "switch") {
       registerSwitch(command);
+    } else if (spec.name === "doctor") {
+      registerDoctor(command);
     } else {
       command.action(() => {
         notImplemented(spec.name);

@@ -221,9 +221,9 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] Switches active model; failure preserves prior active; switching to already-active is a defined no-op.
 **Verify:** `npm test tests/commands/switch` **Deps:** T12, T14, T17 **Files:** `src/commands/switch.ts`, +test **Scope:** S
 
-#### T21: `doctor`
+#### T21: `doctor` ✅ done
 **Acceptance:**
-- [ ] Reports missing backend/unsupported hw/corrupt catalog+state; surfaces `digestVerified:false`; **returns nonzero when problems found**.
+- [x] Reports missing backend/unsupported hw/corrupt catalog+state; surfaces `digestVerified:false`; **returns nonzero when problems found**.
 **Verify:** `npm test tests/commands/doctor` **Deps:** T7, T12, T13, T17 **Files:** `src/commands/doctor.ts`, +test **Scope:** S
 
 ### Checkpoint: Serve (T19–T21) — all serve commands green; exit-code matrix asserted.
