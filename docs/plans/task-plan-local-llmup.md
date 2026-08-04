@@ -160,10 +160,10 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] Stable `--json` shape (contract test); control chars stripped in table + json.
 **Verify:** `npm test tests/output` **Deps:** T1 **Files:** `src/output.ts`, +test **Scope:** S
 
-#### T11: `recommend` command
+#### T11: `recommend` command ✅ done
 **Acceptance:**
-- [ ] Integration (fixture catalog + fake hardware): ranked table + won't-fit section + `up` cmd for #1.
-- [ ] `--task` neutral == no-flag (regression guard); `--json` schema asserted.
+- [x] Integration (fixture catalog + fake hardware): ranked table + won't-fit section + `up` cmd for #1.
+- [x] `--task` neutral == no-flag (regression guard); `--json` schema asserted.
 **Verify:** `npm test tests/commands/recommend` **Deps:** T4, T5, T7, T9, T10 **Files:** `src/commands/recommend.ts`, `src/cli.ts`, +test **Scope:** M
 
 ### Checkpoint: Headline (T6–T11) — `local-llmup` prints a correct ranked recommendation on real hardware. **Demo-able.**

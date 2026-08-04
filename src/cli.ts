@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { pathToFileURL } from "node:url";
-import { cac } from "cac";
+import { cac, type Command } from "cac";
+import { runRecommend } from "./commands/recommend.js";
+import { CAPABILITIES, type Capability } from "./types.js";
 
 export type CommandName =
   | "recommend"
@@ -39,22 +41,54 @@ function notImplemented(command: CommandName): void {
   process.exitCode = 1;
 }
 
+function isCapability(value: string): value is Capability {
+  return (CAPABILITIES as readonly string[]).includes(value);
+}
+
+/** Wire the shared `recommend` action onto a cac command (named and default). */
+function registerRecommend(command: Command): void {
+  command
+    .option("--task <task>", `Boost models for a task: ${CAPABILITIES.join("|")}`)
+    .option("--json", "Emit machine-readable JSON")
+    .action(async (options: { task?: string; json?: boolean }) => {
+      try {
+        if (options.task !== undefined && !isCapability(options.task)) {
+          process.stderr.write(
+            `recommend: invalid --task ${JSON.stringify(options.task)} (expected ${CAPABILITIES.join(
+              "|",
+            )})\n`,
+          );
+          process.exitCode = 1;
+          return;
+        }
+        await runRecommend({
+          ...(options.task !== undefined ? { task: options.task as Capability } : {}),
+          ...(options.json === true ? { json: true } : {}),
+        });
+      } catch (error) {
+        process.stderr.write(`recommend: ${error instanceof Error ? error.message : String(error)}\n`);
+        process.exitCode = 1;
+      }
+    });
+}
+
 export function buildCli(): ReturnType<typeof cac> {
   const cli = cac(NAME);
 
   for (const spec of COMMANDS) {
     const usage = spec.args ? `${spec.name} ${spec.args}` : spec.name;
-    cli
-      .command(usage, spec.description)
-      .action(() => {
+    const command = cli.command(usage, spec.description);
+    if (spec.name === "recommend") {
+      registerRecommend(command);
+    } else {
+      command.action(() => {
         notImplemented(spec.name);
       });
+    }
   }
 
   // Default command mirrors `recommend`.
-  cli.command("", COMMANDS[0]?.description ?? "").action(() => {
-    notImplemented("recommend");
-  });
+  registerRecommend(cli.command("", COMMANDS[0]?.description ?? ""));
 
   cli.help();
   cli.version("0.1.0");
