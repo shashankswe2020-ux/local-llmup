@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-06T00:00:00.000Z",
+  "classes": [
+    {
+      "id": "nvidia-8gb-class",
+      "label": "NVIDIA 8GB class (RTX 3060 Ti / 4060)",
+      "vendor": "nvidia",
+      "kind": "discrete",
+      "memBandwidthGBps": 360,
+      "efficiency": 0.6,
+      "minBytes": 6442450944,
+      "maxBytes": 10737418240,
+      "sources": {
+        "bandwidth": "NVIDIA spec sheets: RTX 3060 Ti 448 GB/s, RTX 4060 Ti 288 GB/s, RTX 4060 272 GB/s; bracket representative approx 360 GB/s",
+        "efficiency": "Back-computed from llama.cpp Q4_K_M 7B decode approx 49 tok/s (weights approx 4.4 GB): 49 * 4.4 / 360 approx 0.60"
+      }
+    },
+    {
+      "id": "nvidia-12gb-class",
+      "label": "NVIDIA 12GB class (RTX 3060 12GB / 4070 / 4070 Ti)",
+      "vendor": "nvidia",
+      "kind": "discrete",
+      "memBandwidthGBps": 432,
+      "efficiency": 0.62,
+      "minBytes": 10737418240,
+      "maxBytes": 15032385536,
+      "sources": {
+        "bandwidth": "NVIDIA spec sheets: RTX 3060 12GB 360 GB/s, RTX 4070 / 4070 Ti 504 GB/s; bracket midpoint approx 432 GB/s",
+        "efficiency": "Back-computed from llama.cpp Q4_K_M 7B decode approx 61 tok/s (weights approx 4.4 GB): 61 * 4.4 / 432 approx 0.62"
+      }
+    },
+    {
+      "id": "nvidia-16gb-class",
+      "label": "NVIDIA 16GB class (RTX 4070 Ti Super / 4080)",
+      "vendor": "nvidia",
+      "kind": "discrete",
+      "memBandwidthGBps": 640,
+      "efficiency": 0.65,
+      "minBytes": 15032385536,
+      "maxBytes": 21474836480,
+      "sources": {
+        "bandwidth": "NVIDIA spec sheets: cards in this 14-20 GiB bracket span 288 GB/s (RTX 4060 Ti 16GB) to 736 GB/s (RTX 4080 Super); representative approx 640 GB/s",
+        "efficiency": "Back-computed from llama.cpp Q4_K_M 7B decode approx 94 tok/s (weights approx 4.4 GB): 94 * 4.4 / 640 approx 0.65"
+      }
+    },
+    {
+      "id": "nvidia-24gb-class",
+      "label": "NVIDIA 24GB class (RTX 3090 / 4090)",
+      "vendor": "nvidia",
+      "kind": "discrete",
+      "memBandwidthGBps": 950,
+      "efficiency": 0.68,
+      "minBytes": 21474836480,
+      "maxBytes": 30064771072,
+      "sources": {
+        "bandwidth": "NVIDIA spec sheets: RTX 3090 936 GB/s, RTX 4090 1008 GB/s; bracket midpoint approx 950 GB/s",
+        "efficiency": "Back-computed from llama.cpp Q4_K_M 7B decode approx 147 tok/s (weights approx 4.4 GB): 147 * 4.4 / 950 approx 0.68"
+      }
+    },
+    {
+      "id": "apple-silicon-base",
+      "label": "Apple silicon base (M1/M2/M3/M4)",
+      "vendor": "apple",
+      "kind": "unified",
+      "memBandwidthGBps": 100,
+      "efficiency": 0.7,
+      "minBytes": 1073741824,
+      "maxBytes": 25769803776,
+      "sources": {
+        "bandwidth": "Apple spec: M2/M3/M4 base approx 100-120 GB/s unified (M1 base 68 GB/s); representative approx 100 GB/s. Size-based bracket approximation",
+        "efficiency": "Back-computed from llama.cpp Metal Q4_K_M 7B decode approx 16 tok/s (weights approx 4.4 GB): 16 * 4.4 / 100 approx 0.70"
+      }
+    },
+    {
+      "id": "apple-silicon-pro",
+      "label": "Apple silicon Pro (M-series Pro)",
+      "vendor": "apple",
+      "kind": "unified",
+      "memBandwidthGBps": 200,
+      "efficiency": 0.7,
+      "minBytes": 25769803776,
+      "maxBytes": 42949672960,
+      "sources": {
+        "bandwidth": "Apple spec: M1/M2 Pro 200 GB/s, M3 Pro 150 GB/s, M4 Pro 273 GB/s; representative approx 200 GB/s. Size-based bracket approximation",
+        "efficiency": "Back-computed from llama.cpp Metal Q4_K_M 7B decode approx 32 tok/s (weights approx 4.4 GB): 32 * 4.4 / 200 approx 0.70"
+      }
+    },
+    {
+      "id": "apple-silicon-max",
+      "label": "Apple silicon Max (M-series Max)",
+      "vendor": "apple",
+      "kind": "unified",
+      "memBandwidthGBps": 400,
+      "efficiency": 0.7,
+      "minBytes": 42949672960,
+      "maxBytes": 103079215104,
+      "sources": {
+        "bandwidth": "Apple spec: M1/M2 Max 400 GB/s, M3 Max 300-400 GB/s, M4 Max 546 GB/s; representative approx 400 GB/s. Size-based bracket approximation",
+        "efficiency": "Back-computed from llama.cpp Metal Q4_K_M 7B decode approx 64 tok/s (weights approx 4.4 GB): 64 * 4.4 / 400 approx 0.70"
+      }
+    },
+    {
+      "id": "apple-silicon-ultra",
+      "label": "Apple silicon Ultra (M-series Ultra)",
+      "vendor": "apple",
+      "kind": "unified",
+      "memBandwidthGBps": 800,
+      "efficiency": 0.7,
+      "minBytes": 103079215104,
+      "maxBytes": 274877906944,
+      "sources": {
+        "bandwidth": "Apple spec: M1/M2/M3 Ultra 800 GB/s unified. Size-based bracket approximation",
+        "efficiency": "Back-computed from llama.cpp Metal Q4_K_M 7B decode approx 127 tok/s (weights approx 4.4 GB): 127 * 4.4 / 800 approx 0.70"
+      }
+    },
+    {
+      "id": "cpu-desktop-ddr",
+      "label": "CPU-only desktop (dual-channel DDR4/DDR5)",
+      "vendor": "none",
+      "kind": "cpu",
+      "memBandwidthGBps": 50,
+      "efficiency": 0.5,
+      "minBytes": 1073741824,
+      "maxBytes": 1099511627776,
+      "sources": {
+        "bandwidth": "Dual-channel DDR4-3200 approx 51 GB/s, DDR5-5600 approx 90 GB/s theoretical; conservative sustained approx 50 GB/s",
+        "efficiency": "Back-computed from llama.cpp CPU Q4_K_M 7B decode approx 5.7 tok/s (weights approx 4.4 GB): 5.7 * 4.4 / 50 approx 0.50"
+      }
+    }
+  ]
+}

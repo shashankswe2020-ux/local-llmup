@@ -1,0 +1,80 @@
+[
+  {
+    "label": "7B Q4_K_M on NVIDIA RTX 4090 (24GB class)",
+    "arch": "x64",
+    "platform": "linux",
+    "gpu": [{ "vendor": "nvidia", "vramBytes": 25769803776 }],
+    "totalRamBytes": 68719476736,
+    "params": "7B",
+    "architecture": "dense",
+    "quant": "Q4_K_M",
+    "diskBytes": 4400000000,
+    "publishedTokPerSec": 150,
+    "source": "llama.cpp community reports: ~140-170 tok/s for 7B Q4_K_M on RTX 4090"
+  },
+  {
+    "label": "13B Q4_K_M on NVIDIA RTX 4090 (24GB class)",
+    "arch": "x64",
+    "platform": "linux",
+    "gpu": [{ "vendor": "nvidia", "vramBytes": 25769803776 }],
+    "totalRamBytes": 68719476736,
+    "params": "13B",
+    "architecture": "dense",
+    "quant": "Q4_K_M",
+    "diskBytes": 7900000000,
+    "publishedTokPerSec": 85,
+    "source": "llama.cpp community reports: ~80-95 tok/s for 13B Q4_K_M on RTX 4090"
+  },
+  {
+    "label": "7B Q4_K_M on NVIDIA RTX 3060 12GB (12GB class)",
+    "arch": "x64",
+    "platform": "linux",
+    "gpu": [{ "vendor": "nvidia", "vramBytes": 12884901888 }],
+    "totalRamBytes": 34359738368,
+    "params": "7B",
+    "architecture": "dense",
+    "quant": "Q4_K_M",
+    "diskBytes": 4400000000,
+    "publishedTokPerSec": 50,
+    "source": "llama.cpp community reports: ~45-55 tok/s for 7B Q4_K_M on RTX 3060 12GB"
+  },
+  {
+    "label": "7B Q4_K_M on Apple M2 Max (Max class, 64GB)",
+    "arch": "arm64",
+    "platform": "darwin",
+    "gpu": [{ "vendor": "apple", "vramBytes": 0 }],
+    "totalRamBytes": 68719476736,
+    "params": "7B",
+    "architecture": "dense",
+    "quant": "Q4_K_M",
+    "diskBytes": 4400000000,
+    "publishedTokPerSec": 60,
+    "source": "llama.cpp Metal community reports: ~55-65 tok/s for 7B Q4_K_M on M2 Max"
+  },
+  {
+    "label": "7B Q4_K_M on Apple M2 (base class, 16GB)",
+    "arch": "arm64",
+    "platform": "darwin",
+    "gpu": [{ "vendor": "apple", "vramBytes": 0 }],
+    "totalRamBytes": 17179869184,
+    "params": "7B",
+    "architecture": "dense",
+    "quant": "Q4_K_M",
+    "diskBytes": 4400000000,
+    "publishedTokPerSec": 16,
+    "source": "llama.cpp Metal community reports: ~15-18 tok/s for 7B Q4_K_M on M2 base"
+  },
+  {
+    "label": "7B Q4_K_M on CPU-only desktop (dual-channel DDR)",
+    "arch": "x64",
+    "platform": "linux",
+    "gpu": [],
+    "totalRamBytes": 34359738368,
+    "params": "7B",
+    "architecture": "dense",
+    "quant": "Q4_K_M",
+    "diskBytes": 4400000000,
+    "publishedTokPerSec": 6,
+    "source": "llama.cpp CPU community reports: ~5-7 tok/s for 7B Q4_K_M on desktop DDR"
+  }
+]

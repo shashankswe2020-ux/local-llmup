@@ -122,27 +122,27 @@ alongside existing `doctor` checks, via injected deps.
 **Verify:** `npm test tests/commands/doctor`
 **Deps:** T33 **Files:** `src/commands/doctor.ts`, `tests/commands/doctor.test.ts` **Scope:** S
 
-#### T35: Phase 2 — hardware performance dataset (load + match)
+#### T35: Phase 2 — hardware performance dataset (load + match) ✅ done
 **Description:** `advisor/perf-data.ts` — Zod schema + loader for `data/perf.json`
 (bandwidth + efficiency per hardware class, **no prices**), plus a matcher
 `matchPerf(hw)` → entry or `undefined` (detected `vendor`+`vramBytes`/RAM class →
 bandwidth/efficiency; no match → `undefined`, driving the honesty gate).
 **Acceptance:**
-- [ ] Schema rejects missing/negative bandwidth or out-of-range efficiency.
-- [ ] `data/perf.json` seeded with a curated, **cited** initial set (D2).
-- [ ] `matchPerf` returns `undefined` for unknown hardware (tested).
+- [x] Schema rejects missing/negative bandwidth or out-of-range efficiency.
+- [x] `data/perf.json` seeded with a curated, **cited** initial set (D2).
+- [x] `matchPerf` returns `undefined` for unknown hardware (tested).
 **Verify:** `npm test tests/advisor/perf-data`
 **Deps:** T32, D2 **Files:** `src/advisor/perf-data.ts`, `data/perf.json`, `tests/advisor/perf-data.test.ts` **Scope:** S
 
-#### T36: Phase 2 — throughput estimator (pure)
+#### T36: Phase 2 — throughput estimator (pure) ✅ done
 **Description:** `advisor/throughput.ts` — `estimateTokPerSec(model, quant, hw, perf)`
 → `ThroughputEstimate` via bandwidth roofline; MoE decode uses **active** params
 while footprint stays total (from `memory-math.ts`); ±30% band by default.
 **Acceptance (AC5–AC8):**
-- [ ] Pure: identical inputs → identical range.
-- [ ] Calibration fixtures: range contains published value for ≥80% of pairs.
-- [ ] Unknown hardware (`matchPerf` miss) → `{ known:false }`, no number.
-- [ ] MoE fixture asserts active-params decode term vs total-params footprint.
+- [x] Pure: identical inputs → identical range.
+- [x] Calibration fixtures: range contains published value for ≥80% of pairs.
+- [x] Unknown hardware (`matchPerf` miss) → `{ known:false }`, no number.
+- [x] MoE fixture asserts active-params decode term vs total-params footprint.
 **Verify:** `npm test tests/advisor/throughput`
 **Deps:** T35 **Files:** `src/advisor/throughput.ts`, `tests/advisor/throughput.test.ts`, `tests/advisor/fixtures/calibration.json` **Scope:** M
 
