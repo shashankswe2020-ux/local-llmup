@@ -35,10 +35,15 @@ export const COMMANDS: readonly CommandSpec[] = [
   { name: "recommend", args: "", description: "Detect hardware and print ranked local LLMs + install commands." },
   { name: "up", args: "<model>", description: "Install (if needed) and start a local server for <model>." },
   { name: "chat", args: "", description: "Interactive/piped chat that records memory." },
-  { name: "down", args: "[model]", description: "Stop the local server owned by local-llmup." },
+  {
+    name: "down",
+    args: "[model]",
+    description:
+      "Stop a server owned by local-llmup, or detach+forget an attached daemon without stopping it.",
+  },
   { name: "switch", args: "<model>", description: "Make <model> the active served model (no memory move)." },
   { name: "migrate", args: "", description: "Move all memory from one model to another." },
-  { name: "ls", args: "", description: "List installed models and which one is active." },
+  { name: "ls", args: "", description: "List active server state from local state (not installed-model inventory)." },
   { name: "catalog", args: "", description: "Show or refresh the model catalog." },
   { name: "doctor", args: "", description: "Diagnose hardware, backend, disk, ports, and state." },
 ];

@@ -1,0 +1,9 @@
+tests/
+coverage/
+.github/
+.vscode/
+.env
+.env.*
+*.log
+*.tgz
+tokens.json

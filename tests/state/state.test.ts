@@ -60,13 +60,38 @@ describe("readState", () => {
       active: {
         modelId: "llama3.1:8b",
         endpoint: "http://localhost:11434",
-        pid: 0,
         port: 11434,
         ownedByUs: false,
       },
     };
     writeState(config, attached);
     expect(readState(config)).toEqual(attached);
+  });
+
+  it("normalizes legacy attached states that used pid 0", () => {
+    writeFileSync(
+      config.stateFile,
+      JSON.stringify({
+        schemaVersion: STATE_SCHEMA_VERSION,
+        active: {
+          modelId: "llama3.1:8b",
+          endpoint: "http://localhost:11434",
+          pid: 0,
+          port: 11434,
+          ownedByUs: false,
+        },
+      }),
+    );
+
+    expect(readState(config)).toEqual({
+      schemaVersion: STATE_SCHEMA_VERSION,
+      active: {
+        modelId: "llama3.1:8b",
+        endpoint: "http://localhost:11434",
+        port: 11434,
+        ownedByUs: false,
+      },
+    });
   });
 
   it("rejects an owned server with a non-positive pid", () => {
@@ -80,6 +105,28 @@ describe("readState", () => {
           pid: 0,
           port: 11434,
           ownedByUs: true,
+        },
+      }),
+    );
+    try {
+      readState(config);
+      expect.unreachable("expected StateError");
+    } catch (error) {
+      expect((error as StateError).kind).toBe("invalid");
+    }
+  });
+
+  it("rejects an attached server that still carries a non-zero pid", () => {
+    writeFileSync(
+      config.stateFile,
+      JSON.stringify({
+        schemaVersion: STATE_SCHEMA_VERSION,
+        active: {
+          modelId: "llama3.1:8b",
+          endpoint: "http://localhost:11434",
+          pid: 42,
+          port: 11434,
+          ownedByUs: false,
         },
       }),
     );

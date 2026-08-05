@@ -77,13 +77,22 @@ export async function runDown(
     const endpoint = stripControl(active.endpoint);
 
     if (active.ownedByUs) {
-      await deps.adapter.stop({
-        endpoint: active.endpoint,
-        pid: active.pid,
-        port: active.port,
-        ownedByUs: true,
-      });
+      const previousState: RuntimeState = { ...createEmptyState(), active };
+
+      // Clear first so a successful stop cannot strand an owned pid in state.
       deps.writeState(deps.config, createEmptyState());
+      try {
+        await deps.adapter.stop({
+          endpoint: active.endpoint,
+          pid: active.pid,
+          port: active.port,
+          ownedByUs: true,
+        });
+      } catch (error) {
+        deps.writeState(deps.config, previousState);
+        throw error;
+      }
+
       deps.write(`Stopped ${label} (${endpoint}).\n`);
       return;
     }

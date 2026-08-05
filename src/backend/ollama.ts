@@ -36,7 +36,6 @@ import { assertSafeModelId } from "./net.js";
 /** Default binary name resolved from `PATH`. */
 const OLLAMA_BINARY = "ollama";
 
-/** Media type of the weights layer in an Ollama image manifest. */
 const MODEL_LAYER_MEDIA_TYPE = "application/vnd.ollama.image.model";
 
 /** A lowercase-hex SHA-256 digest (exactly 64 hex chars). */
@@ -73,7 +72,7 @@ export type SpawnFn = (
 ) => SpawnedProcess;
 
 /** Send a signal to a process by pid (used to stop an owned daemon); injected in tests. */
-export type KillFn = (pid: number, signal?: NodeJS.Signals) => void;
+export type KillFn = (pid: number, signal?: NodeJS.Signals | 0) => void;
 
 
 /** Integrity facts about a freshly pulled model, as observed on disk. */
@@ -91,6 +90,7 @@ export type DigestProbe = (modelId: string) => Promise<PullVerification>;
 export interface FetchResponseLike {
   readonly ok: boolean;
   readonly status: number;
+  json?(): Promise<unknown>;
 }
 
 /** Perform an HTTP GET; injected in tests. */
@@ -104,6 +104,7 @@ export type SleepFn = (ms: number, signal?: AbortSignal | undefined) => Promise<
 
 /** Readiness paths probed in order: OpenAI-compatible first, native fallback. */
 const READINESS_PATHS = ["/v1/models", "/api/tags"] as const;
+const OPENAI_READINESS_PATHS = ["/v1/models"] as const;
 
 const DEFAULT_READINESS_TIMEOUT_MS = 30_000;
 const DEFAULT_READINESS_RETRIES = 20;
@@ -111,6 +112,39 @@ const READINESS_BACKOFF_BASE_MS = 100;
 const READINESS_BACKOFF_MAX_MS = 2_000;
 /** Upper bound on a single readiness request, so one hung probe can't outlive the deadline. */
 const READINESS_REQUEST_TIMEOUT_MS = 5_000;
+const SHUTDOWN_GRACE_MS = 500;
+const SHUTDOWN_POLL_INTERVAL_MS = 50;
+const SHUTDOWN_POLL_ATTEMPTS = 10;
+
+/** Non-sensitive parent env keys that are safe/useful to preserve for `ollama serve`. */
+const SERVE_ENV_ALLOWLIST = [
+  "PATH",
+  "HOME",
+  "USER",
+  "LOGNAME",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "TMPDIR",
+  "TMP",
+  "TEMP",
+  "SYSTEMROOT",
+  "WINDIR",
+  "COMSPEC",
+  "PATHEXT",
+] as const;
+
+/** Build a minimal child env: explicit host bind plus selected safe parent keys. */
+function buildServeEnv(host: string, port: number): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { OLLAMA_HOST: `${host}:${port}` };
+  for (const key of SERVE_ENV_ALLOWLIST) {
+    const value = process.env[key];
+    if (value !== undefined) {
+      env[key] = value;
+    }
+  }
+  return env;
+}
 
 /** Exponential backoff (capped) for the Nth readiness attempt (1-based). */
 function readinessBackoffMs(attempt: number): number {
@@ -138,6 +172,16 @@ const defaultSleep: SleepFn = (ms, signal) =>
 
 /** Outcome of one readiness attempt across all probe paths. */
 type ProbeResult = { readonly ready: true } | { readonly ready: false; readonly lastError: unknown };
+
+/** Attach probe classification used by `serve` attach-vs-spawn decision. */
+type AttachProbeResult = "trusted" | "untrusted" | "unreachable";
+
+/** Minimal shape check for Ollama's `/api/version` payload. */
+function isLikelyOllamaVersionPayload(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const version = (value as { version?: unknown }).version;
+  return typeof version === "string" && version.trim().length > 0;
+}
 
 function adaptStream(stream: Readable | null): ProcessOutputStream | null {
   if (stream === null) return null;
@@ -194,6 +238,43 @@ function isLoopbackBindHost(host: string): boolean {
  */
 function isUsablePid(pid: number | undefined): pid is number {
   return pid !== undefined && Number.isInteger(pid) && pid > 0;
+}
+
+/** Wait for a spawned child to emit `close`, or time out. */
+function waitForChildClose(child: SpawnedProcess, timeoutMs: number): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve(false);
+    }, timeoutMs);
+    child.onClose(() => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(true);
+    });
+  });
+}
+
+/** Best-effort spawned-child teardown: TERM, then KILL if it does not exit. */
+async function stopSpawnedChild(child: SpawnedProcess): Promise<void> {
+  try {
+    child.kill("SIGTERM");
+  } catch {
+    return;
+  }
+
+  if (await waitForChildClose(child, SHUTDOWN_GRACE_MS)) return;
+
+  try {
+    child.kill("SIGKILL");
+  } catch {
+    return;
+  }
+
+  await waitForChildClose(child, SHUTDOWN_GRACE_MS);
 }
 
 
@@ -539,9 +620,17 @@ export class OllamaAdapter implements BackendAdapter {
       throw new BackendError(`ollama serve aborted for ${endpoint}`);
     }
 
-    // Attach to an already-running daemon; its lifecycle is not ours to manage.
-    if (await this.isReachable(endpoint, signal)) {
+    // Attach only when a reachable listener also passes a lightweight identity
+    // check. Failing closed here avoids sending prompts/memory to arbitrary
+    // local processes that happen to answer readiness probes.
+    const attachProbe = await this.probeAttachTarget(endpoint, signal);
+    if (attachProbe === "trusted") {
       return { endpoint, pid: 0, port, ownedByUs: false };
+    }
+    if (attachProbe === "untrusted") {
+      throw new BackendError(
+        `refusing to attach to ${endpoint}: listener did not pass Ollama identity check`,
+      );
     }
 
     // The probe masks an abort as "not reachable", so re-check before spawning.
@@ -556,7 +645,7 @@ export class OllamaAdapter implements BackendAdapter {
     let child: SpawnedProcess;
     try {
       child = this.spawn(this.binary, ["serve"], {
-        env: { ...process.env, OLLAMA_HOST: `${host}:${port}` },
+        env: buildServeEnv(host, port),
       });
     } catch (error) {
       throw wrapSpawnError(this.binary, error instanceof Error ? error : new Error(String(error)));
@@ -579,7 +668,7 @@ export class OllamaAdapter implements BackendAdapter {
     if (!isUsablePid(pid)) {
       // Without a usable positive pid we cannot safely track/stop it. Tear it
       // down and fail.
-      child.kill();
+      await stopSpawnedChild(child);
       throw new BackendError(`ollama serve did not report a usable pid for ${endpoint}`);
     }
 
@@ -587,7 +676,7 @@ export class OllamaAdapter implements BackendAdapter {
       await Promise.race([this.waitUntilReady({ endpoint, signal }), earlyFailure]);
     } catch (error) {
       // Readiness failed/timed out or the daemon crashed: clean up our own child.
-      child.kill();
+      await stopSpawnedChild(child);
       throw error instanceof BackendError
         ? error
         : new BackendError(`ollama serve failed to become ready at ${endpoint}`, { cause: error });
@@ -603,6 +692,42 @@ export class OllamaAdapter implements BackendAdapter {
   ): Promise<boolean> {
     const result = await this.probeReady(endpoint, signal, READINESS_REQUEST_TIMEOUT_MS);
     return result.ready;
+  }
+
+  /** Classify attach target as trusted, untrusted, or unreachable. */
+  private async probeAttachTarget(
+    endpoint: string,
+    signal: AbortSignal | undefined,
+  ): Promise<AttachProbeResult> {
+    if (!(await this.isReachable(endpoint, signal))) return "unreachable";
+    return (await this.isLikelyOllamaDaemon(endpoint, signal, READINESS_REQUEST_TIMEOUT_MS))
+      ? "trusted"
+      : "untrusted";
+  }
+
+  /** Best-effort daemon identity check for attach: validate `/api/version` shape. */
+  private async isLikelyOllamaDaemon(
+    endpoint: string,
+    callerSignal: AbortSignal | undefined,
+    requestTimeoutMs: number,
+  ): Promise<boolean> {
+    const controller = new AbortController();
+    const onCallerAbort = (): void => controller.abort();
+    const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
+    if (callerSignal?.aborted) controller.abort();
+    else callerSignal?.addEventListener("abort", onCallerAbort, { once: true });
+
+    try {
+      const base = endpoint.replace(/\/+$/, "");
+      const response = await this.fetch(`${base}/api/version`, { signal: controller.signal });
+      if (!response.ok || typeof response.json !== "function") return false;
+      return isLikelyOllamaVersionPayload(await response.json());
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timer);
+      callerSignal?.removeEventListener("abort", onCallerAbort);
+    }
   }
 
   /**
@@ -629,7 +754,12 @@ export class OllamaAdapter implements BackendAdapter {
         READINESS_REQUEST_TIMEOUT_MS,
         Math.max(deadline - Date.now(), 1),
       );
-      const result = await this.probeReady(options.endpoint, options.signal, requestTimeoutMs);
+      const result = await this.probeReady(
+        options.endpoint,
+        options.signal,
+        requestTimeoutMs,
+        options.requireOpenAiCompatibility ?? false,
+      );
       if (result.ready) return;
       const cause = result.lastError !== undefined ? { cause: result.lastError } : undefined;
 
@@ -656,11 +786,13 @@ export class OllamaAdapter implements BackendAdapter {
     endpoint: string,
     callerSignal: AbortSignal | undefined,
     requestTimeoutMs: number,
+    requireOpenAiCompatibility = false,
   ): Promise<ProbeResult> {
     const base = endpoint.replace(/\/+$/, "");
     let lastError: unknown;
+    const readinessPaths = requireOpenAiCompatibility ? OPENAI_READINESS_PATHS : READINESS_PATHS;
 
-    for (const path of READINESS_PATHS) {
+    for (const path of readinessPaths) {
       const controller = new AbortController();
       const onCallerAbort = (): void => controller.abort();
       const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
@@ -694,8 +826,27 @@ export class OllamaAdapter implements BackendAdapter {
     if (!isUsablePid(handle.pid)) {
       throw new BackendError(`refusing to stop ollama daemon: invalid pid ${handle.pid}`);
     }
+
+    // Defend against stale state + pid reuse: only terminate when the recorded
+    // endpoint is still serving Ollama. If the endpoint is gone but the pid is
+    // still alive, the pid may now belong to an unrelated process.
+    if (!(await this.isReachable(handle.endpoint, undefined))) {
+      try {
+        this.kill(handle.pid, 0);
+      } catch (error) {
+        const code = (error as { code?: unknown }).code;
+        if (code === "ESRCH") return;
+        throw new BackendError(`failed to probe ollama daemon liveness (pid ${handle.pid})`, {
+          cause: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
+      throw new BackendError(
+        `refusing to stop ollama daemon (pid ${handle.pid}): ${handle.endpoint} is not reachable and pid may have been reused`,
+      );
+    }
+
     try {
-      this.kill(handle.pid);
+      this.kill(handle.pid, "SIGTERM");
     } catch (error) {
       const code = (error as { code?: unknown }).code;
       if (code === "ESRCH") return;
@@ -703,6 +854,46 @@ export class OllamaAdapter implements BackendAdapter {
         cause: error instanceof Error ? error : new Error(String(error)),
       });
     }
+
+    for (let attempt = 0; attempt < SHUTDOWN_POLL_ATTEMPTS; attempt += 1) {
+      try {
+        this.kill(handle.pid, 0);
+      } catch (error) {
+        const code = (error as { code?: unknown }).code;
+        if (code === "ESRCH") return;
+        throw new BackendError(`failed to probe ollama daemon liveness (pid ${handle.pid})`, {
+          cause: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
+      await this.sleep(SHUTDOWN_POLL_INTERVAL_MS);
+    }
+
+    try {
+      this.kill(handle.pid, "SIGKILL");
+    } catch (error) {
+      const code = (error as { code?: unknown }).code;
+      if (code === "ESRCH") return;
+      throw new BackendError(`failed to force-stop ollama daemon (pid ${handle.pid})`, {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+
+    for (let attempt = 0; attempt < SHUTDOWN_POLL_ATTEMPTS; attempt += 1) {
+      try {
+        this.kill(handle.pid, 0);
+      } catch (error) {
+        const code = (error as { code?: unknown }).code;
+        if (code === "ESRCH") return;
+        throw new BackendError(`failed to probe ollama daemon liveness (pid ${handle.pid})`, {
+          cause: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
+      await this.sleep(SHUTDOWN_POLL_INTERVAL_MS);
+    }
+
+    throw new BackendError(
+      `failed to stop ollama daemon (pid ${handle.pid}): still alive after SIGTERM and SIGKILL`,
+    );
   }
 
   chat(_request: ChatRequest): Promise<ChatResult> {

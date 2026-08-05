@@ -82,14 +82,48 @@ function chooseQuant(
   if (requested !== undefined) return requested;
   const fit = evaluateFit(model, hardware);
   if (!fit.fits) {
+    if (fit.reason === "disk-bound") {
+      throw new ValidationError(
+        insufficientDiskMessage(model, smallestDiskQuant(model), hardware.freeDiskBytes),
+      );
+    }
     throw new ValidationError(`${model.id} does not fit this hardware (${fit.reason})`);
   }
   return fit.quant;
 }
 
+function evaluateRequestedQuantFit(
+  model: CatalogModel,
+  requested: Quantization,
+  hardware: HardwareProfile,
+) {
+  return evaluateFit({ ...model, quantizations: [requested] }, hardware);
+}
+
+function smallestDiskQuant(model: CatalogModel): Quantization {
+  let smallest = model.quantizations[0];
+  for (const quant of model.quantizations) {
+    if (smallest === undefined || quant.diskBytes < smallest.diskBytes) {
+      smallest = quant;
+    }
+  }
+  if (smallest === undefined) {
+    throw new ValidationError(`model ${model.id} has no quantizations`);
+  }
+  return smallest;
+}
+
 /** Format bytes as whole GiB for human-facing messages. */
 function formatGiB(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(1)} GiB`;
+}
+
+function insufficientDiskMessage(
+  model: CatalogModel,
+  quant: Quantization,
+  freeDiskBytes: number,
+): string {
+  return `insufficient disk for ${model.id} (${quant.name}): need ${formatGiB(quant.diskBytes)}, ${formatGiB(freeDiskBytes)} free`;
 }
 
 /**
@@ -119,11 +153,15 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
   const hardware = await deps.detectHardware();
   const quant = chooseQuant(model, resolved.quant, hardware);
   if (quant.diskBytes > hardware.freeDiskBytes) {
-    throw new ValidationError(
-      `insufficient disk for ${model.id} (${quant.name}): need ${formatGiB(
-        quant.diskBytes,
-      )}, ${formatGiB(hardware.freeDiskBytes)} free`,
-    );
+    throw new ValidationError(insufficientDiskMessage(model, quant, hardware.freeDiskBytes));
+  }
+  if (resolved.quant !== undefined) {
+    const fit = evaluateRequestedQuantFit(model, quant, hardware);
+    if (!fit.fits) {
+      deps.log(
+        `up: requested quant ${stripControl(quant.name)} for ${stripControl(model.id)} may not fit this hardware (${fit.reason}); continuing because it was explicitly requested\n`,
+      );
+    }
   }
 
   // 3. Ensure the backend is installed; surface the install command otherwise.
@@ -142,32 +180,33 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
     onProgress: (event) => deps.log(`  ${stripControl(event.status)}\n`),
   });
 
-  // 5. Start (or attach to) a loopback-only server.
+  // 5-7. Spawn/attach, health-check, and persist under one lock.
+  // This closes the race where two concurrent `up` runs could both spawn owned
+  // daemons before either one writes state.
   const port = options.port ?? DEFAULT_OLLAMA_PORT;
-  const handle = await deps.adapter.serve({ host: DEFAULT_BIND_HOST, port });
+  let endpoint = "";
+  await deps.withLock(deps.config, async () => {
+    const handle = await deps.adapter.serve({ host: DEFAULT_BIND_HOST, port });
 
-  // 6. Health probe. On failure, stop only a daemon we spawned, then abort.
-  try {
-    await deps.adapter.waitUntilReady({ endpoint: handle.endpoint });
-  } catch (error) {
-    await stopQuietly(deps.adapter, handle);
-    throw new BackendError(`server for ${model.id} did not become ready`, { cause: error });
-  }
+    // Second readiness probe is intentional: `serve` proves daemon liveness,
+    // while this command-level check requires OpenAI-compatible readiness so
+    // the endpoint is usable by the rest of llmup before state is persisted.
+    // On failure, stop only a daemon we spawned, then abort.
+    try {
+      await deps.adapter.waitUntilReady({
+        endpoint: handle.endpoint,
+        requireOpenAiCompatibility: true,
+      });
+    } catch (error) {
+      await stopQuietly(deps.adapter, handle);
+      throw new BackendError(`server for ${model.id} did not become ready`, { cause: error });
+    }
 
-  // 7. Persist the active server (command-layer responsibility) under the lock.
-  // Reconcile inside the lock: a previously-recorded server we own is stopped
-  // before its record is replaced, so re-running `up` cannot orphan a daemon
-  // that `down` would no longer be able to find. If persistence fails, stop the
-  // daemon we just started so it is not left running without a state record.
-  const active: ServerState = {
-    modelId: model.id,
-    endpoint: handle.endpoint,
-    pid: handle.pid,
-    port: handle.port,
-    ownedByUs: handle.ownedByUs,
-  };
-  try {
-    await deps.withLock(deps.config, async () => {
+    // Reconcile inside the lock: a previously-recorded server we own is stopped
+    // before its record is replaced, so re-running `up` cannot orphan a daemon
+    // that `down` would no longer be able to find. If persistence fails, stop the
+    // daemon we just started so it is not left running without a state record.
+    try {
       const prior = deps.readState(deps.config).active;
       if (prior !== null && prior.ownedByUs && !(prior.pid === handle.pid && prior.port === handle.port)) {
         await stopQuietly(deps.adapter, {
@@ -177,14 +216,29 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
           ownedByUs: prior.ownedByUs,
         });
       }
+      const active: ServerState = handle.ownedByUs
+        ? {
+            modelId: model.id,
+            endpoint: handle.endpoint,
+            pid: handle.pid,
+            port: handle.port,
+            ownedByUs: true,
+          }
+        : {
+            modelId: model.id,
+            endpoint: handle.endpoint,
+            port: handle.port,
+            ownedByUs: false,
+          };
       deps.writeState(deps.config, { schemaVersion: STATE_SCHEMA_VERSION, active });
-    });
-  } catch (error) {
-    await stopQuietly(deps.adapter, handle);
-    throw error;
-  }
+      endpoint = handle.endpoint;
+    } catch (error) {
+      await stopQuietly(deps.adapter, handle);
+      throw error;
+    }
+  });
 
-  deps.write(`${model.id} ready at ${handle.endpoint}\n`);
+  deps.write(`${stripControl(model.id)} ready at ${stripControl(endpoint)}\n`);
 }
 
 /** Stop an owned daemon during cleanup, swallowing errors so the original

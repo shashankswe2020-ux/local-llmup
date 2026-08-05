@@ -45,6 +45,22 @@ describe("OllamaAdapter.waitUntilReady", () => {
     expect(urls).toContain(`${ENDPOINT}/api/tags`);
   });
 
+  it("requires /v1/models when OpenAI compatibility is requested", async () => {
+    const fetch = vi.fn<FetchFn>((url) =>
+      Promise.resolve(url.endsWith("/v1/models") ? notFound : ok),
+    );
+    const { sleep } = recordingSleep();
+    const adapter = new OllamaAdapter({ fetch, sleep });
+
+    await expect(
+      adapter.waitUntilReady({ endpoint: ENDPOINT, retries: 1, requireOpenAiCompatibility: true }),
+    ).rejects.toBeInstanceOf(BackendError);
+
+    const urls = fetch.mock.calls.map((call) => call[0]);
+    expect(urls).toContain(`${ENDPOINT}/v1/models`);
+    expect(urls).not.toContain(`${ENDPOINT}/api/tags`);
+  });
+
   it("becomes ready on the Nth attempt, backing off between attempts", async () => {
     let call = 0;
     const fetch = vi.fn<FetchFn>(() => {

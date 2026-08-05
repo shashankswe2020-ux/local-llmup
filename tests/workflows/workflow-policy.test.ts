@@ -63,13 +63,19 @@ describe("T30 coverage gate", () => {
     const ci = readWorkflow("ci.yml");
     expect(ci).toContain("npm run typecheck");
     expect(ci).toContain("npm run lint");
-    expect(ci).toContain("npm test");
+    expect(ci).not.toContain("run: npm test");
     expect(ci).toContain("npm run build");
     expect(ci).toMatch(/run:\s*npm run test:cov\b/u);
   });
 });
 
 describe("T30 workflow hardening", () => {
+  it("enforces minimal top-level permissions for CI", () => {
+    const ci = readWorkflow("ci.yml");
+    const permissions = parseTopLevelPermissions(ci);
+    expect(permissions).toEqual({ contents: "read" });
+  });
+
   it("pins every CI action by full commit SHA", () => {
     const ci = readWorkflow("ci.yml");
     const refs = extractUsesRefs(ci);

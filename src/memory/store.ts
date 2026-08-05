@@ -29,8 +29,8 @@ import {
   unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { randomUUID } from "node:crypto";
-import { join, sep } from "node:path";
+import { createHash, randomUUID } from "node:crypto";
+import { dirname, join, sep } from "node:path";
 import { z } from "zod";
 import { DIR_MODE, FILE_MODE, type Config } from "../config.js";
 import { MemoryError, ValidationError } from "../errors.js";
@@ -79,6 +79,33 @@ export interface MemoryStore {
 
 const META_FILE = "meta.json";
 
+const MEMORY_SLUG_MAX_LENGTH = 128;
+const MEMORY_SLUG_HASH_HEX_LENGTH = 16;
+const WINDOWS_RESERVED_DEVICE_NAMES = new Set([
+  "con",
+  "prn",
+  "aux",
+  "nul",
+  "com1",
+  "com2",
+  "com3",
+  "com4",
+  "com5",
+  "com6",
+  "com7",
+  "com8",
+  "com9",
+  "lpt1",
+  "lpt2",
+  "lpt3",
+  "lpt4",
+  "lpt5",
+  "lpt6",
+  "lpt7",
+  "lpt8",
+  "lpt9",
+]);
+
 /** The store metadata filename, exported so migration can stage/verify it. */
 export const MEMORY_META_FILE = META_FILE;
 
@@ -91,7 +118,7 @@ export const MEMORY_META_FILE = META_FILE;
  * {@link ValidationError} when nothing safe remains.
  */
 export function memorySlug(modelId: string): string {
-  const slug = modelId
+  let slug = modelId
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, "-")
@@ -99,10 +126,30 @@ export function memorySlug(modelId: string): string {
     .replace(/^[-.]+/, "")
     .replace(/[-.]+$/, "");
 
+  if (process.platform === "win32") {
+    const windowsNormalized = slug.replace(/[. ]+$/g, "");
+    const deviceStem = windowsNormalized.split(".")[0] ?? "";
+    if (WINDOWS_RESERVED_DEVICE_NAMES.has(deviceStem)) {
+      slug = `x-${windowsNormalized}`;
+    } else {
+      slug = windowsNormalized;
+    }
+  }
+
   if (slug.length === 0) {
     throw new ValidationError(`model id has no filesystem-safe slug: ${JSON.stringify(modelId)}`);
   }
-  return slug;
+
+  if (slug.length <= MEMORY_SLUG_MAX_LENGTH) {
+    return slug;
+  }
+
+  const hash = createHash("sha256").update(slug).digest("hex").slice(0, MEMORY_SLUG_HASH_HEX_LENGTH);
+  const prefixMaxLength = MEMORY_SLUG_MAX_LENGTH - hash.length - 1;
+  const prefix = slug.slice(0, prefixMaxLength).replace(/[-.]+$/, "");
+
+  // Keep the slug bounded while preserving deterministic uniqueness for long ids.
+  return prefix.length > 0 ? `${prefix}-${hash}` : hash;
 }
 
 /**
@@ -116,7 +163,41 @@ export function memoryStoreDir(config: Config, modelId: string): string {
 }
 
 function ensureDir(dir: string): void {
-  mkdirSync(dir, { recursive: true, mode: DIR_MODE });
+  const created: string[] = [];
+  let current = dir;
+
+  while (true) {
+    try {
+      statSync(current);
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
+      created.push(current);
+      const parent = dirname(current);
+      if (parent === current) {
+        break;
+      }
+      current = parent;
+    }
+  }
+
+  for (let index = created.length - 1; index >= 0; index -= 1) {
+    const path = created[index];
+    if (path === undefined) {
+      continue;
+    }
+    try {
+      mkdirSync(path, { mode: DIR_MODE });
+      chmodSync(path, DIR_MODE);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+        throw error;
+      }
+    }
+  }
+
   chmodSync(dir, DIR_MODE);
 }
 
@@ -135,7 +216,7 @@ function verifyPerms(path: string, expected: number): void {
 }
 
 /** Assert the store dir's realpath is inside the (realpath'd) memory root. */
-function assertWithinRoot(config: Config, dir: string, modelId: string): void {
+function assertWithinRoot(config: Config, dir: string, modelId: string): string {
   const rootReal = realpathSync(config.memoryDir);
   const dirReal = realpathSync(dir);
   if (!isWithin(rootReal, dirReal)) {
@@ -143,6 +224,7 @@ function assertWithinRoot(config: Config, dir: string, modelId: string): void {
       `memory store for ${stripControl(modelId)} resolves outside the memory root`,
     );
   }
+  return dirReal;
 }
 
 /**
@@ -191,19 +273,20 @@ function createMeta(
   ensureDir(config.stagingDir);
   const json = `${JSON.stringify(meta, null, 2)}\n`;
   const tempFile = join(config.stagingDir, `meta.${process.pid}.${randomUUID()}.tmp`);
-  const target = join(dir, META_FILE);
+  const unresolvedTarget = join(dir, META_FILE);
 
   try {
     writeFileSync(tempFile, json, { mode: FILE_MODE });
     chmodSync(tempFile, FILE_MODE);
   } catch (error) {
     tryUnlink(tempFile);
-    throw new MemoryError(`failed to stage memory metadata: ${target}`, { cause: error });
+    throw new MemoryError(`failed to stage memory metadata: ${unresolvedTarget}`, { cause: error });
   }
 
-  // Re-verify containment right before the link, narrowing the window between
-  // the earlier realpath check and this write.
-  assertWithinRoot(config, dir, modelId);
+  // Re-verify containment right before the link and write to the canonical
+  // directory path that was just validated.
+  const dirReal = assertWithinRoot(config, dir, modelId);
+  const target = join(dirReal, META_FILE);
 
   try {
     linkSync(tempFile, target);
@@ -265,6 +348,8 @@ function loadOrCreateMeta(config: Config, dir: string, modelId: string): MemoryM
       }
       throw new MemoryError(`failed to read memory metadata: ${target}`, { cause: error });
     }
+    verifyPerms(dir, DIR_MODE);
+    verifyPerms(target, FILE_MODE);
     return parseMeta(raw, target, modelId);
   }
 
@@ -310,19 +395,21 @@ export function writeMemoryMeta(config: Config, dir: string, meta: MemoryMeta): 
   ensureDir(config.stagingDir);
   const json = `${JSON.stringify(validated, null, 2)}\n`;
   const tempFile = join(config.stagingDir, `meta.${process.pid}.${randomUUID()}.tmp`);
-  const target = join(dir, META_FILE);
+  const unresolvedTarget = join(dir, META_FILE);
 
   try {
     writeFileSync(tempFile, json, { mode: FILE_MODE });
     chmodSync(tempFile, FILE_MODE);
-    // Re-verify containment right before swapping the file into the store.
-    assertWithinRoot(config, dir, validated.modelId);
+    // Re-verify containment right before swapping the file into the store,
+    // and use the validated canonical path as the replacement target.
+    const dirReal = assertWithinRoot(config, dir, validated.modelId);
+    const target = join(dirReal, META_FILE);
     renameSync(tempFile, target);
+    verifyPerms(dirReal, DIR_MODE);
+    verifyPerms(target, FILE_MODE);
   } catch (error) {
     tryUnlink(tempFile);
-    throw new MemoryError(`failed to write memory metadata: ${target}`, { cause: error });
+    throw new MemoryError(`failed to write memory metadata: ${unresolvedTarget}`, { cause: error });
   }
-
-  verifyPerms(target, FILE_MODE);
   return validated;
 }

@@ -107,7 +107,6 @@ function seedAttached(): void {
     active: {
       modelId: "llama3.1:8b",
       endpoint: "http://127.0.0.1:11434",
-      pid: 0,
       port: 11434,
       ownedByUs: false,
     },
@@ -178,6 +177,23 @@ describe("runDown", () => {
 
     await expect(runDown({}, deps(adapter))).rejects.toBeInstanceOf(BackendError);
 
+    expect(readState(config).active).not.toBeNull();
+  });
+
+  it("does not stop when clearing state fails before stop", async () => {
+    seedOwned();
+    const adapter = fakeAdapter();
+
+    await expect(
+      runDown({}, {
+        ...deps(adapter),
+        writeState: () => {
+          throw new Error("disk full");
+        },
+      }),
+    ).rejects.toThrow("disk full");
+
+    expect(adapter.stopped).toHaveLength(0);
     expect(readState(config).active).not.toBeNull();
   });
 

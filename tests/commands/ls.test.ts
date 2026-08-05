@@ -61,7 +61,6 @@ describe("runLs", () => {
       active: {
         modelId: "llama3.1:8b",
         endpoint: "http://127.0.0.1:11434",
-        pid: 0,
         port: 11434,
         ownedByUs: false,
       },

@@ -82,6 +82,11 @@ export interface ReadinessOptions {
   readonly endpoint: string;
   readonly timeoutMs?: number | undefined;
   readonly retries?: number | undefined;
+  /**
+   * Require OpenAI-compatible readiness (`/v1/models`) instead of allowing the
+   * native Ollama fallback (`/api/tags`).
+   */
+  readonly requireOpenAiCompatibility?: boolean | undefined;
   readonly signal?: AbortSignal | undefined;
 }
 

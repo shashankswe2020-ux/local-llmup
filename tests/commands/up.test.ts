@@ -18,6 +18,26 @@ import type { Catalog, CatalogModel, HardwareProfile, Quantization } from "../..
 
 const GIB = 1024 ** 3;
 
+interface Deferred<T> {
+  readonly promise: Promise<T>;
+  readonly resolve: (value: T | PromiseLike<T>) => void;
+  readonly reject: (reason?: unknown) => void;
+}
+
+function deferred<T>(): Deferred<T> {
+  let resolveFn: ((value: T | PromiseLike<T>) => void) | undefined;
+  let rejectFn: ((reason?: unknown) => void) | undefined;
+  const promise = new Promise<T>((resolve, reject) => {
+    resolveFn = resolve;
+    rejectFn = reject;
+  });
+  return {
+    promise,
+    resolve: (value) => resolveFn?.(value),
+    reject: (reason) => rejectFn?.(reason),
+  };
+}
+
 function quant(name: string, diskBytes: number, overrides: Partial<Quantization> = {}): Quantization {
   return {
     name,
@@ -185,6 +205,10 @@ describe("runUp", () => {
       expectedSha256: "a".repeat(64),
       expectedSizeBytes: 5 * GIB,
     });
+    expect(adapter.readyArgs[0]).toMatchObject({
+      endpoint: "http://127.0.0.1:11434",
+      requireOpenAiCompatibility: true,
+    });
     expect(readState(config).active).toEqual({
       modelId: "llama3.1:8b",
       endpoint: "http://127.0.0.1:11434",
@@ -210,13 +234,58 @@ describe("runUp", () => {
     const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
     const hw = hardware({ freeDiskBytes: 1 * GIB });
 
-    await expect(runUp({ model: "llama3.1:8b-Q4_K_M" }, deps(adapter, cat, hw))).rejects.toBeInstanceOf(
-      ValidationError,
+    await expect(runUp({ model: "llama3.1:8b-Q4_K_M" }, deps(adapter, cat, hw))).rejects.toThrow(
+      "insufficient disk for llama3.1:8b (Q4_K_M): need 5.0 GiB, 1.0 GiB free",
     );
 
     expect(adapter.calls).not.toContain("pull");
     expect(adapter.calls).not.toContain("serve");
     expect(readState(config).active).toBeNull();
+  });
+
+  it("uses the same insufficient-disk message for auto and explicit quant selection", async () => {
+    const autoAdapter = fakeAdapter();
+    const explicitAdapter = fakeAdapter();
+    const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB), quant("Q8_0", 8 * GIB)])]);
+    const hw = hardware({ freeDiskBytes: 1 * GIB });
+
+    const autoError = await runUp({ model: "llama3.1:8b" }, deps(autoAdapter, cat, hw)).then(
+      () => new Error("expected runUp to fail"),
+      (error: unknown) => error,
+    );
+    const explicitError = await runUp({ model: "llama3.1:8b-Q4_K_M" }, deps(explicitAdapter, cat, hw)).then(
+      () => new Error("expected runUp to fail"),
+      (error: unknown) => error,
+    );
+
+    expect(autoError).toBeInstanceOf(ValidationError);
+    expect(explicitError).toBeInstanceOf(ValidationError);
+    expect((autoError as ValidationError).message).toBe((explicitError as ValidationError).message);
+    expect((autoError as ValidationError).message).toBe(
+      "insufficient disk for llama3.1:8b (Q4_K_M): need 5.0 GiB, 1.0 GiB free",
+    );
+    expect(autoAdapter.calls).not.toContain("pull");
+    expect(explicitAdapter.calls).not.toContain("pull");
+  });
+
+  it("warns when an explicitly requested quant fails memory fit", async () => {
+    const adapter = fakeAdapter();
+    const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
+    const hw = hardware({ totalRamBytes: 8 * GIB });
+
+    await runUp({ model: "llama3.1:8b-Q4_K_M" }, deps(adapter, cat, hw));
+
+    expect(stderr.join("")).toContain("may not fit this hardware (ram-bound)");
+    expect(stdout.join("")).toContain("ready at");
+  });
+
+  it("does not warn when an explicitly requested quant fits memory", async () => {
+    const adapter = fakeAdapter();
+    const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
+
+    await runUp({ model: "llama3.1:8b-Q4_K_M" }, deps(adapter, cat));
+
+    expect(stderr.join("")).not.toContain("may not fit this hardware");
   });
 
   it("aborts with the install hint when the backend is missing", async () => {
@@ -245,7 +314,7 @@ describe("runUp", () => {
     expect(readState(config).active).toBeNull();
   });
 
-  it("persists an attached daemon with pid 0 and ownedByUs false", async () => {
+  it("persists an attached daemon without a pid field", async () => {
     const adapter = fakeAdapter({
       handle: {
         endpoint: "http://127.0.0.1:11434",
@@ -261,7 +330,6 @@ describe("runUp", () => {
     expect(readState(config).active).toEqual({
       modelId: "llama3.1:8b",
       endpoint: "http://127.0.0.1:11434",
-      pid: 0,
       port: 11434,
       ownedByUs: false,
     });
@@ -308,6 +376,53 @@ describe("runUp", () => {
     expect(readState(config).active).toBeNull();
   });
 
+  it("serializes concurrent up runs so only one serve can happen at a time", async () => {
+    const handles: ServeHandle[] = [
+      { endpoint: "http://127.0.0.1:11434", pid: 1111, port: 11434, ownedByUs: true },
+      { endpoint: "http://127.0.0.1:11435", pid: 2222, port: 11435, ownedByUs: true },
+    ];
+    const serveEntered = deferred<void>();
+    const releaseFirstHealth = deferred<void>();
+    let serveCalls = 0;
+    const adapter = fakeAdapter();
+    adapter.serve = (opts?: ServeOptions): Promise<ServeHandle> => {
+      adapter.calls.push("serve");
+      adapter.serveArgs.push(opts ?? {});
+      const handle = handles[serveCalls] ?? handles[1]!;
+      serveCalls += 1;
+      if (serveCalls === 1) {
+        serveEntered.resolve();
+      }
+      return Promise.resolve(handle);
+    };
+    adapter.waitUntilReady = async (opts: ReadinessOptions): Promise<void> => {
+      adapter.calls.push("health");
+      adapter.readyArgs.push(opts);
+      if (opts.endpoint === handles[0]!.endpoint) {
+        await releaseFirstHealth.promise;
+      }
+    };
+
+    const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
+
+    const firstRun = runUp({ model: "llama3.1:8b", port: 11434 }, deps(adapter, cat));
+    await serveEntered.promise;
+
+    const secondRun = runUp({ model: "llama3.1:8b", port: 11435 }, deps(adapter, cat));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(serveCalls).toBe(1);
+
+    releaseFirstHealth.resolve();
+    await Promise.all([firstRun, secondRun]);
+
+    expect(serveCalls).toBe(2);
+    expect(adapter.stopped).toHaveLength(1);
+    expect(adapter.stopped[0]).toMatchObject({ pid: 1111, port: 11434, ownedByUs: true });
+    expect(readState(config).active).toMatchObject({ pid: 2222, port: 11435, ownedByUs: true });
+  });
+
   it("rejects an unknown model before touching the backend", async () => {
     const adapter = fakeAdapter();
     const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
@@ -331,5 +446,22 @@ describe("runUp", () => {
     await runUp({ model: "llama3.1:8b" }, deps(adapter, cat));
 
     expect(stderr.join("")).toContain("downloading");
+  });
+
+  it("sanitizes control characters in the final success line", async () => {
+    const adapter = fakeAdapter({
+      handle: {
+        endpoint: "http://127.0.0.1:11434\u0007",
+        pid: 9001,
+        port: 11434,
+        ownedByUs: true,
+      },
+    });
+    const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
+
+    await runUp({ model: "llama3.1:8b" }, deps(adapter, cat));
+
+    expect(stdout.join("")).toBe("llama3.1:8b ready at http://127.0.0.1:11434\n");
+    expect(stdout.join("")).not.toContain("\u0007");
   });
 });

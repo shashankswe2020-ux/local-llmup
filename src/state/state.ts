@@ -18,28 +18,31 @@ import { StateError } from "../errors.js";
 /** Bumped when the on-disk state layout changes in a backward-incompatible way. */
 export const STATE_SCHEMA_VERSION = 1 as const;
 
-/**
- * A running inference server that this CLI knows about.
- *
- * `pid` is non-negative: a positive pid identifies a daemon we can signal,
- * while `0` denotes an attached daemon (`ownedByUs: false`) whose pid we never
- * learned. The refinement enforces the invariant that a server we own always
- * carries a signalable (positive) pid, so `down`/`stop` can never be handed a
- * contradictory `{ ownedByUs: true, pid: 0 }` record.
- */
-const ServerStateSchema = z
+/** Shared fields persisted for any active server entry. */
+const ServerStateCommonSchema = z
   .object({
     modelId: z.string().min(1),
     endpoint: z.string().url(),
-    pid: z.number().int().nonnegative(),
     port: z.number().int().min(1).max(65535),
-    ownedByUs: z.boolean(),
   })
-  .strict()
-  .refine((server) => !server.ownedByUs || server.pid > 0, {
-    message: "an owned server must have a positive pid",
-    path: ["pid"],
-  });
+  .strict();
+
+/** A daemon we spawned locally and can signal by pid. */
+const OwnedServerStateSchema = ServerStateCommonSchema.extend({
+  ownedByUs: z.literal(true),
+  pid: z.number().int().positive(),
+}).strict();
+
+/** A daemon we attached to and do not own (no trusted pid available). */
+const AttachedServerStateSchema = ServerStateCommonSchema.extend({
+  ownedByUs: z.literal(false),
+}).strict();
+
+/** A running inference server that this CLI knows about. */
+const ServerStateSchema = z.discriminatedUnion("ownedByUs", [
+  OwnedServerStateSchema,
+  AttachedServerStateSchema,
+]);
 
 /** Persisted runtime state: the single active server, if any. */
 const RuntimeStateSchema = z
@@ -51,6 +54,26 @@ const RuntimeStateSchema = z
 
 export type ServerState = z.infer<typeof ServerStateSchema>;
 export type RuntimeState = z.infer<typeof RuntimeStateSchema>;
+
+/**
+ * Backward-compatibility for legacy state files that encoded attached daemons
+ * as `{ ownedByUs: false, pid: 0 }`. We normalize that shape in-memory before
+ * schema validation so persisted state no longer relies on a sentinel pid.
+ */
+function normalizeLegacyRuntimeState(parsed: unknown): unknown {
+  if (typeof parsed !== "object" || parsed === null) return parsed;
+  const candidate = parsed as Record<string, unknown>;
+  const active = candidate["active"];
+  if (typeof active !== "object" || active === null) return parsed;
+
+  const activeRecord = active as Record<string, unknown>;
+  if (activeRecord["ownedByUs"] !== false || activeRecord["pid"] !== 0) {
+    return parsed;
+  }
+
+  const { pid: _legacyPid, ...normalizedActive } = activeRecord;
+  return { ...candidate, active: normalizedActive };
+}
 
 /** Options controlling lock acquisition. Overrides exist primarily for tests. */
 export interface LockOptions {
@@ -98,7 +121,8 @@ export function readState(config: Config): RuntimeState {
     });
   }
 
-  const result = RuntimeStateSchema.safeParse(parsed);
+  const normalized = normalizeLegacyRuntimeState(parsed);
+  const result = RuntimeStateSchema.safeParse(normalized);
   if (!result.success) {
     throw new StateError(`state file failed validation: ${config.stateFile}`, "invalid", {
       cause: result.error,
