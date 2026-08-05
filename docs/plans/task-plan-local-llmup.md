@@ -256,9 +256,9 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] Stage in home-dir (same-fs) + rename; **crash between write and rename → original intact** (real tmpdir); `--move` preserves source on **write and post-copy verify** failure.
 **Verify:** `npm test tests/memory/migrate-staging` **Deps:** T22 **Files:** `src/memory/migrate.ts` (staging), +test **Scope:** S
 
-#### T27: `migrate` command
+#### T27: `migrate` command ✅ done
 **Acceptance:**
-- [ ] `--from --to [--move] [--dry-run]`; `--dry-run` asserts **zero fs writes** (spy); summary (carried/summarized/re-embedded/strategy).
+- [x] `--from --to [--move] [--dry-run]`; `--dry-run` asserts **zero fs writes** (spy); summary (carried/summarized/re-embedded/strategy).
 **Verify:** `npm test tests/commands/migrate` **Deps:** T14, T25, T26 **Files:** `src/commands/migrate.ts`, `src/cli.ts`, +test **Scope:** S
 
 ### Checkpoint: Memory (T22–T27) — chat records memory; `migrate` moves it with re-embed + rollback safety.

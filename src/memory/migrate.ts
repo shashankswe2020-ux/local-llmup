@@ -34,6 +34,7 @@ import {
 } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { dirname, basename, join, resolve, sep } from "node:path";
+import { z } from "zod";
 import { DIR_MODE, FILE_MODE, type Config } from "../config.js";
 import { MemoryError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
@@ -47,6 +48,8 @@ import {
 import {
   MEMORY_META_FILE,
   MEMORY_SCHEMA_VERSION,
+  memoryStoreDir,
+  readMemoryMeta,
   type EmbeddingMeta,
   type MemoryMeta,
 } from "./store.js";
@@ -371,6 +374,107 @@ export async function planMigration(input: MigrationInput): Promise<MigrationPla
       embeddingStrategy: embed.strategy,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Loading: read a source model's on-disk store into a validated SourceMemory.
+// ---------------------------------------------------------------------------
+
+const StoredTurnSchema = z
+  .object({
+    role: z.enum(["system", "user", "assistant"]),
+    content: z.string(),
+    ts: z.string(),
+  })
+  .strict();
+
+const StoredChunkSchema = z
+  .object({ id: z.string(), text: z.string(), ts: z.string() })
+  .strict();
+
+const StoredVectorSchema = z
+  .object({ id: z.string(), vector: z.array(z.number()) })
+  .strict();
+
+/** Read and validate newline-delimited JSON records, tolerating a missing file. */
+function readJsonlRecords<T>(path: string, schema: z.ZodType<T>, label: string): T[] {
+  let raw: string;
+  try {
+    raw = readFileSync(path, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return [];
+    }
+    throw new MemoryError(`failed to read ${label}: ${path}`, { cause: error });
+  }
+
+  const records: T[] = [];
+  const lines = raw.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (line === undefined || line.trim().length === 0) {
+      continue;
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(line);
+    } catch (error) {
+      throw new MemoryError(`${label} line ${i + 1} is not valid JSON: ${path}`, { cause: error });
+    }
+    const result = schema.safeParse(parsed);
+    if (!result.success) {
+      throw new MemoryError(`${label} line ${i + 1} failed validation: ${path}`, {
+        cause: result.error,
+      });
+    }
+    records.push(result.data);
+  }
+  return records;
+}
+
+/** Read a file's raw bytes, returning `undefined` when it does not exist. */
+function readOptionalFile(path: string, label: string): string | undefined {
+  try {
+    return readFileSync(path, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return undefined;
+    }
+    throw new MemoryError(`failed to read ${label}: ${path}`, { cause: error });
+  }
+}
+
+/**
+ * Load and validate the memory store for `modelId` into a {@link SourceMemory}.
+ * Requires the store to already exist — {@link readMemoryMeta} throws if it does
+ * not, and enforces that the store's recorded owner matches `modelId`, so a slug
+ * collision can never migrate another model's memory. `facts.json` is read as
+ * raw bytes so it can be carried through byte-identically.
+ */
+export function loadSourceMemory(config: Config, modelId: string): SourceMemory {
+  const dir = memoryStoreDir(config, modelId);
+  const meta = readMemoryMeta(dir, modelId);
+
+  const turns = readJsonlRecords(join(dir, CONVERSATION_FILE), StoredTurnSchema, "conversation");
+  const systemPrompt = readOptionalFile(join(dir, SYSTEM_FILE), "system prompt");
+  const factsText = readOptionalFile(join(dir, FACTS_FILE), "facts") ?? "";
+
+  let embedding: SourceEmbedding | undefined;
+  if (meta.embedding !== undefined) {
+    const chunks = readJsonlRecords(
+      join(dir, EMBEDDINGS_DIR, CHUNKS_FILE),
+      StoredChunkSchema,
+      "chunks",
+    );
+    const vectors = readJsonlRecords(
+      join(dir, EMBEDDINGS_DIR, VECTORS_FILE),
+      StoredVectorSchema,
+      "vectors",
+    );
+    embedding = { meta: meta.embedding, chunks, vectors };
+  }
+
+  return { turns, systemPrompt, factsText, embedding };
 }
 
 // ---------------------------------------------------------------------------

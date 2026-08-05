@@ -105,6 +105,16 @@ export function memorySlug(modelId: string): string {
   return slug;
 }
 
+/**
+ * The absolute store directory for `modelId`, without creating or validating it.
+ * `memorySlug` guarantees a single traversal-safe segment inside the memory
+ * root, so this is a pure path derivation for callers (e.g. `migrate`) that need
+ * a store path before the directory exists.
+ */
+export function memoryStoreDir(config: Config, modelId: string): string {
+  return join(config.memoryDir, memorySlug(modelId));
+}
+
 function ensureDir(dir: string): void {
   mkdirSync(dir, { recursive: true, mode: DIR_MODE });
   chmodSync(dir, DIR_MODE);

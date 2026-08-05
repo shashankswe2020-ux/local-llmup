@@ -7,6 +7,7 @@ import { runDown } from "./commands/down.js";
 import { runLs } from "./commands/ls.js";
 import { runSwitch } from "./commands/switch.js";
 import { runChat } from "./commands/chat.js";
+import { runMigrate } from "./commands/migrate.js";
 import { runDoctor } from "./commands/doctor.js";
 import { stripControl } from "./sanitize.js";
 import { CAPABILITIES, type Capability } from "./types.js";
@@ -157,6 +158,36 @@ function registerChat(command: Command): void {
     });
 }
 
+/** Wire the `migrate` action onto its cac command. */
+function registerMigrate(command: Command): void {
+  command
+    .option("--from <model>", "Source model to migrate memory from")
+    .option("--to <model>", "Target model to migrate memory to")
+    .option("--move", "Delete the source memory after a successful migration")
+    .option("--dry-run", "Print the migration plan without writing anything")
+    .action(
+      async (options: { from?: string; to?: string; move?: boolean; dryRun?: boolean }) => {
+        try {
+          if (options.from === undefined || options.to === undefined) {
+            process.stderr.write("migrate: --from and --to are required\n");
+            process.exitCode = 1;
+            return;
+          }
+          await runMigrate({
+            from: options.from,
+            to: options.to,
+            ...(options.move === true ? { move: true } : {}),
+            ...(options.dryRun === true ? { dryRun: true } : {}),
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          process.stderr.write(`migrate: ${stripControl(message)}\n`);
+          process.exitCode = 1;
+        }
+      },
+    );
+}
+
 /** Wire the `doctor` action onto its cac command. */
 function registerDoctor(command: Command): void {
   command.action(async () => {
@@ -189,6 +220,8 @@ export function buildCli(): ReturnType<typeof cac> {
       registerSwitch(command);
     } else if (spec.name === "chat") {
       registerChat(command);
+    } else if (spec.name === "migrate") {
+      registerMigrate(command);
     } else if (spec.name === "doctor") {
       registerDoctor(command);
     } else {
