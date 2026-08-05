@@ -14,11 +14,30 @@ Hardware-aware CLI for discovering, installing, serving, and migrating local LLM
 - Keeps a curated catalog of open-weight models and supports catalog refreshes.
 - Supports memory migration and local diagnostics for day-to-day model management.
 
-## How It Differs From Using Ollama Directly
+## Why local-llmup?
 
 Ollama is the local model runtime: it downloads models, runs inference, and
 provides the serving API. `local-llmup` uses Ollama underneath, but adds the
-workflow around it:
+hardware-aware workflow around it.
+
+| Feature | Ollama | local-llmup |
+|---|---|---|
+| Install runtime | ✅ | ✅ |
+| Detect hardware | ⚠️ Internal only | ✅ User-facing |
+| Recommend best model | ❌ | ✅ |
+| Recommend best quantization | ❌ | ✅ |
+| Choose best runtime (Ollama, llama.cpp, MLX, vLLM...) | ❌ | 🛠️ Planned |
+| One-command setup | ⚠️ Partial | ✅ |
+
+Think of it as:
+
+> Homebrew for local LLMs.
+
+Ollama is the sole runtime supported in the current release. The backend
+interface is designed for future adapters such as llama.cpp and MLX; runtime
+selection is not yet implemented.
+
+### Using Ollama Directly vs. local-llmup
 
 | Using Ollama directly | Using `local-llmup` |
 |---|---|
