@@ -1,0 +1,211 @@
+:root {
+  --paper: #f3ecd7;
+  --ink: #1c1a18;
+  --muted: #655f56;
+  --accent: #a7491f;
+  --edge: #d6c7a7;
+  --shadow: rgba(28, 26, 24, 0.2);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  color: var(--ink);
+  font-family: "Fraunces", serif;
+  background: radial-gradient(circle at 20% 10%, #f8f4e8, #e8dec7 55%, #d9ceb3 100%);
+  line-height: 1.45;
+}
+
+.paper-noise {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image: repeating-radial-gradient(circle at 0 0, transparent 0, #000 0.8px, transparent 1.6px);
+  background-size: 3px 3px;
+}
+
+.sheet {
+  width: min(1040px, 94vw);
+  margin: 2rem auto;
+  padding: 1.4rem 1.2rem 2rem;
+  border: 2px solid var(--edge);
+  background: linear-gradient(175deg, #f6efdb 0%, #f0e4cb 68%, #ecdcbf 100%);
+  box-shadow: 0 16px 42px var(--shadow);
+}
+
+.masthead {
+  border-bottom: 3px double var(--ink);
+  text-align: center;
+  padding: 0.2rem 0.2rem 0.9rem;
+}
+
+.edition {
+  font-family: "Special Elite", serif;
+  letter-spacing: 0.06em;
+  margin: 0;
+  color: var(--muted);
+}
+
+h1 {
+  margin: 0.4rem 0;
+  font-size: clamp(2.3rem, 7vw, 4.3rem);
+  line-height: 0.95;
+  letter-spacing: 0.03em;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: clamp(1rem, 2.4vw, 1.35rem);
+}
+
+.lede {
+  margin: 1rem 0;
+  font-size: clamp(1.06rem, 2vw, 1.24rem);
+  border-left: 4px solid var(--accent);
+  padding-left: 0.85rem;
+}
+
+.quickstart {
+  margin: 1.3rem 0;
+  border: 1px dashed var(--muted);
+  padding: 0.8rem;
+  background: rgba(255, 255, 255, 0.32);
+}
+
+h2,
+h3 {
+  font-family: "Special Elite", serif;
+  margin: 0 0 0.65rem;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.card {
+  border: 1px solid var(--edge);
+  padding: 0.8rem;
+  background: rgba(255, 255, 255, 0.42);
+  transform: rotate(calc(var(--twist, 0) * 1deg));
+}
+
+.card ul {
+  padding-left: 1rem;
+  margin: 0;
+}
+
+.card li {
+  margin-bottom: 0.35rem;
+}
+
+code {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.93em;
+}
+
+.terminal {
+  margin-top: 1.15rem;
+  border: 1px solid #2f2924;
+  box-shadow: 0 5px 0 #2f2924;
+  background: #15110e;
+  color: #efe7d1;
+}
+
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-bottom: 1px solid #483e35;
+  padding: 0.35rem 0.5rem;
+}
+
+.terminal-bar span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.terminal-bar span:nth-child(1) {
+  background: #d6512d;
+}
+
+.terminal-bar span:nth-child(2) {
+  background: #ddb656;
+}
+
+.terminal-bar span:nth-child(3) {
+  background: #5ea166;
+}
+
+.terminal-bar p {
+  margin: 0 0 0 auto;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+  color: #bcae93;
+}
+
+.terminal pre {
+  margin: 0;
+  overflow-x: auto;
+  padding: 0.8rem;
+}
+
+.footnote {
+  margin-top: 1rem;
+  border-top: 2px solid var(--edge);
+  display: flex;
+  gap: 1rem;
+  padding-top: 0.8rem;
+}
+
+.footnote a {
+  color: var(--accent);
+  font-family: "Special Elite", serif;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 500ms ease, transform 500ms ease;
+  transition-delay: var(--delay, 0ms);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 760px) {
+  .sheet {
+    width: 96vw;
+    margin: 1rem auto;
+    padding: 1rem 0.9rem 1.4rem;
+  }
+
+  .columns {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    transform: none;
+  }
+
+  .footnote {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+}

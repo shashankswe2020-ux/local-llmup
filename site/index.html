@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>local-llmup | Paper Edition</title>
+    <meta
+      name="description"
+      content="Hardware-aware CLI for discovering, installing, serving, and switching local LLMs."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="paper-noise" aria-hidden="true"></div>
+    <main class="sheet">
+      <header class="masthead reveal">
+        <p class="edition">Issue 0.1.2 | Local AI Dispatch</p>
+        <h1>local-llmup</h1>
+        <p class="subtitle">A hardware-aware command line for local LLMs</p>
+      </header>
+
+      <section class="lede reveal" style="--delay: 80ms">
+        <p>
+          Discover the best model for your machine, pull it, serve it, chat with it, and migrate
+          memory when you switch. One workflow. Local-first.
+        </p>
+      </section>
+
+      <section class="quickstart reveal" style="--delay: 140ms">
+        <h2>Quickstart</h2>
+        <ol>
+          <li><code>npm install -g local-llmup</code></li>
+          <li><code>npx local-llmup</code></li>
+          <li><code>local-llmup up qwen3:30b-a3b</code></li>
+          <li><code>local-llmup chat -m qwen3:30b-a3b</code></li>
+        </ol>
+      </section>
+
+      <section class="columns">
+        <article class="card reveal" style="--delay: 220ms">
+          <h3>Core Commands</h3>
+          <ul>
+            <li><code>recommend</code> find top fits for your hardware</li>
+            <li><code>up &lt;model&gt;</code> install + start server</li>
+            <li><code>switch &lt;model&gt;</code> set active served model</li>
+            <li><code>migrate</code> move memory between models</li>
+            <li><code>doctor</code> run diagnostics for local stack</li>
+          </ul>
+        </article>
+
+        <article class="card reveal" style="--delay: 260ms">
+          <h3>Why It Feels Fast</h3>
+          <ul>
+            <li>Hardware-aware ranking from a curated model catalog</li>
+            <li>Clear install and serve lifecycle through Ollama</li>
+            <li>State + memory migration built for daily model switching</li>
+            <li>CLI output designed for both humans and scripts</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="terminal reveal" style="--delay: 320ms">
+        <div class="terminal-bar">
+          <span></span><span></span><span></span>
+          <p>sample run</p>
+        </div>
+        <pre><code>$ npx local-llmup
+Ranked local LLMs for arm64/darwin (34.0 GiB ram usable)
+1. qwen3:30b-a3b (Q4_K_M, 19.8 GiB)
+2. kimi-vl-a3b (Q4_K_M, 10.7 GiB)
+...
+Run the top pick: local-llmup up qwen3:30b-a3b</code></pre>
+      </section>
+
+      <footer class="footnote reveal" style="--delay: 360ms">
+        <a href="https://www.npmjs.com/package/local-llmup" target="_blank" rel="noreferrer"
+          >npm package</a
+        >
+        <a href="https://github.com/shashankswe2020-ux/local-llmup" target="_blank" rel="noreferrer"
+          >repository</a
+        >
+      </footer>
+    </main>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

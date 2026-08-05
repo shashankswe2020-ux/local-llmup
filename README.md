@@ -2,6 +2,11 @@
 
 Hardware-aware CLI for discovering, installing, serving, and migrating local LLMs from a single command.
 
+## Website
+
+- Live site: https://shashankswe2020-ux.github.io/local-llmup/
+- Local preview: `cd site && python3 -m http.server 8080`
+
 ## Features
 
 - Detects your hardware profile and recommends models that fit your machine.
