@@ -2,21 +2,29 @@ import { afterEach, describe, it, expect, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
   runUpMock: vi.fn<(options: { model: string; port?: number | undefined }) => Promise<void>>(),
+  runCanRunMock:
+    vi.fn<(options: { model: string; json?: boolean }) => Promise<{ runnable: "yes" | "slow" | "no" }>>(),
 }));
 
 vi.mock("../src/commands/up.js", () => ({
   runUp: hoisted.runUpMock,
 }));
 
+vi.mock("../src/commands/can-run.js", () => ({
+  runCanRun: hoisted.runCanRunMock,
+}));
+
 import { COMMANDS, buildCli, type CommandName } from "../src/cli.js";
 
 afterEach(() => {
   hoisted.runUpMock.mockReset();
+  hoisted.runCanRunMock.mockReset();
   process.exitCode = undefined;
 });
 
 const EXPECTED_COMMANDS: CommandName[] = [
   "recommend",
+  "can-run",
   "up",
   "chat",
   "down",
@@ -28,7 +36,7 @@ const EXPECTED_COMMANDS: CommandName[] = [
 ];
 
 describe("command registry", () => {
-  it("registers exactly the nine spec commands", () => {
+  it("registers exactly the ten spec commands", () => {
     const names = COMMANDS.map((c) => c.name);
     expect(names).toEqual(EXPECTED_COMMANDS);
   });
@@ -60,7 +68,7 @@ describe("command registry", () => {
 });
 
 describe("buildCli", () => {
-  it("exposes all nine commands to cac", () => {
+  it("exposes all ten commands to cac", () => {
     const cli = buildCli();
     const registered = cli.commands.map((c) => c.name);
     for (const expected of EXPECTED_COMMANDS) {
@@ -116,5 +124,29 @@ describe("buildCli", () => {
     expect(hoisted.runUpMock).toHaveBeenCalledTimes(2);
     expect(hoisted.runUpMock).toHaveBeenNthCalledWith(1, { model: "llama3.1:8b", port: 1 });
     expect(hoisted.runUpMock).toHaveBeenNthCalledWith(2, { model: "llama3.1:8b", port: 65535 });
+  });
+});
+
+describe("can-run exit contract", () => {
+  it("exits non-zero only for a `no` verdict", async () => {
+    hoisted.runCanRunMock.mockResolvedValueOnce({ runnable: "no" });
+    await buildCli().parse(["node", "local-llmup", "can-run", "llama3.1:8b"]);
+    expect(hoisted.runCanRunMock).toHaveBeenCalledWith({ model: "llama3.1:8b" });
+    expect(process.exitCode).toBe(1);
+  });
+
+  it("exits zero for `yes` and `slow` verdicts", async () => {
+    for (const runnable of ["yes", "slow"] as const) {
+      process.exitCode = undefined;
+      hoisted.runCanRunMock.mockResolvedValueOnce({ runnable });
+      await buildCli().parse(["node", "local-llmup", "can-run", "llama3.1:8b"]);
+      expect(process.exitCode).toBeUndefined();
+    }
+  });
+
+  it("forwards --json to runCanRun", async () => {
+    hoisted.runCanRunMock.mockResolvedValueOnce({ runnable: "yes" });
+    await buildCli().parse(["node", "local-llmup", "can-run", "llama3.1:8b", "--json"]);
+    expect(hoisted.runCanRunMock).toHaveBeenCalledWith({ model: "llama3.1:8b", json: true });
   });
 });

@@ -146,22 +146,22 @@ while footprint stays total (from `memory-math.ts`); ±30% band by default.
 **Verify:** `npm test tests/advisor/throughput`
 **Deps:** T35 **Files:** `src/advisor/throughput.ts`, `tests/advisor/throughput.test.ts`, `tests/advisor/fixtures/calibration.json` **Scope:** M
 
-#### T37: Phase 2 — runnability verdict (pure)
+#### T37: Phase 2 — runnability verdict (pure) ✅ done
 **Description:** `advisor/verdict.ts` — `verdict(model, hw, perf)` → `Runnable`
 combining `evaluateFit` (reuse `ranking/fit.ts`) with throughput vs `COMFORT_FLOOR`.
 **Acceptance:**
-- [ ] `no` when `evaluateFit` fails (carries `ram|vram|disk-bound` reason).
-- [ ] `slow` when fits but est. tok/s < `COMFORT_FLOOR`; `yes` when ≥.
-- [ ] Unknown throughput downgrades `yes`→ `slow?` per spec honesty gate.
+- [x] `no` when `evaluateFit` fails (carries `ram|vram|disk-bound` reason).
+- [x] `slow` when fits but est. tok/s < `COMFORT_FLOOR`; `yes` when ≥.
+- [x] Unknown throughput downgrades `yes`→ `slow?` per spec honesty gate.
 **Verify:** `npm test tests/advisor/verdict`
 **Deps:** T36, D1 **Files:** `src/advisor/verdict.ts`, `tests/advisor/verdict.test.ts` **Scope:** S
 
-#### T38: Phase 2 — `can-run <model>` command
+#### T38: Phase 2 — `can-run <model>` command ✅ done
 **Description:** Thin CLI wrapper: resolve model (reuse resolver) → detect → verdict.
 **Acceptance (AC9):**
-- [ ] Prints exactly one verdict + reason + tok/s range.
-- [ ] Non-zero exit **only** for `no` (scriptable gate); `--json` supported.
-- [ ] Registered in `COMMANDS`; help/registry test passes.
+- [x] Prints exactly one verdict + reason + tok/s range.
+- [x] Non-zero exit **only** for `no` (scriptable gate); `--json` supported.
+- [x] Registered in `COMMANDS`; help/registry test passes.
 **Verify:** `npm test tests/commands/can-run tests/cli`
 **Deps:** T37 **Files:** `src/commands/can-run.ts`, `src/cli.ts`, `tests/commands/can-run.test.ts` **Scope:** S
 

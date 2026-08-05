@@ -10,11 +10,13 @@ import { runChat } from "./commands/chat.js";
 import { runMigrate } from "./commands/migrate.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runCatalog } from "./commands/catalog.js";
+import { runCanRun } from "./commands/can-run.js";
 import { stripControl } from "./sanitize.js";
 import { CAPABILITIES, type Capability } from "./types.js";
 
 export type CommandName =
   | "recommend"
+  | "can-run"
   | "up"
   | "chat"
   | "down"
@@ -33,6 +35,11 @@ export interface CommandSpec {
 
 export const COMMANDS: readonly CommandSpec[] = [
   { name: "recommend", args: "", description: "Detect hardware and print ranked local LLMs + install commands." },
+  {
+    name: "can-run",
+    args: "<model>",
+    description: "Answer yes|slow|no whether this machine can run <model>, with an estimated tok/s range.",
+  },
   { name: "up", args: "<model>", description: "Install (if needed) and start a local server for <model>." },
   { name: "chat", args: "", description: "Interactive/piped chat that records memory." },
   {
@@ -210,6 +217,25 @@ function registerDoctor(command: Command): void {
     });
 }
 
+/** Wire the `can-run` action onto its cac command. Non-zero exit only for `no`. */
+function registerCanRun(command: Command): void {
+  command
+    .option("--json", "Emit machine-readable JSON")
+    .action(async (model: string, options: { json?: boolean }) => {
+      try {
+        const result = await runCanRun({
+          model,
+          ...(options.json === true ? { json: true } : {}),
+        });
+        if (result.runnable === "no") process.exitCode = 1;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`can-run: ${stripControl(message)}\n`);
+        process.exitCode = 1;
+      }
+    });
+}
+
 /** Wire the `catalog` action onto its cac command. */
 function registerCatalog(command: Command): void {
   command
@@ -237,6 +263,8 @@ export function buildCli(): ReturnType<typeof cac> {
     const command = cli.command(usage, spec.description);
     if (spec.name === "recommend") {
       registerRecommend(command);
+    } else if (spec.name === "can-run") {
+      registerCanRun(command);
     } else if (spec.name === "up") {
       registerUp(command);
     } else if (spec.name === "down") {
