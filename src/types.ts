@@ -121,3 +121,59 @@ export interface Catalog {
   readonly generatedAt: string;
   readonly models: readonly CatalogModel[];
 }
+
+// ---------------------------------------------------------------------------
+// Hardware Advisor domain types
+//
+// The advisor layer (score, throughput, verdict, plan, build) reasons about the
+// same `HardwareProfile` the ranker uses, plus these shared shapes. Kept here,
+// dependency-free, so every advisor module and its Zod schemas share one source
+// of truth (mirrors the `as const` enum pattern above).
+// ---------------------------------------------------------------------------
+
+/**
+ * The four capability axes scored by the AI Hardware Score. The weakest axis is
+ * surfaced as the machine's primary {@link Bottleneck}.
+ */
+export const BOTTLENECKS = ["vram", "ram", "compute", "storage"] as const;
+export type Bottleneck = (typeof BOTTLENECKS)[number];
+
+/**
+ * Runnability verdict for a model on the detected hardware: `yes` (fits and
+ * comfortable), `slow` (fits but under the throughput comfort floor), or `no`
+ * (does not fit).
+ */
+export const RUNNABLE_STATES = ["yes", "slow", "no"] as const;
+export type Runnable = (typeof RUNNABLE_STATES)[number];
+
+/**
+ * Estimated decode throughput as a range, never a point value. `known` is false
+ * when the detected hardware has no performance profile; callers must then treat
+ * the bounds as meaningless and must not present a number (honesty gate).
+ */
+export interface ThroughputEstimate {
+  readonly lowTokPerSec: number;
+  readonly highTokPerSec: number;
+  readonly known: boolean;
+}
+
+/**
+ * AI Hardware Score: an overall 0–100 rating plus the per-axis sub-scores it was
+ * composed from and the weakest axis (the primary bottleneck).
+ */
+export interface HardwareScore {
+  readonly total: number;
+  readonly sub: Readonly<Record<Bottleneck, number>>;
+  readonly bottleneck: Bottleneck;
+}
+
+/**
+ * A dated price range in USD. Prices are curated estimates, never live quotes,
+ * so every value carries the date it was valid as of.
+ */
+export interface ComponentPrice {
+  readonly lowUsd: number;
+  readonly highUsd: number;
+  /** ISO-8601 date (YYYY-MM-DD) the estimate is valid as of. */
+  readonly asOf: string;
+}

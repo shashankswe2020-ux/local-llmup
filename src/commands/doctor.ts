@@ -11,12 +11,13 @@ import { loadCatalog } from "../catalog/load.js";
 import { loadConfig, type Config } from "../config.js";
 import { detectHardware } from "../hardware/detect.js";
 import { usableMemoryBytes } from "../hardware/memory-math.js";
+import { computeHardwareScore } from "../advisor/score.js";
 import { renderTable, type Column } from "../output.js";
 import { stripControl } from "../sanitize.js";
 import { OllamaAdapter } from "../backend/ollama.js";
 import type { BackendAdapter } from "../backend/adapter.js";
 import { readState, type RuntimeState } from "../state/state.js";
-import type { Catalog, HardwareProfile } from "../types.js";
+import type { Bottleneck, Catalog, HardwareProfile, HardwareScore } from "../types.js";
 
 /** Least usable memory (RAM or VRAM) that can load even the smallest model. */
 const MIN_USABLE_MEMORY_BYTES = 1024 ** 3; // 1 GiB
@@ -38,6 +39,11 @@ export interface DoctorCheck {
 export interface DoctorReport {
   readonly checks: readonly DoctorCheck[];
   readonly ok: boolean;
+  /**
+   * The AI Hardware Score, or `null` when hardware detection failed (the score
+   * is additive context and never, on its own, flips `ok`).
+   */
+  readonly hardwareScore: HardwareScore | null;
 }
 
 /** Injectable side effects, so the command can be driven with fakes in tests. */
@@ -83,22 +89,33 @@ async function checkBackend(adapter: BackendAdapter): Promise<DoctorCheck> {
   }
 }
 
-async function checkHardware(detect: () => Promise<HardwareProfile>): Promise<DoctorCheck> {
+/** Outcome of the single hardware probe, shared by the check and the score. */
+type Detection = { readonly ok: true; readonly profile: HardwareProfile } | { readonly ok: false; readonly error: unknown };
+
+/** Probe hardware exactly once so the check and the score agree on one reading. */
+async function detectSafely(detect: () => Promise<HardwareProfile>): Promise<Detection> {
   try {
-    const hw = await detect();
-    const usable = usableMemoryBytes(hw);
-    const summary = `${hw.arch}/${hw.platform}, ${formatGiB(usable)} usable memory, ${formatGiB(hw.freeDiskBytes)} free disk`;
-    if (usable < MIN_USABLE_MEMORY_BYTES) {
-      return {
-        name: "hardware",
-        status: "fail",
-        detail: `insufficient usable memory to run a model (${summary})`,
-      };
-    }
-    return { name: "hardware", status: "ok", detail: summary };
+    return { ok: true, profile: await detect() };
   } catch (error) {
-    return { name: "hardware", status: "fail", detail: `hardware detection failed: ${messageOf(error)}` };
+    return { ok: false, error };
   }
+}
+
+function checkHardware(detection: Detection): DoctorCheck {
+  if (!detection.ok) {
+    return { name: "hardware", status: "fail", detail: `hardware detection failed: ${messageOf(detection.error)}` };
+  }
+  const hw = detection.profile;
+  const usable = usableMemoryBytes(hw);
+  const summary = `${hw.arch}/${hw.platform}, ${formatGiB(usable)} usable memory, ${formatGiB(hw.freeDiskBytes)} free disk`;
+  if (usable < MIN_USABLE_MEMORY_BYTES) {
+    return {
+      name: "hardware",
+      status: "fail",
+      detail: `insufficient usable memory to run a model (${summary})`,
+    };
+  }
+  return { name: "hardware", status: "ok", detail: summary };
 }
 
 function checkCatalog(load: () => Catalog): DoctorCheck {
@@ -174,14 +191,35 @@ const TABLE_COLUMNS: readonly Column[] = [
   { header: "Detail" },
 ];
 
+/** Human-facing label for each bottleneck axis. */
+const BOTTLENECK_LABEL: Readonly<Record<Bottleneck, string>> = {
+  vram: "VRAM",
+  ram: "RAM",
+  compute: "Compute",
+  storage: "Storage",
+};
+
 /** Run every diagnostic, print a report to stdout, and return the verdict. */
-export async function runDoctor(deps: DoctorDeps = createDefaultDeps()): Promise<DoctorReport> {
+export async function runDoctor(
+  deps: DoctorDeps = createDefaultDeps(),
+  options: { json?: boolean } = {},
+): Promise<DoctorReport> {
+  const detection = await detectSafely(deps.detectHardware);
   const checks: readonly DoctorCheck[] = [
-    await checkHardware(deps.detectHardware),
+    checkHardware(detection),
     await checkBackend(deps.adapter),
     checkCatalog(deps.loadCatalog),
     await checkState(deps),
   ];
+
+  const ok = checks.every((c) => c.status !== "fail");
+  const hardwareScore = detection.ok ? computeHardwareScore(detection.profile) : null;
+  const report: DoctorReport = { checks, ok, hardwareScore };
+
+  if (options.json === true) {
+    deps.write(`${JSON.stringify(report, null, 2)}\n`);
+    return report;
+  }
 
   const table = renderTable(
     TABLE_COLUMNS,
@@ -189,8 +227,12 @@ export async function runDoctor(deps: DoctorDeps = createDefaultDeps()): Promise
   );
   deps.write(`${table}\n`);
 
-  const ok = checks.every((c) => c.status !== "fail");
+  if (hardwareScore !== null) {
+    deps.write(`\nAI Hardware Score: ${String(hardwareScore.total)}/100\n`);
+    deps.write(`Primary bottleneck: ${BOTTLENECK_LABEL[hardwareScore.bottleneck]}\n`);
+  }
+
   deps.write(ok ? "\nAll checks passed.\n" : "\nProblems found — see FAIL rows above.\n");
 
-  return { checks, ok };
+  return report;
 }

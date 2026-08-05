@@ -196,16 +196,18 @@ function registerMigrate(command: Command): void {
 
 /** Wire the `doctor` action onto its cac command. */
 function registerDoctor(command: Command): void {
-  command.action(async () => {
-    try {
-      const report = await runDoctor();
-      if (!report.ok) process.exitCode = 1;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      process.stderr.write(`doctor: ${stripControl(message)}\n`);
-      process.exitCode = 1;
-    }
-  });
+  command
+    .option("--json", "Emit machine-readable JSON")
+    .action(async (options: { json?: boolean }) => {
+      try {
+        const report = await runDoctor(undefined, options.json === true ? { json: true } : {});
+        if (!report.ok) process.exitCode = 1;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`doctor: ${stripControl(message)}\n`);
+        process.exitCode = 1;
+      }
+    });
 }
 
 /** Wire the `catalog` action onto its cac command. */

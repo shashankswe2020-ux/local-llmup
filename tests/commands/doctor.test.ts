@@ -241,3 +241,68 @@ describe("runDoctor", () => {
     expect(find(report, "state").detail).toContain("llama3.1:8b");
   });
 });
+
+describe("runDoctor — AI Hardware Score (T34)", () => {
+  it("appends score + bottleneck lines and exposes them on the report", async () => {
+    const { deps, stdout } = baseDeps();
+
+    const report = await runDoctor(deps);
+
+    expect(report.hardwareScore).not.toBeNull();
+    expect(report.hardwareScore?.total).toBeGreaterThanOrEqual(0);
+    expect(report.hardwareScore?.total).toBeLessThanOrEqual(100);
+    const out = stdout.join("");
+    expect(out).toMatch(/AI Hardware Score: \d{1,3}\/100/);
+    expect(out).toMatch(/Primary bottleneck:/i);
+  });
+
+  it("does not fail the exit verdict for a weak-but-runnable machine (AC3)", async () => {
+    const { deps } = baseDeps({
+      detectHardware: async () => ({
+        arch: "x64",
+        platform: "linux",
+        totalRamBytes: 8 * GiB,
+        freeRamBytes: 6 * GiB,
+        gpu: [{ vendor: "none", vramBytes: 0 }],
+        freeDiskBytes: 40 * GiB,
+      }),
+    });
+
+    const report = await runDoctor(deps);
+
+    // Low score, but the machine can still run a small model → not a FAIL.
+    expect(report.ok).toBe(true);
+    expect(report.hardwareScore).not.toBeNull();
+    expect(report.hardwareScore!.total).toBeLessThan(60);
+  });
+
+  it("emits hardwareScore + bottleneck in --json and omits the table", async () => {
+    const { deps, stdout } = baseDeps();
+
+    const report = await runDoctor(deps, { json: true });
+
+    const out = stdout.join("");
+    const parsed = JSON.parse(out) as {
+      ok: boolean;
+      hardwareScore: { total: number; bottleneck: string } | null;
+    };
+    expect(parsed.ok).toBe(report.ok);
+    expect(parsed.hardwareScore?.total).toBe(report.hardwareScore?.total);
+    expect(typeof parsed.hardwareScore?.bottleneck).toBe("string");
+    // JSON mode is machine-readable only — no human table/verdict text.
+    expect(out).not.toContain("All checks passed");
+  });
+
+  it("degrades gracefully to a null score when detection throws", async () => {
+    const { deps } = baseDeps({
+      detectHardware: async () => {
+        throw new Error("probe exploded");
+      },
+    });
+
+    const report = await runDoctor(deps);
+
+    expect(report.hardwareScore).toBeNull();
+    expect(find(report, "hardware").status).toBe("fail");
+  });
+});
