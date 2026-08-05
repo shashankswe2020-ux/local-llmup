@@ -251,9 +251,9 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 - [x] Re-embed **4-way matrix** (model×dim) fires only where required; `facts.json` byte-identical.
 **Verify:** `npm test tests/memory/migrate-logic` **Deps:** T17, T22 **Files:** `src/memory/migrate.ts` (logic), +test **Scope:** M
 
-#### T26: Migrate staging (atomic + rollback)
+#### T26: Migrate staging (atomic + rollback) ✅ done
 **Acceptance:**
-- [ ] Stage in home-dir (same-fs) + rename; **crash between write and rename → original intact** (real tmpdir); `--move` preserves source on **write and post-copy verify** failure.
+- [x] Stage in home-dir (same-fs) + rename; **crash between write and rename → original intact** (real tmpdir); `--move` preserves source on **write and post-copy verify** failure.
 **Verify:** `npm test tests/memory/migrate-staging` **Deps:** T22 **Files:** `src/memory/migrate.ts` (staging), +test **Scope:** S
 
 #### T27: `migrate` command

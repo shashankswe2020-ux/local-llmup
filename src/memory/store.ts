@@ -79,6 +79,9 @@ export interface MemoryStore {
 
 const META_FILE = "meta.json";
 
+/** The store metadata filename, exported so migration can stage/verify it. */
+export const MEMORY_META_FILE = META_FILE;
+
 /**
  * Derive a filesystem-safe, single-segment slug from a model id.
  *

@@ -34,11 +34,15 @@ import {
 /** Bumped when the `facts.json` layout changes incompatibly. */
 export const FACTS_SCHEMA_VERSION = 1 as const;
 
-const CONVERSATION_FILE = "conversation.jsonl";
-const FACTS_FILE = "facts.json";
-const EMBEDDINGS_DIR = "embeddings";
-const CHUNKS_FILE = "chunks.jsonl";
-const VECTORS_FILE = "vectors.jsonl";
+/**
+ * On-disk store layout filenames. Exported so the migration module writes and
+ * verifies the exact same artifacts this producer creates, without drift.
+ */
+export const CONVERSATION_FILE = "conversation.jsonl";
+export const FACTS_FILE = "facts.json";
+export const EMBEDDINGS_DIR = "embeddings";
+export const CHUNKS_FILE = "chunks.jsonl";
+export const VECTORS_FILE = "vectors.jsonl";
 
 const FactSchema = z
   .object({

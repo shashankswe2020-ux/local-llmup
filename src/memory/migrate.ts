@@ -13,10 +13,46 @@
  * {@link Summarizer} (target model if running, else a deterministic fallback)
  * and a {@link MigrationEmbedder} — so this module never imports an adapter and
  * stays trivially testable.
+ *
+ * The staging half ({@link writeMigration}) materializes a plan onto disk with
+ * crash safety: the full target store is built in a same-filesystem staging
+ * directory, swapped into place with a single `rename`, verified, and only then
+ * — under `--move` — is the source deleted. Any failure leaves both the source
+ * and the original target intact.
  */
+import {
+  chmodSync,
+  closeSync,
+  existsSync,
+  fsyncSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { randomUUID } from "node:crypto";
+import { dirname, basename, join, resolve, sep } from "node:path";
+import { DIR_MODE, FILE_MODE, type Config } from "../config.js";
 import { MemoryError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
-import type { EmbeddingMeta } from "./store.js";
+import {
+  CHUNKS_FILE,
+  CONVERSATION_FILE,
+  EMBEDDINGS_DIR,
+  FACTS_FILE,
+  VECTORS_FILE,
+} from "./capture.js";
+import {
+  MEMORY_META_FILE,
+  MEMORY_SCHEMA_VERSION,
+  type EmbeddingMeta,
+  type MemoryMeta,
+} from "./store.js";
+
+/** Persona filename in a store; written only when the source has a system prompt. */
+const SYSTEM_FILE = "system.md";
 
 /** One conversation turn (as stored in `conversation.jsonl`). */
 export interface ConversationTurn {
@@ -335,4 +371,356 @@ export async function planMigration(input: MigrationInput): Promise<MigrationPla
       embeddingStrategy: embed.strategy,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Staging: materialize a plan onto disk atomically, with rollback safety.
+// ---------------------------------------------------------------------------
+
+function ensureDir(dir: string): void {
+  mkdirSync(dir, { recursive: true, mode: DIR_MODE });
+  chmodSync(dir, DIR_MODE);
+}
+
+/**
+ * fsync a directory entry so a rename/create is durable across power loss. Some
+ * platforms (notably Windows) reject `open`/`fsync` on a directory; treat that
+ * as a best-effort no-op rather than failing the migration.
+ */
+function fsyncDir(dir: string): void {
+  let fd: number;
+  try {
+    fd = openSync(dir, "r");
+  } catch {
+    return;
+  }
+  try {
+    fsyncSync(fd);
+  } catch {
+    // Directory fsync unsupported on this platform; nothing more we can do.
+  } finally {
+    closeSync(fd);
+  }
+}
+
+/**
+ * Write a staged file with owner-only perms, re-asserting them after write and
+ * fsyncing so the bytes are durable before the staging dir is renamed into place.
+ */
+function writeStagedFile(path: string, data: string): void {
+  const fd = openSync(path, "w", FILE_MODE);
+  try {
+    writeFileSync(fd, data);
+    fsyncSync(fd);
+  } finally {
+    closeSync(fd);
+  }
+  chmodSync(path, FILE_MODE);
+}
+
+function toJsonl(records: readonly unknown[]): string {
+  return records.map((record) => `${JSON.stringify(record)}\n`).join("");
+}
+
+/** Read the target's existing `createdAt` so a migration preserves store age. */
+function readExistingCreatedAt(targetDir: string): string | undefined {
+  let raw: string;
+  try {
+    raw = readFileSync(join(targetDir, MEMORY_META_FILE), "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return undefined;
+    }
+    throw error;
+  }
+  try {
+    const parsed = JSON.parse(raw) as { readonly createdAt?: unknown };
+    return typeof parsed.createdAt === "string" ? parsed.createdAt : undefined;
+  } catch {
+    // Corrupt meta: fall back to a fresh timestamp rather than aborting.
+    return undefined;
+  }
+}
+
+/** Count non-empty JSONL lines, treating a missing file as zero records. */
+function countJsonlLines(path: string): number {
+  let raw: string;
+  try {
+    raw = readFileSync(path, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return 0;
+    }
+    throw error;
+  }
+  return raw.split("\n").filter((line) => line.length > 0).length;
+}
+
+/** A staged, not-yet-committed migration sitting in the staging directory. */
+export interface StagedMigration {
+  /** Absolute path to the fully-built target store, awaiting commit. */
+  readonly stagedDir: string;
+  /** Absolute path the staged store will be swapped into on commit. */
+  readonly targetDir: string;
+  /**
+   * Atomically swap the staged store into the target directory. An optional
+   * post-swap `verify` runs before the previous target is discarded, so a
+   * verification failure rolls the original target back into place. On any
+   * failure the staged directory is cleaned up before the error propagates.
+   * Single-use: calling twice, or after {@link StagedMigration.cleanup}, throws.
+   */
+  commit(verify?: (targetDir: string) => void): void;
+  /** Discard the staged store without touching the target. Idempotent. */
+  cleanup(): void;
+}
+
+/**
+ * Build a plan's complete target store in a fresh same-filesystem staging
+ * directory. Nothing outside the staging directory is touched until
+ * {@link StagedMigration.commit} renames it into place.
+ */
+export function stageMigration(
+  config: Config,
+  targetDir: string,
+  targetModelId: string,
+  plan: MigrationPlan,
+  now?: (() => Date) | undefined,
+): StagedMigration {
+  ensureDir(config.stagingDir);
+  const stagedDir = join(config.stagingDir, `migrate.${process.pid}.${randomUUID()}`);
+  ensureDir(stagedDir);
+  let consumed = false;
+
+  try {
+    const clock = now ?? ((): Date => new Date());
+    const createdAt = readExistingCreatedAt(targetDir) ?? clock().toISOString();
+    const meta: MemoryMeta = {
+      schemaVersion: MEMORY_SCHEMA_VERSION,
+      modelId: targetModelId,
+      createdAt,
+      ...(plan.embedding !== undefined ? { embedding: plan.embedding.meta } : {}),
+    };
+    writeStagedFile(join(stagedDir, MEMORY_META_FILE), `${JSON.stringify(meta, null, 2)}\n`);
+    writeStagedFile(join(stagedDir, CONVERSATION_FILE), toJsonl(plan.turns));
+
+    if (plan.systemPrompt !== undefined) {
+      writeStagedFile(join(stagedDir, SYSTEM_FILE), plan.systemPrompt);
+    }
+    // facts.json is carried byte-identically; only materialize it when present.
+    if (plan.factsText.length > 0) {
+      writeStagedFile(join(stagedDir, FACTS_FILE), plan.factsText);
+    }
+    if (plan.embedding !== undefined) {
+      const embeddingsDir = join(stagedDir, EMBEDDINGS_DIR);
+      ensureDir(embeddingsDir);
+      writeStagedFile(join(embeddingsDir, CHUNKS_FILE), toJsonl(plan.embedding.chunks));
+      writeStagedFile(join(embeddingsDir, VECTORS_FILE), toJsonl(plan.embedding.vectors));
+    }
+  } catch (error) {
+    rmSync(stagedDir, { recursive: true, force: true });
+    throw new MemoryError(`failed to stage migration for ${stripControl(targetModelId)}`, {
+      cause: error,
+    });
+  }
+
+  return {
+    stagedDir,
+    targetDir,
+    commit(verify?: (targetDir: string) => void): void {
+      if (consumed) {
+        throw new MemoryError("staged migration has already been committed or cleaned up");
+      }
+      consumed = true;
+      try {
+        commitStaged(stagedDir, targetDir, verify);
+      } catch (error) {
+        // A committed staging dir is already gone; a failed swap leaves it behind.
+        rmSync(stagedDir, { recursive: true, force: true });
+        throw error;
+      }
+    },
+    cleanup(): void {
+      consumed = true;
+      rmSync(stagedDir, { recursive: true, force: true });
+    },
+  };
+}
+
+/**
+ * Swap the staged store into `targetDir`. The previous target (if any) is moved
+ * aside to a same-directory backup first, so a failed rename or a failed
+ * `verify` restores it exactly. The parent directory is fsynced after the swap
+ * so the rename survives power loss, and the backup is discarded only once the
+ * swap and verification both succeed.
+ *
+ * If restoring the backup itself fails, the original data survives under the
+ * backup path; the thrown error names that path so it can be recovered by hand.
+ */
+function commitStaged(
+  stagedDir: string,
+  targetDir: string,
+  verify?: (targetDir: string) => void,
+): void {
+  const parent = dirname(targetDir);
+  const backup = join(parent, `.migrate-bak.${basename(targetDir)}.${randomUUID()}`);
+  const targetExisted = existsSync(targetDir);
+  if (targetExisted) {
+    renameSync(targetDir, backup);
+  }
+
+  try {
+    renameSync(stagedDir, targetDir);
+    if (verify !== undefined) {
+      verify(targetDir);
+    }
+  } catch (error) {
+    // Undo the swap and restore the original target so a failure is a no-op.
+    try {
+      rmSync(targetDir, { recursive: true, force: true });
+      if (targetExisted) {
+        renameSync(backup, targetDir);
+      }
+    } catch (restoreError) {
+      // The original store still exists under `backup`; surface where, and keep
+      // the root cause chained so the real failure isn't masked.
+      throw new MemoryError(
+        `failed to commit migration to ${stripControl(targetDir)} and could not restore the ` +
+          `original store; the previous data is preserved at ${stripControl(backup)}`,
+        { cause: error instanceof Error ? error : restoreError },
+      );
+    }
+    throw error instanceof MemoryError
+      ? error
+      : new MemoryError(`failed to commit migration to ${stripControl(targetDir)}`, {
+          cause: error,
+        });
+  }
+
+  fsyncDir(parent);
+
+  if (targetExisted) {
+    rmSync(backup, { recursive: true, force: true });
+  }
+}
+
+/** Inputs for {@link writeMigration}. */
+export interface MigrateWriteParams {
+  readonly sourceDir: string;
+  readonly targetDir: string;
+  readonly targetModelId: string;
+  readonly plan: MigrationPlan;
+}
+
+/** Options for {@link writeMigration}. */
+export interface MigrateWriteOptions {
+  /** Delete the source store after a fully-committed, verified target write. */
+  readonly move?: boolean | undefined;
+  /** Post-copy integrity check; defaults to {@link verifyMigration}. */
+  readonly verify?: ((targetDir: string, plan: MigrationPlan) => void) | undefined;
+  /** Clock for the target's `createdAt` when no prior store exists. */
+  readonly now?: (() => Date) | undefined;
+}
+
+/**
+ * Materialize a {@link MigrationPlan} onto disk with crash and rollback safety:
+ * stage the full target store on the same filesystem, atomically swap it into
+ * place, verify it, and — only under `--move` and only after all of that
+ * succeeds — delete the source. Any failure leaves both the source and the
+ * original target untouched.
+ */
+export function writeMigration(
+  config: Config,
+  params: MigrateWriteParams,
+  options: MigrateWriteOptions = {},
+): void {
+  if (options.move === true) {
+    assertMovableSource(params.sourceDir, params.targetDir);
+  }
+
+  const staged = stageMigration(
+    config,
+    params.targetDir,
+    params.targetModelId,
+    params.plan,
+    options.now,
+  );
+  const verify = options.verify ?? verifyMigration;
+
+  try {
+    staged.commit((dir) => verify(dir, params.plan));
+  } catch (error) {
+    staged.cleanup();
+    throw error;
+  }
+
+  if (options.move === true) {
+    rmSync(params.sourceDir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Refuse a `--move` when the source overlaps the target. Deleting an overlapping
+ * source after the commit would erase the freshly-written target (or an ancestor
+ * containing it) — irreversible with `rmSync(force)`. Two model ids can slugify
+ * to the same directory, so this must live in the reusable module, not only in
+ * the command layer.
+ */
+function assertMovableSource(sourceDir: string, targetDir: string): void {
+  const src = resolve(sourceDir);
+  const tgt = resolve(targetDir);
+  if (src === tgt || tgt.startsWith(src + sep) || src.startsWith(tgt + sep)) {
+    throw new MemoryError(
+      `refusing to move: source ${stripControl(src)} overlaps target ${stripControl(tgt)}`,
+    );
+  }
+}
+
+/**
+ * Post-copy integrity check: the committed target must contain exactly the
+ * plan's turns, byte-identical facts, and matching embedding record counts.
+ * Throws {@link MemoryError} on any discrepancy so the caller can roll back.
+ */
+export function verifyMigration(targetDir: string, plan: MigrationPlan): void {
+  const turnCount = countJsonlLines(join(targetDir, CONVERSATION_FILE));
+  if (turnCount !== plan.turns.length) {
+    throw new MemoryError(
+      `migration verify failed: conversation has ${turnCount} turns, expected ${plan.turns.length}`,
+    );
+  }
+
+  if (plan.factsText.length > 0) {
+    let facts: string;
+    try {
+      facts = readFileSync(join(targetDir, FACTS_FILE), "utf8");
+    } catch (error) {
+      throw new MemoryError("migration verify failed: facts.json is missing", { cause: error });
+    }
+    if (facts !== plan.factsText) {
+      throw new MemoryError("migration verify failed: facts.json bytes differ from the source");
+    }
+  }
+
+  if (plan.embedding !== undefined) {
+    const vectorCount = countJsonlLines(join(targetDir, EMBEDDINGS_DIR, VECTORS_FILE));
+    if (vectorCount !== plan.embedding.vectors.length) {
+      throw new MemoryError(
+        `migration verify failed: ${vectorCount} vectors, expected ${plan.embedding.vectors.length}`,
+      );
+    }
+    const chunkCount = countJsonlLines(join(targetDir, EMBEDDINGS_DIR, CHUNKS_FILE));
+    if (chunkCount !== plan.embedding.chunks.length) {
+      throw new MemoryError(
+        `migration verify failed: ${chunkCount} chunks, expected ${plan.embedding.chunks.length}`,
+      );
+    }
+  }
+
+  try {
+    const metaRaw = readFileSync(join(targetDir, MEMORY_META_FILE), "utf8");
+    JSON.parse(metaRaw);
+  } catch (error) {
+    throw new MemoryError("migration verify failed: meta.json is missing or invalid", {
+      cause: error,
+    });
+  }
 }
