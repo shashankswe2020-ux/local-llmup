@@ -1,7 +1,89 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-04T00:00:00Z",
+  "generatedAt": "2026-08-04T00:00:00.000Z",
   "models": [
+    {
+      "id": "kimi-k2-thinking",
+      "family": "kimi-k2-thinking",
+      "params": "1T",
+      "architecture": "moe",
+      "activeParams": "32B",
+      "license": "modified-mit",
+      "openWeight": true,
+      "contextLength": 262144,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools"
+      ],
+      "releaseDate": "2025-11-06",
+      "source": {
+        "hf": "moonshotai/Kimi-K2-Thinking"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 600000000000,
+          "minRamBytes": 690000000000,
+          "minVramBytes": 690000000000
+        }
+      ],
+      "benchmarkProxy": 0.99
+    },
+    {
+      "id": "kimi-linear",
+      "family": "kimi-linear",
+      "params": "48B",
+      "architecture": "moe",
+      "activeParams": "3B",
+      "license": "modified-mit",
+      "openWeight": true,
+      "contextLength": 262144,
+      "capabilities": [
+        "chat",
+        "reasoning"
+      ],
+      "releaseDate": "2025-10-30",
+      "source": {
+        "hf": "moonshotai/Kimi-Linear-48B-A3B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 29000000000,
+          "minRamBytes": 33350000000,
+          "minVramBytes": 33350000000
+        }
+      ],
+      "benchmarkProxy": 0.78
+    },
+    {
+      "id": "kimi-k2:base",
+      "family": "kimi-k2",
+      "params": "1T",
+      "architecture": "moe",
+      "activeParams": "32B",
+      "license": "modified-mit",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "code"
+      ],
+      "releaseDate": "2025-07-11",
+      "source": {
+        "hf": "moonshotai/Kimi-K2-Base"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 600000000000,
+          "minRamBytes": 690000000000,
+          "minVramBytes": 690000000000
+        }
+      ],
+      "benchmarkProxy": 0.97
+    },
     {
       "id": "kimi-k2:instruct",
       "family": "kimi-k2",
@@ -11,18 +93,112 @@
       "license": "modified-mit",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "tools"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
       "releaseDate": "2025-07-11",
-      "source": { "ollama": "kimi-k2:instruct" },
+      "source": {
+        "ollama": "kimi-k2:instruct",
+        "hf": "moonshotai/Kimi-K2-Instruct"
+      },
       "quantizations": [
         {
           "name": "Q4_K_M",
           "diskBytes": 600000000000,
-          "minRamBytes": 620000000000,
-          "minVramBytes": 600000000000
+          "minRamBytes": 690000000000,
+          "minVramBytes": 690000000000
         }
       ],
-      "benchmarkProxy": 0.82
+      "benchmarkProxy": 0.97
+    },
+    {
+      "id": "kimi-dev-72b",
+      "family": "kimi-dev",
+      "params": "72B",
+      "architecture": "dense",
+      "license": "modified-mit",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "code",
+        "chat",
+        "reasoning"
+      ],
+      "releaseDate": "2025-06-16",
+      "source": {
+        "hf": "moonshotai/Kimi-Dev-72B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 43000000000,
+          "minRamBytes": 49450000000,
+          "minVramBytes": 49450000000
+        }
+      ],
+      "benchmarkProxy": 0.78
+    },
+    {
+      "id": "qwen3:14b",
+      "family": "qwen3",
+      "params": "14B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
+      "releaseDate": "2025-04-28",
+      "source": {
+        "ollama": "qwen3:14b",
+        "hf": "Qwen/Qwen3-14B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 9000000000,
+          "minRamBytes": 10350000000,
+          "minVramBytes": 10350000000
+        }
+      ],
+      "benchmarkProxy": 0.62
+    },
+    {
+      "id": "qwen3:235b-a22b",
+      "family": "qwen3",
+      "params": "235B",
+      "architecture": "moe",
+      "activeParams": "22B",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
+      "releaseDate": "2025-04-28",
+      "source": {
+        "ollama": "qwen3:235b-a22b",
+        "hf": "Qwen/Qwen3-235B-A22B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 142000000000,
+          "minRamBytes": 163300000000,
+          "minVramBytes": 163300000000
+        }
+      ],
+      "benchmarkProxy": 0.95
     },
     {
       "id": "qwen3:30b-a3b",
@@ -33,15 +209,1101 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "tools", "code"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
       "releaseDate": "2025-04-28",
-      "source": { "ollama": "qwen3:30b-a3b", "hf": "Qwen/Qwen3-30B-A3B" },
+      "source": {
+        "ollama": "qwen3:30b-a3b",
+        "hf": "Qwen/Qwen3-30B-A3B"
+      },
       "quantizations": [
         {
           "name": "Q4_K_M",
           "diskBytes": 18500000000,
-          "minRamBytes": 22000000000,
-          "minVramBytes": 20000000000
+          "minRamBytes": 21275000000,
+          "minVramBytes": 21275000000
+        }
+      ],
+      "benchmarkProxy": 0.74
+    },
+    {
+      "id": "qwen3:32b",
+      "family": "qwen3",
+      "params": "32B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
+      "releaseDate": "2025-04-28",
+      "source": {
+        "ollama": "qwen3:32b",
+        "hf": "Qwen/Qwen3-32B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 19500000000,
+          "minRamBytes": 22425000000,
+          "minVramBytes": 22425000000
+        }
+      ],
+      "benchmarkProxy": 0.74
+    },
+    {
+      "id": "qwen3:8b",
+      "family": "qwen3",
+      "params": "8B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
+      "releaseDate": "2025-04-28",
+      "source": {
+        "ollama": "qwen3:8b",
+        "hf": "Qwen/Qwen3-8B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 5200000000,
+          "minRamBytes": 5980000000,
+          "minVramBytes": 5980000000
+        }
+      ],
+      "benchmarkProxy": 0.54
+    },
+    {
+      "id": "glm4:9b",
+      "family": "glm4",
+      "params": "9B",
+      "architecture": "dense",
+      "license": "mit",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
+      "releaseDate": "2025-04-14",
+      "source": {
+        "ollama": "glm4:9b",
+        "hf": "THUDM/GLM-4-9B-0414"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 5500000000,
+          "minRamBytes": 6325000000,
+          "minVramBytes": 6325000000
+        }
+      ],
+      "benchmarkProxy": 0.49
+    },
+    {
+      "id": "kimi-vl-a3b",
+      "family": "kimi-vl",
+      "params": "16B",
+      "architecture": "moe",
+      "activeParams": "3B",
+      "license": "modified-mit",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "vision"
+      ],
+      "releaseDate": "2025-04-10",
+      "source": {
+        "hf": "moonshotai/Kimi-VL-A3B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 10000000000,
+          "minRamBytes": 11500000000,
+          "minVramBytes": 11500000000
+        }
+      ],
+      "benchmarkProxy": 0.64
+    },
+    {
+      "id": "gemma3:12b",
+      "family": "gemma3",
+      "params": "12B",
+      "architecture": "dense",
+      "license": "gemma",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "vision",
+        "code"
+      ],
+      "releaseDate": "2025-03-12",
+      "source": {
+        "ollama": "gemma3:12b",
+        "hf": "google/gemma-3-12b-it"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 7300000000,
+          "minRamBytes": 8395000000,
+          "minVramBytes": 8395000000
+        }
+      ],
+      "benchmarkProxy": 0.58
+    },
+    {
+      "id": "gemma3:27b",
+      "family": "gemma3",
+      "params": "27B",
+      "architecture": "dense",
+      "license": "gemma",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "vision",
+        "code",
+        "reasoning"
+      ],
+      "releaseDate": "2025-03-12",
+      "source": {
+        "ollama": "gemma3:27b",
+        "hf": "google/gemma-3-27b-it"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 16000000000,
+          "minRamBytes": 18400000000,
+          "minVramBytes": 18400000000
+        }
+      ],
+      "benchmarkProxy": 0.7
+    },
+    {
+      "id": "gemma3:4b",
+      "family": "gemma3",
+      "params": "4B",
+      "architecture": "dense",
+      "license": "gemma",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "vision"
+      ],
+      "releaseDate": "2025-03-12",
+      "source": {
+        "ollama": "gemma3:4b",
+        "hf": "google/gemma-3-4b-it"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 2500000000,
+          "minRamBytes": 2875000000,
+          "minVramBytes": 2875000000
+        }
+      ],
+      "benchmarkProxy": 0.42
+    },
+    {
+      "id": "mistral-small:24b",
+      "family": "mistral-small",
+      "params": "24B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 32768,
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "releaseDate": "2025-01-30",
+      "source": {
+        "ollama": "mistral-small:24b",
+        "hf": "mistralai/Mistral-Small-24B-Instruct-2501"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 14000000000,
+          "minRamBytes": 16215000000,
+          "minVramBytes": 16215000000
+        }
+      ],
+      "benchmarkProxy": 0.63
+    },
+    {
+      "id": "deepseek-r1:14b",
+      "family": "deepseek-r1",
+      "params": "14B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "code"
+      ],
+      "releaseDate": "2025-01-20",
+      "source": {
+        "ollama": "deepseek-r1:14b",
+        "hf": "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 9000000000,
+          "minRamBytes": 10350000000,
+          "minVramBytes": 10350000000
+        }
+      ],
+      "benchmarkProxy": 0.64
+    },
+    {
+      "id": "deepseek-r1:32b",
+      "family": "deepseek-r1",
+      "params": "32B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "code"
+      ],
+      "releaseDate": "2025-01-20",
+      "source": {
+        "ollama": "deepseek-r1:32b",
+        "hf": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 19500000000,
+          "minRamBytes": 22425000000,
+          "minVramBytes": 22425000000
+        }
+      ],
+      "benchmarkProxy": 0.76
+    },
+    {
+      "id": "deepseek-r1:671b",
+      "family": "deepseek-r1",
+      "params": "671B",
+      "architecture": "moe",
+      "activeParams": "37B",
+      "license": "mit",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "reasoning",
+        "chat",
+        "code"
+      ],
+      "releaseDate": "2025-01-20",
+      "source": {
+        "ollama": "deepseek-r1:671b",
+        "hf": "deepseek-ai/DeepSeek-R1"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 404000000000,
+          "minRamBytes": 464600000000,
+          "minVramBytes": 464600000000
+        }
+      ],
+      "benchmarkProxy": 0.97
+    },
+    {
+      "id": "deepseek-r1:70b",
+      "family": "deepseek-r1",
+      "params": "70B",
+      "architecture": "dense",
+      "license": "llama-3.3-community",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "code"
+      ],
+      "releaseDate": "2025-01-20",
+      "source": {
+        "ollama": "deepseek-r1:70b",
+        "hf": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 42000000000,
+          "minRamBytes": 48300000000,
+          "minVramBytes": 48300000000
+        }
+      ],
+      "benchmarkProxy": 0.82
+    },
+    {
+      "id": "deepseek-r1:7b",
+      "family": "deepseek-r1",
+      "params": "7B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "code"
+      ],
+      "releaseDate": "2025-01-20",
+      "source": {
+        "ollama": "deepseek-r1:7b",
+        "hf": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 4700000000,
+          "minRamBytes": 5405000000,
+          "minVramBytes": 5405000000
+        }
+      ],
+      "benchmarkProxy": 0.56
+    },
+    {
+      "id": "deepseek-r1:8b",
+      "family": "deepseek-r1",
+      "params": "8B",
+      "architecture": "dense",
+      "license": "llama-3.1-community",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "code"
+      ],
+      "releaseDate": "2025-01-20",
+      "source": {
+        "ollama": "deepseek-r1:8b",
+        "hf": "deepseek-ai/DeepSeek-R1-Distill-Llama-8B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 4900000000,
+          "minRamBytes": 5635000000,
+          "minVramBytes": 5635000000
+        }
+      ],
+      "benchmarkProxy": 0.56
+    },
+    {
+      "id": "deepseek-v3",
+      "family": "deepseek-v3",
+      "params": "671B",
+      "architecture": "moe",
+      "activeParams": "37B",
+      "license": "deepseek",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "releaseDate": "2024-12-26",
+      "source": {
+        "ollama": "deepseek-v3",
+        "hf": "deepseek-ai/DeepSeek-V3"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 404000000000,
+          "minRamBytes": 464600000000,
+          "minVramBytes": 464600000000
+        }
+      ],
+      "benchmarkProxy": 0.95
+    },
+    {
+      "id": "granite3.1:2b",
+      "family": "granite3.1",
+      "params": "2B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
+      "releaseDate": "2024-12-18",
+      "source": {
+        "ollama": "granite3.1-dense:2b",
+        "hf": "ibm-granite/granite-3.1-2b-instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 1500000000,
+          "minRamBytes": 1725000000,
+          "minVramBytes": 1725000000
+        }
+      ],
+      "benchmarkProxy": 0.31
+    },
+    {
+      "id": "granite3.1:8b",
+      "family": "granite3.1",
+      "params": "8B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "releaseDate": "2024-12-18",
+      "source": {
+        "ollama": "granite3.1-dense:8b",
+        "hf": "ibm-granite/granite-3.1-8b-instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 4900000000,
+          "minRamBytes": 5635000000,
+          "minVramBytes": 5635000000
+        }
+      ],
+      "benchmarkProxy": 0.47
+    },
+    {
+      "id": "phi4:14b",
+      "family": "phi4",
+      "params": "14B",
+      "architecture": "dense",
+      "license": "mit",
+      "openWeight": true,
+      "contextLength": 16384,
+      "capabilities": [
+        "chat",
+        "code",
+        "reasoning"
+      ],
+      "releaseDate": "2024-12-12",
+      "source": {
+        "ollama": "phi4:14b",
+        "hf": "microsoft/phi-4"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 9000000000,
+          "minRamBytes": 10350000000,
+          "minVramBytes": 10350000000
+        }
+      ],
+      "benchmarkProxy": 0.64
+    },
+    {
+      "id": "llama3.3:70b",
+      "family": "llama3.3",
+      "params": "70B",
+      "architecture": "dense",
+      "license": "llama-3.3-community",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "code",
+        "tools",
+        "reasoning"
+      ],
+      "releaseDate": "2024-12-06",
+      "source": {
+        "ollama": "llama3.3:70b",
+        "hf": "meta-llama/Llama-3.3-70B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 42000000000,
+          "minRamBytes": 48300000000,
+          "minVramBytes": 48300000000
+        }
+      ],
+      "benchmarkProxy": 0.78
+    },
+    {
+      "id": "olmo2:13b",
+      "family": "olmo2",
+      "params": "13B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 4096,
+      "capabilities": [
+        "chat",
+        "code"
+      ],
+      "releaseDate": "2024-11-26",
+      "source": {
+        "ollama": "olmo2:13b",
+        "hf": "allenai/OLMo-2-1124-13B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 7900000000,
+          "minRamBytes": 9085000000,
+          "minVramBytes": 9085000000
+        }
+      ],
+      "benchmarkProxy": 0.54
+    },
+    {
+      "id": "olmo2:7b",
+      "family": "olmo2",
+      "params": "7B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 4096,
+      "capabilities": [
+        "chat"
+      ],
+      "releaseDate": "2024-11-26",
+      "source": {
+        "ollama": "olmo2:7b",
+        "hf": "allenai/OLMo-2-1124-7B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 4300000000,
+          "minRamBytes": 4945000000,
+          "minVramBytes": 4945000000
+        }
+      ],
+      "benchmarkProxy": 0.46
+    },
+    {
+      "id": "qwen2.5-coder:32b",
+      "family": "qwen2.5-coder",
+      "params": "32B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "code",
+        "chat",
+        "tools"
+      ],
+      "releaseDate": "2024-11-12",
+      "source": {
+        "ollama": "qwen2.5-coder:32b",
+        "hf": "Qwen/Qwen2.5-Coder-32B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 19500000000,
+          "minRamBytes": 22425000000,
+          "minVramBytes": 22425000000
+        }
+      ],
+      "benchmarkProxy": 0.72
+    },
+    {
+      "id": "qwen2.5-coder:7b",
+      "family": "qwen2.5-coder",
+      "params": "7B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "code",
+        "chat",
+        "tools"
+      ],
+      "releaseDate": "2024-11-12",
+      "source": {
+        "ollama": "qwen2.5-coder:7b",
+        "hf": "Qwen/Qwen2.5-Coder-7B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 4700000000,
+          "minRamBytes": 5405000000,
+          "minVramBytes": 5405000000
+        }
+      ],
+      "benchmarkProxy": 0.52
+    },
+    {
+      "id": "smollm2:1.7b",
+      "family": "smollm2",
+      "params": "1.7B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 8192,
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
+      "releaseDate": "2024-11-01",
+      "source": {
+        "ollama": "smollm2:1.7b",
+        "hf": "HuggingFaceTB/SmolLM2-1.7B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 1100000000,
+          "minRamBytes": 1265000000,
+          "minVramBytes": 1265000000
+        }
+      ],
+      "benchmarkProxy": 0.2
+    },
+    {
+      "id": "smollm2:135m",
+      "family": "smollm2",
+      "params": "135M",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 8192,
+      "capabilities": [
+        "chat"
+      ],
+      "releaseDate": "2024-11-01",
+      "source": {
+        "ollama": "smollm2:135m",
+        "hf": "HuggingFaceTB/SmolLM2-135M-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 110000000,
+          "minRamBytes": 126500000,
+          "minVramBytes": 126500000
+        }
+      ],
+      "benchmarkProxy": 0.05
+    },
+    {
+      "id": "smollm2:360m",
+      "family": "smollm2",
+      "params": "360M",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 8192,
+      "capabilities": [
+        "chat"
+      ],
+      "releaseDate": "2024-11-01",
+      "source": {
+        "ollama": "smollm2:360m",
+        "hf": "HuggingFaceTB/SmolLM2-360M-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 270000000,
+          "minRamBytes": 310500000,
+          "minVramBytes": 310500000
+        }
+      ],
+      "benchmarkProxy": 0.05
+    },
+    {
+      "id": "granite3-moe:3b",
+      "family": "granite3-moe",
+      "params": "3B",
+      "architecture": "moe",
+      "activeParams": "0.8B",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 4096,
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
+      "releaseDate": "2024-10-21",
+      "source": {
+        "ollama": "granite3-moe:3b",
+        "hf": "ibm-granite/granite-3.0-3b-a800m-instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 2000000000,
+          "minRamBytes": 2300000000,
+          "minVramBytes": 2300000000
+        }
+      ],
+      "benchmarkProxy": 0.3
+    },
+    {
+      "id": "llama3.2:1b",
+      "family": "llama3.2",
+      "params": "1B",
+      "architecture": "dense",
+      "license": "llama-3.2-community",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
+      "releaseDate": "2024-09-25",
+      "source": {
+        "ollama": "llama3.2:1b",
+        "hf": "meta-llama/Llama-3.2-1B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 800000000,
+          "minRamBytes": 920000000,
+          "minVramBytes": 920000000
+        }
+      ],
+      "benchmarkProxy": 0.2
+    },
+    {
+      "id": "llama3.2:3b",
+      "family": "llama3.2",
+      "params": "3B",
+      "architecture": "dense",
+      "license": "llama-3.2-community",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
+      "releaseDate": "2024-09-25",
+      "source": {
+        "ollama": "llama3.2:3b",
+        "hf": "meta-llama/Llama-3.2-3B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 2000000000,
+          "minRamBytes": 2300000000,
+          "minVramBytes": 2300000000
+        }
+      ],
+      "benchmarkProxy": 0.28
+    },
+    {
+      "id": "qwen2.5:0.5b",
+      "family": "qwen2.5",
+      "params": "0.5B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 32768,
+      "capabilities": [
+        "chat"
+      ],
+      "releaseDate": "2024-09-19",
+      "source": {
+        "ollama": "qwen2.5:0.5b",
+        "hf": "Qwen/Qwen2.5-0.5B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 400000000,
+          "minRamBytes": 460000000,
+          "minVramBytes": 460000000
+        }
+      ],
+      "benchmarkProxy": 0.18
+    },
+    {
+      "id": "qwen2.5:1.5b",
+      "family": "qwen2.5",
+      "params": "1.5B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 32768,
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
+      "releaseDate": "2024-09-19",
+      "source": {
+        "ollama": "qwen2.5:1.5b",
+        "hf": "Qwen/Qwen2.5-1.5B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 1000000000,
+          "minRamBytes": 1150000000,
+          "minVramBytes": 1150000000
+        }
+      ],
+      "benchmarkProxy": 0.26
+    },
+    {
+      "id": "qwen2.5:14b",
+      "family": "qwen2.5",
+      "params": "14B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "releaseDate": "2024-09-19",
+      "source": {
+        "ollama": "qwen2.5:14b",
+        "hf": "Qwen/Qwen2.5-14B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 9000000000,
+          "minRamBytes": 10350000000,
+          "minVramBytes": 10350000000
+        }
+      ],
+      "benchmarkProxy": 0.58
+    },
+    {
+      "id": "qwen2.5:32b",
+      "family": "qwen2.5",
+      "params": "32B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "releaseDate": "2024-09-19",
+      "source": {
+        "ollama": "qwen2.5:32b",
+        "hf": "Qwen/Qwen2.5-32B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 19500000000,
+          "minRamBytes": 22425000000,
+          "minVramBytes": 22425000000
+        }
+      ],
+      "benchmarkProxy": 0.7
+    },
+    {
+      "id": "qwen2.5:3b",
+      "family": "qwen2.5",
+      "params": "3B",
+      "architecture": "dense",
+      "license": "qwen",
+      "openWeight": true,
+      "contextLength": 32768,
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
+      "releaseDate": "2024-09-19",
+      "source": {
+        "ollama": "qwen2.5:3b",
+        "hf": "Qwen/Qwen2.5-3B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 1900000000,
+          "minRamBytes": 2185000000,
+          "minVramBytes": 2185000000
+        }
+      ],
+      "benchmarkProxy": 0.34
+    },
+    {
+      "id": "qwen2.5:72b",
+      "family": "qwen2.5",
+      "params": "72B",
+      "architecture": "dense",
+      "license": "qwen",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "releaseDate": "2024-09-19",
+      "source": {
+        "ollama": "qwen2.5:72b",
+        "hf": "Qwen/Qwen2.5-72B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 43000000000,
+          "minRamBytes": 49450000000,
+          "minVramBytes": 49450000000
+        }
+      ],
+      "benchmarkProxy": 0.76
+    },
+    {
+      "id": "qwen2.5:7b",
+      "family": "qwen2.5",
+      "params": "7B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "releaseDate": "2024-09-19",
+      "source": {
+        "ollama": "qwen2.5:7b",
+        "hf": "Qwen/Qwen2.5-7B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 4700000000,
+          "minRamBytes": 5405000000,
+          "minVramBytes": 5405000000
+        }
+      ],
+      "benchmarkProxy": 0.5
+    },
+    {
+      "id": "phi3.5:mini",
+      "family": "phi3.5",
+      "params": "3.8B",
+      "architecture": "dense",
+      "license": "mit",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "releaseDate": "2024-08-20",
+      "source": {
+        "ollama": "phi3.5:3.8b",
+        "hf": "microsoft/Phi-3.5-mini-instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 2300000000,
+          "minRamBytes": 2645000000,
+          "minVramBytes": 2645000000
+        }
+      ],
+      "benchmarkProxy": 0.36
+    },
+    {
+      "id": "gemma2:2b",
+      "family": "gemma2",
+      "params": "2B",
+      "architecture": "dense",
+      "license": "gemma",
+      "openWeight": true,
+      "contextLength": 8192,
+      "capabilities": [
+        "chat"
+      ],
+      "releaseDate": "2024-07-31",
+      "source": {
+        "ollama": "gemma2:2b",
+        "hf": "google/gemma-2-2b-it"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 1700000000,
+          "minRamBytes": 1955000000,
+          "minVramBytes": 1955000000
+        }
+      ],
+      "benchmarkProxy": 0.32
+    },
+    {
+      "id": "llama3.1:70b",
+      "family": "llama3.1",
+      "params": "70B",
+      "architecture": "dense",
+      "license": "llama-3.1-community",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "releaseDate": "2024-07-23",
+      "source": {
+        "ollama": "llama3.1:70b",
+        "hf": "meta-llama/Llama-3.1-70B-Instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 42000000000,
+          "minRamBytes": 48300000000,
+          "minVramBytes": 48300000000
         }
       ],
       "benchmarkProxy": 0.74
@@ -54,123 +1316,187 @@
       "license": "llama-3.1-community",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2024-07-23",
-      "source": { "ollama": "llama3.1:8b", "hf": "meta-llama/Llama-3.1-8B-Instruct" },
+      "source": {
+        "ollama": "llama3.1:8b",
+        "hf": "meta-llama/Llama-3.1-8B-Instruct"
+      },
       "quantizations": [
         {
           "name": "Q4_K_M",
           "diskBytes": 4900000000,
-          "minRamBytes": 6500000000,
-          "minVramBytes": 6000000000
+          "minRamBytes": 5635000000,
+          "minVramBytes": 5635000000
         }
       ],
-      "benchmarkProxy": 0.66
+      "benchmarkProxy": 0.48
     },
     {
-      "id": "llama3.2:3b",
-      "family": "llama3.2",
-      "params": "3B",
-      "architecture": "dense",
-      "license": "llama-3.2-community",
-      "openWeight": true,
-      "contextLength": 131072,
-      "capabilities": ["chat", "tools"],
-      "releaseDate": "2024-09-25",
-      "source": { "ollama": "llama3.2:3b", "hf": "meta-llama/Llama-3.2-3B-Instruct" },
-      "quantizations": [
-        {
-          "name": "Q4_K_M",
-          "diskBytes": 2000000000,
-          "minRamBytes": 3200000000,
-          "minVramBytes": 2800000000
-        }
-      ],
-      "benchmarkProxy": 0.52
-    },
-    {
-      "id": "qwen2.5:7b",
-      "family": "qwen2.5",
-      "params": "7B",
+      "id": "mistral-nemo:12b",
+      "family": "mistral-nemo",
+      "params": "12B",
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code", "tools"],
-      "releaseDate": "2024-09-19",
-      "source": { "ollama": "qwen2.5:7b", "hf": "Qwen/Qwen2.5-7B-Instruct" },
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "releaseDate": "2024-07-18",
+      "source": {
+        "ollama": "mistral-nemo:12b",
+        "hf": "mistralai/Mistral-Nemo-Instruct-2407"
+      },
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4700000000,
-          "minRamBytes": 6300000000,
-          "minVramBytes": 5800000000
+          "diskBytes": 7100000000,
+          "minRamBytes": 8165000000,
+          "minVramBytes": 8165000000
         }
       ],
-      "benchmarkProxy": 0.64
+      "benchmarkProxy": 0.55
     },
     {
-      "id": "deepseek-r1:7b",
-      "family": "deepseek-r1",
-      "params": "7B",
+      "id": "gemma2:27b",
+      "family": "gemma2",
+      "params": "27B",
       "architecture": "dense",
-      "license": "apache-2.0",
+      "license": "gemma",
       "openWeight": true,
-      "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "code"],
-      "releaseDate": "2025-01-20",
-      "source": { "ollama": "deepseek-r1:7b", "hf": "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B" },
+      "contextLength": 8192,
+      "capabilities": [
+        "chat",
+        "code"
+      ],
+      "releaseDate": "2024-06-27",
+      "source": {
+        "ollama": "gemma2:27b",
+        "hf": "google/gemma-2-27b-it"
+      },
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4700000000,
-          "minRamBytes": 6300000000,
-          "minVramBytes": 5800000000
+          "diskBytes": 16000000000,
+          "minRamBytes": 18400000000,
+          "minVramBytes": 18400000000
         }
       ],
       "benchmarkProxy": 0.68
     },
     {
-      "id": "mistral:7b",
-      "family": "mistral",
-      "params": "7B",
-      "architecture": "dense",
-      "license": "apache-2.0",
-      "openWeight": true,
-      "contextLength": 32768,
-      "capabilities": ["chat", "code"],
-      "releaseDate": "2023-09-27",
-      "source": { "ollama": "mistral:7b", "hf": "mistralai/Mistral-7B-Instruct-v0.3" },
-      "quantizations": [
-        {
-          "name": "Q4_K_M",
-          "diskBytes": 4400000000,
-          "minRamBytes": 6000000000,
-          "minVramBytes": 5500000000
-        }
-      ],
-      "benchmarkProxy": 0.58
-    },
-    {
-      "id": "gemma2:2b",
+      "id": "gemma2:9b",
       "family": "gemma2",
-      "params": "2B",
+      "params": "9B",
       "architecture": "dense",
       "license": "gemma",
       "openWeight": true,
       "contextLength": 8192,
-      "capabilities": ["chat"],
-      "releaseDate": "2024-07-31",
-      "source": { "ollama": "gemma2:2b", "hf": "google/gemma-2-2b-it" },
+      "capabilities": [
+        "chat",
+        "code"
+      ],
+      "releaseDate": "2024-06-27",
+      "source": {
+        "ollama": "gemma2:9b",
+        "hf": "google/gemma-2-9b-it"
+      },
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 1700000000,
-          "minRamBytes": 2900000000,
-          "minVramBytes": 2500000000
+          "diskBytes": 5400000000,
+          "minRamBytes": 6210000000,
+          "minVramBytes": 6210000000
         }
       ],
-      "benchmarkProxy": 0.49
+      "benchmarkProxy": 0.48
+    },
+    {
+      "id": "yi:34b",
+      "family": "yi",
+      "params": "34B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 4096,
+      "capabilities": [
+        "chat",
+        "code"
+      ],
+      "releaseDate": "2024-05-12",
+      "source": {
+        "ollama": "yi:34b",
+        "hf": "01-ai/Yi-1.5-34B-Chat"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 20500000000,
+          "minRamBytes": 23575000000,
+          "minVramBytes": 23575000000
+        }
+      ],
+      "benchmarkProxy": 0.67
+    },
+    {
+      "id": "yi:6b",
+      "family": "yi",
+      "params": "6B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 4096,
+      "capabilities": [
+        "chat"
+      ],
+      "releaseDate": "2024-05-12",
+      "source": {
+        "ollama": "yi:6b",
+        "hf": "01-ai/Yi-1.5-6B-Chat"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 3600000000,
+          "minRamBytes": 4140000000,
+          "minVramBytes": 4140000000
+        }
+      ],
+      "benchmarkProxy": 0.39
+    },
+    {
+      "id": "yi:9b",
+      "family": "yi",
+      "params": "9B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 4096,
+      "capabilities": [
+        "chat",
+        "code"
+      ],
+      "releaseDate": "2024-05-12",
+      "source": {
+        "ollama": "yi:9b",
+        "hf": "01-ai/Yi-1.5-9B-Chat"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 5300000000,
+          "minRamBytes": 6095000000,
+          "minVramBytes": 6095000000
+        }
+      ],
+      "benchmarkProxy": 0.47
     },
     {
       "id": "phi3:mini",
@@ -180,60 +1506,109 @@
       "license": "mit",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code"],
+      "capabilities": [
+        "chat",
+        "code"
+      ],
       "releaseDate": "2024-04-23",
-      "source": { "ollama": "phi3:mini", "hf": "microsoft/Phi-3-mini-128k-instruct" },
+      "source": {
+        "ollama": "phi3:mini",
+        "hf": "microsoft/Phi-3-mini-128k-instruct"
+      },
       "quantizations": [
         {
           "name": "Q4_K_M",
           "diskBytes": 2300000000,
-          "minRamBytes": 3600000000,
-          "minVramBytes": 3200000000
+          "minRamBytes": 2645000000,
+          "minVramBytes": 2645000000
         }
       ],
-      "benchmarkProxy": 0.55
+      "benchmarkProxy": 0.34
     },
     {
-      "id": "glm4:9b",
-      "family": "glm4",
-      "params": "9B",
-      "architecture": "dense",
-      "license": "mit",
+      "id": "mixtral:8x22b",
+      "family": "mixtral",
+      "params": "141B",
+      "architecture": "moe",
+      "activeParams": "39B",
+      "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
-      "capabilities": ["chat", "tools"],
-      "releaseDate": "2025-04-14",
-      "source": { "ollama": "glm4:9b", "hf": "THUDM/GLM-4-9B-0414" },
+      "contextLength": 65536,
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "releaseDate": "2024-04-17",
+      "source": {
+        "ollama": "mixtral:8x22b",
+        "hf": "mistralai/Mixtral-8x22B-Instruct-v0.1"
+      },
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 5500000000,
-          "minRamBytes": 7200000000,
-          "minVramBytes": 6600000000
+          "diskBytes": 85000000000,
+          "minRamBytes": 97750000000,
+          "minVramBytes": 97750000000
         }
       ],
-      "benchmarkProxy": 0.6
+      "benchmarkProxy": 0.83
     },
     {
-      "id": "smollm2:1.7b",
-      "family": "smollm2",
-      "params": "1.7B",
+      "id": "mixtral:8x7b",
+      "family": "mixtral",
+      "params": "47B",
+      "architecture": "moe",
+      "activeParams": "13B",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 32768,
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "releaseDate": "2023-12-11",
+      "source": {
+        "ollama": "mixtral:8x7b",
+        "hf": "mistralai/Mixtral-8x7B-Instruct-v0.1"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 26000000000,
+          "minRamBytes": 31754375000,
+          "minVramBytes": 31754375000
+        }
+      ],
+      "benchmarkProxy": 0.75
+    },
+    {
+      "id": "mistral:7b",
+      "family": "mistral",
+      "params": "7B",
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 8192,
-      "capabilities": ["chat"],
-      "releaseDate": "2024-11-01",
-      "source": { "ollama": "smollm2:1.7b", "hf": "HuggingFaceTB/SmolLM2-1.7B-Instruct" },
+      "contextLength": 32768,
+      "capabilities": [
+        "chat",
+        "code"
+      ],
+      "releaseDate": "2023-09-27",
+      "source": {
+        "ollama": "mistral:7b",
+        "hf": "mistralai/Mistral-7B-Instruct-v0.3"
+      },
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 1100000000,
-          "minRamBytes": 2200000000,
-          "minVramBytes": 1900000000
+          "diskBytes": 4400000000,
+          "minRamBytes": 5060000000,
+          "minVramBytes": 5060000000
         }
       ],
-      "benchmarkProxy": 0.44
+      "benchmarkProxy": 0.46
     }
   ]
 }

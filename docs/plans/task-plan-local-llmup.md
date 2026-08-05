@@ -275,14 +275,14 @@ open-weight set — used once by T28b to build the exhaustive v1 catalog) and
 - [x] **Merge-by-id**: idempotent across two runs (no diff on run 2); curated field survives an upstream value **change**; partial failure keeps prior data and **drops** a half-formed new entry; license transition (open→proprietary) removes on re-enrich; size cap enforced.
 **Verify:** `npm test tests/catalog/enrich` **Deps:** T3, T4, T5, T6, T13 **Files:** `src/catalog/enrich.ts`, +registry fixtures, +test **Scope:** M
 
-#### T28b: One-time full catalog bootstrap
+#### T28b: One-time full catalog bootstrap ✅ done
 **Description:** Run `enrich` in **backfill** mode (against recorded/live
 registry data) to generate the **exhaustive** `data/models.json` — every
 open-weight model released to date — and commit it as the shipped v1 catalog.
 This is a data-generation task, not new runtime code.
 **Acceptance:**
-- [ ] Generated catalog validates vs schema and is materially complete (spot-checked against llmfit's `data/` for coverage, incl. all Kimi releases).
-- [ ] Deterministic/reproducible from the recorded registry snapshot (frozen clock); committed catalog matches a re-run.
+- [x] Generated catalog validates vs schema and is materially complete (spot-checked against llmfit's `data/` for coverage, incl. all Kimi releases).
+- [x] Deterministic/reproducible from the recorded registry snapshot (frozen clock); committed catalog matches a re-run.
 **Verify:** `npm test tests/catalog/bootstrap` (validate generated file) + manual coverage spot-check **Deps:** T28 **Files:** `data/models.json` (regenerated), `scripts/bootstrap-catalog.ts`, +test **Scope:** M
 
 #### T29: `catalog` command (show + `--refresh`)

@@ -24,6 +24,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
+    "bootstrap": "tsx scripts/bootstrap-catalog.ts",
     "dev": "tsx src/cli.ts"
   },
   "dependencies": {
