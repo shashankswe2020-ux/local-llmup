@@ -7,10 +7,20 @@
 import { loadCatalog } from "../catalog/load.js";
 import { detectHardware } from "../hardware/detect.js";
 import { usableMemoryBytes, usableMemoryKind } from "../hardware/memory-math.js";
+import { loadPerf, type PerfDataset } from "../advisor/perf-data.js";
+import { evaluateVerdict } from "../advisor/verdict.js";
 import { renderJson, renderTable, type Column } from "../output.js";
 import { rankModels, type WontFitModel } from "../ranking/rank.js";
 import { stripControl } from "../sanitize.js";
-import type { Capability, Catalog, CatalogModel, HardwareProfile, Quantization } from "../types.js";
+import type {
+  Capability,
+  Catalog,
+  CatalogModel,
+  HardwareProfile,
+  Quantization,
+  Runnable,
+  ThroughputEstimate,
+} from "../types.js";
 
 const CLI_NAME = "local-llmup";
 
@@ -28,6 +38,10 @@ export interface RecommendationEntry {
   readonly quant: Quantization;
   readonly requiredBytes: number;
   readonly score: number;
+  /** Runnability on this hardware — `yes` or `slow` (fitting models never `no`). */
+  readonly verdict: Runnable;
+  /** Estimated decode throughput; `known:false` when the hardware has no profile. */
+  readonly throughput: ThroughputEstimate;
 }
 
 /** The full recommendation: what fits, what does not, and the top-pick command. */
@@ -45,6 +59,7 @@ export interface RecommendationResult {
 export function buildRecommendation(
   catalog: Catalog,
   hardware: HardwareProfile,
+  perf: PerfDataset,
   options: RecommendOptions = {},
 ): RecommendationResult {
   const ranking = rankModels(
@@ -53,13 +68,18 @@ export function buildRecommendation(
     options.task !== undefined ? { task: options.task } : {},
   );
 
-  const entries: RecommendationEntry[] = ranking.ranked.map((ranked, index) => ({
-    rank: index + 1,
-    model: ranked.model,
-    quant: ranked.quant,
-    requiredBytes: ranked.requiredBytes,
-    score: ranked.score,
-  }));
+  const entries: RecommendationEntry[] = ranking.ranked.map((ranked, index) => {
+    const verdict = evaluateVerdict(ranked.model, hardware, perf);
+    return {
+      rank: index + 1,
+      model: ranked.model,
+      quant: ranked.quant,
+      requiredBytes: ranked.requiredBytes,
+      score: ranked.score,
+      verdict: verdict.runnable,
+      throughput: verdict.throughput,
+    };
+  });
 
   const top = entries[0];
   return {
@@ -76,12 +96,32 @@ function formatGiB(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(1)} GiB`;
 }
 
+/** Human-facing symbol for each verdict. */
+const VERDICT_SYMBOL: Readonly<Record<Runnable, string>> = {
+  yes: "✓",
+  slow: "⚠️",
+  no: "❌",
+};
+
+/** "<symbol> <word>" verdict label for the table cell. */
+function verdictLabel(verdict: Runnable): string {
+  return `${VERDICT_SYMBOL[verdict]} ${verdict}`;
+}
+
+/** Throughput range for a table cell, honouring the honesty gate. */
+function tokRange(t: ThroughputEstimate): string {
+  if (!t.known) return "unknown";
+  return `${String(t.lowTokPerSec)}–${String(t.highTokPerSec)}`;
+}
+
 const TABLE_COLUMNS: readonly Column[] = [
   { header: "Rank", align: "right" },
   { header: "Model" },
   { header: "Params", align: "right" },
   { header: "Quant" },
   { header: "Est. Mem", align: "right" },
+  { header: "Verdict" },
+  { header: "Est. tok/s", align: "right" },
   { header: "License" },
   { header: "Score", align: "right" },
 ];
@@ -89,7 +129,7 @@ const TABLE_COLUMNS: readonly Column[] = [
 function wontFitSection(wontFit: readonly WontFitModel[]): string {
   // Sanitize ids here too: unlike the table/JSON renderers, this plain-text
   // section interpolates catalog strings directly, so it must strip escapes.
-  const rows = wontFit.map((entry) => `  ${stripControl(entry.model.id)}  (${entry.reason})`);
+  const rows = wontFit.map((entry) => `  ${VERDICT_SYMBOL.no} ${stripControl(entry.model.id)}  (${entry.reason})`);
   return [`Won't fit (${wontFit.length}):`, ...rows].join("\n");
 }
 
@@ -113,6 +153,8 @@ export function formatRecommendationText(result: RecommendationResult): string {
       entry.model.params,
       entry.quant.name,
       formatGiB(entry.requiredBytes),
+      verdictLabel(entry.verdict),
+      tokRange(entry.throughput),
       entry.model.license,
       entry.score.toFixed(2),
     ]);
@@ -148,6 +190,13 @@ export function formatRecommendationJson(result: RecommendationResult): string {
       license: entry.model.license,
       capabilities: [...entry.model.capabilities],
       score: entry.score,
+      verdict: entry.verdict,
+      estTokPerSec: entry.throughput.known
+        ? {
+            lowTokPerSec: entry.throughput.lowTokPerSec,
+            highTokPerSec: entry.throughput.highTokPerSec,
+          }
+        : null,
     })),
     wontFit: result.wontFit.map((entry) => ({ id: entry.model.id, reason: entry.reason })),
     command: result.command,
@@ -158,12 +207,14 @@ export function formatRecommendationJson(result: RecommendationResult): string {
 export interface RecommendDeps {
   readonly loadCatalog: () => Catalog;
   readonly detectHardware: () => Promise<HardwareProfile>;
+  readonly loadPerf: () => PerfDataset;
   readonly write: (text: string) => void;
 }
 
 const defaultDeps: RecommendDeps = {
   loadCatalog: () => loadCatalog(),
   detectHardware: () => detectHardware(),
+  loadPerf: () => loadPerf(),
   write: (text) => process.stdout.write(text),
 };
 
@@ -174,7 +225,8 @@ export async function runRecommend(
 ): Promise<void> {
   const catalog = deps.loadCatalog();
   const hardware = await deps.detectHardware();
-  const result = buildRecommendation(catalog, hardware, options);
+  const perf = deps.loadPerf();
+  const result = buildRecommendation(catalog, hardware, perf, options);
   const report = options.json
     ? formatRecommendationJson(result)
     : formatRecommendationText(result);

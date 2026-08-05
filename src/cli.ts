@@ -292,7 +292,7 @@ export function buildCli(): ReturnType<typeof cac> {
   registerRecommend(cli.command("", COMMANDS[0]?.description ?? ""));
 
   cli.help();
-  cli.version("0.1.0");
+  cli.version("0.2.0");
   return cli;
 }
 

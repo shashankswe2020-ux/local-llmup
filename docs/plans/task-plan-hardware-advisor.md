@@ -165,13 +165,13 @@ combining `evaluateFit` (reuse `ranking/fit.ts`) with throughput vs `COMFORT_FLO
 **Verify:** `npm test tests/commands/can-run tests/cli`
 **Deps:** T37 **Files:** `src/commands/can-run.ts`, `src/cli.ts`, `tests/commands/can-run.test.ts` **Scope:** S
 
-#### T39: Phase 2 — `recommend` verdict column
+#### T39: Phase 2 — `recommend` verdict column ✅ done
 **Description:** Add a `✓ / ⚠️ / ❌` verdict + tok/s range column to `recommend`
 output (and its `--json`), computed via `verdict`.
 **Acceptance:**
-- [ ] Ranked rows show verdict + est. tok/s; won't-fit section shows `❌ + reason`.
-- [ ] `--json` gains `verdict` + `estTokPerSec` per row.
-- [ ] Ranking order/determinism from base spec unchanged.
+- [x] Ranked rows show verdict + est. tok/s; won't-fit section shows `❌ + reason`.
+- [x] `--json` gains `verdict` + `estTokPerSec` per row.
+- [x] Ranking order/determinism from base spec unchanged.
 **Verify:** `npm test tests/commands/recommend tests/ranking`
 **Deps:** T37 **Files:** `src/commands/recommend.ts` (or rank renderer), `src/output.ts`, +tests **Scope:** S
 

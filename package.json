@@ -1,7 +1,7 @@
 {
   "name": "local-llmup",
-  "version": "0.1.2",
-  "description": "Hardware-aware CLI to recommend, install, serve, and migrate memory between local LLMs.",
+  "version": "0.2.0",
+  "description": "Hardware-aware CLI that scores your machine and tells you which local LLMs will run (yes/slow/no + tok/s) before recommending, installing, serving, and migrating them.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/shashankswe2020-ux/local-llmup.git"
@@ -15,7 +15,10 @@
     "ollama",
     "cli",
     "local-ai",
-    "hardware-aware"
+    "hardware-aware",
+    "hardware-advisor",
+    "gpu",
+    "tokens-per-second"
   ],
   "type": "module",
   "license": "MIT",

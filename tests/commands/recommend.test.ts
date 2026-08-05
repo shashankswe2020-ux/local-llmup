@@ -6,9 +6,20 @@ import {
   runRecommend,
   type RecommendDeps,
 } from "../../src/commands/recommend.js";
+import { loadPerf } from "../../src/advisor/perf-data.js";
 import type { Capability, Catalog, CatalogModel, HardwareProfile } from "../../src/types.js";
 
 const GIB = 1024 ** 3;
+const PERF = loadPerf();
+
+/** Thin wrapper that threads the real perf dataset into the pure builder. */
+function build(
+  cat: Catalog,
+  hw: HardwareProfile,
+  options?: Parameters<typeof buildRecommendation>[3],
+): ReturnType<typeof buildRecommendation> {
+  return buildRecommendation(cat, hw, PERF, options);
+}
 
 function dense(
   id: string,
@@ -71,6 +82,18 @@ function appleHw(totalRamGib: number): HardwareProfile {
   };
 }
 
+/** An x64 box with an AMD GPU: fits by VRAM, but has no perf profile. */
+function amdHw(vramGib: number): HardwareProfile {
+  return {
+    arch: "x64",
+    platform: "linux",
+    totalRamBytes: 64 * GIB,
+    freeRamBytes: 60 * GIB,
+    gpu: [{ vendor: "amd", vramBytes: vramGib * GIB }],
+    freeDiskBytes: 1_000 * GIB,
+  };
+}
+
 const FIXTURE = catalog([
   dense("llama3.1:8b", "8B", 4_900_000_000, { benchmarkProxy: 0.82 }),
   dense("gemma2:2b", "2B", 1_600_000_000),
@@ -79,7 +102,7 @@ const FIXTURE = catalog([
 
 describe("buildRecommendation", () => {
   it("ranks fitting models, lists won't-fit, and picks a top command", () => {
-    const result = buildRecommendation(FIXTURE, appleHw(32));
+    const result = build(FIXTURE, appleHw(32));
     expect(result.entries.map((e) => e.model.id)).toEqual(["llama3.1:8b", "gemma2:2b"]);
     expect(result.entries[0]!.rank).toBe(1);
     expect(result.wontFit).toHaveLength(1);
@@ -89,10 +112,31 @@ describe("buildRecommendation", () => {
     expect(result.memoryKind).toBe("ram");
   });
 
+  it("attaches a yes/slow verdict and a known throughput range to each fitting entry", () => {
+    const result = build(FIXTURE, appleHw(32));
+    for (const entry of result.entries) {
+      expect(["yes", "slow"]).toContain(entry.verdict);
+      expect(entry.throughput.known).toBe(true);
+      expect(entry.throughput.lowTokPerSec).toBeGreaterThan(0);
+      expect(entry.throughput.highTokPerSec).toBeGreaterThanOrEqual(entry.throughput.lowTokPerSec);
+    }
+  });
+
+  it("carries a slow verdict with unknown throughput when hardware has no perf profile", () => {
+    const result = build(catalog([dense("llama3.1:8b", "8B", 4_900_000_000)]), amdHw(16));
+    const top = result.entries[0]!;
+    expect(top.verdict).toBe("slow");
+    expect(top.throughput.known).toBe(false);
+    const json = JSON.parse(formatRecommendationJson(result)) as {
+      ranked: { estTokPerSec: unknown }[];
+    };
+    expect(json.ranked[0]!.estTokPerSec).toBeNull();
+  });
+
   it("treats an absent --task identically to a task every survivor satisfies", () => {
-    const noTask = buildRecommendation(FIXTURE, appleHw(32));
+    const noTask = build(FIXTURE, appleHw(32));
     const chat: Capability = "chat";
-    const withChat = buildRecommendation(FIXTURE, appleHw(32), { task: chat });
+    const withChat = build(FIXTURE, appleHw(32), { task: chat });
     expect(withChat.entries.map((e) => e.model.id)).toEqual(noTask.entries.map((e) => e.model.id));
     for (let i = 0; i < noTask.entries.length; i += 1) {
       expect(withChat.entries[i]!.score).toBeCloseTo(noTask.entries[i]!.score, 10);
@@ -100,7 +144,7 @@ describe("buildRecommendation", () => {
   });
 
   it("returns no command when nothing fits", () => {
-    const result = buildRecommendation(catalog([KIMI]), appleHw(16));
+    const result = build(catalog([KIMI]), appleHw(16));
     expect(result.entries).toEqual([]);
     expect(result.wontFit).toHaveLength(1);
     expect(result.command).toBeNull();
@@ -109,7 +153,7 @@ describe("buildRecommendation", () => {
 
 describe("formatRecommendationText", () => {
   it("renders a ranked table, the up command, and a won't-fit section", () => {
-    const text = formatRecommendationText(buildRecommendation(FIXTURE, appleHw(32)));
+    const text = formatRecommendationText(build(FIXTURE, appleHw(32)));
     expect(text).toContain("Rank");
     expect(text).toContain("llama3.1:8b");
     expect(text).toContain("gemma2:2b");
@@ -117,13 +161,17 @@ describe("formatRecommendationText", () => {
     expect(text).toContain("local-llmup up llama3.1:8b");
     expect(text).toContain("kimi-k2:instruct");
     expect(text).toContain("ram-bound");
+    expect(text).toContain("Verdict");
+    expect(text).toContain("tok/s");
+    expect(text).toMatch(/✓|⚠️/u);
+    expect(text).toContain("❌");
   });
 
   it("distinguishes an empty catalog from an all-too-big catalog", () => {
-    const empty = formatRecommendationText(buildRecommendation(catalog([]), appleHw(32)));
+    const empty = formatRecommendationText(build(catalog([]), appleHw(32)));
     expect(empty).toContain("No models in the catalog");
 
-    const tooBig = formatRecommendationText(buildRecommendation(catalog([KIMI]), appleHw(16)));
+    const tooBig = formatRecommendationText(build(catalog([KIMI]), appleHw(16)));
     expect(tooBig).toContain("No models fit");
     expect(tooBig).toContain("kimi-k2:instruct");
     expect(tooBig).not.toContain("No models in the catalog");
@@ -134,7 +182,7 @@ describe("formatRecommendationText", () => {
       dense("good\u001b[31m:8b", "8B", 4_900_000_000),
       { ...KIMI, id: "bad\u0000:1t" },
     ]);
-    const text = formatRecommendationText(buildRecommendation(evil, appleHw(32)));
+    const text = formatRecommendationText(build(evil, appleHw(32)));
     expect(text.includes("\u001b")).toBe(false);
     expect(text.includes("\u0000")).toBe(false);
     expect(text).toContain("local-llmup up good:8b");
@@ -144,7 +192,7 @@ describe("formatRecommendationText", () => {
 
 describe("formatRecommendationJson", () => {
   it("emits a stable, parseable schema", () => {
-    const json = JSON.parse(formatRecommendationJson(buildRecommendation(FIXTURE, appleHw(32))));
+    const json = JSON.parse(formatRecommendationJson(build(FIXTURE, appleHw(32))));
     expect(json).toMatchObject({
       hardware: { arch: "arm64", platform: "darwin", memoryKind: "ram" },
       command: "local-llmup up llama3.1:8b",
@@ -161,6 +209,13 @@ describe("formatRecommendationJson", () => {
       license: "apache-2.0",
       capabilities: ["chat"],
       score: json.ranked[0].score,
+      verdict: json.ranked[0].verdict,
+      estTokPerSec: json.ranked[0].estTokPerSec,
+    });
+    expect(["yes", "slow"]).toContain(json.ranked[0].verdict);
+    expect(json.ranked[0].estTokPerSec).toMatchObject({
+      lowTokPerSec: json.ranked[0].estTokPerSec.lowTokPerSec,
+      highTokPerSec: json.ranked[0].estTokPerSec.highTokPerSec,
     });
     expect(json.wontFit).toEqual([{ id: "kimi-k2:instruct", reason: "ram-bound" }]);
   });
@@ -174,6 +229,7 @@ describe("runRecommend", () => {
       deps: {
         loadCatalog: () => FIXTURE,
         detectHardware: () => Promise.resolve(appleHw(32)),
+        loadPerf: () => PERF,
         write: (text) => writes.push(text),
         ...overrides,
       },
