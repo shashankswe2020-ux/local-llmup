@@ -1,6 +1,6 @@
 {
   "name": "local-llmup",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Hardware-aware CLI to recommend, install, serve, and migrate memory between local LLMs.",
   "repository": {
     "type": "git",
