@@ -9,6 +9,7 @@ import { runSwitch } from "./commands/switch.js";
 import { runChat } from "./commands/chat.js";
 import { runMigrate } from "./commands/migrate.js";
 import { runDoctor } from "./commands/doctor.js";
+import { runCatalog } from "./commands/catalog.js";
 import { stripControl } from "./sanitize.js";
 import { CAPABILITIES, type Capability } from "./types.js";
 
@@ -202,6 +203,25 @@ function registerDoctor(command: Command): void {
   });
 }
 
+/** Wire the `catalog` action onto its cac command. */
+function registerCatalog(command: Command): void {
+  command
+    .option("--all", "Show every model (including non-fitting models)")
+    .option("--refresh", "Run incremental enrichment locally and print the dry-run diff")
+    .action(async (options: { all?: boolean; refresh?: boolean }) => {
+      try {
+        await runCatalog({
+          ...(options.all === true ? { all: true } : {}),
+          ...(options.refresh === true ? { refresh: true } : {}),
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`catalog: ${stripControl(message)}\n`);
+        process.exitCode = 1;
+      }
+    });
+}
+
 export function buildCli(): ReturnType<typeof cac> {
   const cli = cac(NAME);
 
@@ -224,6 +244,8 @@ export function buildCli(): ReturnType<typeof cac> {
       registerMigrate(command);
     } else if (spec.name === "doctor") {
       registerDoctor(command);
+    } else if (spec.name === "catalog") {
+      registerCatalog(command);
     } else {
       command.action(() => {
         notImplemented(spec.name);

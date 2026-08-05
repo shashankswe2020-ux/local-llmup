@@ -285,9 +285,9 @@ This is a data-generation task, not new runtime code.
 - [x] Deterministic/reproducible from the recorded registry snapshot (frozen clock); committed catalog matches a re-run.
 **Verify:** `npm test tests/catalog/bootstrap` (validate generated file) + manual coverage spot-check **Deps:** T28 **Files:** `data/models.json` (regenerated), `scripts/bootstrap-catalog.ts`, +test **Scope:** M
 
-#### T29: `catalog` command (show + `--refresh`)
+#### T29: `catalog` command (show + `--refresh`) ✅ done
 **Acceptance:**
-- [ ] Shows catalog (fits/all filter, stable format); `--refresh` runs enrich **incremental** locally and reports the diff without committing.
+- [x] Shows catalog (fits/all filter, stable format); `--refresh` runs enrich **incremental** locally and reports the diff without committing.
 **Verify:** `npm test tests/commands/catalog` **Deps:** T4, T28 **Files:** `src/commands/catalog.ts`, `src/cli.ts`, +test **Scope:** S
 
 #### T30: CI + weekly catalog-refresh workflow + coverage gate
