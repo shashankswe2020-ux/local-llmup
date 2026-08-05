@@ -290,10 +290,10 @@ This is a data-generation task, not new runtime code.
 - [x] Shows catalog (fits/all filter, stable format); `--refresh` runs enrich **incremental** locally and reports the diff without committing.
 **Verify:** `npm test tests/commands/catalog` **Deps:** T4, T28 **Files:** `src/commands/catalog.ts`, `src/cli.ts`, +test **Scope:** S
 
-#### T30: CI + weekly catalog-refresh workflow + coverage gate
+#### T30: CI + weekly catalog-refresh workflow + coverage gate ✅ done
 **Acceptance:**
-- [ ] `ci.yml` runs lint/typecheck/test/build and **fails below coverage targets** — **≥80% line + ≥80% branch** on `src/{ranking,hardware,catalog,memory,backend,state}/`, **≥70% line overall** (Vitest `coverage.thresholds`).
-- [ ] `catalog-refresh.yml`: weekly cron + `workflow_dispatch`; runs enrich in **incremental** mode (new models only); YAML-parse test asserts **minimal `permissions`**, **all `uses:` SHA-pinned** (not tags), **no `git push` to protected branch** (PR-only); runs enrich dry-run asserting **zero writes**.
+- [x] `ci.yml` runs lint/typecheck/test/build and **fails below coverage targets** — **≥80% line + ≥80% branch** on `src/{ranking,hardware,catalog,memory,backend,state}/`, **≥70% line overall** (Vitest `coverage.thresholds`).
+- [x] `catalog-refresh.yml`: weekly cron + `workflow_dispatch`; runs enrich in **incremental** mode (new models only); YAML-parse test asserts **minimal `permissions`**, **all `uses:` SHA-pinned** (not tags), **no `git push` to protected branch** (PR-only); runs enrich dry-run asserting **zero writes**.
 **Verify:** `actionlint` + YAML-assertion test + `npm test tests/catalog/enrich`.
 **Deps:** T11, T28 **Files:** `.github/workflows/ci.yml`, `.github/workflows/catalog-refresh.yml`, +workflow-assertion test **Scope:** M
 

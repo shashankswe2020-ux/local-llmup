@@ -24,6 +24,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
+    "catalog:refresh:dry-run": "tsx scripts/catalog-refresh-dry-run.ts",
     "bootstrap": "tsx scripts/bootstrap-catalog.ts",
     "dev": "tsx src/cli.ts"
   },

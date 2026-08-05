@@ -1,17 +1,16 @@
-name: CI
+name: Catalog Refresh Dry Run
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  ci:
-    name: Test, Lint, Coverage & Build
+  catalog-refresh:
+    name: Incremental Catalog Refresh (dry-run)
     runs-on: ubuntu-latest
 
     steps:
@@ -27,17 +26,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Type check
-        run: npm run typecheck
+      - name: Run incremental enrich dry-run
+        run: npm run catalog:refresh:dry-run
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Test
-        run: npm test
-
-      - name: Coverage gate
-        run: npm run test:cov
-
-      - name: Build
-        run: npm run build
+      - name: Assert zero writes
+        run: git diff --exit-code -- data/models.json
