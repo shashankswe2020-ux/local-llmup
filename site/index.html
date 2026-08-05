@@ -1,92 +1,630 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>local-llmup | Paper Edition</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>local-llmup: Local LLM workflows in one command</title>
     <meta
       name="description"
-      content="Hardware-aware CLI for discovering, installing, serving, and switching local LLMs."
+      content="A hardware-aware CLI that recommends, installs, serves, and migrates local LLM workflows."
     />
+    <meta property="og:title" content="local-llmup" />
+    <meta property="og:description" content="Local LLM workflows in one command." />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#f7f6f2" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=IBM+Plex+Mono:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css" />
+
+    <style>
+      :root {
+        --font: 'Archivo', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+        --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+        --paper: #f7f6f2;
+        --paper-2: #f1efe8;
+        --paper-press: #e8e6dd;
+        --ink: #16150f;
+        --ink-2: #56544a;
+        --ink-3: #87847a;
+        --rule: #16150f;
+        --rule-soft: #d6d3c8;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #16150f;
+          --paper-2: #1e1c16;
+          --paper-press: #23211a;
+          --ink: #f3f1ea;
+          --ink-2: #b8b5a8;
+          --ink-3: #87847a;
+          --rule: #f3f1ea;
+          --rule-soft: #34322a;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        border-radius: 0;
+      }
+
+      html {
+        background: var(--paper);
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--font);
+        color: var(--ink);
+        background: var(--paper);
+        overflow-x: hidden;
+      }
+
+      .frame {
+        max-width: 1440px;
+        margin: 0 auto;
+        border-inline: 1px solid var(--rule);
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.1rem 2rem;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .wordmark {
+        font-weight: 800;
+        font-size: 1.4rem;
+        letter-spacing: -0.035em;
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+      }
+
+      .nav-links a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .nav-links a:not(.star):hover {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+
+      .star {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border: 1px solid var(--rule);
+        padding: 0.4rem 0.85rem;
+        font-weight: 600;
+      }
+
+      .star:hover {
+        background: var(--paper-press);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .hero-left {
+        padding: 4.5rem 3rem 4rem;
+      }
+
+      .hero-right {
+        border-inline-start: 1px solid var(--rule);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2.5rem;
+      }
+
+      h1 {
+        font-size: clamp(2.4rem, 6vw, 4.6rem);
+        line-height: 0.98;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+        margin: 0 0 1.6rem;
+      }
+
+      .lede {
+        font-size: 1.18rem;
+        line-height: 1.5;
+        color: var(--ink-2);
+        max-width: 42ch;
+        margin: 0 0 2.2rem;
+      }
+
+      .cta {
+        display: flex;
+        gap: 0.9rem;
+        margin-bottom: 1.6rem;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.8rem 1.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid var(--rule);
+      }
+
+      .btn-primary {
+        background: var(--ink);
+        color: var(--paper);
+      }
+
+      .btn-primary:hover {
+        background: transparent;
+        color: var(--ink);
+      }
+
+      .btn-ghost {
+        color: var(--ink);
+      }
+
+      .btn-ghost:hover {
+        background: var(--paper-press);
+      }
+
+      .install {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 1px solid var(--rule);
+        padding: 0.5rem 0.55rem 0.5rem 0.9rem;
+        font-family: var(--mono);
+        font-size: 0.95rem;
+      }
+
+      .install code {
+        font-family: inherit;
+      }
+
+      .copy {
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        color: var(--ink-2);
+        padding: 0.3rem;
+      }
+
+      .copy:hover {
+        color: var(--ink);
+      }
+
+      .copied {
+        font-size: 0.8rem;
+        padding: 0 0.2rem;
+      }
+
+      .stat {
+        margin: 1.6rem 0 0;
+        font-family: var(--mono);
+        font-size: 0.85rem;
+        color: var(--ink-3);
+      }
+
+      .graph {
+        width: 100%;
+        max-width: 560px;
+      }
+
+      .graph .edges line {
+        stroke: var(--ink);
+        stroke-width: 1.25;
+      }
+
+      .graph .node circle {
+        fill: var(--paper);
+        stroke: var(--ink);
+        stroke-width: 1.5;
+      }
+
+      .graph .node text {
+        font-family: var(--mono);
+        font-size: 15px;
+        fill: var(--ink);
+      }
+
+      .features {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .feature {
+        display: grid;
+        grid-template-columns: auto 1px 1fr;
+        column-gap: 1.5rem;
+        align-items: center;
+        padding: 2.6rem 2rem;
+      }
+
+      .feature + .feature {
+        border-inline-start: 1px solid var(--rule);
+      }
+
+      .feature::before {
+        content: '';
+        grid-column: 2;
+        grid-row: 1 / 3;
+        align-self: stretch;
+        width: 1px;
+        background: var(--rule);
+      }
+
+      .ficon {
+        grid-column: 1;
+        grid-row: 1 / 3;
+        width: 56px;
+        height: 56px;
+      }
+
+      .feature h2 {
+        grid-column: 3;
+        margin: 0 0 0.6rem;
+      }
+
+      .feature p {
+        grid-column: 3;
+        margin: 0;
+        line-height: 1.55;
+        color: var(--ink-2);
+      }
+
+      .setup {
+        border-top: 1px solid var(--rule);
+        padding: 3.4rem 2rem 3.8rem;
+      }
+
+      .setup-head {
+        font-size: clamp(1.6rem, 3vw, 2.1rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        margin: 0 0 0.6rem;
+      }
+
+      .setup-sub {
+        color: var(--ink-2);
+        margin: 0 0 2rem;
+        max-width: 56ch;
+      }
+
+      .setup-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1px;
+        background: var(--rule);
+        border: 1px solid var(--rule);
+      }
+
+      .setup-card {
+        background: var(--paper);
+        padding: 1.9rem;
+      }
+
+      .setup-card h3 {
+        margin: 0 0 1rem;
+      }
+
+      .setup-card p {
+        line-height: 1.55;
+        color: var(--ink-2);
+        margin: 1.1rem 0 0;
+      }
+
+      .install--block {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        overflow-x: auto;
+      }
+
+      .install--block code {
+        white-space: nowrap;
+      }
+
+      .foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.4rem 2rem;
+        border-top: 1px solid var(--rule);
+      }
+
+      .foot-mark {
+        font-weight: 800;
+      }
+
+      .foot-links {
+        display: flex;
+        gap: 1.6rem;
+      }
+
+      .foot-links a {
+        color: var(--ink-2);
+        text-decoration: none;
+      }
+
+      .foot-links a:hover {
+        color: var(--ink);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      @media (max-width: 860px) {
+        .hero {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-right {
+          border-inline-start: none;
+          border-top: 1px solid var(--rule);
+        }
+
+        .features {
+          grid-template-columns: 1fr;
+        }
+
+        .feature + .feature {
+          border-inline-start: none;
+          border-top: 1px solid var(--rule);
+        }
+
+        .setup-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .nav {
+          padding: 1rem 1.25rem;
+        }
+
+        .nav-links {
+          gap: 0.85rem;
+          font-size: 0.85rem;
+        }
+
+        .nav-links .opt,
+        .star {
+          display: none;
+        }
+
+        .hero-left {
+          padding: 2.75rem 1.25rem 2.5rem;
+        }
+
+        .foot {
+          flex-direction: column;
+          gap: 1rem;
+          align-items: flex-start;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div class="paper-noise" aria-hidden="true"></div>
-    <main class="sheet">
-      <header class="masthead reveal">
-        <p class="edition">Issue 0.1.2 | Local AI Dispatch</p>
-        <h1>local-llmup</h1>
-        <p class="subtitle">A hardware-aware command line for local LLMs</p>
+    <div class="frame">
+      <header class="nav">
+        <a class="wordmark" href="./">local-llmup</a>
+        <nav class="nav-links">
+          <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
+          <a class="opt" href="https://www.npmjs.com/package/local-llmup">npm</a>
+          <a href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
+          <a class="star" href="https://github.com/shashankswe2020-ux/local-llmup/stargazers"
+            ><span aria-hidden="true">★</span>Star</a
+          >
+        </nav>
       </header>
 
-      <section class="lede reveal" style="--delay: 80ms">
-        <p>
-          Discover the best model for your machine, pull it, serve it, chat with it, and migrate
-          memory when you switch. One workflow. Local-first.
-        </p>
-      </section>
+      <main>
+        <section class="hero">
+          <div class="hero-left">
+            <h1>Find, pull, and run the best local LLM for your machine</h1>
+            <p class="lede">
+              local-llmup is a hardware-aware CLI that ranks candidate models, helps you pull and
+              serve one safely, and supports memory migration when you switch model families.
+            </p>
+            <div class="cta">
+              <a class="btn btn-primary" href="#setup">Get started</a>
+              <a class="btn btn-ghost" href="https://www.npmjs.com/package/local-llmup"
+                >View on npm</a
+              >
+            </div>
+            <div class="install" data-install="npm install -g local-llmup">
+              <code>npm install -g local-llmup</code>
+              <button class="copy" type="button" aria-label="Copy install command">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <rect x="9" y="9" width="11" height="11" />
+                  <path d="M5 15V5a1 1 0 0 1 1-1h9" />
+                </svg>
+              </button>
+            </div>
+            <p class="stat">9 commands - ranked recommendations - local-first workflow</p>
+          </div>
 
-      <section class="quickstart reveal" style="--delay: 140ms">
-        <h2>Quickstart</h2>
-        <ol>
-          <li><code>npm install -g local-llmup</code></li>
-          <li><code>npx local-llmup</code></li>
-          <li><code>local-llmup up qwen3:30b-a3b</code></li>
-          <li><code>local-llmup chat -m qwen3:30b-a3b</code></li>
-        </ol>
-      </section>
+          <div class="hero-right">
+            <svg
+              class="graph"
+              viewBox="0 0 780 600"
+              role="img"
+              aria-label="Graph showing hardware profile, ranking, pull, serve, chat, and migration flows."
+            >
+              <g class="edges">
+                <line x1="390" y1="70" x2="240" y2="200" />
+                <line x1="390" y1="70" x2="390" y2="260" />
+                <line x1="390" y1="70" x2="550" y2="200" />
+                <line x1="240" y1="200" x2="165" y2="370" />
+                <line x1="240" y1="200" x2="305" y2="370" />
+                <line x1="390" y1="260" x2="465" y2="380" />
+                <line x1="550" y1="200" x2="610" y2="360" />
+              </g>
+              <g class="nodes">
+                <g class="node"><circle cx="390" cy="70" r="9" /><text x="408" y="75">hardware</text></g>
+                <g class="node"><circle cx="240" cy="200" r="9" /><text x="222" y="205" text-anchor="end">catalog</text></g>
+                <g class="node"><circle cx="390" cy="260" r="9" /><text x="408" y="265">up</text></g>
+                <g class="node"><circle cx="550" cy="200" r="9" /><text x="568" y="205">ranking</text></g>
+                <g class="node"><circle cx="165" cy="370" r="9" /><text x="165" y="400" text-anchor="middle">recommend</text></g>
+                <g class="node"><circle cx="305" cy="370" r="9" /><text x="305" y="400" text-anchor="middle">catalog</text></g>
+                <g class="node"><circle cx="465" cy="380" r="9" /><text x="483" y="385">chat</text></g>
+                <g class="node"><circle cx="610" cy="360" r="9" /><text x="628" y="365">migrate</text></g>
+              </g>
+            </svg>
+          </div>
+        </section>
 
-      <section class="columns">
-        <article class="card reveal" style="--delay: 220ms">
-          <h3>Core Commands</h3>
-          <ul>
-            <li><code>recommend</code> find top fits for your hardware</li>
-            <li><code>up &lt;model&gt;</code> install + start server</li>
-            <li><code>switch &lt;model&gt;</code> set active served model</li>
-            <li><code>migrate</code> move memory between models</li>
-            <li><code>doctor</code> run diagnostics for local stack</li>
-          </ul>
-        </article>
+        <section class="features">
+          <article class="feature">
+            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M4 26h7l4-12 6 26 6-32 4 18h7" />
+            </svg>
+            <h2>Hardware-aware ranking</h2>
+            <p>
+              Runs local detection, filters for fit, then scores candidates so your top pick is
+              practical for your RAM profile and quantization budget.
+            </p>
+          </article>
 
-        <article class="card reveal" style="--delay: 260ms">
-          <h3>Why It Feels Fast</h3>
-          <ul>
-            <li>Hardware-aware ranking from a curated model catalog</li>
-            <li>Clear install and serve lifecycle through Ollama</li>
-            <li>State + memory migration built for daily model switching</li>
-            <li>CLI output designed for both humans and scripts</li>
-          </ul>
-        </article>
-      </section>
+          <article class="feature">
+            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="5" y="10" width="38" height="28" />
+              <path d="M13 20l6 4-6 4M26 28h9" />
+            </svg>
+            <h2>One-command lifecycle</h2>
+            <p>
+              `up`, `down`, `switch`, and `doctor` coordinate the local server lifecycle through
+              Ollama with safer defaults and consistent diagnostics.
+            </p>
+          </article>
 
-      <section class="terminal reveal" style="--delay: 320ms">
-        <div class="terminal-bar">
-          <span></span><span></span><span></span>
-          <p>sample run</p>
-        </div>
-        <pre><code>$ npx local-llmup
-Ranked local LLMs for arm64/darwin (34.0 GiB ram usable)
-1. qwen3:30b-a3b (Q4_K_M, 19.8 GiB)
-2. kimi-vl-a3b (Q4_K_M, 10.7 GiB)
-...
-Run the top pick: local-llmup up qwen3:30b-a3b</code></pre>
-      </section>
+          <article class="feature">
+            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="11" y="21" width="26" height="20" />
+              <path d="M16 21v-6a8 8 0 0 1 16 0v6" />
+              <circle cx="24" cy="30" r="2.5" />
+              <path d="M24 32.5V36" />
+            </svg>
+            <h2>Portable memory switching</h2>
+            <p>
+              Migrate local memory from one model to another when you change quality or latency
+              targets, while keeping conversational continuity.
+            </p>
+          </article>
+        </section>
 
-      <footer class="footnote reveal" style="--delay: 360ms">
-        <a href="https://www.npmjs.com/package/local-llmup" target="_blank" rel="noreferrer"
-          >npm package</a
-        >
-        <a href="https://github.com/shashankswe2020-ux/local-llmup" target="_blank" rel="noreferrer"
-          >repository</a
-        >
+        <section class="setup" id="setup">
+          <h2 class="setup-head">Get running in a few commands</h2>
+          <p class="setup-sub">
+            Use the defaults for quick setup, then switch to a specific model when ready. These are
+            examples from a typical local workflow.
+          </p>
+
+          <div class="setup-grid">
+            <div class="setup-card">
+              <h3>Install and rank</h3>
+              <div class="install install--block" data-install="npx local-llmup">
+                <code>npx local-llmup</code>
+                <button class="copy" type="button" aria-label="Copy rank command">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <rect x="9" y="9" width="11" height="11" />
+                    <path d="M5 15V5a1 1 0 0 1 1-1h9" />
+                  </svg>
+                </button>
+              </div>
+              <p>Prints ranked models for your hardware profile and a top-pick command.</p>
+            </div>
+
+            <div class="setup-card">
+              <h3>Pull and serve</h3>
+              <div class="install install--block" data-install="local-llmup up qwen3:30b-a3b">
+                <code>local-llmup up qwen3:30b-a3b</code>
+                <button class="copy" type="button" aria-label="Copy up command">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <rect x="9" y="9" width="11" height="11" />
+                    <path d="M5 15V5a1 1 0 0 1 1-1h9" />
+                  </svg>
+                </button>
+              </div>
+              <p>Pulls the model through Ollama and brings up the local server endpoint.</p>
+            </div>
+
+            <div class="setup-card">
+              <h3>Chat</h3>
+              <div class="install install--block" data-install="local-llmup chat -m qwen3:30b-a3b">
+                <code>local-llmup chat -m qwen3:30b-a3b</code>
+                <button class="copy" type="button" aria-label="Copy chat command">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <rect x="9" y="9" width="11" height="11" />
+                    <path d="M5 15V5a1 1 0 0 1 1-1h9" />
+                  </svg>
+                </button>
+              </div>
+              <p>Starts an interactive prompt against your active or selected model.</p>
+            </div>
+
+            <div class="setup-card">
+              <h3>Diagnostics</h3>
+              <div class="install install--block" data-install="local-llmup doctor">
+                <code>local-llmup doctor</code>
+                <button class="copy" type="button" aria-label="Copy doctor command">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <rect x="9" y="9" width="11" height="11" />
+                    <path d="M5 15V5a1 1 0 0 1 1-1h9" />
+                  </svg>
+                </button>
+              </div>
+              <p>Checks local hardware/backend/disk state and reports actionable issues.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="foot">
+        <span class="foot-mark">local-llmup</span>
+        <nav class="foot-links">
+          <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
+          <a href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
+          <a href="https://www.npmjs.com/package/local-llmup">npm</a>
+          <a href="https://github.com/shashankswe2020-ux/local-llmup/blob/main/LICENSE">MIT</a>
+        </nav>
       </footer>
-    </main>
-    <script type="module" src="./main.js"></script>
+    </div>
+
+    <script>
+      document.querySelectorAll('.install').forEach((wrap) => {
+        const btn = wrap.querySelector('.copy');
+        if (!btn) return;
+        const original = btn.innerHTML;
+        btn.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(wrap.getAttribute('data-install') || '');
+            btn.innerHTML = '<span class="copied">Copied</span>';
+            setTimeout(() => {
+              btn.innerHTML = original;
+            }, 1400);
+          } catch {
+            // Clipboard can be blocked by browser settings.
+          }
+        });
+      });
+    </script>
   </body>
 </html>
