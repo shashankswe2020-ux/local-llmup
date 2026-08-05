@@ -265,14 +265,14 @@ to date) is generated later by the one-time bootstrap (T28b), not hand-written.
 
 ### Phase 5 — Pipeline + CI + Release
 
-#### T28: Catalog enrichment (`enrich.ts`, dual-mode)
+#### T28: Catalog enrichment (`enrich.ts`, dual-mode) ✅ done
 **Description:** One code path with two modes: **backfill** (sweep the full
 open-weight set — used once by T28b to build the exhaustive v1 catalog) and
 **incremental** (weekly default — only releases newer than the catalog).
 **Acceptance:**
-- [ ] Mocked HF/Ollama fetch behind host allow-list; size via shared `memory-math`; license gate.
-- [ ] **Incremental** considers only entries newer than the catalog's newest known ids/`releaseDate`; never re-seeds existing entries.
-- [ ] **Merge-by-id**: idempotent across two runs (no diff on run 2); curated field survives an upstream value **change**; partial failure keeps prior data and **drops** a half-formed new entry; license transition (open→proprietary) removes on re-enrich; size cap enforced.
+- [x] Mocked HF/Ollama fetch behind host allow-list; size via shared `memory-math`; license gate.
+- [x] **Incremental** considers only entries newer than the catalog's newest known ids/`releaseDate`; never re-seeds existing entries.
+- [x] **Merge-by-id**: idempotent across two runs (no diff on run 2); curated field survives an upstream value **change**; partial failure keeps prior data and **drops** a half-formed new entry; license transition (open→proprietary) removes on re-enrich; size cap enforced.
 **Verify:** `npm test tests/catalog/enrich` **Deps:** T3, T4, T5, T6, T13 **Files:** `src/catalog/enrich.ts`, +registry fixtures, +test **Scope:** M
 
 #### T28b: One-time full catalog bootstrap

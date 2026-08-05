@@ -5,7 +5,7 @@
  * `minRamBytes`/`minVramBytes`, so recommendations can never drift from the data.
  */
 import { ValidationError } from "../errors.js";
-import type { CatalogModel, HardwareProfile, Quantization } from "../types.js";
+import type { CatalogModel, HardwareProfile, ModelArchitecture, Quantization } from "../types.js";
 
 /** RAM the OS and other processes need; never handed to an inference process. */
 const OS_RESERVE_BYTES = 2 * 1024 ** 3;
@@ -99,30 +99,59 @@ export function usableMemoryBytes(hw: HardwareProfile): number {
  * against a catalog whose `diskBytes` was mistakenly sized by the active set.
  */
 export function requiredMemoryBytes(model: CatalogModel, quant: Quantization): number {
-  const diskBytes = quant.diskBytes;
+  return quantMemoryBytes({
+    params: model.params,
+    architecture: model.architecture,
+    quantName: quant.name,
+    diskBytes: quant.diskBytes,
+    modelId: model.id,
+  });
+}
+
+/** Inputs the shared sizing formula needs, independent of a full catalog entry. */
+export interface QuantSizingInput {
+  /** Total parameter-count label, e.g. "8B", "1T". */
+  readonly params: string;
+  readonly architecture: ModelArchitecture;
+  /** Quantization tag, e.g. "Q4_K_M"; drives bits-per-parameter. */
+  readonly quantName: string;
+  /** Measured on-disk size of the weights for this quant. */
+  readonly diskBytes: number;
+  /** Optional id, purely for clearer error messages. */
+  readonly modelId?: string | undefined;
+}
+
+/**
+ * Resident + runtime-overhead bytes for one quantization, computed from the
+ * model's **total** parameters and the quant tag. This is the single source of
+ * truth shared by the runtime ranker ({@link requiredMemoryBytes}) and the
+ * catalog-enrichment pipeline (which writes `minRamBytes`/`minVramBytes`), so a
+ * user's "does it fit?" answer can never drift from the numbers in the catalog.
+ */
+export function quantMemoryBytes(input: QuantSizingInput): number {
+  const { params, architecture, quantName, diskBytes } = input;
+  const label = input.modelId !== undefined ? JSON.stringify(input.modelId) : "model";
   if (!Number.isFinite(diskBytes) || diskBytes <= 0) {
     throw new ValidationError(
-      `quantization ${JSON.stringify(quant.name)} has invalid diskBytes: ${String(diskBytes)}`,
+      `quantization ${JSON.stringify(quantName)} has invalid diskBytes: ${String(diskBytes)}`,
     );
   }
 
   // Total parameters drive footprint for BOTH architectures. For MoE this is
-  // load-bearing: every expert must be resident, so we size by `params` (total)
+  // load-bearing: every expert must be resident, so we size by total `params`
   // and never by `activeParams`, which only affects tokens/sec. The formula
   // floor below then rescues a catalog whose `diskBytes` was mistakenly sized by
   // the active subset.
-  const footprintParams = parseParamCount(model.params);
+  const footprintParams = parseParamCount(params);
 
-  const bitsPerParam = quantBitsPerParam(quant.name);
+  const bitsPerParam = quantBitsPerParam(quantName);
   // An unrecognized quant disables the formula floor. That is safe for a dense
   // model (fall back to the measured disk size) but NOT for MoE, whose whole
   // reason to exist here is the total-param rescue — refuse rather than risk
   // silently under-sizing all experts.
-  if (bitsPerParam === undefined && model.architecture === "moe") {
+  if (bitsPerParam === undefined && architecture === "moe") {
     throw new ValidationError(
-      `cannot size MoE model ${JSON.stringify(model.id)}: unrecognized quantization ${JSON.stringify(
-        quant.name,
-      )}`,
+      `cannot size MoE ${label}: unrecognized quantization ${JSON.stringify(quantName)}`,
     );
   }
   const formulaFloor =
