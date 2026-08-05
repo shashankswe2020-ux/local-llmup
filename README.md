@@ -14,6 +14,25 @@ Hardware-aware CLI for discovering, installing, serving, and migrating local LLM
 - Keeps a curated catalog of open-weight models and supports catalog refreshes.
 - Supports memory migration and local diagnostics for day-to-day model management.
 
+## How It Differs From Using Ollama Directly
+
+Ollama is the local model runtime: it downloads models, runs inference, and
+provides the serving API. `local-llmup` uses Ollama underneath, but adds the
+workflow around it:
+
+| Using Ollama directly | Using `local-llmup` |
+|---|---|
+| Choose a model and run commands such as `ollama pull`, `ollama run`, and `ollama serve`. | Detect hardware and get ranked model recommendations with `recommend`. |
+| Decide yourself whether a model's memory requirements fit your machine. | Filter and score catalog models using hardware and estimated memory requirements. |
+| Manage model switching and lifecycle commands yourself. | Install, start, stop, and switch models with `up`, `down`, and `switch`. |
+| Manage conversations and any model-to-model context transfer yourself. | Record chat memory and migrate it between models with `chat` and `migrate`. |
+| Troubleshoot the runtime and local setup manually. | Check hardware, backend, ports, disk, catalog, and state with `doctor`. |
+
+Use Ollama directly when you only need a lightweight runtime or want full
+manual control. Use `local-llmup` when you want hardware-aware model
+selection and a consistent model-and-memory workflow. It is not a replacement
+for Ollama; Ollama remains a requirement for serving models.
+
 ## Quickstart
 
 1. Install locally with `npm install -g local-llmup`.
