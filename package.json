@@ -1,6 +1,6 @@
 {
   "name": "local-llmup",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Hardware-aware CLI to recommend, install, serve, and migrate memory between local LLMs.",
   "repository": {
     "type": "git",
@@ -10,7 +10,13 @@
   "bugs": {
     "url": "https://github.com/shashankswe2020-ux/local-llmup/issues"
   },
-  "keywords": ["llm", "ollama", "cli", "local-ai", "hardware-aware"],
+  "keywords": [
+    "llm",
+    "ollama",
+    "cli",
+    "local-ai",
+    "hardware-aware"
+  ],
   "type": "module",
   "license": "MIT",
   "main": "dist/cli.js",
@@ -19,8 +25,8 @@
     "node": ">=18"
   },
   "bin": {
-    "llmup": "dist/cli.js",
-    "local-llmup": "dist/cli.js"
+    "llmup": "dist/bin.js",
+    "local-llmup": "dist/bin.js"
   },
   "files": [
     "dist",
