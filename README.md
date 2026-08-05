@@ -23,7 +23,7 @@ hardware-aware workflow around it.
 | Feature | Ollama | local-llmup |
 |---|---|---|
 | Install runtime | ✅ | ✅ |
-| Detect hardware | ✅ | ✅ |
+| Detect hardware | ⚠️ Internal only | ✅ User-facing |
 | Recommend best model | ❌ | ✅ |
 | Recommend best quantization | ❌ | ✅ |
 | Choose best runtime (Ollama, llama.cpp, MLX, vLLM...) | ❌ | 🛠️ Planned |
