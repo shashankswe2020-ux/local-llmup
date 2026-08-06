@@ -355,9 +355,9 @@ capabilities (`canPull:true`, `canEmbed` per `llama-server`, `formats:["gguf"]`,
 127.0.0.1`** (arg array, `shell:false`, `--` where positional args exist),
 OpenAI-compatible `waitUntilReady`, `stop`, and the **port-ownership preflight**.
 **Acceptance:**
-- [ ] `serve` forces loopback; a resolved non-loopback endpoint is refused (state not written).
-- [ ] Foreign server on 8080 → attach or `BackendError`, never `ownedByUs:true`.
-- [ ] Readiness-probe timeout raises; `stop` terminates only an owned process.
+- [x] `serve` forces loopback; a resolved non-loopback endpoint is refused (state not written).
+- [x] Foreign server on 8080 → attach or `BackendError`, never `ownedByUs:true`.
+- [x] Readiness-probe timeout raises; `stop` terminates only an owned process.
 **Verify:** `npm test tests/backend/llamacpp`
 **Deps:** B14a **Files:** `src/backend/llamacpp.ts`, `tests/backend/llamacpp.test.ts` **Scope:** M
 

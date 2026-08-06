@@ -1,33 +1,45 @@
 /**
  * llama.cpp backend adapter (`llama-server`, GGUF).
  *
- * This slice (B14a) implements only the descriptor surface — the capability
- * flags, `isInstalled`, `installHint`, and a best-effort `version` probe — plus
- * registration in the default registry. The serve/ready/stop lifecycle lands in
- * B14b and pull/chat/embed in B14c; until then those methods throw a typed
+ * This slice (B14b) adds the serve/ready/stop lifecycle on top of the B14a
+ * descriptor surface: `serve` forces a loopback bind, runs a port-ownership
+ * preflight (attach to a running llama-server, refuse a foreign listener, or
+ * spawn its own owned process), `waitUntilReady` polls the OpenAI-compatible
+ * endpoint, and `stop` terminates only a process this adapter owns. `pull`,
+ * `chat`, and `embed` land in B14c; until then they throw a typed
  * {@link BackendError} rather than pretending to work.
  *
- * Like the Ollama adapter, this is stateless and its process seam is injectable
- * (`spawn`) so tests never touch a real `llama-server`. Every spawn is
- * `shell:false` with a discrete argument array.
+ * Like the Ollama adapter, this is stateless and its process/network/clock
+ * seams are injectable (`spawn`/`fetch`/`sleep`/`kill`) so tests never touch a
+ * real `llama-server`. Every spawn is `shell:false` with a discrete argument
+ * array; the server is only ever bound to loopback without an explicit opt-in.
  */
 import { spawn as nodeSpawn } from "node:child_process";
 import type { Readable } from "node:stream";
-import { BackendError } from "../errors.js";
+import { BackendError, ValidationError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
-import type {
-  BackendAdapter,
-  ChatRequest,
-  ChatResult,
-  EmbedRequest,
-  EmbedResult,
-  PullOptions,
-  PullResult,
-  ReadinessOptions,
-  ServeHandle,
-  ServeOptions,
+import {
+  buildEndpoint,
+  DEFAULT_BIND_HOST,
+  type BackendAdapter,
+  type ChatRequest,
+  type ChatResult,
+  type EmbedRequest,
+  type EmbedResult,
+  type PullOptions,
+  type PullResult,
+  type ReadinessOptions,
+  type ServeHandle,
+  type ServeOptions,
 } from "./adapter.js";
-import type { ProcessOutputStream, SpawnFn, SpawnedProcess } from "./ollama.js";
+import type {
+  FetchFn,
+  KillFn,
+  ProcessOutputStream,
+  SleepFn,
+  SpawnFn,
+  SpawnedProcess,
+} from "./ollama.js";
 import type { BackendCapabilities } from "../types.js";
 
 /** Default binary name resolved from `PATH`. */
@@ -44,6 +56,24 @@ const VERSION_CAPTURE_MAX_BYTES = 8 * 1024;
 
 /** Cap on characters kept from a non-semver version banner. */
 const VERSION_BANNER_MAX_CHARS = 100;
+
+/** Readiness paths probed in order: llama.cpp `/health` first, OpenAI fallback. */
+const READINESS_PATHS = ["/health", "/v1/models"] as const;
+/** OpenAI-compatible-only readiness path (when `requireOpenAiCompatibility`). */
+const OPENAI_READINESS_PATHS = ["/v1/models"] as const;
+/** llama.cpp-specific endpoint used to fingerprint an attach target. */
+const IDENTITY_PATH = "/props";
+
+const DEFAULT_READINESS_TIMEOUT_MS = 30_000;
+const DEFAULT_READINESS_RETRIES = 20;
+const READINESS_BACKOFF_BASE_MS = 100;
+const READINESS_BACKOFF_MAX_MS = 2_000;
+/** Upper bound on a single readiness request, so one hung probe can't outlive the deadline. */
+const READINESS_REQUEST_TIMEOUT_MS = 5_000;
+
+const SHUTDOWN_GRACE_MS = 500;
+const SHUTDOWN_POLL_INTERVAL_MS = 50;
+const SHUTDOWN_POLL_ATTEMPTS = 10;
 
 function adaptStream(stream: Readable | null): ProcessOutputStream | null {
   if (stream === null) return null;
@@ -156,11 +186,135 @@ function parseVersion(output: string): string | null {
   return firstLine !== undefined ? firstLine.slice(0, VERSION_BANNER_MAX_CHARS) : null;
 }
 
+const defaultFetch: FetchFn = (url, init) => {
+  const requestInit: RequestInit = {
+    signal: init?.signal ?? null,
+    ...(init?.method !== undefined ? { method: init.method } : {}),
+    ...(init?.headers !== undefined ? { headers: init.headers } : {}),
+    ...(init?.body !== undefined ? { body: init.body } : {}),
+  };
+  return fetch(url, requestInit);
+};
+
+const defaultSleep: SleepFn = (ms, signal) =>
+  new Promise<void>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new BackendError("readiness wait aborted"));
+      return;
+    }
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(new BackendError("readiness wait aborted"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+
+const defaultKill: KillFn = (pid, signal) => {
+  process.kill(pid, signal);
+};
+
+/**
+ * Whether `host` is a loopback bind address. A non-loopback bind exposes the
+ * unauthenticated server beyond the local machine, so it requires opt-in. This
+ * is a lexical check on the bind address, not a DNS resolution.
+ */
+function isLoopbackBindHost(host: string): boolean {
+  const unbracketed = host.startsWith("[") && host.endsWith("]") ? host.slice(1, -1) : host;
+  const lower = unbracketed.toLowerCase();
+  return lower === "localhost" || lower === "::1" || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(lower);
+}
+
+/**
+ * A pid we can safely signal: a positive integer. Zero or negative pids address
+ * process *groups* (`kill(0)` → the caller's group), so they must never reach
+ * `process.kill`.
+ */
+function isUsablePid(pid: number | undefined): pid is number {
+  return pid !== undefined && Number.isInteger(pid) && pid > 0;
+}
+
+/** Wait for a spawned child to emit `close`, or time out. */
+function waitForChildClose(child: SpawnedProcess, timeoutMs: number): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      resolve(false);
+    }, timeoutMs);
+    child.onClose(() => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(true);
+    });
+  });
+}
+
+/** Best-effort spawned-child teardown: TERM, then KILL if it does not exit. */
+async function stopSpawnedChild(child: SpawnedProcess): Promise<void> {
+  try {
+    child.kill("SIGTERM");
+  } catch {
+    return;
+  }
+  if (await waitForChildClose(child, SHUTDOWN_GRACE_MS)) return;
+  try {
+    child.kill("SIGKILL");
+  } catch {
+    return;
+  }
+  await waitForChildClose(child, SHUTDOWN_GRACE_MS);
+}
+
+/** Exponential backoff (capped) for the Nth readiness attempt (1-based). */
+function readinessBackoffMs(attempt: number): number {
+  return Math.min(READINESS_BACKOFF_BASE_MS * 2 ** (attempt - 1), READINESS_BACKOFF_MAX_MS);
+}
+
+/**
+ * Fingerprint a `/props` payload as a llama-server response. `/props` is
+ * distinctive to llama.cpp (it reports slot/generation settings), so a listener
+ * that answers it with this shape is trusted for attach; anything else is
+ * refused rather than risk sending prompts to an unrelated local process.
+ */
+function isLikelyLlamaServerProps(payload: unknown): boolean {
+  if (typeof payload !== "object" || payload === null) return false;
+  const props = payload as Record<string, unknown>;
+  return (
+    typeof props["default_generation_settings"] === "object" ||
+    typeof props["total_slots"] === "number" ||
+    typeof props["chat_template"] === "string" ||
+    typeof props["model_path"] === "string"
+  );
+}
+
+/** Outcome of one readiness attempt across all probe paths. */
+type ReadinessResult =
+  | { readonly ready: true }
+  | { readonly ready: false; readonly lastError: unknown };
+
+/** Outcome of a single path probe: 2xx, a non-2xx HTTP status, or a transport error. */
+type PathProbe =
+  | { readonly kind: "ok" }
+  | { readonly kind: "status"; readonly status: number }
+  | { readonly kind: "error"; readonly error: unknown };
+
+/** Attach-target classification for the serve attach-vs-spawn decision. */
+type AttachClassification = "trusted" | "untrusted" | "unreachable";
+
 /** Options for constructing a {@link LlamaCppAdapter}. */
 export interface LlamaCppAdapterOptions {
   readonly spawn?: SpawnFn | undefined;
   readonly binary?: string | undefined;
   readonly platform?: NodeJS.Platform | undefined;
+  readonly fetch?: FetchFn | undefined;
+  readonly sleep?: SleepFn | undefined;
+  readonly kill?: KillFn | undefined;
 }
 
 /** Stateless adapter over the llama.cpp `llama-server` backend. */
@@ -181,11 +335,17 @@ export class LlamaCppAdapter implements BackendAdapter {
   private readonly spawn: SpawnFn;
   private readonly binary: string;
   private readonly platform: NodeJS.Platform;
+  private readonly fetch: FetchFn;
+  private readonly sleep: SleepFn;
+  private readonly kill: KillFn;
 
   constructor(options: LlamaCppAdapterOptions = {}) {
     this.spawn = options.spawn ?? defaultSpawn;
     this.binary = options.binary ?? LLAMA_SERVER_BINARY;
     this.platform = options.platform ?? process.platform;
+    this.fetch = options.fetch ?? defaultFetch;
+    this.sleep = options.sleep ?? defaultSleep;
+    this.kill = options.kill ?? defaultKill;
   }
 
   async isInstalled(): Promise<boolean> {
@@ -251,16 +411,264 @@ export class LlamaCppAdapter implements BackendAdapter {
     return Promise.reject(this.notImplemented("pull"));
   }
 
-  serve(_options?: ServeOptions): Promise<ServeHandle> {
-    return Promise.reject(this.notImplemented("serve"));
+  /**
+   * Start `llama-server` for one model, preferring to attach to a running
+   * llama-server on the target port over spawning a duplicate. The bind is
+   * loopback-only unless `allowNonLoopback` is set (spec §8). The port-ownership
+   * preflight never claims ownership of a foreign listener: a trusted
+   * llama-server is attached (`ownedByUs:false`), an unrecognised listener is
+   * refused, and only a free port leads to an owned spawn. On any readiness
+   * failure the spawned child is torn down so it cannot leak as an orphan.
+   */
+  async serve(options?: ServeOptions): Promise<ServeHandle> {
+    const host = options?.host ?? DEFAULT_BIND_HOST;
+    const port = options?.port ?? LLAMACPP_DEFAULT_PORT;
+
+    // Defence in depth: never expose the unauthenticated server beyond loopback
+    // unless the caller explicitly opts in (spec §8).
+    if (!(options?.allowNonLoopback ?? false) && !isLoopbackBindHost(host)) {
+      throw new ValidationError(
+        `refusing to bind non-loopback host "${host}" without an explicit opt-in`,
+      );
+    }
+
+    const endpoint = buildEndpoint(host, port);
+    const signal = options?.signal;
+    if (signal?.aborted) {
+      throw new BackendError(`llama-server serve aborted for ${endpoint}`);
+    }
+
+    // Port-ownership preflight: attach to a trusted llama-server, refuse a
+    // foreign listener, and only spawn when the port is free.
+    const attach = await this.probeAttachTarget(endpoint, signal);
+    if (attach === "trusted") {
+      return { endpoint, pid: 0, port, ownedByUs: false };
+    }
+    if (attach === "untrusted") {
+      throw new BackendError(
+        `refusing to attach to ${endpoint}: listener did not pass llama-server identity check`,
+      );
+    }
+
+    // The probe masks an abort as "unreachable", so re-check before spawning.
+    if (signal?.aborted) {
+      throw new BackendError(`llama-server serve aborted for ${endpoint}`);
+    }
+
+    // llama-server loads exactly one model per process, so a weights path is
+    // mandatory to spawn our own server (attaching above needs none).
+    const modelPath = options?.modelPath?.trim();
+    if (modelPath === undefined || modelPath.length === 0) {
+      throw new BackendError(`refusing to serve ${endpoint}: no model path was provided`);
+    }
+    // Defence in depth: a leading-dash path could be misparsed as a flag by some
+    // argv parsers even when passed as the `-m` value, so refuse it outright.
+    if (modelPath.startsWith("-")) {
+      throw new BackendError(`refusing to serve ${endpoint}: model path must not start with "-"`);
+    }
+
+    // Arg array, `shell:false`, explicit loopback bind. llama-server takes no
+    // positional args (the model is the `-m` option), so no `--` separator.
+    const args = ["-m", modelPath, "--host", host, "--port", String(port)];
+
+    // The caller's signal is deliberately NOT passed to this (persistent) child:
+    // a successful serve leaves the server running, and its shutdown is owned by
+    // stop()/state, not by the caller's request-scoped signal.
+    let child: SpawnedProcess;
+    try {
+      child = this.spawn(this.binary, args, {});
+    } catch (error) {
+      throw wrapSpawnError(this.binary, error);
+    }
+
+    // `spawn` failures (e.g. ENOENT) and early exits arrive as events, not as a
+    // synchronous throw. Observe them so they cannot crash the host as an
+    // unhandled 'error', and so a crashing server short-circuits the wait.
+    const earlyFailure = new Promise<never>((_resolve, reject) => {
+      child.onError((error) => reject(wrapSpawnError(this.binary, error)));
+      child.onClose((code) =>
+        reject(
+          new BackendError(`llama-server exited before ${endpoint} was ready (code ${code})`),
+        ),
+      );
+    });
+    earlyFailure.catch(() => {});
+
+    const pid = child.pid;
+    if (!isUsablePid(pid)) {
+      await stopSpawnedChild(child);
+      throw new BackendError(`llama-server did not report a usable pid for ${endpoint}`);
+    }
+
+    try {
+      // Gate on `/health` (authoritative load state) rather than `/v1/models`,
+      // which can answer 200 while the model is still loading.
+      await Promise.race([
+        this.pollUntilReady(
+          endpoint,
+          DEFAULT_READINESS_TIMEOUT_MS,
+          DEFAULT_READINESS_RETRIES,
+          signal,
+          (probeSignal, requestTimeoutMs) =>
+            this.probeServeReady(endpoint, probeSignal, requestTimeoutMs),
+        ),
+        earlyFailure,
+      ]);
+    } catch (error) {
+      await stopSpawnedChild(child);
+      throw error instanceof BackendError
+        ? error
+        : new BackendError(`llama-server failed to become ready at ${endpoint}`, { cause: error });
+    }
+
+    return { endpoint, pid, port, ownedByUs: true };
   }
 
-  waitUntilReady(_options: ReadinessOptions): Promise<void> {
-    return Promise.reject(this.notImplemented("waitUntilReady"));
+  /**
+   * Poll the readiness endpoint (`/health`, falling back to `/v1/models`; or
+   * `/v1/models` only when `requireOpenAiCompatibility`) with exponential
+   * backoff until it responds, the attempt budget is spent, or the deadline
+   * elapses. Both exhaustion cases throw a typed {@link BackendError}. Each
+   * request is itself bounded so a hung probe cannot outlive the deadline.
+   */
+  async waitUntilReady(options: ReadinessOptions): Promise<void> {
+    await this.pollUntilReady(
+      options.endpoint,
+      options.timeoutMs ?? DEFAULT_READINESS_TIMEOUT_MS,
+      Math.max(1, options.retries ?? DEFAULT_READINESS_RETRIES),
+      options.signal,
+      (probeSignal, requestTimeoutMs) =>
+        this.probeReady(
+          options.endpoint,
+          probeSignal,
+          requestTimeoutMs,
+          options.requireOpenAiCompatibility ?? false,
+        ),
+    );
   }
 
-  stop(_handle: ServeHandle): Promise<void> {
-    return Promise.reject(this.notImplemented("stop"));
+  /**
+   * Shared readiness retry loop: call `probeOnce` with exponential backoff until
+   * it reports ready, the attempt budget is spent, or the deadline elapses.
+   */
+  private async pollUntilReady(
+    endpoint: string,
+    timeoutMs: number,
+    maxAttempts: number,
+    signal: AbortSignal | undefined,
+    probeOnce: (
+      signal: AbortSignal | undefined,
+      requestTimeoutMs: number,
+    ) => Promise<ReadinessResult>,
+  ): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+    let attempt = 0;
+
+    for (;;) {
+      if (signal?.aborted) {
+        throw new BackendError(`readiness check aborted for ${endpoint}`);
+      }
+
+      attempt += 1;
+      const requestTimeoutMs = Math.min(
+        READINESS_REQUEST_TIMEOUT_MS,
+        Math.max(deadline - Date.now(), 1),
+      );
+      const result = await probeOnce(signal, requestTimeoutMs);
+      if (result.ready) return;
+      const cause = result.lastError !== undefined ? { cause: result.lastError } : undefined;
+
+      if (attempt >= maxAttempts) {
+        throw new BackendError(
+          `${endpoint} did not become ready after ${attempt} attempt(s)`,
+          cause,
+        );
+      }
+      if (Date.now() >= deadline) {
+        throw new BackendError(`${endpoint} readiness timed out after ${timeoutMs}ms`, cause);
+      }
+
+      const remaining = Math.max(deadline - Date.now(), 0);
+      await this.sleep(Math.min(readinessBackoffMs(attempt), remaining), signal);
+    }
+  }
+
+  /**
+   * Stop a server. Only processes this adapter spawned (`ownedByUs`) are ever
+   * signalled; an attached (foreign) server is left running. A process that has
+   * already exited (`ESRCH`) is treated as a successful, idempotent stop.
+   */
+  async stop(handle: ServeHandle): Promise<void> {
+    if (!handle.ownedByUs) return;
+    // Refuse non-positive pids: `kill(0)`/`kill(-n)` would signal a whole process
+    // group rather than the single server we own (handles round-trip through the
+    // untrusted state file).
+    if (!isUsablePid(handle.pid)) {
+      throw new BackendError(`refusing to stop llama-server: invalid pid ${handle.pid}`);
+    }
+
+    // Defend against stale state + pid reuse: only terminate when the recorded
+    // endpoint is still serving. If the endpoint is gone but the pid is still
+    // alive, the pid may now belong to an unrelated process.
+    if (!(await this.isReachable(handle.endpoint, undefined))) {
+      try {
+        this.kill(handle.pid, 0);
+      } catch (error) {
+        if (isEsrch(error)) return;
+        throw new BackendError(`failed to probe llama-server liveness (pid ${handle.pid})`, {
+          cause: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
+      throw new BackendError(
+        `refusing to stop llama-server (pid ${handle.pid}): ${handle.endpoint} is not reachable and pid may have been reused`,
+      );
+    }
+
+    try {
+      this.kill(handle.pid, "SIGTERM");
+    } catch (error) {
+      if (isEsrch(error)) return;
+      throw new BackendError(`failed to stop llama-server (pid ${handle.pid})`, {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+
+    for (let attempt = 0; attempt < SHUTDOWN_POLL_ATTEMPTS; attempt += 1) {
+      try {
+        this.kill(handle.pid, 0);
+      } catch (error) {
+        if (isEsrch(error)) return;
+        throw new BackendError(`failed to probe llama-server liveness (pid ${handle.pid})`, {
+          cause: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
+      await this.sleep(SHUTDOWN_POLL_INTERVAL_MS);
+    }
+
+    try {
+      this.kill(handle.pid, "SIGKILL");
+    } catch (error) {
+      if (isEsrch(error)) return;
+      throw new BackendError(`failed to force-stop llama-server (pid ${handle.pid})`, {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+
+    for (let attempt = 0; attempt < SHUTDOWN_POLL_ATTEMPTS; attempt += 1) {
+      try {
+        this.kill(handle.pid, 0);
+      } catch (error) {
+        if (isEsrch(error)) return;
+        throw new BackendError(`failed to probe llama-server liveness (pid ${handle.pid})`, {
+          cause: error instanceof Error ? error : new Error(String(error)),
+        });
+      }
+      await this.sleep(SHUTDOWN_POLL_INTERVAL_MS);
+    }
+
+    throw new BackendError(
+      `failed to stop llama-server (pid ${handle.pid}): still alive after SIGTERM and SIGKILL`,
+    );
   }
 
   chat(_request: ChatRequest): Promise<ChatResult> {
@@ -271,7 +679,130 @@ export class LlamaCppAdapter implements BackendAdapter {
     return Promise.reject(this.notImplemented("embed"));
   }
 
+  /** One quick readiness attempt used to decide attach-vs-spawn / liveness. */
+  private async isReachable(
+    endpoint: string,
+    signal: AbortSignal | undefined,
+  ): Promise<boolean> {
+    const result = await this.probeReady(endpoint, signal, READINESS_REQUEST_TIMEOUT_MS, false);
+    return result.ready;
+  }
+
+  /** Classify an attach target as trusted, untrusted, or unreachable. */
+  private async probeAttachTarget(
+    endpoint: string,
+    signal: AbortSignal | undefined,
+  ): Promise<AttachClassification> {
+    if (!(await this.isReachable(endpoint, signal))) return "unreachable";
+    return (await this.isLikelyLlamaServer(endpoint, signal, READINESS_REQUEST_TIMEOUT_MS))
+      ? "trusted"
+      : "untrusted";
+  }
+
+  /** Best-effort identity check for attach: validate the `/props` shape. */
+  private async isLikelyLlamaServer(
+    endpoint: string,
+    callerSignal: AbortSignal | undefined,
+    requestTimeoutMs: number,
+  ): Promise<boolean> {
+    const base = endpoint.replace(/\/+$/, "");
+    const controller = new AbortController();
+    const onCallerAbort = (): void => controller.abort();
+    const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
+    if (callerSignal?.aborted) controller.abort();
+    else callerSignal?.addEventListener("abort", onCallerAbort, { once: true });
+
+    try {
+      const response = await this.fetch(`${base}${IDENTITY_PATH}`, { signal: controller.signal });
+      if (!response.ok || typeof response.json !== "function") return false;
+      return isLikelyLlamaServerProps(await response.json());
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timer);
+      callerSignal?.removeEventListener("abort", onCallerAbort);
+    }
+  }
+
+  /**
+   * One readiness attempt. Tries each probe path with a per-request timeout
+   * (combined with the caller's signal); returns ready on the first 2xx.
+   */
+  private async probeReady(
+    endpoint: string,
+    callerSignal: AbortSignal | undefined,
+    requestTimeoutMs: number,
+    requireOpenAiCompatibility: boolean,
+  ): Promise<ReadinessResult> {
+    const base = endpoint.replace(/\/+$/, "");
+    let lastError: unknown;
+    const paths = requireOpenAiCompatibility ? OPENAI_READINESS_PATHS : READINESS_PATHS;
+
+    for (const path of paths) {
+      const probe = await this.probePath(base, path, callerSignal, requestTimeoutMs);
+      if (probe.kind === "ok") return { ready: true };
+      if (probe.kind === "error") lastError = probe.error;
+    }
+    return { ready: false, lastError };
+  }
+
+  /**
+   * Owned-serve readiness. `/health` is authoritative: `200` → ready, `503` →
+   * still loading (keep waiting, never fall through). Only when `/health` is
+   * absent (404) or unreachable do we consult `/v1/models`, so a model that is
+   * still loading is never reported ready.
+   */
+  private async probeServeReady(
+    endpoint: string,
+    callerSignal: AbortSignal | undefined,
+    requestTimeoutMs: number,
+  ): Promise<ReadinessResult> {
+    const base = endpoint.replace(/\/+$/, "");
+    const health = await this.probePath(base, "/health", callerSignal, requestTimeoutMs);
+    if (health.kind === "ok") return { ready: true };
+    if (health.kind === "status" && health.status === 503) {
+      // Reachable but still loading the model — wait rather than mask via /v1/models.
+      return { ready: false, lastError: undefined };
+    }
+    const models = await this.probePath(base, "/v1/models", callerSignal, requestTimeoutMs);
+    if (models.kind === "ok") return { ready: true };
+    return { ready: false, lastError: models.kind === "error" ? models.error : undefined };
+  }
+
+  /**
+   * Perform one bounded GET against `base + path`, classifying the outcome as a
+   * 2xx (`ok`), a non-2xx HTTP `status`, or a transport `error`. The request is
+   * capped by `requestTimeoutMs` and the caller's abort signal.
+   */
+  private async probePath(
+    base: string,
+    path: string,
+    callerSignal: AbortSignal | undefined,
+    requestTimeoutMs: number,
+  ): Promise<PathProbe> {
+    const controller = new AbortController();
+    const onCallerAbort = (): void => controller.abort();
+    const timer = setTimeout(() => controller.abort(), requestTimeoutMs);
+    if (callerSignal?.aborted) controller.abort();
+    else callerSignal?.addEventListener("abort", onCallerAbort, { once: true });
+
+    try {
+      const response = await this.fetch(`${base}${path}`, { signal: controller.signal });
+      return response.ok ? { kind: "ok" } : { kind: "status", status: response.status };
+    } catch (error) {
+      return { kind: "error", error };
+    } finally {
+      clearTimeout(timer);
+      callerSignal?.removeEventListener("abort", onCallerAbort);
+    }
+  }
+
   private notImplemented(method: string): BackendError {
     return new BackendError(`llamacpp ${method} is not implemented yet`);
   }
+}
+
+/** True when an error carries the POSIX `ESRCH` (no such process) code. */
+function isEsrch(error: unknown): boolean {
+  return (error as { code?: unknown }).code === "ESRCH";
 }

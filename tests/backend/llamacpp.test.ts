@@ -1,8 +1,15 @@
-import { describe, expect, it } from "vitest";
-import { BackendError } from "../../src/errors.js";
+import { describe, expect, it, vi } from "vitest";
+import { BackendError, ValidationError } from "../../src/errors.js";
 import { LlamaCppAdapter } from "../../src/backend/llamacpp.js";
 import { createDefaultRegistry } from "../../src/backend/registry.js";
-import type { SpawnFn, SpawnedProcess } from "../../src/backend/ollama.js";
+import type {
+  FetchFn,
+  FetchResponseLike,
+  KillFn,
+  SleepFn,
+  SpawnFn,
+  SpawnedProcess,
+} from "../../src/backend/ollama.js";
 
 interface FakeSpawnConfig {
   readonly code?: number;
@@ -149,18 +156,296 @@ describe("LlamaCppAdapter — version", () => {
   });
 });
 
-describe("LlamaCppAdapter — unimplemented lifecycle (B14b/B14c)", () => {
-  it("throws BackendError for serve/pull/chat until later slices land", async () => {
+describe("LlamaCppAdapter — unimplemented lifecycle (B14c)", () => {
+  it("throws BackendError for pull/chat/embed until later slices land", async () => {
     const adapter = new LlamaCppAdapter();
-    await expect(adapter.serve()).rejects.toBeInstanceOf(BackendError);
     await expect(adapter.pull({ modelId: "m" })).rejects.toBeInstanceOf(BackendError);
     await expect(adapter.chat({ model: "m", messages: [] })).rejects.toBeInstanceOf(BackendError);
     await expect(adapter.embed({ model: "m", input: [] })).rejects.toBeInstanceOf(BackendError);
+  });
+});
+
+// ── serve/ready/stop lifecycle fakes (B14b) ────────────────────────────────
+
+interface FakeServer {
+  listening: boolean;
+  identity: "llama" | "foreign";
+  healthy: boolean;
+}
+
+function jsonResponse(ok: boolean, status: number, body: unknown): FetchResponseLike {
+  return { ok, status, json: () => Promise.resolve(body) };
+}
+
+/**
+ * A coordinated fake `fetch` over an in-memory {@link FakeServer}: when not
+ * listening every request rejects (connection refused); when listening it
+ * answers `/health`, `/v1/models`, and the llama.cpp-specific `/props` identity
+ * endpoint (which a `foreign` server fails).
+ */
+function makeFetch(server: FakeServer): FetchFn {
+  return (url) => {
+    if (!server.listening) {
+      return Promise.reject(new Error("ECONNREFUSED"));
+    }
+    const path = new URL(url).pathname;
+    if (path === "/props") {
+      return Promise.resolve(
+        server.identity === "llama"
+          ? jsonResponse(true, 200, { total_slots: 1, model_path: "/tmp/m.gguf" })
+          : jsonResponse(false, 404, {}),
+      );
+    }
+    if (path === "/health") {
+      return Promise.resolve(
+        jsonResponse(server.healthy, server.healthy ? 200 : 503, {
+          status: server.healthy ? "ok" : "loading model",
+        }),
+      );
+    }
+    if (path === "/v1/models") {
+      return Promise.resolve(jsonResponse(true, 200, { object: "list", data: [] }));
+    }
+    return Promise.resolve(jsonResponse(false, 404, {}));
+  };
+}
+
+interface ServeSpawnConfig {
+  readonly pid?: number | undefined;
+  readonly throwError?: Error | undefined;
+  /** Server the child "brings up" on spawn (flips `listening` true). */
+  readonly server?: FakeServer | undefined;
+  /** When set, the child closes with this code on the next tick (early exit). */
+  readonly exitCode?: number | null | undefined;
+}
+
+function makeServeSpawn(config: ServeSpawnConfig = {}): {
+  spawn: SpawnFn;
+  calls: { command: string; args: readonly string[] }[];
+  closeChild: (code: number | null) => void;
+} {
+  const calls: { command: string; args: readonly string[] }[] = [];
+  let closeListener: ((code: number | null) => void) | null = null;
+  const spawn: SpawnFn = (command, args) => {
+    calls.push({ command, args: [...args] });
+    if (config.throwError !== undefined) {
+      throw config.throwError;
+    }
+    if (config.server !== undefined) {
+      config.server.listening = true;
+    }
+    const child: SpawnedProcess = {
+      pid: config.pid ?? 9876,
+      stdout: { onData: () => {} },
+      stderr: { onData: () => {} },
+      onClose: (listener) => {
+        closeListener = listener;
+        if (config.exitCode !== undefined) {
+          setTimeout(() => listener(config.exitCode ?? null), 0);
+        }
+      },
+      onError: () => {},
+      // A real child exits on SIGTERM/SIGKILL; emit close so teardown is prompt.
+      kill: () => {
+        closeListener?.(null);
+      },
+    };
+    return child;
+  };
+  return {
+    spawn,
+    calls,
+    closeChild: (code) => closeListener?.(code),
+  };
+}
+
+const noSleep: SleepFn = () => Promise.resolve();
+
+describe("LlamaCppAdapter — serve (loopback + port preflight)", () => {
+  it("refuses a non-loopback bind without an explicit opt-in and spawns nothing", async () => {
+    const { spawn, calls } = makeServeSpawn();
+    const server: FakeServer = { listening: false, identity: "llama", healthy: true };
+    const adapter = new LlamaCppAdapter({ spawn, fetch: makeFetch(server), sleep: noSleep });
+    await expect(
+      adapter.serve({ host: "0.0.0.0", port: 8080, modelPath: "/tmp/m.gguf" }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("attaches to a running llama-server without claiming ownership", async () => {
+    const server: FakeServer = { listening: true, identity: "llama", healthy: true };
+    const { spawn, calls } = makeServeSpawn();
+    const adapter = new LlamaCppAdapter({ spawn, fetch: makeFetch(server), sleep: noSleep });
+    const handle = await adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" });
+    expect(handle.ownedByUs).toBe(false);
+    expect(handle.pid).toBe(0);
+    expect(handle.endpoint).toBe("http://127.0.0.1:8080");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("refuses to attach to a foreign listener on the port", async () => {
+    const server: FakeServer = { listening: true, identity: "foreign", healthy: true };
+    const { spawn, calls } = makeServeSpawn();
+    const adapter = new LlamaCppAdapter({ spawn, fetch: makeFetch(server), sleep: noSleep });
+    await expect(adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" })).rejects.toBeInstanceOf(
+      BackendError,
+    );
+    expect(calls).toHaveLength(0);
+  });
+
+  it("spawns an owned llama-server with an arg-array, shell:false, loopback bind", async () => {
+    const server: FakeServer = { listening: false, identity: "llama", healthy: true };
+    const { spawn, calls } = makeServeSpawn({ pid: 4242, server });
+    const adapter = new LlamaCppAdapter({ spawn, fetch: makeFetch(server), sleep: noSleep });
+    const handle = await adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" });
+    expect(handle.ownedByUs).toBe(true);
+    expect(handle.pid).toBe(4242);
+    expect(handle.endpoint).toBe("http://127.0.0.1:8080");
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.command).toBe("llama-server");
+    expect(calls[0]?.args).toEqual([
+      "-m",
+      "/tmp/m.gguf",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "8080",
+    ]);
+  });
+
+  it("requires a model path before spawning its own server", async () => {
+    const server: FakeServer = { listening: false, identity: "llama", healthy: true };
+    const { spawn, calls } = makeServeSpawn({ server });
+    const adapter = new LlamaCppAdapter({ spawn, fetch: makeFetch(server), sleep: noSleep });
+    await expect(adapter.serve({ port: 8080 })).rejects.toBeInstanceOf(BackendError);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("stops the child and throws when readiness never passes", async () => {
+    // Server stays down even after spawn → readiness never succeeds.
+    const server: FakeServer = { listening: false, identity: "llama", healthy: true };
+    const { spawn } = makeServeSpawn({ pid: 4242 }); // does NOT flip listening
+    const killed = vi.fn<KillFn>();
+    const adapter = new LlamaCppAdapter({
+      spawn,
+      fetch: makeFetch(server),
+      sleep: noSleep,
+      kill: killed,
+    });
+    await expect(
+      adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" }),
+    ).rejects.toBeInstanceOf(BackendError);
+  });
+
+  it("fails when the spawned server exits before becoming ready", async () => {
+    const server: FakeServer = { listening: false, identity: "llama", healthy: true };
+    const { spawn } = makeServeSpawn({ pid: 4242, exitCode: 1 }); // never listens; exits
+    const adapter = new LlamaCppAdapter({ spawn, fetch: makeFetch(server), sleep: noSleep });
+    await expect(
+      adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" }),
+    ).rejects.toBeInstanceOf(BackendError);
+  });
+
+  it("does not report an owned server ready while the model is still loading (/health 503)", async () => {
+    // Server comes up on spawn but /health stays 503 (loading); /v1/models is
+    // 200. Readiness must gate on /health and never mask the load via /v1/models.
+    const server: FakeServer = { listening: false, identity: "llama", healthy: false };
+    const { spawn } = makeServeSpawn({ pid: 4242, server });
+    const adapter = new LlamaCppAdapter({ spawn, fetch: makeFetch(server), sleep: noSleep });
+    await expect(
+      adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" }),
+    ).rejects.toBeInstanceOf(BackendError);
+  });
+
+  it("refuses a model path that starts with a dash and spawns nothing", async () => {
+    const server: FakeServer = { listening: false, identity: "llama", healthy: true };
+    const { spawn, calls } = makeServeSpawn({ server });
+    const adapter = new LlamaCppAdapter({ spawn, fetch: makeFetch(server), sleep: noSleep });
+    await expect(
+      adapter.serve({ port: 8080, modelPath: "--n-gpu-layers" }),
+    ).rejects.toBeInstanceOf(BackendError);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("aborts before spawning when the caller's signal is already aborted", async () => {
+    const server: FakeServer = { listening: false, identity: "llama", healthy: true };
+    const { spawn, calls } = makeServeSpawn({ server });
+    const adapter = new LlamaCppAdapter({ spawn, fetch: makeFetch(server), sleep: noSleep });
+    await expect(
+      adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf", signal: AbortSignal.abort() }),
+    ).rejects.toBeInstanceOf(BackendError);
+    expect(calls).toHaveLength(0);
+  });
+});
+
+describe("LlamaCppAdapter — waitUntilReady", () => {
+  it("resolves once /v1/models responds", async () => {
+    const server: FakeServer = { listening: true, identity: "llama", healthy: true };
+    const adapter = new LlamaCppAdapter({ fetch: makeFetch(server), sleep: noSleep });
     await expect(
       adapter.waitUntilReady({ endpoint: "http://127.0.0.1:8080" }),
-    ).rejects.toBeInstanceOf(BackendError);
+    ).resolves.toBeUndefined();
+  });
+
+  it("throws after exhausting retries when never ready", async () => {
+    const server: FakeServer = { listening: false, identity: "llama", healthy: true };
+    const adapter = new LlamaCppAdapter({ fetch: makeFetch(server), sleep: noSleep });
     await expect(
-      adapter.stop({ endpoint: "http://127.0.0.1:8080", pid: 1, port: 8080, ownedByUs: true }),
+      adapter.waitUntilReady({ endpoint: "http://127.0.0.1:8080", retries: 3, timeoutMs: 100 }),
+    ).rejects.toBeInstanceOf(BackendError);
+  });
+});
+
+describe("LlamaCppAdapter — stop (ownership)", () => {
+  it("is a no-op for an attached (foreign) server", async () => {
+    const killed = vi.fn<KillFn>();
+    const adapter = new LlamaCppAdapter({ kill: killed });
+    await adapter.stop({
+      endpoint: "http://127.0.0.1:8080",
+      pid: 0,
+      port: 8080,
+      ownedByUs: false,
+    });
+    expect(killed).not.toHaveBeenCalled();
+  });
+
+  it("refuses to stop an owned server with a non-positive pid", async () => {
+    const killed = vi.fn<KillFn>();
+    const adapter = new LlamaCppAdapter({ kill: killed });
+    await expect(
+      adapter.stop({ endpoint: "http://127.0.0.1:8080", pid: 0, port: 8080, ownedByUs: true }),
+    ).rejects.toBeInstanceOf(BackendError);
+    expect(killed).not.toHaveBeenCalled();
+  });
+
+  it("terminates an owned, reachable server", async () => {
+    const server: FakeServer = { listening: true, identity: "llama", healthy: true };
+    const signals: (NodeJS.Signals | 0)[] = [];
+    const kill: KillFn = (_pid, signal) => {
+      signals.push(signal ?? "SIGTERM");
+      if (signal === 0 && signals.filter((s) => s === 0).length > 1) {
+        const err = Object.assign(new Error("no such process"), { code: "ESRCH" });
+        throw err;
+      }
+    };
+    const adapter = new LlamaCppAdapter({ fetch: makeFetch(server), sleep: noSleep, kill });
+    await adapter.stop({
+      endpoint: "http://127.0.0.1:8080",
+      pid: 4242,
+      port: 8080,
+      ownedByUs: true,
+    });
+    expect(signals).toContain("SIGTERM");
+  });
+
+  it("refuses to stop when the endpoint is unreachable (possible pid reuse)", async () => {
+    const server: FakeServer = { listening: false, identity: "llama", healthy: true };
+    const kill: KillFn = () => {
+      /* pid 0-probe succeeds → process still alive */
+    };
+    const adapter = new LlamaCppAdapter({ fetch: makeFetch(server), sleep: noSleep, kill });
+    await expect(
+      adapter.stop({ endpoint: "http://127.0.0.1:8080", pid: 4242, port: 8080, ownedByUs: true }),
     ).rejects.toBeInstanceOf(BackendError);
   });
 });

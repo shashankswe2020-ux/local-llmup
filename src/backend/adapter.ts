@@ -63,6 +63,13 @@ export interface ServeOptions {
   readonly host?: string | undefined;
   readonly port?: number | undefined;
   /**
+   * Filesystem path to the model weights to load. Required by per-model runtimes
+   * that serve exactly one model per process (e.g. llama.cpp's `llama-server -m`,
+   * MLX's `mlx_lm.server --model`); ignored by daemon runtimes that serve all
+   * pulled models from a shared store (e.g. Ollama).
+   */
+  readonly modelPath?: string | undefined;
+  /**
    * Permit binding a non-loopback host (e.g. `0.0.0.0`). Off by default: the
    * server is unauthenticated, so exposing it beyond loopback must be an
    * explicit, deliberate opt-in (spec §8).
