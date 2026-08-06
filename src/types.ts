@@ -110,6 +110,13 @@ export interface CatalogModel {
   readonly releaseDate: string;
   readonly source: ModelSource;
   readonly quantizations: readonly Quantization[];
+  /**
+   * fp16 KV-cache bytes per token, derived from attention geometry
+   * (`2 × layers × kvHeads × headDim × 2`). Absent when the model's geometry is
+   * unknown or uses non-standard attention (e.g. MLA) — context sizing then
+   * reports `unknown` rather than a fabricated number (honesty gate).
+   */
+  readonly kvBytesPerToken?: number | undefined;
   /** Normalized quality proxy in [0, 1]. */
   readonly benchmarkProxy?: number | undefined;
 }

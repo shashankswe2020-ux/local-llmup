@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  ACTIVATION_OVERHEAD_FRACTION,
+  kvBytesPerToken,
+  kvCacheBytes,
+  maxContextTokens,
   parseParamCount,
+  requiredMemoryAtContext,
   requiredMemoryBytes,
   usableMemoryBytes,
+  weightBytes,
 } from "../../src/hardware/memory-math.js";
 import { ValidationError } from "../../src/errors.js";
 import type { CatalogModel, HardwareProfile, Quantization } from "../../src/types.js";
@@ -192,5 +198,184 @@ describe("parseParamCount", () => {
 
   it.each(["", "8", "8G", "-1B", "0B", "abc"])("throws for invalid label %s", (label) => {
     expect(() => parseParamCount(label)).toThrow(ValidationError);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Context-window-aware sizing (T-CW1). All fp16 KV. Decisions D6, D7, D10.
+// ---------------------------------------------------------------------------
+
+// Llama 3.1 8B geometry: 32 layers × 8 KV heads × head-dim 128 → fp16 KV
+// per token = 2 (K,V) × 32 × 8 × 128 × 2 bytes = 131,072 B/token (128 KiB).
+const KV_PER_TOKEN_8B = 131_072;
+// Q4_K_M on 8B: bits/param 4.7 → formula floor 4.7e9 < disk 4.9e9 → resident 4.9e9.
+const DISK_8B = 4_900_000_000;
+const WEIGHTS_8B = DISK_8B; // resident weights, no runtime overhead
+const LEGACY_8B = WEIGHTS_8B + Math.ceil(WEIGHTS_8B * 0.15);
+
+function ctxModel(overrides: Partial<CatalogModel> = {}): CatalogModel {
+  return model({ kvBytesPerToken: KV_PER_TOKEN_8B, ...overrides });
+}
+
+const ctxQuant = quant({ name: "Q4_K_M", diskBytes: DISK_8B });
+
+describe("weightBytes", () => {
+  it("returns resident weights without the runtime-overhead margin", () => {
+    expect(weightBytes(ctxModel(), ctxQuant)).toBe(WEIGHTS_8B);
+    // And is strictly below the legacy footprint, which adds 15% overhead.
+    expect(weightBytes(ctxModel(), ctxQuant)).toBeLessThan(
+      requiredMemoryBytes(ctxModel(), ctxQuant),
+    );
+  });
+
+  it("applies the total-param floor for a MoE model", () => {
+    const moe = ctxModel({ params: "1T", architecture: "moe", activeParams: "32B" });
+    expect(weightBytes(moe, quant({ diskBytes: 20 * GIB }))).toBeGreaterThan(400 * GIB);
+  });
+});
+
+describe("kvBytesPerToken (honesty gate accessor)", () => {
+  it("returns the sourced per-token figure when present", () => {
+    expect(kvBytesPerToken(ctxModel())).toBe(KV_PER_TOKEN_8B);
+  });
+
+  it("returns undefined when the model has no attention geometry", () => {
+    expect(kvBytesPerToken(model())).toBeUndefined();
+  });
+});
+
+describe("kvCacheBytes", () => {
+  it("is exactly zero at zero tokens (AC-CW1)", () => {
+    expect(kvCacheBytes(KV_PER_TOKEN_8B, 0)).toBe(0);
+  });
+
+  it("matches the formula-anchored exact byte count (AC-CW1)", () => {
+    // 131,072 B/token × 32,768 tokens = 4,294,967,296 bytes = exactly 4 GiB.
+    expect(kvCacheBytes(KV_PER_TOKEN_8B, 32_768)).toBe(4 * GIB);
+  });
+
+  it("grows linearly: doubling tokens doubles bytes (AC-CW1)", () => {
+    const a = kvCacheBytes(KV_PER_TOKEN_8B, 8_192);
+    const b = kvCacheBytes(KV_PER_TOKEN_8B, 16_384);
+    expect(b).toBe(a * 2);
+  });
+
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    "throws ValidationError for invalid kvBytesPerToken %s",
+    (bad) => {
+      expect(() => kvCacheBytes(bad, 1_024)).toThrow(ValidationError);
+    },
+  );
+
+  it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    "throws ValidationError for invalid token count %s",
+    (bad) => {
+      expect(() => kvCacheBytes(KV_PER_TOKEN_8B, bad)).toThrow(ValidationError);
+    },
+  );
+});
+
+describe("requiredMemoryAtContext", () => {
+  it("equals max(legacy, weights + KV + activation slack) at a known geometry (AC-CW2)", () => {
+    const slack = Math.ceil(WEIGHTS_8B * ACTIVATION_OVERHEAD_FRACTION);
+    const explicit = WEIGHTS_8B + kvCacheBytes(KV_PER_TOKEN_8B, 32_768) + slack;
+    expect(requiredMemoryAtContext(ctxModel(), ctxQuant, 32_768)).toBe(
+      Math.max(LEGACY_8B, explicit),
+    );
+  });
+
+  it("pins ACTIVATION_OVERHEAD_FRACTION as a named 5% constant (D7)", () => {
+    expect(ACTIVATION_OVERHEAD_FRACTION).toBe(0.05);
+  });
+
+  it("is floored at the legacy footprint — never more optimistic (AC-CW14)", () => {
+    // At the smallest nonzero context the explicit sum is below legacy, so the
+    // floor binds and a legacy-fitting boundary can never flip to fits.
+    expect(requiredMemoryAtContext(ctxModel(), ctxQuant, 1)).toBe(LEGACY_8B);
+  });
+
+  it("is monotone non-decreasing in tokens and always >= legacy (AC-CW14)", () => {
+    const at1 = requiredMemoryAtContext(ctxModel(), ctxQuant, 1) as number;
+    const at32k = requiredMemoryAtContext(ctxModel(), ctxQuant, 32_768) as number;
+    const at128k = requiredMemoryAtContext(ctxModel(), ctxQuant, 131_072) as number;
+    expect(at1).toBeGreaterThanOrEqual(LEGACY_8B);
+    expect(at32k).toBeGreaterThanOrEqual(at1);
+    expect(at128k).toBeGreaterThan(at32k);
+  });
+
+  it("returns undefined for a model without attention geometry (AC-CW6, honesty gate)", () => {
+    expect(requiredMemoryAtContext(model(), ctxQuant, 32_768)).toBeUndefined();
+  });
+
+  it("throws for a present-but-invalid per-token figure (data error, not honesty gate)", () => {
+    expect(() => requiredMemoryAtContext(ctxModel({ kvBytesPerToken: 0 }), ctxQuant, 1_024)).toThrow(
+      ValidationError,
+    );
+  });
+
+  it("stays finite at the accepted context ceiling (AC-CW20)", () => {
+    const huge = requiredMemoryAtContext(ctxModel(), ctxQuant, 100_000_000) as number;
+    expect(Number.isFinite(huge)).toBe(true);
+    expect(huge).toBeGreaterThan(1_000 * GIB); // dwarfs any realistic budget
+  });
+});
+
+describe("maxContextTokens", () => {
+  const B = 20 * GIB; // headroom-adjusted budget supplied by the caller
+
+  it("is the exact inverse of the footprint under the supplied budget (AC-CW3)", () => {
+    const max = maxContextTokens(ctxModel(), ctxQuant, B) as number;
+    expect(requiredMemoryAtContext(ctxModel(), ctxQuant, max) as number).toBeLessThanOrEqual(B);
+    expect(requiredMemoryAtContext(ctxModel(), ctxQuant, max + 1) as number).toBeGreaterThan(B);
+  });
+
+  it("round-trips inside the [weights+slack, legacy) window without exceeding budget (AC-CW3, C1)", () => {
+    // Budget above weights+slack (5.145 GiB) but below the legacy footprint
+    // (5.635 GiB): the model cannot load at zero context, so max must be 0 and
+    // the (vacuous) footprint at 0 must not be claimed to fit.
+    const inWindow = 5_400_000_000;
+    expect(maxContextTokens(ctxModel(), ctxQuant, inWindow)).toBe(0);
+  });
+
+  it("floors rather than rounding up (AC-CW13)", () => {
+    const max = maxContextTokens(ctxModel(), ctxQuant, B) as number;
+    expect(Number.isInteger(max)).toBe(true);
+    expect(requiredMemoryAtContext(ctxModel(), ctxQuant, max) as number).toBeLessThanOrEqual(B);
+  });
+
+  it("honors the supplied budget — a smaller budget yields fewer tokens (AC-CW15)", () => {
+    const small = maxContextTokens(ctxModel(), ctxQuant, 12 * GIB) as number;
+    const large = maxContextTokens(ctxModel(), ctxQuant, 24 * GIB) as number;
+    expect(large).toBeGreaterThan(small);
+  });
+
+  it("clamps to 0 when weights alone exceed the budget (AC-CW16)", () => {
+    const heavy = ctxModel({ params: "70B" });
+    const max = maxContextTokens(heavy, quant({ name: "Q4_K_M", diskBytes: 30 * GIB }), 4 * GIB);
+    expect(max).toBe(0);
+  });
+
+  it("clamps to 0 when the legacy footprint exceeds the budget (AC-CW16, C1)", () => {
+    // weights+slack fits but legacy does not: the model does not fit at any
+    // context and must be excluded (0), never reported with a positive ceiling.
+    const max = maxContextTokens(ctxModel(), ctxQuant, LEGACY_8B - 1);
+    expect(max).toBe(0);
+  });
+
+  it("throws for a present-but-invalid per-token figure (AC-CW6 data error)", () => {
+    expect(() => maxContextTokens(ctxModel({ kvBytesPerToken: 1.5 }), ctxQuant, B)).toThrow(
+      ValidationError,
+    );
+  });
+
+  it.each([Number.NaN, -1, Number.POSITIVE_INFINITY])(
+    "throws for an invalid budget %s",
+    (bad) => {
+      expect(() => maxContextTokens(ctxModel(), ctxQuant, bad)).toThrow(ValidationError);
+    },
+  );
+
+  it("returns undefined for a model without attention geometry (AC-CW6, honesty gate)", () => {
+    expect(maxContextTokens(model(), ctxQuant, B)).toBeUndefined();
   });
 });

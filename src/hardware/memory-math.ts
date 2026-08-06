@@ -17,6 +17,15 @@ const OS_RESERVE_BYTES = 2 * 1024 ** 3;
  */
 const RUNTIME_OVERHEAD_FRACTION = 0.15;
 
+/**
+ * Activation + allocator slack over resident weights, as a fraction of weight
+ * bytes, added on the **context-aware** path only (D7). The context footprint is
+ * floored at the legacy footprint (see {@link requiredMemoryAtContext}), so this
+ * value is conservative at any setting ≤ {@link RUNTIME_OVERHEAD_FRACTION}: it can
+ * never make a legacy won't-fit model appear to fit.
+ */
+export const ACTIVATION_OVERHEAD_FRACTION = 0.05;
+
 const PARAM_LABEL_RE = /^(\d+(?:\.\d+)?)([BMT])$/;
 const PARAM_UNIT_MULTIPLIER: Readonly<Record<string, number>> = {
   M: 1e6,
@@ -108,6 +117,23 @@ export function requiredMemoryBytes(model: CatalogModel, quant: Quantization): n
   });
 }
 
+/**
+ * Resident weight bytes for one quantization, **before** the runtime-overhead
+ * margin. This is the `weights` term of the context-aware footprint (§4.3) and
+ * the memory the KV cache and activation slack are added on top of. Shares the
+ * exact resident-bytes computation with {@link quantMemoryBytes}, so the legacy
+ * and context paths agree byte-for-byte on the weight figure.
+ */
+export function weightBytes(model: CatalogModel, quant: Quantization): number {
+  return residentWeightBytes({
+    params: model.params,
+    architecture: model.architecture,
+    quantName: quant.name,
+    diskBytes: quant.diskBytes,
+    modelId: model.id,
+  });
+}
+
 /** Inputs the shared sizing formula needs, independent of a full catalog entry. */
 export interface QuantSizingInput {
   /** Total parameter-count label, e.g. "8B", "1T". */
@@ -129,6 +155,18 @@ export interface QuantSizingInput {
  * user's "does it fit?" answer can never drift from the numbers in the catalog.
  */
 export function quantMemoryBytes(input: QuantSizingInput): number {
+  const residentBytes = residentWeightBytes(input);
+  return residentBytes + Math.ceil(residentBytes * RUNTIME_OVERHEAD_FRACTION);
+}
+
+/**
+ * Resident weight bytes for one quantization, before the runtime-overhead
+ * margin. Total parameters drive the footprint for BOTH architectures; for MoE
+ * this is load-bearing (every expert stays resident, so we size by total
+ * `params`, never `activeParams`). The formula floor then rescues a catalog
+ * whose `diskBytes` was mistakenly sized by the active subset.
+ */
+function residentWeightBytes(input: QuantSizingInput): number {
   const { params, architecture, quantName, diskBytes } = input;
   const label = input.modelId !== undefined ? JSON.stringify(input.modelId) : "model";
   if (!Number.isFinite(diskBytes) || diskBytes <= 0) {
@@ -137,11 +175,6 @@ export function quantMemoryBytes(input: QuantSizingInput): number {
     );
   }
 
-  // Total parameters drive footprint for BOTH architectures. For MoE this is
-  // load-bearing: every expert must be resident, so we size by total `params`
-  // and never by `activeParams`, which only affects tokens/sec. The formula
-  // floor below then rescues a catalog whose `diskBytes` was mistakenly sized by
-  // the active subset.
   const footprintParams = parseParamCount(params);
 
   const bitsPerParam = quantBitsPerParam(quantName);
@@ -157,6 +190,116 @@ export function quantMemoryBytes(input: QuantSizingInput): number {
   const formulaFloor =
     bitsPerParam === undefined ? 0 : Math.ceil((footprintParams * bitsPerParam) / 8);
 
-  const residentBytes = Math.max(diskBytes, formulaFloor);
-  return residentBytes + Math.ceil(residentBytes * RUNTIME_OVERHEAD_FRACTION);
+  return Math.max(diskBytes, formulaFloor);
+}
+
+// ---------------------------------------------------------------------------
+// Context-window-aware sizing (fp16 KV). Extends the footprint with an explicit
+// KV cache that grows linearly with context length. Every function is pure and
+// honesty-gated: a model without sourced attention geometry
+// (`kvBytesPerToken === undefined`) yields `undefined`, never a fabricated
+// number that could tell a user a model fits when it will OOM. See
+// docs/specs/context-window-sizing.md §4.
+// ---------------------------------------------------------------------------
+
+/**
+ * The model's sourced fp16 KV bytes per token, or `undefined` when its attention
+ * geometry is unknown (the honesty gate). Callers treat `undefined` as
+ * `unknown`, ranking the model by weights only.
+ */
+export function kvBytesPerToken(model: CatalogModel): number | undefined {
+  return model.kvBytesPerToken;
+}
+
+/**
+ * fp16 KV-cache bytes for `tokens` at a per-token rate of `kvBytesPerToken`.
+ * Exactly linear (`tokens = 0` → 0). Inputs are validated at the boundary:
+ * `kvBytesPerToken` must be a positive integer and `tokens` a non-negative
+ * integer, both finite.
+ */
+export function kvCacheBytes(kvBytesPerToken: number, tokens: number): number {
+  if (!Number.isInteger(kvBytesPerToken) || kvBytesPerToken <= 0) {
+    throw new ValidationError(
+      `kvBytesPerToken must be a positive integer: ${String(kvBytesPerToken)}`,
+    );
+  }
+  if (!Number.isInteger(tokens) || tokens < 0) {
+    throw new ValidationError(`token count must be a non-negative integer: ${String(tokens)}`);
+  }
+  const bytes = kvBytesPerToken * tokens;
+  // Guard against silent precision loss above 2^53; the CLI ceiling keeps real
+  // inputs well below this, so tripping it signals a bad catalog figure.
+  if (!Number.isSafeInteger(bytes)) {
+    throw new ValidationError(
+      `KV cache size overflows safe-integer range: ${String(kvBytesPerToken)} × ${String(tokens)}`,
+    );
+  }
+  return bytes;
+}
+
+/**
+ * Memory to load and run one quantization at an explicit context of `tokens`,
+ * or `undefined` when the model has no sourced KV geometry (honesty gate).
+ *
+ * The context footprint is **floored at the legacy footprint** so it can never
+ * be more optimistic than the calibrated default path (D7). This kills the
+ * inversion footgun: at a small context, `weights + smallKV + slack` could be
+ * less than the legacy footprint and flip a legacy won't-fit model to "fits";
+ * the `max` guarantees `requiredMemoryAtContext ≥ requiredMemoryBytes` for all
+ * `tokens ≥ 0`. At long context the explicit KV dominates and the `max` selects
+ * the explicit sum, so the legacy 15% overhead is never double-counted.
+ */
+export function requiredMemoryAtContext(
+  model: CatalogModel,
+  quant: Quantization,
+  tokens: number,
+): number | undefined {
+  const perToken = model.kvBytesPerToken;
+  if (perToken === undefined) return undefined;
+  const weights = weightBytes(model, quant);
+  const slack = Math.ceil(weights * ACTIVATION_OVERHEAD_FRACTION);
+  const explicit = weights + kvCacheBytes(perToken, tokens) + slack;
+  return Math.max(requiredMemoryBytes(model, quant), explicit);
+}
+
+/**
+ * The largest context (in tokens) whose footprint stays within `budgetBytes`,
+ * or `undefined` when the model has no sourced KV geometry (honesty gate).
+ *
+ * `budgetBytes` must already be **headroom-adjusted** by the caller
+ * (`usableMemory × (1 − HEADROOM)`); passing raw usable memory would inflate the
+ * result and risk OOM. The result is **floored** (never rounds up) and
+ * **clamped to 0** when the model does not fit at zero context — i.e. when its
+ * legacy footprint already exceeds the budget. Because the context footprint is
+ * floored at the legacy footprint (see {@link requiredMemoryAtContext}), the
+ * clamp must test the legacy footprint, not merely `weights + slack`: a model
+ * with `weights + slack ≤ budget < legacyFootprint` still cannot load, and must
+ * be excluded rather than reported with a positive, unreachable ceiling.
+ *
+ * For a model that does fit at zero context this is the exact inverse of
+ * {@link requiredMemoryAtContext}: the legacy floor only binds at small context,
+ * while the memory-bound maximum lies where the explicit KV term dominates, so
+ * `size(maxContextTokens) ≤ budget` and one token more exceeds it.
+ */
+export function maxContextTokens(
+  model: CatalogModel,
+  quant: Quantization,
+  budgetBytes: number,
+): number | undefined {
+  const perToken = model.kvBytesPerToken;
+  if (perToken === undefined) return undefined;
+  if (!Number.isInteger(perToken) || perToken <= 0) {
+    throw new ValidationError(`kvBytesPerToken must be a positive integer: ${String(perToken)}`);
+  }
+  if (!Number.isFinite(budgetBytes) || budgetBytes < 0) {
+    throw new ValidationError(`budgetBytes must be finite and non-negative: ${String(budgetBytes)}`);
+  }
+  // Clamp on the true footprint floor: a model whose legacy footprint exceeds
+  // the budget does not fit at any context (requiredMemoryAtContext is floored
+  // at the legacy footprint), so it is excluded, never reported with a positive
+  // ceiling that would OOM.
+  if (requiredMemoryBytes(model, quant) > budgetBytes) return 0;
+  const weights = weightBytes(model, quant);
+  const slack = Math.ceil(weights * ACTIVATION_OVERHEAD_FRACTION);
+  return Math.floor((budgetBytes - weights - slack) / perToken);
 }
