@@ -42,6 +42,15 @@ export const MODEL_FORMATS = ["gguf", "mlx", "ollama", "safetensors"] as const;
 export type ModelFormat = (typeof MODEL_FORMATS)[number];
 
 /**
+ * Canonical inference-backend identifiers. This is the single source of truth
+ * for valid backend names — the registry, `select()`, config, and state schema
+ * all draw from it. Names are stable wire values (config/state persist them), so
+ * only append here; never rename or reorder.
+ */
+export const BACKEND_NAMES = ["ollama", "llamacpp", "mlx", "lmstudio"] as const;
+export type BackendName = (typeof BACKEND_NAMES)[number];
+
+/**
  * Declarative capability descriptor a backend advertises so command code
  * branches on data rather than per-call feature detection.
  */
