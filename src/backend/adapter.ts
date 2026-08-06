@@ -41,7 +41,9 @@ export interface PullOptions {
   readonly expectedSha256?: string | undefined;
   /**
    * Catalog on-disk size in bytes, used by the size-only fallback when a digest
-   * cannot be obtained. Absent → the fallback only asserts the weights exist.
+   * cannot be obtained. This is an approximate estimate: the fallback treats it
+   * as a plausibility floor (rejecting grossly-truncated downloads) rather than
+   * a byte-exact target. Absent → the fallback only asserts the weights exist.
    */
   readonly expectedSizeBytes?: number | undefined;
   readonly onProgress?: ((event: PullProgress) => void) | undefined;

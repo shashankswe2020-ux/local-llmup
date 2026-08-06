@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.1 - 2026-08-06
+
+Bug fix: `up` no longer fails for models without a recorded catalog digest.
+
+- The size-only integrity fallback previously required the downloaded weights to
+  match the catalog's approximate `diskBytes` **exactly**. Because that figure is
+  a rough estimate — real Ollama pulls routinely differ, and are often larger —
+  `up` (and `switch`) failed with a spurious `size mismatch` for any model that
+  lacks a recorded SHA-256. The fallback is now a plausibility floor: it rejects
+  only grossly-truncated/empty downloads (below half the estimate) while
+  tolerating benign differences. The strict digest path — and Ollama's own
+  manifest verification during `pull` — are unchanged, so integrity is preserved.
+
 ## 0.3.0 - 2026-08-06
 
 Context-window sizing — `recommend` now understands how much context each model

@@ -44,6 +44,17 @@ const SHA256_HEX = /^[a-f0-9]{64}$/;
 /** Cap on the unflushed line buffer, bounding memory for newline-less output. */
 const MAX_LINE_BUFFER_BYTES = 64 * 1024;
 
+/**
+ * Lower bound, as a fraction of the catalog's approximate on-disk size, that a
+ * downloaded model must reach in the size-only fallback. The catalog `diskBytes`
+ * is a rough estimate — real Ollama pulls routinely differ by a wide margin and
+ * are often *larger* than the estimate — so an exact match is meaningless. The
+ * fallback is a plausibility guard against truncated/empty downloads, not a
+ * byte-exact check; the digest path (when a catalog digest exists) remains the
+ * strict integrity guarantee.
+ */
+const MIN_PULL_SIZE_RATIO = 0.5;
+
 /** Minimal readable-stream surface consumed from a spawned process. */
 export interface ProcessOutputStream {
   onData(listener: (chunk: string) => void): void;
@@ -580,16 +591,22 @@ export class OllamaAdapter implements BackendAdapter {
     }
 
     // No catalog digest recorded → size-only fallback. Never fail open: require a
-    // measured positive size and reject a mismatch when the expected size is known.
+    // measured positive size and reject a download that is grossly smaller than
+    // the catalog estimate (a truncated or empty pull). The estimate is
+    // approximate, so we tolerate benign differences — including pulls that are
+    // larger than expected — rather than demanding a byte-exact match.
     if (sizeBytes === undefined || sizeBytes <= 0) {
       throw new BackendError(
         `cannot verify ${options.modelId}: the catalog records no digest and no weights were found on disk`,
       );
     }
-    if (options.expectedSizeBytes !== undefined && sizeBytes !== options.expectedSizeBytes) {
-      throw new BackendError(
-        `size mismatch for ${options.modelId}: expected ${options.expectedSizeBytes} bytes, found ${sizeBytes}`,
-      );
+    if (options.expectedSizeBytes !== undefined) {
+      const minAcceptableBytes = options.expectedSizeBytes * MIN_PULL_SIZE_RATIO;
+      if (sizeBytes < minAcceptableBytes) {
+        throw new BackendError(
+          `size too small for ${options.modelId}: expected roughly ${options.expectedSizeBytes} bytes, found only ${sizeBytes}`,
+        );
+      }
     }
     return { modelId: options.modelId, digestVerified: false };
   }

@@ -99,14 +99,14 @@ Verify the install:
 
 ```text
 $ local-llmup --version
-0.3.0
+0.3.1
 ```
 
 The top-level `--help` lists every command:
 
 ```text
 $ local-llmup --help
-local-llmup/0.3.0
+local-llmup/0.3.1
 
 Usage:
   $ local-llmup
@@ -404,10 +404,11 @@ llama3.1:8b ready at http://127.0.0.1:11434
 
 Use `--port <port>` to bind a non-default port (still loopback-only).
 
-> Note: `up` verifies the download against the catalog. If a model has no
-> recorded digest, it falls back to an exact size check and rejects a mismatch —
-> so a catalog whose recorded size is approximate can block the pull. See
-> [Troubleshooting](#troubleshooting).
+> Note: `up` verifies the download against the catalog. When a model has a
+> recorded SHA-256, the pull is checked byte-for-byte and fails closed on any
+> mismatch. When it does not, `up` falls back to a plausibility check on the
+> download size (rejecting only grossly-truncated pulls), since the catalog's
+> recorded size is approximate.
 
 ### `chat`
 
@@ -563,12 +564,12 @@ for Ollama; Ollama remains a requirement for serving models.
 
 ## Troubleshooting
 
-- **`up` fails with `size mismatch ... expected N bytes, found M`.** The model
-  has no recorded digest, so `up` falls back to an exact size check against the
-  catalog's recorded size. If that size is approximate, the check rejects the
-  otherwise-valid pull. Until the catalog records a digest for that model, use
-  `ollama pull <model>` directly, or pick a model that verifies (run
-  `local-llmup doctor` — it reports how many catalog digests are verified).
+- **`up` fails with `size too small ... expected roughly N bytes, found only M`.**
+  The downloaded weights are far smaller than the catalog estimate, which points
+  to a truncated or interrupted pull. Re-run `up`, or `ollama pull <model>`
+  directly to see the raw download progress. (A model whose actual size merely
+  differs from the estimate is accepted — only grossly-truncated pulls are
+  rejected.)
 - **`ollama is not installed`.** Install Ollama from
   [ollama.com](https://ollama.com); the advice commands (`recommend`,
   `can-run`, `doctor`, `catalog`) still work without it.

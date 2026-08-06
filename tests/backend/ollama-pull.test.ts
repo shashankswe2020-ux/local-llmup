@@ -158,6 +158,29 @@ describe("OllamaAdapter.pull", () => {
     expect(result).toEqual({ modelId: "llama3.1:8b", digestVerified: false });
   });
 
+  it("accepts a pull larger than the approximate catalog size", async () => {
+    // Real regression: the catalog `diskBytes` is a rough estimate, and real
+    // Ollama pulls are routinely larger (e.g. llama3.2:1b: catalog ~800 MB,
+    // actual ~1.32 GB). The fallback must not fail on this benign difference.
+    const { spawn } = fakeSpawn({ code: 0 });
+    const probe: DigestProbe = () => Promise.resolve({ sizeBytes: 1_321_082_688 });
+    const adapter = new OllamaAdapter({ spawn, probe });
+
+    const result = await adapter.pull({ modelId: "llama3.2:1b", expectedSizeBytes: 800_000_000 });
+
+    expect(result).toEqual({ modelId: "llama3.2:1b", digestVerified: false });
+  });
+
+  it("accepts a pull modestly under the approximate catalog size", async () => {
+    const { spawn } = fakeSpawn({ code: 0 });
+    const probe: DigestProbe = () => Promise.resolve({ sizeBytes: 3_800_000_000 });
+    const adapter = new OllamaAdapter({ spawn, probe });
+
+    const result = await adapter.pull({ modelId: "llama3.1:8b", expectedSizeBytes: 4_900_000_000 });
+
+    expect(result).toEqual({ modelId: "llama3.1:8b", digestVerified: false });
+  });
+
   it("does not fail open: an expected digest with no actual digest fails closed", async () => {
     const { spawn } = fakeSpawn({ code: 0 });
     const probe: DigestProbe = () => Promise.resolve({ sizeBytes: 5 });
@@ -176,13 +199,13 @@ describe("OllamaAdapter.pull", () => {
     await expect(adapter.pull({ modelId: "llama3.1:8b" })).rejects.toBeInstanceOf(BackendError);
   });
 
-  it("fails closed on a size mismatch in the fallback path", async () => {
+  it("fails closed when the download is grossly smaller than expected (truncated)", async () => {
     const { spawn } = fakeSpawn({ code: 0 });
     const probe: DigestProbe = () => Promise.resolve({ sizeBytes: 100 });
     const adapter = new OllamaAdapter({ spawn, probe });
 
     await expect(
-      adapter.pull({ modelId: "llama3.1:8b", expectedSizeBytes: 200 }),
+      adapter.pull({ modelId: "llama3.1:8b", expectedSizeBytes: 4_900_000_000 }),
     ).rejects.toBeInstanceOf(BackendError);
   });
 });
