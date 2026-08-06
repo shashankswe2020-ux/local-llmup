@@ -333,10 +333,10 @@ HF resolve URL pinned to commit `revision` → `assertSafeFetchUrl`
 `0700` cache `~/.local-llmup/cache/<backend>/<repo>@<revision>/<file>` →
 digest-verify → **atomic rename**. Reject cache symlinks; discard partials.
 **Acceptance:**
-- [ ] Non-HTTPS / non-allowlisted / private-host URL rejected (anti-SSRF).
-- [ ] temp→verify→atomic-rename happy path; digest mismatch discards partial, never promotes.
-- [ ] Resolved commit ≠ pinned `revision` → fail closed; exact-file zero/multi-match → hard error.
-- [ ] Cache symlink rejected; files `0600`, dirs `0700`.
+- [x] Non-HTTPS / non-allowlisted / private-host URL rejected (anti-SSRF).
+- [x] temp→verify→atomic-rename happy path; digest mismatch discards partial, never promotes.
+- [x] Resolved commit ≠ pinned `revision` → fail closed; exact-file zero/multi-match → hard error.
+- [x] Cache symlink rejected; files `0600`, dirs `0700`.
 **Verify:** `npm test tests/backend/acquire`
 **Deps:** B7 **Files:** `src/backend/acquire.ts`, `tests/backend/acquire.test.ts` **Scope:** M
 
@@ -463,7 +463,7 @@ presence**; where the resolved GGUF is locatable, verify its digest, else surfac
 - [ ] `up --backend <name>` per adapter pulls→verifies→serves→ready, fail-closed on digest/revision/exact-file mismatch (B14c, B17, B19).
 - [ ] Every adapter binds loopback explicitly (arg or env), refuses non-loopback; spawns are arg arrays (with `--` where positional args exist); port-ownership preflight enforced (B16).
 - [ ] `down`/`switch`/`chat`/`migrate` route via `active.backend`; cross-backend `switch` → `ValidationError`; `canEmbed:false` capture is vector-less + `meta.json`-flagged (B6, B10).
-- [ ] Self-managed downloads pass `assertSafeFetchUrl`, verify-before-activate via atomic rename, never promote a partial (B13).
+- [x] Self-managed downloads pass `assertSafeFetchUrl`, verify-before-activate via atomic rename, never promote a partial (B13).
 - [ ] Invalid/symlink/world-writable/unknown-key config fails closed (B3).
 - [x] `doctor` lists installed backends + default offline, `stripControl`-clean (B11).
 - [ ] `npm test && npm run typecheck && npm run lint && npm run build` pass at every checkpoint.
