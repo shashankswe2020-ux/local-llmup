@@ -24,6 +24,7 @@ const createDefaultDeps = (): LsDeps => ({
 
 const TABLE_COLUMNS: readonly Column[] = [
   { header: "Model" },
+  { header: "Backend" },
   { header: "Endpoint" },
   { header: "Port", align: "right" },
   { header: "Status" },
@@ -41,6 +42,7 @@ export function runLs(deps: LsDeps = createDefaultDeps()): void {
   const table = renderTable(TABLE_COLUMNS, [
     [
       active.modelId,
+      active.backend,
       active.endpoint,
       String(active.port),
       active.ownedByUs ? "owned" : "attached",

@@ -10,8 +10,8 @@ import { loadConfig, type Config } from "../config.js";
 import { ValidationError } from "../errors.js";
 import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
-import { OllamaAdapter } from "../backend/ollama.js";
-import type { BackendAdapter } from "../backend/adapter.js";
+import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
+import { select } from "../backend/select.js";
 import {
   createEmptyState,
   readState,
@@ -33,7 +33,7 @@ export interface DownDeps {
   readonly readState: (config: Config) => RuntimeState;
   readonly writeState: (config: Config, state: RuntimeState) => void;
   readonly withLock: <T>(config: Config, fn: () => T | Promise<T>) => Promise<T>;
-  readonly adapter: BackendAdapter;
+  readonly registry: BackendRegistry;
   /** Command result data → stdout. */
   readonly write: (text: string) => void;
   /** Diagnostics → stderr. */
@@ -46,7 +46,7 @@ const createDefaultDeps = (): DownDeps => ({
   readState,
   writeState,
   withLock,
-  adapter: new OllamaAdapter(),
+  registry: createDefaultRegistry(),
   write: (text) => process.stdout.write(text),
   log: (text) => process.stderr.write(text),
 });
@@ -77,12 +77,15 @@ export async function runDown(
     const endpoint = stripControl(active.endpoint);
 
     if (active.ownedByUs) {
+      const adapter = (
+        await select({ intent: "attach", registry: deps.registry, activeBackend: active.backend })
+      ).adapter;
       const previousState: RuntimeState = { ...createEmptyState(), active };
 
       // Clear first so a successful stop cannot strand an owned pid in state.
       deps.writeState(deps.config, createEmptyState());
       try {
-        await deps.adapter.stop({
+        await adapter.stop({
           endpoint: active.endpoint,
           pid: active.pid,
           port: active.port,

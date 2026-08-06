@@ -21,8 +21,9 @@ import { loadConfig, type Config } from "../config.js";
 import { ValidationError } from "../errors.js";
 import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
-import { OllamaAdapter } from "../backend/ollama.js";
 import type { BackendAdapter, ChatMessage } from "../backend/adapter.js";
+import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
+import { select } from "../backend/select.js";
 import {
   loadSourceMemory,
   planMigration,
@@ -52,7 +53,7 @@ export interface MigrateDeps {
   readonly config: Config;
   readonly loadCatalog: () => Catalog;
   readonly readState: (config: Config) => RuntimeState;
-  readonly adapter: BackendAdapter;
+  readonly registry: BackendRegistry;
   readonly loadSourceMemory: typeof loadSourceMemory;
   readonly planMigration: typeof planMigration;
   readonly writeMigration: typeof writeMigration;
@@ -72,7 +73,7 @@ const createDefaultDeps = (): MigrateDeps => ({
   config: loadConfig(),
   loadCatalog: () => loadCatalog(),
   readState,
-  adapter: new OllamaAdapter(),
+  registry: createDefaultRegistry(),
   loadSourceMemory,
   planMigration,
   writeMigration,
@@ -88,7 +89,7 @@ const createDefaultDeps = (): MigrateDeps => ({
  * role boundaries; any stored `system` turn is demoted to `user` so it cannot
  * inject a fresh instruction. The planner sanitizes and bounds the returned text.
  */
-function buildSummarizer(deps: MigrateDeps, ollamaId: string): Summarizer {
+function buildSummarizer(adapter: BackendAdapter, ollamaId: string): Summarizer {
   return async (turns: readonly ConversationTurn[]): Promise<string> => {
     const history: ChatMessage[] = turns.map((turn) => ({
       role: turn.role === "assistant" ? "assistant" : "user",
@@ -109,7 +110,7 @@ function buildSummarizer(deps: MigrateDeps, ollamaId: string): Summarizer {
           "preserves key facts, decisions, and context. Do not add commentary.",
       },
     ];
-    const result = await deps.adapter.chat({ model: ollamaId, messages });
+    const result = await adapter.chat({ model: ollamaId, messages });
     return result.content;
   };
 }
@@ -144,11 +145,18 @@ export async function runMigrate(
   // planner falls back to deterministic truncation when no summarizer is given.
   const active = deps.readState(deps.config).active;
   const targetOllamaId = toResolved.model.source.ollama;
-  const summarizer =
-    deps.summarizer ??
-    (active !== null && active.modelId === toId && targetOllamaId !== undefined
-      ? buildSummarizer(deps, targetOllamaId)
-      : undefined);
+  let summarizer = deps.summarizer;
+  if (
+    summarizer === undefined &&
+    active !== null &&
+    active.modelId === toId &&
+    targetOllamaId !== undefined
+  ) {
+    const adapter = (
+      await select({ intent: "attach", registry: deps.registry, activeBackend: active.backend })
+    ).adapter;
+    summarizer = buildSummarizer(adapter, targetOllamaId);
+  }
 
   const input: MigrationInput = {
     source,

@@ -17,8 +17,9 @@ import { loadConfig, type Config } from "../config.js";
 import { ValidationError } from "../errors.js";
 import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
-import { OllamaAdapter } from "../backend/ollama.js";
-import type { BackendAdapter, ChatMessage } from "../backend/adapter.js";
+import type { ChatMessage } from "../backend/adapter.js";
+import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
+import { select } from "../backend/select.js";
 import { captureExchange, type CaptureEmbedder, type CaptureResult } from "../memory/capture.js";
 import { openMemoryStore, type MemoryStore } from "../memory/store.js";
 import { readState, withLock, type RuntimeState } from "../state/state.js";
@@ -49,7 +50,7 @@ export interface ChatDeps {
   readonly config: Config;
   readonly loadCatalog: () => Catalog;
   readonly readState: (config: Config) => RuntimeState;
-  readonly adapter: BackendAdapter;
+  readonly registry: BackendRegistry;
   readonly openMemoryStore: (config: Config, modelId: string) => MemoryStore;
   readonly captureExchange: (
     config: Config,
@@ -111,7 +112,7 @@ const createDefaultDeps = (): ChatDeps => ({
   config: loadConfig(),
   loadCatalog: () => loadCatalog(),
   readState,
-  adapter: new OllamaAdapter(),
+  registry: createDefaultRegistry(),
   openMemoryStore,
   captureExchange,
   withLock,
@@ -142,6 +143,9 @@ export async function runChat(
   }
 
   const store = deps.openMemoryStore(deps.config, modelId);
+  const adapter = (
+    await select({ intent: "attach", registry: deps.registry, activeBackend: active.backend })
+  ).adapter;
   const captureOptions: { now?: (() => Date) | undefined; embedder?: CaptureEmbedder | undefined } =
     {
       ...(deps.now !== undefined ? { now: deps.now } : {}),
@@ -165,7 +169,7 @@ export async function runChat(
 
     messages.push({ role: "user", content: turn });
     const context = messages.slice(-MAX_CONTEXT_MESSAGES);
-    const result = await deps.adapter.chat({ model: ollamaId, messages: context });
+    const result = await adapter.chat({ model: ollamaId, messages: context });
     const reply = result.content;
 
     deps.write(`${stripControl(reply)}\n`);

@@ -6,6 +6,7 @@ import { loadConfig, type Config } from "../../src/config.js";
 import { BackendError, ValidationError } from "../../src/errors.js";
 import { readState, STATE_SCHEMA_VERSION, withLock, writeState } from "../../src/state/state.js";
 import { runDown, type DownDeps } from "../../src/commands/down.js";
+import { createRegistry } from "../../src/backend/registry.js";
 import type {
   BackendAdapter,
   ServeHandle,
@@ -44,6 +45,13 @@ function fakeAdapter(): FakeAdapter {
   const adapter: FakeAdapter = {
     stopped,
     name: "ollama",
+    capabilities: {
+      canPull: true,
+      canEmbed: true,
+      openAiCompatible: true,
+      formats: ["ollama"],
+      defaultPort: 11434,
+    },
     isInstalled: () => Promise.resolve(true),
     installHint: () => "brew install ollama",
     pull: () => Promise.reject(new Error("unused")),
@@ -82,7 +90,7 @@ function deps(adapter: FakeAdapter, cat: Catalog = catalog([model("llama3.1:8b")
     readState,
     writeState,
     withLock,
-    adapter,
+    registry: createRegistry([adapter]),
     write: (t) => stdout.push(t),
     log: (t) => stderr.push(t),
   };

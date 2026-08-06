@@ -51,6 +51,8 @@ describe("runLs", () => {
 
     const out = stdout.join("");
     expect(out).toContain("llama3.1:8b");
+    expect(out).toContain("Backend");
+    expect(out).toContain("ollama");
     expect(out).toContain("http://127.0.0.1:11434");
     expect(out).toContain("11434");
     expect(out).toMatch(/owned/i);

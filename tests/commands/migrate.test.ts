@@ -20,9 +20,10 @@ import {
 } from "../../src/memory/migrate.js";
 import { withLock } from "../../src/state/state.js";
 import { runMigrate, type MigrateDeps } from "../../src/commands/migrate.js";
+import { createRegistry } from "../../src/backend/registry.js";
 import type { BackendAdapter, ChatRequest, ChatResult } from "../../src/backend/adapter.js";
 import type { Catalog, CatalogModel } from "../../src/types.js";
-import type { RuntimeState } from "../../src/state/state.js";
+import { STATE_SCHEMA_VERSION, type RuntimeState } from "../../src/state/state.js";
 
 function model(id: string, contextLength = 8192): CatalogModel {
   return {
@@ -47,7 +48,7 @@ function catalog(models: readonly CatalogModel[]): Catalog {
 }
 
 function emptyState(): RuntimeState {
-  return { schemaVersion: 1, active: null };
+  return { schemaVersion: STATE_SCHEMA_VERSION, active: null };
 }
 
 interface SeedOptions {
@@ -98,6 +99,13 @@ function seedSourceStore(config: Config, modelId: string, opts: SeedOptions): st
 function fakeAdapter(chat?: (req: ChatRequest) => Promise<ChatResult>): BackendAdapter {
   return {
     name: "ollama",
+    capabilities: {
+      canPull: true,
+      canEmbed: true,
+      openAiCompatible: true,
+      formats: ["ollama"],
+      defaultPort: 11434,
+    },
     isInstalled: () => Promise.resolve(true),
     installHint: () => "brew install ollama",
     pull: () => Promise.reject(new Error("unused")),
@@ -119,7 +127,7 @@ function makeDeps(cat: Catalog, overrides: Partial<MigrateDeps> = {}): MigrateDe
     config,
     loadCatalog: () => cat,
     readState: () => emptyState(),
-    adapter: fakeAdapter(),
+    registry: createRegistry([fakeAdapter()]),
     loadSourceMemory,
     planMigration,
     writeMigration,
@@ -224,8 +232,18 @@ describe("runMigrate", () => {
       Promise.resolve({ content: "prior chat covered setup and greetings" }),
     );
     const deps = makeDeps(cat, {
-      adapter: fakeAdapter(chat),
-      readState: () => ({ schemaVersion: 1, active: { modelId: "small", endpoint: "http://x", pid: 1, port: 2, ownedByUs: true } }),
+      registry: createRegistry([fakeAdapter(chat)]),
+      readState: () => ({
+        schemaVersion: STATE_SCHEMA_VERSION,
+        active: {
+          backend: "ollama",
+          modelId: "small",
+          endpoint: "http://x",
+          pid: 1,
+          port: 2,
+          ownedByUs: true,
+        },
+      }),
     });
 
     await runMigrate({ from: "a", to: "small" }, deps);

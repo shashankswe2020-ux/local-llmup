@@ -5,9 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
 import { ValidationError } from "../../src/errors.js";
 import { runChat, type ChatDeps } from "../../src/commands/chat.js";
+import { createRegistry } from "../../src/backend/registry.js";
 import type { BackendAdapter, ChatRequest, ChatResult } from "../../src/backend/adapter.js";
 import type { MemoryStore } from "../../src/memory/store.js";
-import type { RuntimeState } from "../../src/state/state.js";
+import { STATE_SCHEMA_VERSION, type RuntimeState } from "../../src/state/state.js";
 import type { Catalog, CatalogModel, Quantization } from "../../src/types.js";
 
 function quant(name: string, overrides: Partial<Quantization> = {}): Quantization {
@@ -49,6 +50,13 @@ const CAT = catalog([model("llama3.1:8b"), model("qwen2.5:7b")]);
 
 const baseAdapter: BackendAdapter = {
   name: "ollama",
+  capabilities: {
+    canPull: true,
+    canEmbed: true,
+    openAiCompatible: true,
+    formats: ["ollama"],
+    defaultPort: 11434,
+  },
   isInstalled: () => Promise.resolve(true),
   installHint: () => "brew install ollama",
   pull: () => Promise.reject(new Error("unused")),
@@ -78,8 +86,9 @@ function reader(turns: readonly string[]): () => Promise<string | null> {
 
 function activeState(modelId: string): RuntimeState {
   return {
-    schemaVersion: 1,
+    schemaVersion: STATE_SCHEMA_VERSION,
     active: {
+      backend: "ollama",
       modelId,
       endpoint: "http://127.0.0.1:11434",
       pid: 9001,
@@ -135,7 +144,7 @@ function harness(options: {
     config,
     loadCatalog: () => options.cat ?? CAT,
     readState: () => options.state ?? activeState("llama3.1:8b"),
-    adapter,
+    registry: createRegistry([adapter]),
     openMemoryStore: openStore,
     captureExchange: capture,
     withLock: (_config: Config, fn: () => unknown) => Promise.resolve(fn()),
@@ -229,7 +238,7 @@ describe("runChat", () => {
     const { deps } = harness({
       turns: ["hi"],
       replies: ["ok"],
-      state: { schemaVersion: 1, active: null },
+      state: { schemaVersion: STATE_SCHEMA_VERSION, active: null },
     });
 
     await expect(runChat({}, deps)).rejects.toThrow(ValidationError);

@@ -6,6 +6,7 @@ import { loadConfig, type Config } from "../../src/config.js";
 import { BackendError, ModelResolutionError, ValidationError } from "../../src/errors.js";
 import { readState, STATE_SCHEMA_VERSION, withLock, writeState } from "../../src/state/state.js";
 import { runUp, type UpDeps } from "../../src/commands/up.js";
+import { createRegistry } from "../../src/backend/registry.js";
 import type {
   BackendAdapter,
   PullOptions,
@@ -114,6 +115,13 @@ function fakeAdapter(options: FakeAdapterOptions = {}): FakeAdapter {
     readyArgs,
     stopped,
     name: "ollama",
+    capabilities: {
+      canPull: true,
+      canEmbed: true,
+      openAiCompatible: true,
+      formats: ["ollama"],
+      defaultPort: 11434,
+    },
     isInstalled(): Promise<boolean> {
       calls.push("isInstalled");
       return Promise.resolve(options.installed ?? true);
@@ -180,7 +188,7 @@ function deps(
       adapter.calls.push("detect");
       return Promise.resolve(hw);
     },
-    adapter,
+    registry: createRegistry([adapter]),
     writeState: (c, s) => {
       adapter.calls.push("state");
       writeState(c, s);

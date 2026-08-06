@@ -6,7 +6,7 @@
  * the context it needs as arguments and returns plain data.
  */
 import { ValidationError } from "../errors.js";
-import type { BackendCapabilities } from "../types.js";
+import type { BackendCapabilities, BackendName } from "../types.js";
 
 /** Default loopback bind address; servers never bind `0.0.0.0` without opt-in. */
 export const DEFAULT_BIND_HOST = "127.0.0.1";
@@ -131,7 +131,7 @@ export interface EmbedResult {
  */
 export interface BackendAdapter {
   /** Stable adapter identifier, e.g. "ollama". */
-  readonly name: string;
+  readonly name: BackendName;
 
   /** Declarative capabilities: what this backend can pull, embed, and serve. */
   readonly capabilities: BackendCapabilities;

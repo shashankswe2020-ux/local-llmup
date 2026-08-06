@@ -20,11 +20,11 @@ import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
 import {
   DEFAULT_BIND_HOST,
-  DEFAULT_OLLAMA_PORT,
   type BackendAdapter,
   type ServeHandle,
 } from "../backend/adapter.js";
-import { OllamaAdapter } from "../backend/ollama.js";
+import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
+import { select } from "../backend/select.js";
 import {
   STATE_SCHEMA_VERSION,
   readState,
@@ -47,7 +47,7 @@ export interface UpDeps {
   readonly config: Config;
   readonly loadCatalog: () => Catalog;
   readonly detectHardware: () => Promise<HardwareProfile>;
-  readonly adapter: BackendAdapter;
+  readonly registry: BackendRegistry;
   readonly readState: (config: Config) => RuntimeState;
   readonly writeState: (config: Config, state: RuntimeState) => void;
   readonly withLock: <T>(config: Config, fn: () => T | Promise<T>) => Promise<T>;
@@ -61,7 +61,7 @@ const createDefaultDeps = (): UpDeps => ({
   config: loadConfig(),
   loadCatalog: () => loadCatalog(),
   detectHardware: () => detectHardware(),
-  adapter: new OllamaAdapter(),
+  registry: createDefaultRegistry(),
   readState,
   writeState,
   withLock,
@@ -164,16 +164,21 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
     }
   }
 
-  // 3. Ensure the backend is installed; surface the install command otherwise.
-  if (!(await deps.adapter.isInstalled())) {
-    throw new BackendError(
-      `${deps.adapter.name} is not installed. Install it with: ${deps.adapter.installHint()}`,
-    );
-  }
+  // 3. Resolve the backend for a create action. Auto-detect probes each
+  // registered backend's `isInstalled()`; with no servable backend it throws a
+  // BackendError listing each install hint. Phase 0 registers only Ollama, so
+  // this resolves Ollama exactly as the previous inline install check did.
+  const selection = await select({
+    intent: "create",
+    registry: deps.registry,
+    platform: hardware.platform,
+    arch: hardware.arch,
+  });
+  const adapter = selection.adapter;
 
   // 4. Pull and verify the weights.
   deps.log(`Pulling ${stripControl(ollamaId)} (${quant.name})...\n`);
-  await deps.adapter.pull({
+  await adapter.pull({
     modelId: ollamaId,
     ...(quant.sha256 !== undefined ? { expectedSha256: quant.sha256 } : {}),
     expectedSizeBytes: quant.diskBytes,
@@ -183,22 +188,22 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
   // 5-7. Spawn/attach, health-check, and persist under one lock.
   // This closes the race where two concurrent `up` runs could both spawn owned
   // daemons before either one writes state.
-  const port = options.port ?? DEFAULT_OLLAMA_PORT;
+  const port = options.port ?? adapter.capabilities.defaultPort;
   let endpoint = "";
   await deps.withLock(deps.config, async () => {
-    const handle = await deps.adapter.serve({ host: DEFAULT_BIND_HOST, port });
+    const handle = await adapter.serve({ host: DEFAULT_BIND_HOST, port });
 
     // Second readiness probe is intentional: `serve` proves daemon liveness,
     // while this command-level check requires OpenAI-compatible readiness so
     // the endpoint is usable by the rest of llmup before state is persisted.
     // On failure, stop only a daemon we spawned, then abort.
     try {
-      await deps.adapter.waitUntilReady({
+      await adapter.waitUntilReady({
         endpoint: handle.endpoint,
         requireOpenAiCompatibility: true,
       });
     } catch (error) {
-      await stopQuietly(deps.adapter, handle);
+      await stopQuietly(adapter, handle);
       throw new BackendError(`server for ${model.id} did not become ready`, { cause: error });
     }
 
@@ -209,15 +214,14 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
     try {
       const prior = deps.readState(deps.config).active;
       if (prior !== null && prior.ownedByUs && !(prior.pid === handle.pid && prior.port === handle.port)) {
-        await stopQuietly(deps.adapter, {
+        await stopQuietly(adapter, {
           endpoint: prior.endpoint,
           pid: prior.pid,
           port: prior.port,
           ownedByUs: prior.ownedByUs,
         });
       }
-      // Phase 0 is Ollama-only; B6 will source this from select().
-      const backend = "ollama" as const;
+      const backend = adapter.name;
       const active: ServerState = handle.ownedByUs
         ? {
             backend,
@@ -237,7 +241,7 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
       deps.writeState(deps.config, { schemaVersion: STATE_SCHEMA_VERSION, active });
       endpoint = handle.endpoint;
     } catch (error) {
-      await stopQuietly(deps.adapter, handle);
+      await stopQuietly(adapter, handle);
       throw error;
     }
   });

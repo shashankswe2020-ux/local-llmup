@@ -6,6 +6,7 @@ import { loadConfig, type Config } from "../../src/config.js";
 import { BackendError, ValidationError } from "../../src/errors.js";
 import { readState, STATE_SCHEMA_VERSION, withLock, writeState } from "../../src/state/state.js";
 import { runSwitch, type SwitchDeps } from "../../src/commands/switch.js";
+import { createRegistry } from "../../src/backend/registry.js";
 import type {
   BackendAdapter,
   PullOptions,
@@ -58,6 +59,13 @@ function fakeAdapter(): FakeAdapter {
     pullArgs,
     readyArgs,
     name: "ollama",
+    capabilities: {
+      canPull: true,
+      canEmbed: true,
+      openAiCompatible: true,
+      formats: ["ollama"],
+      defaultPort: 11434,
+    },
     isInstalled: () => Promise.resolve(true),
     installHint: () => "brew install ollama",
     pull: (opts: PullOptions): Promise<PullResult> => {
@@ -103,7 +111,7 @@ function deps(adapter: FakeAdapter, cat: Catalog = CAT): SwitchDeps {
     readState,
     writeState,
     withLock,
-    adapter,
+    registry: createRegistry([adapter]),
     write: (t) => stdout.push(t),
     log: (t) => stderr.push(t),
   };

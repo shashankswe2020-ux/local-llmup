@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Config } from "../../src/config.js";
 import type { BackendAdapter } from "../../src/backend/adapter.js";
+import { createRegistry } from "../../src/backend/registry.js";
 import { CatalogError, StateError } from "../../src/errors.js";
-import type { RuntimeState } from "../../src/state/state.js";
+import { STATE_SCHEMA_VERSION, type RuntimeState } from "../../src/state/state.js";
 import type { Catalog, HardwareProfile, Quantization } from "../../src/types.js";
 import { runDoctor, type DoctorDeps } from "../../src/commands/doctor.js";
 
@@ -62,6 +63,13 @@ function catalogWith(quants: readonly Quantization[]): Catalog {
 function fakeAdapter(overrides: Partial<BackendAdapter> = {}): BackendAdapter {
   return {
     name: "ollama",
+    capabilities: {
+      canPull: true,
+      canEmbed: true,
+      openAiCompatible: true,
+      formats: ["ollama"],
+      defaultPort: 11434,
+    },
     isInstalled: async () => true,
     installHint: () => "brew install ollama",
     pull: async () => ({ modelId: "x", digestVerified: true }),
@@ -80,8 +88,8 @@ function baseDeps(overrides: Partial<DoctorDeps> = {}): { deps: DoctorDeps; stdo
     config,
     detectHardware: async () => healthyHardware(),
     loadCatalog: () => catalogWith([quant()]),
-    readState: () => ({ schemaVersion: 1, active: null }),
-    adapter: fakeAdapter(),
+    readState: () => ({ schemaVersion: STATE_SCHEMA_VERSION, active: null }),
+    registry: createRegistry([fakeAdapter()]),
     write: (t) => stdout.push(t),
     ...overrides,
   };
@@ -110,7 +118,9 @@ describe("runDoctor", () => {
 
   it("fails when the backend is not installed and surfaces the install hint", async () => {
     const { deps } = baseDeps({
-      adapter: fakeAdapter({ isInstalled: async () => false, installHint: () => "brew install ollama" }),
+      registry: createRegistry([
+        fakeAdapter({ isInstalled: async () => false, installHint: () => "brew install ollama" }),
+      ]),
     });
 
     const report = await runDoctor(deps);
@@ -192,8 +202,9 @@ describe("runDoctor", () => {
 
   it("warns when a recorded server is unreachable but does not fail", async () => {
     const activeState: RuntimeState = {
-      schemaVersion: 1,
+      schemaVersion: STATE_SCHEMA_VERSION,
       active: {
+        backend: "ollama",
         modelId: "llama3.1:8b",
         endpoint: "http://127.0.0.1:11434",
         pid: 9001,
@@ -203,11 +214,13 @@ describe("runDoctor", () => {
     };
     const { deps } = baseDeps({
       readState: () => activeState,
-      adapter: fakeAdapter({
-        waitUntilReady: async () => {
-          throw new Error("connection refused");
-        },
-      }),
+      registry: createRegistry([
+        fakeAdapter({
+          waitUntilReady: async () => {
+            throw new Error("connection refused");
+          },
+        }),
+      ]),
     });
 
     const report = await runDoctor(deps);
@@ -220,8 +233,9 @@ describe("runDoctor", () => {
 
   it("reports a reachable recorded server as ok", async () => {
     const activeState: RuntimeState = {
-      schemaVersion: 1,
+      schemaVersion: STATE_SCHEMA_VERSION,
       active: {
+        backend: "ollama",
         modelId: "llama3.1:8b",
         endpoint: "http://127.0.0.1:11434",
         pid: 9001,
@@ -231,7 +245,7 @@ describe("runDoctor", () => {
     };
     const { deps } = baseDeps({
       readState: () => activeState,
-      adapter: fakeAdapter({ waitUntilReady: async () => undefined }),
+      registry: createRegistry([fakeAdapter({ waitUntilReady: async () => undefined })]),
     });
 
     const report = await runDoctor(deps);

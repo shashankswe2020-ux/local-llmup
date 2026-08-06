@@ -15,8 +15,8 @@ import { loadConfig, type Config } from "../config.js";
 import { ValidationError } from "../errors.js";
 import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
-import { OllamaAdapter } from "../backend/ollama.js";
-import type { BackendAdapter } from "../backend/adapter.js";
+import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
+import { select } from "../backend/select.js";
 import { readState, withLock, writeState, STATE_SCHEMA_VERSION, type RuntimeState } from "../state/state.js";
 import type { Catalog } from "../types.js";
 
@@ -32,7 +32,7 @@ export interface SwitchDeps {
   readonly readState: (config: Config) => RuntimeState;
   readonly writeState: (config: Config, state: RuntimeState) => void;
   readonly withLock: <T>(config: Config, fn: () => T | Promise<T>) => Promise<T>;
-  readonly adapter: BackendAdapter;
+  readonly registry: BackendRegistry;
   /** Command result data → stdout. */
   readonly write: (text: string) => void;
   /** Progress and diagnostics → stderr. */
@@ -45,7 +45,7 @@ const createDefaultDeps = (): SwitchDeps => ({
   readState,
   writeState,
   withLock,
-  adapter: new OllamaAdapter(),
+  registry: createDefaultRegistry(),
   write: (text) => process.stdout.write(text),
   log: (text) => process.stderr.write(text),
 });
@@ -75,15 +75,18 @@ export async function runSwitch(
 
   // Prepare the target on the running daemon. Both steps run before the lock, so
   // a failure here never rewrites state — the prior active model is preserved.
+  const adapter = (
+    await select({ intent: "attach", registry: deps.registry, activeBackend: current.backend })
+  ).adapter;
   const quant = resolved.quant;
   deps.log(`Preparing ${stripControl(ollamaId)}...\n`);
-  await deps.adapter.pull({
+  await adapter.pull({
     modelId: ollamaId,
     ...(quant?.sha256 !== undefined ? { expectedSha256: quant.sha256 } : {}),
     ...(quant !== undefined ? { expectedSizeBytes: quant.diskBytes } : {}),
     onProgress: (event) => deps.log(`  ${stripControl(event.status)}\n`),
   });
-  await deps.adapter.waitUntilReady({ endpoint: current.endpoint });
+  await adapter.waitUntilReady({ endpoint: current.endpoint });
 
   // Commit the pointer move under the lock, inheriting the live daemon handle.
   const endpoint = await deps.withLock(deps.config, () => {

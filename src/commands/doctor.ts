@@ -14,8 +14,8 @@ import { usableMemoryBytes } from "../hardware/memory-math.js";
 import { computeHardwareScore } from "../advisor/score.js";
 import { renderTable, type Column } from "../output.js";
 import { stripControl } from "../sanitize.js";
-import { OllamaAdapter } from "../backend/ollama.js";
 import type { BackendAdapter } from "../backend/adapter.js";
+import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import { readState, type RuntimeState } from "../state/state.js";
 import type { Bottleneck, Catalog, HardwareProfile, HardwareScore } from "../types.js";
 
@@ -52,7 +52,7 @@ export interface DoctorDeps {
   readonly detectHardware: () => Promise<HardwareProfile>;
   readonly loadCatalog: () => Catalog;
   readonly readState: (config: Config) => RuntimeState;
-  readonly adapter: BackendAdapter;
+  readonly registry: BackendRegistry;
   /** Command result data → stdout. */
   readonly write: (text: string) => void;
 }
@@ -62,7 +62,7 @@ const createDefaultDeps = (): DoctorDeps => ({
   detectHardware: () => detectHardware(),
   loadCatalog: () => loadCatalog(),
   readState,
-  adapter: new OllamaAdapter(),
+  registry: createDefaultRegistry(),
   write: (text) => process.stdout.write(text),
 });
 
@@ -161,10 +161,21 @@ async function checkState(deps: DoctorDeps): Promise<DoctorCheck> {
     return { name: "state", status: "ok", detail: "no active server recorded" };
   }
 
+  let adapter: BackendAdapter;
+  try {
+    adapter = deps.registry.get(active.backend);
+  } catch (error) {
+    return {
+      name: "state",
+      status: "fail",
+      detail: `no adapter for backend ${stripControl(active.backend)}: ${messageOf(error)}`,
+    };
+  }
+
   const label = stripControl(active.modelId);
   const endpoint = stripControl(active.endpoint);
   try {
-    await deps.adapter.waitUntilReady({
+    await adapter.waitUntilReady({
       endpoint: active.endpoint,
       timeoutMs: REACHABILITY_TIMEOUT_MS,
       retries: 0,
@@ -205,9 +216,12 @@ export async function runDoctor(
   options: { json?: boolean } = {},
 ): Promise<DoctorReport> {
   const detection = await detectSafely(deps.detectHardware);
+  const backendAdapter = deps.registry.all()[0];
   const checks: readonly DoctorCheck[] = [
     checkHardware(detection),
-    await checkBackend(deps.adapter),
+    backendAdapter === undefined
+      ? { name: "backend", status: "fail", detail: "no backend registered" }
+      : await checkBackend(backendAdapter),
     checkCatalog(deps.loadCatalog),
     await checkState(deps),
   ];
