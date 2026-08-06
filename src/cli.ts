@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { pathToFileURL } from "node:url";
+import { readFileSync } from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { cac, type Command } from "cac";
 import { assertModesExclusive, parseBackendName, parseContextTokens, runRecommend } from "./commands/recommend.js";
 import { runUp } from "./commands/up.js";
@@ -281,6 +282,31 @@ function registerCatalog(command: Command): void {
     });
 }
 
+/**
+ * Read the package version from the bundled `package.json` so `--version` always
+ * matches the installed release (rather than a hand-maintained literal that can
+ * drift). `package.json` sits one directory above the compiled `dist/cli.js`
+ * (and above `src/cli.ts`), and npm always ships it. Falls back to `"0.0.0"` if
+ * it cannot be read or parsed.
+ */
+function readPackageVersion(): string {
+  try {
+    const pkgPath = fileURLToPath(new URL("../package.json", import.meta.url));
+    const parsed: unknown = JSON.parse(readFileSync(pkgPath, "utf8"));
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      "version" in parsed &&
+      typeof (parsed as { version: unknown }).version === "string"
+    ) {
+      return (parsed as { version: string }).version;
+    }
+  } catch {
+    // Fall through to the sentinel below.
+  }
+  return "0.0.0";
+}
+
 export function buildCli(): ReturnType<typeof cac> {
   const cli = cac(NAME);
 
@@ -318,7 +344,7 @@ export function buildCli(): ReturnType<typeof cac> {
   registerRecommend(cli.command("", COMMANDS[0]?.description ?? ""));
 
   cli.help();
-  cli.version("0.3.2");
+  cli.version(readPackageVersion());
   return cli;
 }
 

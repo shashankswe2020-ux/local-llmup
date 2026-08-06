@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.1 - 2026-08-07
+
+Bug fix: `--version` now reports the actual installed version.
+
+- `local-llmup --version` was printing a hard-coded `0.3.2` string that had
+  drifted from the real package version. The CLI now reads the version from the
+  bundled `package.json` at runtime, so it always matches the installed release
+  and can never drift again.
+
 ## 0.4.0 - 2026-08-07
 
 Pluggable backends (foundation) — the advisor now understands that a model can be
