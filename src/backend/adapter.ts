@@ -142,6 +142,14 @@ export interface BackendAdapter {
   /** OS-appropriate install command shown when the backend is missing. */
   installHint(): string;
 
+  /**
+   * Best-effort backend version string (e.g. `"0.3.14"`), or `null` when it
+   * cannot be determined. Probed offline via an arg-array, `shell:false` spawn.
+   * Optional: adapters that cannot report a version omit it. Callers must treat
+   * the value as untrusted and `stripControl` it before display.
+   */
+  version?(): Promise<string | null>;
+
   /** Download a model quantization, verifying integrity where possible. */
   pull(options: PullOptions): Promise<PullResult>;
 

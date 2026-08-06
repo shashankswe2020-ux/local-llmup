@@ -14,6 +14,7 @@ import { readFile as fsReadFile, stat as fsStat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, relative } from "node:path";
 import type { Readable } from "node:stream";
+import { z } from "zod";
 import { BackendError, ValidationError } from "../errors.js";
 import {
   buildEndpoint,
@@ -32,6 +33,7 @@ import {
   type ServeOptions,
 } from "./adapter.js";
 import { assertSafeModelId } from "./net.js";
+import { stripControl } from "../sanitize.js";
 import type { BackendCapabilities } from "../types.js";
 
 /** Default binary name resolved from `PATH`. */
@@ -105,10 +107,18 @@ export interface FetchResponseLike {
   json?(): Promise<unknown>;
 }
 
+/** Minimal fetch init surface this adapter needs for probes and chat calls. */
+export interface FetchInitLike {
+  readonly signal?: AbortSignal | undefined;
+  readonly method?: string | undefined;
+  readonly headers?: Readonly<Record<string, string>> | undefined;
+  readonly body?: string | undefined;
+}
+
 /** Perform an HTTP GET; injected in tests. */
 export type FetchFn = (
   url: string,
-  init?: { signal?: AbortSignal | undefined },
+  init?: FetchInitLike,
 ) => Promise<FetchResponseLike>;
 
 /** Sleep for `ms`, rejecting if `signal` aborts; injected in tests. */
@@ -124,6 +134,11 @@ const READINESS_BACKOFF_BASE_MS = 100;
 const READINESS_BACKOFF_MAX_MS = 2_000;
 /** Upper bound on a single readiness request, so one hung probe can't outlive the deadline. */
 const READINESS_REQUEST_TIMEOUT_MS = 5_000;
+/** Upper bound on the offline `--version` probe, so a wedged binary can't block `doctor`. */
+const VERSION_PROBE_TIMEOUT_MS = 1_500;
+/** Cap on characters kept from a non-semver version banner. */
+const VERSION_BANNER_MAX_CHARS = 100;
+
 const SHUTDOWN_GRACE_MS = 500;
 const SHUTDOWN_POLL_INTERVAL_MS = 50;
 const SHUTDOWN_POLL_ATTEMPTS = 10;
@@ -163,7 +178,21 @@ function readinessBackoffMs(attempt: number): number {
   return Math.min(READINESS_BACKOFF_BASE_MS * 2 ** (attempt - 1), READINESS_BACKOFF_MAX_MS);
 }
 
-const defaultFetch: FetchFn = (url, init) => fetch(url, { signal: init?.signal ?? null });
+const defaultFetch: FetchFn = (url, init) => {
+  const requestInit: RequestInit = {
+    signal: init?.signal ?? null,
+    ...(init?.method !== undefined ? { method: init.method } : {}),
+    ...(init?.headers !== undefined ? { headers: init.headers } : {}),
+    ...(init?.body !== undefined ? { body: init.body } : {}),
+  };
+  return fetch(url, requestInit);
+};
+
+const OllamaChatResponseSchema = z.object({
+  message: z.object({
+    content: z.string(),
+  }),
+});
 
 const defaultSleep: SleepFn = (ms, signal) =>
   new Promise<void>((resolve, reject) => {
@@ -353,6 +382,20 @@ function runProcess(
     child.onError((error) => reject(wrapSpawnError(binary, error)));
     child.onClose((code) => resolve(code ?? -1));
   });
+}
+
+/**
+ * Extract a best-effort version from a backend's `--version` output. Returns the
+ * first semver-looking token, else the trimmed (length-bounded) text, else
+ * `null`. The result is still untrusted — callers `stripControl` before display.
+ */
+function parseVersion(output: string): string | null {
+  const semver = /\d+\.\d+\.\d+(?:[.-][0-9A-Za-z.-]+)?/.exec(output);
+  if (semver !== null) {
+    return semver[0];
+  }
+  const trimmed = output.trim();
+  return trimmed.length > 0 ? trimmed.slice(0, VERSION_BANNER_MAX_CHARS) : null;
 }
 
 /** True for a single path segment that cannot escape its parent directory. */
@@ -557,6 +600,41 @@ export class OllamaAdapter implements BackendAdapter {
       default:
         return "Install Ollama from https://ollama.com/download";
     }
+  }
+
+  /**
+   * Best-effort version via `ollama --version` (arg array, `shell:false`).
+   * Ollama prints `ollama version is X.Y.Z`; we return the first semver-looking
+   * token, else the trimmed output, else `null`. Never throws — a probe failure
+   * or non-zero exit reports `null` rather than aborting the health check.
+   */
+  /**
+   * Best-effort version via `ollama --version` (arg array, `shell:false`).
+   * Ollama prints `ollama version is X.Y.Z`; we return the first semver-looking
+   * token, else the trimmed output, else `null`. The probe is bounded by an
+   * abort deadline so a wedged binary cannot block `doctor`, and the result is
+   * `stripControl`-clean at the source: display-safe or `null`. Never throws —
+   * a probe failure or non-zero exit reports `null` rather than aborting.
+   */
+  async version(): Promise<string | null> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), VERSION_PROBE_TIMEOUT_MS);
+    const lines: string[] = [];
+    try {
+      const code = await runProcess(this.spawn, this.binary, ["--version"], {
+        signal: controller.signal,
+        onLine: (line) => {
+          if (lines.length < 8) lines.push(line);
+        },
+      });
+      if (code !== 0) return null;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+    const parsed = parseVersion(lines.join(" "));
+    return parsed === null ? null : stripControl(parsed);
   }
 
   async pull(options: PullOptions): Promise<PullResult> {
@@ -921,8 +999,54 @@ export class OllamaAdapter implements BackendAdapter {
     );
   }
 
-  chat(_request: ChatRequest): Promise<ChatResult> {
-    return Promise.reject(new BackendError("ollama chat is implemented in a later task"));
+  async chat(request: ChatRequest): Promise<ChatResult> {
+    assertSafeModelId(request.model);
+
+    const endpoint = buildEndpoint(DEFAULT_BIND_HOST, DEFAULT_OLLAMA_PORT);
+    const url = `${endpoint}/api/chat`;
+
+    let response: FetchResponseLike;
+    try {
+      response = await this.fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          model: request.model,
+          messages: request.messages,
+          stream: false,
+        }),
+        signal: request.signal,
+      });
+    } catch (error) {
+      throw new BackendError(`ollama chat request failed for ${request.model}`, {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+
+    if (!response.ok) {
+      throw new BackendError(`ollama chat failed for ${request.model} (status ${response.status})`);
+    }
+    if (typeof response.json !== "function") {
+      throw new BackendError("ollama chat returned a malformed response body");
+    }
+
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch (error) {
+      throw new BackendError("ollama chat returned invalid JSON", {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+
+    const parsed = OllamaChatResponseSchema.safeParse(payload);
+    if (!parsed.success) {
+      throw new BackendError("ollama chat returned a malformed response body", {
+        cause: parsed.error,
+      });
+    }
+
+    return { content: parsed.data.message.content };
   }
 
   embed(_request: EmbedRequest): Promise<EmbedResult> {

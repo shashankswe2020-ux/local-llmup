@@ -54,9 +54,13 @@ export interface SelectResult {
  * Auto-detect priority order (spec §10 Q1): on Apple Silicon prefer MLX, then
  * Ollama, then llama.cpp; elsewhere Ollama then llama.cpp. LM Studio is
  * deliberately excluded — it is an attach-only, opt-in backend and is never
- * auto-selected.
+ * auto-selected. Exported so `doctor` can report the machine's auto-selected
+ * default without duplicating the ordering (it never calls `select()` itself).
  */
-function autoPriority(platform: Platform | undefined, arch: Arch | undefined): readonly BackendName[] {
+export function autoDetectPriority(
+  platform: Platform | undefined,
+  arch: Arch | undefined,
+): readonly BackendName[] {
   const appleSilicon = platform === "darwin" && arch === "arm64";
   return appleSilicon ? ["mlx", "ollama", "llamacpp"] : ["ollama", "llamacpp"];
 }
@@ -160,7 +164,7 @@ async function autoSelect(
   arch: Arch | undefined,
 ): Promise<SelectResult> {
   const installed = await registry.available();
-  for (const name of autoPriority(platform, arch)) {
+  for (const name of autoDetectPriority(platform, arch)) {
     const match = installed.find((adapter) => adapter.name === name);
     if (match !== undefined) {
       return { adapter: match, source: "auto" };
@@ -175,7 +179,7 @@ function noServableBackendMessage(
   platform: Platform | undefined,
   arch: Arch | undefined,
 ): string {
-  const hints = autoPriority(platform, arch)
+  const hints = autoDetectPriority(platform, arch)
     .filter((name) => isRegistered(registry, name))
     .map((name) => `  ${name}: ${registry.get(name).installHint()}`);
   const body = hints.length > 0 ? `\n${hints.join("\n")}` : "";

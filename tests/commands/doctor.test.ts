@@ -320,3 +320,170 @@ describe("runDoctor — AI Hardware Score (T34)", () => {
     expect(find(report, "hardware").status).toBe("fail");
   });
 });
+
+describe("runDoctor — backends section (B11)", () => {
+  it("lists every registered backend with installed status, and surfaces install hints for missing ones", async () => {
+    const { deps, stdout } = baseDeps({
+      registry: createRegistry([
+        fakeAdapter({ name: "ollama", isInstalled: async () => true }),
+        fakeAdapter({
+          name: "llamacpp",
+          isInstalled: async () => false,
+          installHint: () => "brew install llama.cpp",
+        }),
+      ]),
+    });
+
+    const report = await runDoctor(deps);
+
+    expect(report.backends.map((b) => b.name)).toEqual(["ollama", "llamacpp"]);
+    const ollama = report.backends.find((b) => b.name === "ollama");
+    const llamacpp = report.backends.find((b) => b.name === "llamacpp");
+    expect(ollama?.installed).toBe(true);
+    expect(llamacpp?.installed).toBe(false);
+
+    const out = stdout.join("");
+    expect(out).toMatch(/Backends/);
+    expect(out).toContain("llamacpp");
+    expect(out).toContain("brew install llama.cpp");
+  });
+
+  it("reports a best-effort version for an installed backend", async () => {
+    const { deps, stdout } = baseDeps({
+      registry: createRegistry([
+        fakeAdapter({ name: "ollama", isInstalled: async () => true, version: async () => "0.3.14" }),
+      ]),
+    });
+
+    const report = await runDoctor(deps);
+
+    expect(report.backends[0]?.version).toBe("0.3.14");
+    expect(stdout.join("")).toContain("0.3.14");
+  });
+
+  it("passes hostile version strings through stripControl", async () => {
+    const { deps, stdout } = baseDeps({
+      registry: createRegistry([
+        fakeAdapter({
+          name: "ollama",
+          isInstalled: async () => true,
+          version: async () => "0.3.14\u001b[31m\u0007evil",
+        }),
+      ]),
+    });
+
+    const report = await runDoctor(deps);
+
+    expect(report.backends[0]?.version).toBe("0.3.14evil");
+    const out = stdout.join("");
+    expect(out).not.toContain("\u001b");
+    expect(out).not.toContain("\u0007");
+  });
+
+  it("treats a null version and a throwing version probe as unknown without failing", async () => {
+    const { deps } = baseDeps({
+      registry: createRegistry([
+        fakeAdapter({ name: "ollama", isInstalled: async () => true, version: async () => null }),
+        fakeAdapter({
+          name: "llamacpp",
+          isInstalled: async () => true,
+          version: async () => {
+            throw new Error("probe blew up");
+          },
+        }),
+      ]),
+    });
+
+    const report = await runDoctor(deps);
+
+    expect(report.ok).toBe(true);
+    expect(report.backends.find((b) => b.name === "ollama")?.version).toBeNull();
+    expect(report.backends.find((b) => b.name === "llamacpp")?.version).toBeNull();
+  });
+
+  it("marks MLX as the auto-selected default on Apple Silicon when installed", async () => {
+    const { deps } = baseDeps({
+      detectHardware: async () => healthyHardware(), // arm64/darwin
+      registry: createRegistry([
+        fakeAdapter({ name: "ollama", isInstalled: async () => true }),
+        fakeAdapter({ name: "mlx", isInstalled: async () => true }),
+      ]),
+    });
+
+    const report = await runDoctor(deps);
+
+    expect(report.backends.find((b) => b.name === "mlx")?.isDefault).toBe(true);
+    expect(report.backends.find((b) => b.name === "ollama")?.isDefault).toBe(false);
+  });
+
+  it("prefers Ollama as the default on non-Apple hardware", async () => {
+    const { deps } = baseDeps({
+      detectHardware: async () => ({
+        arch: "x64",
+        platform: "linux",
+        totalRamBytes: 32 * GiB,
+        freeRamBytes: 24 * GiB,
+        gpu: [{ vendor: "none", vramBytes: 0 }],
+        freeDiskBytes: 500 * GiB,
+      }),
+      registry: createRegistry([
+        fakeAdapter({ name: "llamacpp", isInstalled: async () => true }),
+        fakeAdapter({ name: "ollama", isInstalled: async () => true }),
+      ]),
+    });
+
+    const report = await runDoctor(deps);
+
+    expect(report.backends.find((b) => b.name === "ollama")?.isDefault).toBe(true);
+    expect(report.backends.find((b) => b.name === "llamacpp")?.isDefault).toBe(false);
+  });
+
+  it("selects no default when no backend is installed", async () => {
+    const { deps } = baseDeps({
+      registry: createRegistry([
+        fakeAdapter({ name: "ollama", isInstalled: async () => false }),
+      ]),
+    });
+
+    const report = await runDoctor(deps);
+
+    expect(report.backends.every((b) => b.isDefault === false)).toBe(true);
+  });
+
+  it("treats a throwing isInstalled probe as not installed without failing the report", async () => {
+    const { deps } = baseDeps({
+      registry: createRegistry([
+        fakeAdapter({ name: "ollama", isInstalled: async () => true }),
+        fakeAdapter({
+          name: "llamacpp",
+          isInstalled: async () => {
+            throw new Error("probe exploded");
+          },
+        }),
+      ]),
+    });
+
+    const report = await runDoctor(deps);
+
+    expect(report.ok).toBe(true);
+    expect(report.backends.find((b) => b.name === "llamacpp")?.installed).toBe(false);
+  });
+
+  it("includes the backends array in --json output", async () => {
+    const { deps, stdout } = baseDeps({
+      registry: createRegistry([
+        fakeAdapter({ name: "ollama", isInstalled: async () => true, version: async () => "0.3.14" }),
+      ]),
+    });
+
+    await runDoctor(deps, { json: true });
+
+    const parsed = JSON.parse(stdout.join("")) as {
+      backends: ReadonlyArray<{ name: string; installed: boolean; version: string | null; isDefault: boolean }>;
+    };
+    expect(parsed.backends[0]?.name).toBe("ollama");
+    expect(parsed.backends[0]?.installed).toBe(true);
+    expect(parsed.backends[0]?.version).toBe("0.3.14");
+  });
+});
+

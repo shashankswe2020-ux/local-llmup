@@ -233,6 +233,62 @@ describe("OllamaAdapter.isInstalled / installHint", () => {
   });
 });
 
+describe("OllamaAdapter.version", () => {
+  it("spawns `ollama --version` with a discrete arg array", async () => {
+    const { spawn, recorded } = fakeSpawn({ stdout: ["ollama version is 0.3.14\n"], code: 0 });
+    const adapter = new OllamaAdapter({ spawn });
+
+    await adapter.version();
+
+    expect(recorded[0]?.command).toBe("ollama");
+    expect(recorded[0]?.args).toEqual(["--version"]);
+  });
+
+  it("extracts the semver token from the version banner", async () => {
+    const { spawn } = fakeSpawn({ stdout: ["ollama version is 0.3.14\n"], code: 0 });
+    const adapter = new OllamaAdapter({ spawn });
+
+    await expect(adapter.version()).resolves.toBe("0.3.14");
+  });
+
+  it("returns null when the process exits non-zero", async () => {
+    const { spawn } = fakeSpawn({ stdout: ["boom\n"], code: 1 });
+    const adapter = new OllamaAdapter({ spawn });
+
+    await expect(adapter.version()).resolves.toBeNull();
+  });
+
+  it("returns null when the binary is missing", async () => {
+    const { spawn } = fakeSpawn({ error: Object.assign(new Error("ENOENT"), { code: "ENOENT" }) });
+    const adapter = new OllamaAdapter({ spawn });
+
+    await expect(adapter.version()).resolves.toBeNull();
+  });
+
+  it("falls back to the trimmed banner when no semver is present", async () => {
+    const { spawn } = fakeSpawn({ stdout: ["dev-build\n"], code: 0 });
+    const adapter = new OllamaAdapter({ spawn });
+
+    await expect(adapter.version()).resolves.toBe("dev-build");
+  });
+
+  it("passes an abort signal so a hung probe cannot block doctor", async () => {
+    const { spawn, recorded } = fakeSpawn({ stdout: ["ollama version is 0.3.14\n"], code: 0 });
+    const adapter = new OllamaAdapter({ spawn });
+
+    await adapter.version();
+
+    expect(recorded[0]?.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("strips control sequences from a non-semver banner at the source", async () => {
+    const { spawn } = fakeSpawn({ stdout: ["dev\u001b[31mbuild\n"], code: 0 });
+    const adapter = new OllamaAdapter({ spawn });
+
+    await expect(adapter.version()).resolves.toBe("devbuild");
+  });
+});
+
 describe("createDefaultDigestProbe", () => {
   const manifest = JSON.stringify({
     layers: [

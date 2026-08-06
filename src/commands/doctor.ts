@@ -16,6 +16,7 @@ import { renderTable, type Column } from "../output.js";
 import { stripControl } from "../sanitize.js";
 import type { BackendAdapter } from "../backend/adapter.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
+import { autoDetectPriority } from "../backend/select.js";
 import { readState, type RuntimeState } from "../state/state.js";
 import type { Bottleneck, Catalog, HardwareProfile, HardwareScore } from "../types.js";
 
@@ -44,6 +45,24 @@ export interface DoctorReport {
    * is additive context and never, on its own, flips `ok`).
    */
   readonly hardwareScore: HardwareScore | null;
+  /**
+   * Every registered backend, its install state + best-effort version, and
+   * whether it is this machine's auto-selected default. Informational only —
+   * never flips `ok` (the `backend` check owns the exit-code contract).
+   */
+  readonly backends: readonly BackendInfo[];
+}
+
+/** One row of the backends section: install state, version, and default flag. */
+export interface BackendInfo {
+  readonly name: string;
+  readonly installed: boolean;
+  /** Best-effort version (`stripControl`-clean), or `null` when unknown. */
+  readonly version: string | null;
+  /** True for the backend `up` would auto-select on this machine. */
+  readonly isDefault: boolean;
+  /** OS-appropriate install command, surfaced when the backend is missing. */
+  readonly installHint: string;
 }
 
 /** Injectable side effects, so the command can be driven with fakes in tests. */
@@ -87,6 +106,61 @@ async function checkBackend(adapter: BackendAdapter): Promise<DoctorCheck> {
   } catch (error) {
     return { name: "backend", status: "fail", detail: `backend probe failed: ${messageOf(error)}` };
   }
+}
+
+/** Best-effort version probe: never throws, `stripControl`-clean, `null` on any failure. */
+async function probeVersion(adapter: BackendAdapter): Promise<string | null> {
+  if (adapter.version === undefined) {
+    return null;
+  }
+  try {
+    const raw = await adapter.version();
+    return raw === null ? null : stripControl(raw);
+  } catch {
+    return null;
+  }
+}
+
+/** Whether the backend is installed, treating a throwing probe as "not installed". */
+async function probeInstalled(adapter: BackendAdapter): Promise<boolean> {
+  try {
+    return await adapter.isInstalled();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Probe every registered backend offline: install state, best-effort version,
+ * install hint, and which one is this machine's auto-selected default (the first
+ * installed backend in {@link autoDetectPriority} order). Fully isolated — a
+ * single broken probe never hides the others or flips the report verdict.
+ */
+async function probeBackends(
+  registry: BackendRegistry,
+  detection: Detection,
+): Promise<readonly BackendInfo[]> {
+  const platform = detection.ok ? detection.profile.platform : undefined;
+  const arch = detection.ok ? detection.profile.arch : undefined;
+
+  const probed = await Promise.all(
+    registry.all().map(async (adapter) => ({
+      adapter,
+      installed: await probeInstalled(adapter),
+      version: await probeVersion(adapter),
+    })),
+  );
+
+  const installedNames = new Set(probed.filter((p) => p.installed).map((p) => p.adapter.name));
+  const defaultBackend = autoDetectPriority(platform, arch).find((name) => installedNames.has(name));
+
+  return probed.map((p) => ({
+    name: p.adapter.name,
+    installed: p.installed,
+    version: p.version,
+    isDefault: p.adapter.name === defaultBackend,
+    installHint: stripControl(p.adapter.installHint()),
+  }));
 }
 
 /** Outcome of the single hardware probe, shared by the check and the score. */
@@ -202,6 +276,27 @@ const TABLE_COLUMNS: readonly Column[] = [
   { header: "Detail" },
 ];
 
+/** Column layout for the informational backends section. */
+const BACKEND_COLUMNS: readonly Column[] = [
+  { header: "Backend" },
+  { header: "Installed" },
+  { header: "Version" },
+  { header: "Default" },
+  { header: "Detail" },
+];
+
+/** Render the offline backends section: install state, version, and default. */
+function renderBackends(backends: readonly BackendInfo[]): string {
+  const rows = backends.map((b) => [
+    stripControl(b.name),
+    b.installed ? "yes" : "no",
+    b.version ?? "unknown",
+    b.isDefault ? "yes" : "",
+    b.installed ? "" : `not installed — run: ${b.installHint}`,
+  ]);
+  return `Backends\n${renderTable(BACKEND_COLUMNS, rows)}`;
+}
+
 /** Human-facing label for each bottleneck axis. */
 const BOTTLENECK_LABEL: Readonly<Record<Bottleneck, string>> = {
   vram: "VRAM",
@@ -228,7 +323,8 @@ export async function runDoctor(
 
   const ok = checks.every((c) => c.status !== "fail");
   const hardwareScore = detection.ok ? computeHardwareScore(detection.profile) : null;
-  const report: DoctorReport = { checks, ok, hardwareScore };
+  const backends = await probeBackends(deps.registry, detection);
+  const report: DoctorReport = { checks, ok, hardwareScore, backends };
 
   if (options.json === true) {
     deps.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -240,6 +336,8 @@ export async function runDoctor(
     checks.map((c) => [c.name, STATUS_LABEL[c.status], c.detail]),
   );
   deps.write(`${table}\n`);
+
+  deps.write(`\n${renderBackends(backends)}\n`);
 
   if (hardwareScore !== null) {
     deps.write(`\nAI Hardware Score: ${String(hardwareScore.total)}/100\n`);
