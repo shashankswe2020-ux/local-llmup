@@ -246,9 +246,9 @@ gains an active-`backend` column from the B4 field (review finding I3).
 Add HF-repo-id validator, 40-hex-SHA `revision`, glob/`..`-rejecting `file`.
 Keep the "≥1 source" refine.
 **Acceptance:**
-- [ ] `gguf`/`mlx` parse; unknown keys rejected; `revision` must be 40-hex (reject `main`); `file` rejects globs/`..`.
-- [ ] HF-repo-id validator accepts `mlx-community/Qwen3-14B`; rejects `../x`, absolute, leading `-`.
-- [ ] "≥1 source" refine still holds; existing catalog still validates.
+- [x] `gguf`/`mlx` parse; unknown keys rejected; `revision` must be 40-hex (reject `main`); `file` rejects globs/`..`.
+- [x] HF-repo-id validator accepts `mlx-community/Qwen3-14B`; rejects `../x`, absolute, leading `-`.
+- [x] "≥1 source" refine still holds; existing catalog still validates.
 **Verify:** `npm test tests/catalog`
 **Deps:** B1 **Files:** `src/catalog/schema.ts`, `src/types.ts`, `tests/catalog/schema.test.ts` **Scope:** S
 

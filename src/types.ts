@@ -120,10 +120,32 @@ export interface Quantization {
   readonly digestVerified?: boolean | undefined;
 }
 
+/** A pinned GGUF weight file in a Hugging Face repo. */
+export interface GgufSource {
+  /** Hugging Face repo id (`owner/name`). */
+  readonly repo: string;
+  /** 40-hex commit SHA — pinned, never a tag or branch. */
+  readonly revision: string;
+  /** Repo-relative file path (no globs, no `..`, not absolute). */
+  readonly file: string;
+  /** Weight digest when published; absent → size-only verify (honesty gate). */
+  readonly sha256?: string | undefined;
+}
+
+/** A pinned MLX weight repo in Hugging Face. */
+export interface MlxSource {
+  /** Hugging Face repo id (`owner/name`). */
+  readonly repo: string;
+  /** 40-hex commit SHA — pinned, never a tag or branch. */
+  readonly revision: string;
+}
+
 /** Upstream registry coordinates for a model. */
 export interface ModelSource {
   readonly ollama?: string | undefined;
   readonly hf?: string | undefined;
+  readonly gguf?: GgufSource | undefined;
+  readonly mlx?: MlxSource | undefined;
 }
 
 /** A model entry in the catalog. */
