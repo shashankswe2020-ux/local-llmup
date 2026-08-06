@@ -310,10 +310,10 @@ auto-selected default; missing backends show `installHint()`. Fully offline.
 `backends: string[]` + `throughputBackend` **pinned to `ollama`** (deterministic,
 never `isInstalled()`-derived). Unsourced `(class,backend)` → `unknown`.
 **Acceptance:**
-- [ ] `--json` exposes `backends` and `throughputBackend:"ollama"` by default.
-- [ ] Output byte-identical with/without any backend installed (determinism test).
-- [ ] `--available-backends` filters only when explicitly passed; default never drops models.
-- [ ] `can-run` exit-code contract unchanged (non-zero only for `no`).
+- [x] `--json` exposes `backends` and `throughputBackend:"ollama"` by default.
+- [x] Output byte-identical with/without any backend installed (determinism test).
+- [x] `--available-backends` filters only when explicitly passed; default never drops models.
+- [x] `can-run` exit-code contract unchanged (non-zero only for `no`).
 **Verify:** `npm test tests/cli tests/commands/can-run tests/commands/recommend`
 **Deps:** B8, B9 **Files:** `src/commands/{recommend,can-run}.ts`, `src/output.ts`, `tests/**` **Scope:** M
 
@@ -459,7 +459,7 @@ presence**; where the resolved GGUF is locatable, verify its digest, else surfac
 - [ ] No `new OllamaAdapter()` in `src/commands/` — all six sites routed (B6).
 - [ ] `state.json` records `backend`; v1→v2 migration preserves `pid` (B4).
 - [ ] `ModelSourceSchema` accepts `gguf`/`mlx`, rejects globs/unknown keys/floating tags (B7).
-- [ ] `recommend`/`can-run` identical with/without backends installed; `throughputBackend` pinned `ollama`; `ollama`/`llamacpp` share scalars; absent pair → `unknown` (B9, B12).
+- [x] `recommend`/`can-run` identical with/without backends installed; `throughputBackend` pinned `ollama`; `ollama`/`llamacpp` share scalars; absent pair → `unknown` (B9, B12).
 - [ ] `up --backend <name>` per adapter pulls→verifies→serves→ready, fail-closed on digest/revision/exact-file mismatch (B14c, B17, B19).
 - [ ] Every adapter binds loopback explicitly (arg or env), refuses non-loopback; spawns are arg arrays (with `--` where positional args exist); port-ownership preflight enforced (B16).
 - [ ] `down`/`switch`/`chat`/`migrate` route via `active.backend`; cross-backend `switch` → `ValidationError`; `canEmbed:false` capture is vector-less + `meta.json`-flagged (B6, B10).
