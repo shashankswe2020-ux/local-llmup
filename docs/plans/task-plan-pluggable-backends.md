@@ -223,11 +223,11 @@ now). `up` uses the selected adapter's `defaultPort` when `--port` absent and
 performs the **port-ownership preflight**. `ls` (a pure state read, no adapter)
 gains an active-`backend` column from the B4 field (review finding I3).
 **Acceptance:**
-- [ ] `grep -R "new OllamaAdapter()" src/commands` returns **nothing** (all six files).
-- [ ] `up`/`down`/`switch`/`chat`/`migrate` behavior **byte-identical** to today for Ollama.
-- [ ] Attach-intent commands (`down`/`switch`/`chat`/`migrate`) resolve the adapter from `active.backend`.
-- [ ] Foreign server on the target port → `up` attaches or `BackendError`; never `ownedByUs:true` for a process it didn't start.
-- [ ] `ls` shows the active-backend column (reads `active.backend`; constructs no adapter).
+- [x] `grep -R "new OllamaAdapter()" src/commands` returns **nothing** (all six files).
+- [x] `up`/`down`/`switch`/`chat`/`migrate` behavior **byte-identical** to today for Ollama.
+- [x] Attach-intent commands (`down`/`switch`/`chat`/`migrate`) resolve the adapter from `active.backend`.
+- [x] Foreign server on the target port → `up` attaches or `BackendError`; never `ownedByUs:true` for a process it didn't start.
+- [x] `ls` shows the active-backend column (reads `active.backend`; constructs no adapter).
 **Verify:** `npm test tests/commands tests/workflows && npm run build`
 **Deps:** B5 **Files:** `src/commands/{up,down,switch,chat,doctor,migrate,ls}.ts`, `tests/commands/*`, `tests/workflows/*` **Scope:** L
 
