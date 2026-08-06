@@ -7,7 +7,7 @@
  */
 import { parseParamCount, quantBitsPerParam, usableMemoryKind } from "../hardware/memory-math.js";
 import type { Capability, Catalog, CatalogModel, HardwareProfile, Quantization } from "../types.js";
-import { evaluateFit, type FitReason } from "./fit.js";
+import { evaluateFit, evaluateFitAtContext, type FitReason } from "./fit.js";
 import {
   HEADROOM,
   RECENCY_WINDOW_DAYS,
@@ -54,6 +54,14 @@ export interface RankResult {
 export interface RankOptions {
   /** When set, models matching this capability are rewarded; others are not. */
   readonly task?: Capability | undefined;
+  /**
+   * When set, models are evaluated at this explicit context (in tokens) via
+   * {@link evaluateFitAtContext}, so `requiredBytes` — and therefore the fit
+   * score and ranking — reflect the KV-sized footprint. Unknown-geometry models
+   * fall back to weights-based fit (honesty gate); over-cap models become
+   * `context-bound`. Omitted → the calibrated default footprint.
+   */
+  readonly context?: number | undefined;
 }
 
 const MS_PER_DAY = 86_400_000;
@@ -168,7 +176,10 @@ export function rankModels(
   const wontFit: WontFitModel[] = [];
 
   for (const model of catalog.models) {
-    const fit = evaluateFit(model, hw);
+    const fit =
+      options.context !== undefined
+        ? evaluateFitAtContext(model, hw, options.context)
+        : evaluateFit(model, hw);
     if (!fit.fits) {
       wontFit.push({ model, reason: fit.reason });
       continue;

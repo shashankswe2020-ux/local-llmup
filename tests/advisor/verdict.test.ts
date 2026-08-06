@@ -95,3 +95,45 @@ describe("evaluateVerdict", () => {
     expect(evaluateVerdict(model("7B"), hw(), perf)).toEqual(evaluateVerdict(model("7B"), hw(), perf));
   });
 });
+
+describe("evaluateVerdict with an explicit context", () => {
+  function ctxModel(kvBytesPerToken?: number, contextLength = 131072): CatalogModel {
+    return {
+      ...model("7B"),
+      contextLength,
+      ...(kvBytesPerToken !== undefined ? { kvBytesPerToken } : {}),
+    };
+  }
+
+  it("returns `no` context-bound when the requested context exceeds the model cap", () => {
+    const v = evaluateVerdict(ctxModel(131072, 8192), hw(), perf, 16384);
+    expect(v.runnable).toBe("no");
+    expect(v.reason).toBe("context-bound");
+    expect(v.throughput.known).toBe(false);
+  });
+
+  it("returns `no` with a memory reason when the KV cache overflows the pool", () => {
+    // 128K KV cache (~17 GB) on an 8 GB card: memory-bound, not context-bound.
+    const v = evaluateVerdict(
+      ctxModel(131072),
+      hw({ gpu: [{ vendor: "nvidia", vramBytes: 8 * GIB }] }),
+      perf,
+      131072,
+    );
+    expect(v.runnable).toBe("no");
+    expect(v.reason).toBe("vram-bound");
+  });
+
+  it("leaves throughput unaffected by context in v1 (same as the no-context verdict)", () => {
+    const withCtx = evaluateVerdict(ctxModel(8192), hw(), perf, 4096);
+    const without = evaluateVerdict(ctxModel(8192), hw(), perf);
+    expect(withCtx.throughput).toEqual(without.throughput);
+    expect(withCtx.quant?.name).toBe(without.quant?.name);
+  });
+
+  it("still verdicts an unknown-geometry model by weights under a context request", () => {
+    const v = evaluateVerdict(ctxModel(undefined), hw(), perf, 65536);
+    expect(v.runnable).toBe("yes");
+    expect(v.throughput.known).toBe(true);
+  });
+});

@@ -115,12 +115,13 @@ through `RankOptions`/`rankModels`** so `--context` actually **re-ranks** (fit
 score reflects the context-sized footprint), not just re-verdicts (review B3).
 Wire the optional context through `verdict` (throughput unaffected in v1).
 **Acceptance (AC-CW4, CW5, CW12, CW6-unit):**
-- [ ] Fits at default context but not at 128 K → won't-fit, **memory** reason (not context-bound) (CW4).
-- [ ] `tokens > model.contextLength` → `context-bound`; `tokens == contextLength` fits (CW5, CW12).
-- [ ] `rankModels` with context routes through `evaluateFitAtContext`; rank order reflects context footprint.
-- [ ] Unknown `kvBytesPerToken` → context evaluation returns `unknown`, model still ranks by weights (CW6).
-**Verify:** `npm test tests/ranking/fit tests/ranking/rank tests/advisor/verdict`
-**Deps:** T-CW1, T-CW2, D8 **Files:** `src/ranking/fit.ts`, `src/ranking/rank.ts`, `src/advisor/verdict.ts`, tests **Scope:** M
+- [x] Fits at default context but not at 128 K → won't-fit, **memory** reason (not context-bound) (CW4).
+- [x] `tokens > model.contextLength` → `context-bound`; `tokens == contextLength` fits (CW5, CW12).
+- [x] `rankModels` with context routes through `evaluateFitAtContext`; `requiredBytes`/fit score reflect the context footprint (re-ranks, not just re-verdicts — B3).
+- [x] Unknown `kvBytesPerToken` → context evaluation falls back to weights-based fit; model still ranks (CW6). Cap check runs first, so over-cap unknown-geometry is still `context-bound`.
+**Verify:** `npm test tests/ranking tests/advisor/verdict` — **611 tests pass**, typecheck/build/lint clean.
+**Review:** code-reviewer APPROVE (no Critical/Important). Confirmed the `evaluateFit` refactor is byte-identical, the fixed-context quant monotonicity holds, and no other exhaustive `FitReason` map breaks (added `context-bound` to can-run's `REASON_LABEL`). Applied two nice-to-haves: fail-loud invariant instead of a silent `??` fallback in the known-geometry callback (memory-safety defense-in-depth), and tightened the verdict throughput doc. Deferred to T-CW4: friendly `context-bound` label in `recommend`'s won't-fit section.
+**Deps:** T-CW1, T-CW2, D8 **Files:** `src/ranking/fit.ts`, `src/ranking/rank.ts`, `src/advisor/verdict.ts`, `src/commands/can-run.ts`, tests **Scope:** M ✅ DONE (2026-08-06)
 
 ### T-CW4: `recommend --context` / `--max-context` (command) — **D9**
 **Description:** Parse `--context <int>` and `--max-context` (mutually exclusive;

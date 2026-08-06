@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateFit } from "../../src/ranking/fit.js";
+import { evaluateFit, evaluateFitAtContext } from "../../src/ranking/fit.js";
 import { requiredMemoryBytes } from "../../src/hardware/memory-math.js";
 import { HEADROOM } from "../../src/ranking/weights.js";
 import type { CatalogModel, HardwareProfile, Quantization } from "../../src/types.js";
@@ -130,5 +130,58 @@ describe("evaluateFit", () => {
     const tooSmall = evaluateFit(single, gpuHw(justUnder));
     expect(tooSmall.fits).toBe(false);
     if (!tooSmall.fits) expect(tooSmall.reason).toBe("vram-bound");
+  });
+});
+
+describe("evaluateFitAtContext", () => {
+  it("fits exactly at the context cap and is context-bound one token over (CW5, CW12)", () => {
+    // Small cap + tiny KV geometry so the model comfortably fits at its cap;
+    // the only thing that can bind at the boundary is the context cap itself.
+    const capped = model({ contextLength: 8192, kvBytesPerToken: 8192, quantizations: [Q4] });
+
+    const atCap = evaluateFitAtContext(capped, gpuHw(16 * GIB), 8192);
+    expect(atCap.fits).toBe(true); // boundary inclusive
+
+    const overCap = evaluateFitAtContext(capped, gpuHw(16 * GIB), 8193);
+    expect(overCap.fits).toBe(false);
+    if (!overCap.fits) expect(overCap.reason).toBe("context-bound");
+  });
+
+  it("fits at a small context but not at a large one — memory reason, not context-bound (CW4)", () => {
+    // Real Llama 3.1 8B KV geometry: 131072 B/token → ~17 GB KV at the 128K cap,
+    // which blows a 16 GB pool even though tokens == contextLength (cap passes).
+    const big = model({ kvBytesPerToken: 131072, quantizations: [Q4] });
+
+    const small = evaluateFitAtContext(big, gpuHw(16 * GIB), 1024);
+    expect(small.fits).toBe(true);
+
+    const full = evaluateFitAtContext(big, gpuHw(16 * GIB), 131072);
+    expect(full.fits).toBe(false);
+    if (!full.fits) expect(full.reason).toBe("vram-bound"); // memory, never context-bound
+  });
+
+  it("selects the highest-quality quant that fits at the requested context", () => {
+    const both = model({ kvBytesPerToken: 8192 });
+    const result = evaluateFitAtContext(both, gpuHw(16 * GIB), 4096);
+    expect(result.fits).toBe(true);
+    if (result.fits) expect(result.quant.name).toBe("Q8_0");
+  });
+
+  it("falls back to weights-based fit when KV geometry is unknown (honesty gate, CW6)", () => {
+    // No kvBytesPerToken → cannot size KV; ranks by weights exactly like evaluateFit.
+    const unknown = model();
+    expect(unknown.kvBytesPerToken).toBeUndefined();
+
+    const ctx = evaluateFitAtContext(unknown, gpuHw(16 * GIB), 65536);
+    const legacy = evaluateFit(unknown, gpuHw(16 * GIB));
+    expect(ctx).toEqual(legacy);
+  });
+
+  it("is context-bound over the cap even when KV geometry is unknown", () => {
+    // The cap check is a pure model-cap comparison; it needs no geometry.
+    const unknown = model({ contextLength: 8192 });
+    const result = evaluateFitAtContext(unknown, gpuHw(16 * GIB), 8193);
+    expect(result.fits).toBe(false);
+    if (!result.fits) expect(result.reason).toBe("context-bound");
   });
 });

@@ -162,6 +162,38 @@ describe("rankModels", () => {
     expect(coderEntry.scores.capability).toBe(1);
     expect(chatEntry.scores.capability).toBe(0);
   });
+
+  it("re-ranks by the context-sized footprint when a context is given", () => {
+    // Same weights, but the model with the heavier KV geometry sizes larger at a
+    // long context, shifting its utilization and therefore its fit score. The
+    // requiredBytes the ranker consumes must reflect the context footprint.
+    const light = model({ id: "light", kvBytesPerToken: 8192 });
+    const heavy = model({ id: "heavy", kvBytesPerToken: 131072 });
+
+    const base = rankModels(catalog([light, heavy]), gpuHw(48 * GIB));
+    const withCtx = rankModels(catalog([light, heavy]), gpuHw(48 * GIB), { context: 65536 });
+
+    const heavyBase = base.ranked.find((r) => r.model.id === "heavy")!;
+    const heavyCtx = withCtx.ranked.find((r) => r.model.id === "heavy")!;
+    // The 64K KV cache (~8.6 GB) is added on top of the weights at context.
+    expect(heavyCtx.requiredBytes).toBeGreaterThan(heavyBase.requiredBytes);
+  });
+
+  it("routes a context request through evaluateFitAtContext (context-bound wontFit)", () => {
+    const capped = model({ id: "small-ctx", contextLength: 8192, kvBytesPerToken: 8192 });
+    const result = rankModels(catalog([capped]), gpuHw(48 * GIB), { context: 16384 });
+    expect(result.ranked).toEqual([]);
+    expect(result.wontFit).toHaveLength(1);
+    expect(result.wontFit[0]!.reason).toBe("context-bound");
+  });
+
+  it("still ranks an unknown-geometry model by weights under a context request (CW6)", () => {
+    const unknown = model({ id: "no-geo" }); // no kvBytesPerToken
+    expect(unknown.kvBytesPerToken).toBeUndefined();
+    const result = rankModels(catalog([unknown]), gpuHw(16 * GIB), { context: 65536 });
+    expect(result.ranked).toHaveLength(1);
+    expect(result.ranked[0]!.model.id).toBe("no-geo");
+  });
 });
 
 describe("compareRankedModels tie-break", () => {

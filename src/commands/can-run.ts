@@ -75,6 +75,7 @@ const REASON_LABEL: Readonly<Record<FitReason, string>> = {
   "vram-bound": "not enough VRAM",
   "ram-bound": "not enough RAM",
   "disk-bound": "not enough free disk",
+  "context-bound": "context exceeds the model's limit",
 };
 
 /** Central estimate of a known range, rounded to one decimal. */

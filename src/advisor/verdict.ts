@@ -19,7 +19,7 @@
 import { estimateTokPerSec } from "./throughput.js";
 import { COMFORT_FLOOR } from "./weights.js";
 import type { PerfDataset } from "./perf-data.js";
-import { evaluateFit, type FitReason } from "../ranking/fit.js";
+import { evaluateFit, evaluateFitAtContext, type FitReason } from "../ranking/fit.js";
 import type {
   CatalogModel,
   HardwareProfile,
@@ -51,13 +51,21 @@ export interface VerdictResult {
  * Decide whether `model` runs on `hw`, using the performance `dataset` to
  * estimate throughput for the fitting quant. See the module docs for the
  * yes/slow/no mapping.
+ *
+ * When `context` (in tokens) is given, the fit decision is sized at that context
+ * via {@link evaluateFitAtContext} — so an over-cap request verdicts `no`
+ * (`context-bound`) and a KV cache that overflows memory verdicts `no` with a
+ * memory reason. The throughput model itself adds no context cost in v1; it is
+ * still estimated from whichever quant fits (which a heavy KV cache can shrink).
  */
 export function evaluateVerdict(
   model: CatalogModel,
   hw: HardwareProfile,
   dataset: PerfDataset,
+  context?: number,
 ): VerdictResult {
-  const fit = evaluateFit(model, hw);
+  const fit =
+    context !== undefined ? evaluateFitAtContext(model, hw, context) : evaluateFit(model, hw);
   if (!fit.fits) {
     return { runnable: "no", throughput: UNKNOWN_THROUGHPUT, reason: fit.reason };
   }
