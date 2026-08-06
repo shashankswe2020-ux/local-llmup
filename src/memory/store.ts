@@ -61,6 +61,11 @@ const MemoryMetaSchema = z
     createdAt: z.string().min(1),
     /** Present once the store has an embedding index; fixes its vector space. */
     embedding: EmbeddingMetaSchema.optional(),
+    /**
+     * Set when memory was captured against a backend that cannot embed, so
+     * vectors are intentionally absent (honesty gate — never a fabricated index).
+     */
+    embeddingUnsupported: z.literal(true).optional(),
   })
   .strict();
 

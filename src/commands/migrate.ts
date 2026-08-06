@@ -143,26 +143,32 @@ export async function runMigrate(
 
   // Summarize with the target model only when it is the running server; the
   // planner falls back to deterministic truncation when no summarizer is given.
+  // The same active adapter also decides embedding: a backend that cannot embed
+  // migrates vector-less rather than reusing or fabricating an index (§3.3).
   const active = deps.readState(deps.config).active;
   const targetOllamaId = toResolved.model.source.ollama;
   let summarizer = deps.summarizer;
-  if (
-    summarizer === undefined &&
-    active !== null &&
-    active.modelId === toId &&
-    targetOllamaId !== undefined
-  ) {
+  let embedder = deps.embedder;
+  let embeddingUnsupported = false;
+  if (active !== null && active.modelId === toId) {
     const adapter = (
       await select({ intent: "attach", registry: deps.registry, activeBackend: active.backend })
     ).adapter;
-    summarizer = buildSummarizer(adapter, targetOllamaId);
+    if (!adapter.capabilities.canEmbed) {
+      embeddingUnsupported = true;
+      embedder = undefined;
+    }
+    if (summarizer === undefined && targetOllamaId !== undefined) {
+      summarizer = buildSummarizer(adapter, targetOllamaId);
+    }
   }
 
   const input: MigrationInput = {
     source,
     targetContextLength: toResolved.model.contextLength,
     ...(summarizer !== undefined ? { summarizer } : {}),
-    ...(deps.embedder !== undefined ? { targetEmbedder: deps.embedder } : {}),
+    ...(embedder !== undefined ? { targetEmbedder: embedder } : {}),
+    ...(embeddingUnsupported ? { embeddingUnsupported: true } : {}),
   };
   const plan = await deps.planMigration(input);
 

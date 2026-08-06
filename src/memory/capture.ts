@@ -85,6 +85,12 @@ export interface CaptureOptions {
   readonly now?: (() => Date) | undefined;
   /** When present, turn content is chunked and embedded into `embeddings/`. */
   readonly embedder?: CaptureEmbedder | undefined;
+  /**
+   * Set when the serving backend cannot embed. Capture proceeds vector-less —
+   * no embedder is consulted, no vectors are fabricated — and the store's
+   * `meta.json` is flagged so later reads know the absence is intentional.
+   */
+  readonly embeddingUnsupported?: boolean | undefined;
 }
 
 /** What a single capture wrote. */
@@ -260,14 +266,33 @@ export async function captureExchange(
   }
 
   // Do the fallible network embedding + all its validation first, so a failure
-  // aborts before a single turn is persisted.
-  const embedding = await prepareEmbedding(store, [user, assistant], options.embedder);
+  // aborts before a single turn is persisted. A backend without embedding
+  // support skips this entirely — vectors are intentionally absent, never faked.
+  const embeddingUnsupported = options.embeddingUnsupported === true;
+  const embedding = embeddingUnsupported
+    ? undefined
+    : await prepareEmbedding(store, [user, assistant], options.embedder);
 
   appendJsonl(join(store.dir, CONVERSATION_FILE), turns);
   const factsExtracted = mergeFacts(config, store, user, ts);
   const vectorsEmbedded = embedding === undefined ? 0 : writeEmbedding(config, store, embedding, ts);
+  if (embeddingUnsupported) {
+    markEmbeddingUnsupported(config, store);
+  }
 
   return { turnsAppended: turns.length, factsExtracted, vectorsEmbedded };
+}
+
+/** Flag a store's `meta.json` so a later read knows vectors are absent by design. */
+function markEmbeddingUnsupported(config: Config, store: MemoryStore): void {
+  const meta = readMemoryMeta(store.dir, store.modelId);
+  if (meta.embeddingUnsupported === true && meta.embedding === undefined) {
+    return;
+  }
+  // The flag wins: drop any now-orphaned index descriptor so meta.json can never
+  // claim both a vector space and that vectors are absent.
+  const { embedding: _dropped, ...rest } = meta;
+  writeMemoryMeta(config, store.dir, { ...rest, embeddingUnsupported: true });
 }
 
 /** Merge newly-extracted facts from the user turn into `facts.json`. */

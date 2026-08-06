@@ -166,6 +166,76 @@ describe("captureExchange", () => {
     expect(meta.embedding).toBeUndefined();
   });
 
+  it("records vector-less capture in meta.json when the backend cannot embed", async () => {
+    const result = await captureExchange(
+      config,
+      store,
+      { user: "hi", assistant: "hello" },
+      { now, embeddingUnsupported: true },
+    );
+
+    expect(result.vectorsEmbedded).toBe(0);
+    expect(existsSync(join(store.dir, "embeddings"))).toBe(false);
+    const meta = JSON.parse(readFileSync(join(store.dir, "meta.json"), "utf8")) as {
+      embedding?: unknown;
+      embeddingUnsupported?: unknown;
+    };
+    expect(meta.embedding).toBeUndefined();
+    expect(meta.embeddingUnsupported).toBe(true);
+  });
+
+  it("drops a stale embedding descriptor when a later capture is vector-less", async () => {
+    // Seed an embed-capable capture, then capture again against a backend that
+    // cannot embed: the flag wins and the now-orphaned index descriptor is cleared.
+    await captureExchange(
+      config,
+      store,
+      { user: "hello", assistant: "hi" },
+      { now, embedder: makeEmbedder() },
+    );
+    await captureExchange(
+      config,
+      store,
+      { user: "hi again", assistant: "hello" },
+      { now, embeddingUnsupported: true },
+    );
+
+    const meta = JSON.parse(readFileSync(join(store.dir, "meta.json"), "utf8")) as {
+      embedding?: unknown;
+      embeddingUnsupported?: unknown;
+    };
+    expect(meta.embeddingUnsupported).toBe(true);
+    expect(meta.embedding).toBeUndefined();
+  });
+
+  it("ignores a supplied embedder when the backend cannot embed (no fabricated vectors)", async () => {
+    const embedder = makeEmbedder();
+    const result = await captureExchange(
+      config,
+      store,
+      { user: "hi", assistant: "hello" },
+      { now, embedder, embeddingUnsupported: true },
+    );
+
+    expect(embedder.embed).not.toHaveBeenCalled();
+    expect(result.vectorsEmbedded).toBe(0);
+    expect(existsSync(join(store.dir, "embeddings"))).toBe(false);
+  });
+
+  it("does not flag meta.embeddingUnsupported on the embed-capable path", async () => {
+    await captureExchange(
+      config,
+      store,
+      { user: "hi", assistant: "hello" },
+      { now, embedder: makeEmbedder() },
+    );
+
+    const meta = JSON.parse(readFileSync(join(store.dir, "meta.json"), "utf8")) as {
+      embeddingUnsupported?: unknown;
+    };
+    expect(meta.embeddingUnsupported).toBeUndefined();
+  });
+
   it("embeds turns and records the embedding model + dimension in meta.json", async () => {
     const embedder = makeEmbedder("nomic-embed-text", 3);
     const result = await captureExchange(

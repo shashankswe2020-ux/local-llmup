@@ -129,8 +129,13 @@ function harness(options: {
   replies: readonly string[];
   state?: RuntimeState;
   cat?: Catalog;
+  canEmbed?: boolean;
 }): Harness {
-  const { adapter, chat } = chatAdapter(options.replies);
+  const { adapter: chatCapable, chat } = chatAdapter(options.replies);
+  const adapter: BackendAdapter =
+    options.canEmbed === false
+      ? { ...chatCapable, capabilities: { ...chatCapable.capabilities, canEmbed: false } }
+      : chatCapable;
   const store: MemoryStore = {
     modelId: "llama3.1:8b",
     dir: join(config.memoryDir, "llama3.1-8b"),
@@ -182,6 +187,23 @@ describe("runChat", () => {
       { user: "hi", assistant: "hello there" },
       { now },
     );
+  });
+
+  it("captures vector-less with an embeddingUnsupported flag when the backend cannot embed", async () => {
+    const { deps, capture } = harness({
+      turns: ["hi"],
+      replies: ["hello there"],
+      canEmbed: false,
+    });
+
+    await runChat({}, deps);
+
+    const options = capture.mock.calls[0]?.[3] as {
+      embeddingUnsupported?: boolean;
+      embedder?: unknown;
+    };
+    expect(options.embeddingUnsupported).toBe(true);
+    expect(options.embedder).toBeUndefined();
   });
 
   it("accumulates in-session context across turns", async () => {

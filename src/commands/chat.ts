@@ -56,7 +56,11 @@ export interface ChatDeps {
     config: Config,
     store: MemoryStore,
     exchange: ChatExchange,
-    options: { now?: (() => Date) | undefined; embedder?: CaptureEmbedder | undefined },
+    options: {
+      now?: (() => Date) | undefined;
+      embedder?: CaptureEmbedder | undefined;
+      embeddingUnsupported?: boolean | undefined;
+    },
   ) => Promise<CaptureResult>;
   /** Serializes memory-store writes against other mutating commands. */
   readonly withLock: <T>(config: Config, fn: () => T | Promise<T>) => Promise<T>;
@@ -146,11 +150,18 @@ export async function runChat(
   const adapter = (
     await select({ intent: "attach", registry: deps.registry, activeBackend: active.backend })
   ).adapter;
-  const captureOptions: { now?: (() => Date) | undefined; embedder?: CaptureEmbedder | undefined } =
-    {
-      ...(deps.now !== undefined ? { now: deps.now } : {}),
-      ...(deps.embedder !== undefined ? { embedder: deps.embedder } : {}),
-    };
+  // Best-effort embeddings: a backend that cannot embed captures vector-less
+  // rather than fabricating vectors or hard-failing (honesty gate, spec §3.3).
+  const canEmbed = adapter.capabilities.canEmbed;
+  const captureOptions: {
+    now?: (() => Date) | undefined;
+    embedder?: CaptureEmbedder | undefined;
+    embeddingUnsupported?: boolean | undefined;
+  } = {
+    ...(deps.now !== undefined ? { now: deps.now } : {}),
+    ...(canEmbed && deps.embedder !== undefined ? { embedder: deps.embedder } : {}),
+    ...(!canEmbed ? { embeddingUnsupported: true } : {}),
+  };
 
   deps.log(
     `Chatting with ${stripControl(modelId)} (${stripControl(active.endpoint)}). ` +

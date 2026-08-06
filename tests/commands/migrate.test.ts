@@ -196,6 +196,48 @@ describe("runMigrate", () => {
     expect(stdout.join("")).toContain("reuse");
   });
 
+  it("captures vector-less and flags meta.json when the target backend cannot embed", async () => {
+    const cat = catalog([model("a"), model("b")]);
+    seedSourceStore(config, "a", {
+      turns: [{ role: "user", content: "hi", ts: "t" }],
+      embedding: {
+        meta: { model: "nomic-embed-text", dimension: 2 },
+        chunks: [{ id: "c1", text: "hi", ts: "t" }],
+        vectors: [{ id: "c1", vector: [0.1, 0.2] }],
+      },
+    });
+    const capable = fakeAdapter();
+    const noEmbed: BackendAdapter = {
+      ...capable,
+      capabilities: { ...capable.capabilities, canEmbed: false },
+    };
+    const deps = makeDeps(cat, {
+      registry: createRegistry([noEmbed]),
+      readState: () => ({
+        schemaVersion: STATE_SCHEMA_VERSION,
+        active: {
+          backend: "ollama",
+          modelId: "b",
+          endpoint: "http://127.0.0.1:11434",
+          pid: 1,
+          port: 11434,
+          ownedByUs: true,
+        },
+      }),
+    });
+
+    await runMigrate({ from: "a", to: "b" }, deps);
+
+    const targetDir = join(config.memoryDir, memorySlug("b"));
+    expect(existsSync(join(targetDir, "embeddings", "vectors.jsonl"))).toBe(false);
+    const meta = JSON.parse(readFileSync(join(targetDir, "meta.json"), "utf8")) as {
+      embedding?: unknown;
+      embeddingUnsupported?: unknown;
+    };
+    expect(meta.embedding).toBeUndefined();
+    expect(meta.embeddingUnsupported).toBe(true);
+  });
+
   it("re-embeds when a target embedder in a different space is supplied", async () => {
     const cat = catalog([model("a"), model("b")]);
     seedSourceStore(config, "a", {

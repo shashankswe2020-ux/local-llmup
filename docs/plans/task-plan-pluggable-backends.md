@@ -287,9 +287,9 @@ unchanged (additive/optional); no data values change (ollama unchanged).
 proceeds **vector-less** (no throw, no fabrication) and the memory store's
 `meta.json` records that vectors are absent (§3.3, §10 Q3).
 **Acceptance:**
-- [ ] `canEmbed:false` backend → entries stored with no vectors; `meta.json` flags absence.
-- [ ] No fabricated vectors, no hard failure; `canEmbed:true` path unchanged (byte-identical).
-- [ ] Both `chat` and `migrate` honor the gate.
+- [x] `canEmbed:false` backend → entries stored with no vectors; `meta.json` flags absence.
+- [x] No fabricated vectors, no hard failure; `canEmbed:true` path unchanged (byte-identical).
+- [x] Both `chat` and `migrate` honor the gate.
 **Verify:** `npm test tests/memory tests/commands/chat tests/commands/migrate`
 **Deps:** B4, B6 **Files:** `src/memory/capture.ts`, `src/commands/{chat,migrate}.ts`, `tests/memory/*`, `tests/commands/*` **Scope:** M
 

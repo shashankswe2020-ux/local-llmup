@@ -221,6 +221,20 @@ describe("planMigration — re-embed matrix", () => {
     expect(plan.embedding?.vectors).toEqual([...vectors]);
   });
 
+  it("drops the embedding index when embedding is unsupported (vector-less honesty gate)", async () => {
+    const plan = await planMigration({
+      source: withEmbeddings(),
+      targetContextLength: 1000,
+      targetEmbedder: makeEmbedder("a", 3),
+      embeddingUnsupported: true,
+    });
+
+    expect(plan.summary.embeddingStrategy).toBe("none");
+    expect(plan.summary.vectorsReembedded).toBe(0);
+    expect(plan.embedding).toBeUndefined();
+    expect(plan.embeddingUnsupported).toBe(true);
+  });
+
   it("re-embeds source chunks with the target embedder, preserving ids", async () => {
     const embedder = makeEmbedder("b", 2);
     const plan = await planMigration({

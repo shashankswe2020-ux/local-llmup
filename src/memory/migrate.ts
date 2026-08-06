@@ -121,6 +121,12 @@ export interface MigrationInput {
   readonly targetEmbedder?: MigrationEmbedder | undefined;
   /** Summarizer; absent → deterministic truncation fallback. */
   readonly summarizer?: Summarizer | undefined;
+  /**
+   * Set when the target backend cannot embed. The source index is dropped
+   * (strategy `none`) rather than reused or fabricated, and the plan flags the
+   * absence so the target store's `meta.json` records it (honesty gate, §3.3).
+   */
+  readonly embeddingUnsupported?: boolean | undefined;
 }
 
 /** How the conversation history was fit to the target context window. */
@@ -151,6 +157,8 @@ export interface MigrationPlan {
   readonly systemPrompt: string | undefined;
   readonly factsText: string;
   readonly embedding: MigrationEmbeddingPlan | undefined;
+  /** Set when vectors are intentionally absent (target backend cannot embed). */
+  readonly embeddingUnsupported?: boolean | undefined;
   readonly summary: MigrationSummary;
 }
 
@@ -359,13 +367,17 @@ export async function planMigration(input: MigrationInput): Promise<MigrationPla
     input.targetContextLength,
     input.summarizer,
   );
-  const embed = await planEmbedding(source.embedding, input.targetEmbedder);
+  const embed =
+    input.embeddingUnsupported === true
+      ? { embedding: undefined, strategy: "none" as const, reembedded: 0 }
+      : await planEmbedding(source.embedding, input.targetEmbedder);
 
   return {
     turns: remap.turns,
     systemPrompt: source.systemPrompt,
     factsText: source.factsText,
     embedding: embed.embedding,
+    ...(input.embeddingUnsupported === true ? { embeddingUnsupported: true } : {}),
     summary: {
       turnsCarried: remap.turnsCarried,
       turnsSummarized: remap.turnsSummarized,
@@ -603,6 +615,7 @@ export function stageMigration(
       modelId: targetModelId,
       createdAt,
       ...(plan.embedding !== undefined ? { embedding: plan.embedding.meta } : {}),
+      ...(plan.embeddingUnsupported === true ? { embeddingUnsupported: true } : {}),
     };
     writeStagedFile(join(stagedDir, MEMORY_META_FILE), `${JSON.stringify(meta, null, 2)}\n`);
     writeStagedFile(join(stagedDir, CONVERSATION_FILE), toJsonl(plan.turns));
