@@ -4,9 +4,14 @@ import {
   formatRecommendationJson,
   formatRecommendationText,
   runRecommend,
+  parseContextTokens,
+  assertModesExclusive,
+  CONTEXT_CEILING,
   type RecommendDeps,
 } from "../../src/commands/recommend.js";
+import { loadCatalog } from "../../src/catalog/load.js";
 import { loadPerf } from "../../src/advisor/perf-data.js";
+import { ValidationError } from "../../src/errors.js";
 import type { Capability, Catalog, CatalogModel, HardwareProfile } from "../../src/types.js";
 
 const GIB = 1024 ** 3;
@@ -256,5 +261,172 @@ describe("runRecommend", () => {
       },
     });
     await expect(runRecommend({}, d)).rejects.toThrow("boom");
+  });
+});
+
+describe("parseContextTokens", () => {
+  it("accepts a positive integer", () => {
+    expect(parseContextTokens("4096")).toBe(4096);
+    expect(parseContextTokens("1")).toBe(1);
+  });
+
+  it("rejects zero, negatives, non-numeric, and non-integer values", () => {
+    for (const bad of ["0", "-1", "abc", "1.5", "", "  ", "NaN", "Infinity"]) {
+      expect(() => parseContextTokens(bad)).toThrow(ValidationError);
+    }
+  });
+
+  it("rejects a value over the ceiling", () => {
+    expect(() => parseContextTokens(String(CONTEXT_CEILING + 1))).toThrow(ValidationError);
+    expect(parseContextTokens(String(CONTEXT_CEILING))).toBe(CONTEXT_CEILING);
+  });
+
+  it("has a ceiling at least as large as the largest catalog context length", () => {
+    const max = Math.max(...loadCatalog().models.map((m) => m.contextLength));
+    expect(CONTEXT_CEILING).toBeGreaterThanOrEqual(max);
+  });
+});
+
+describe("assertModesExclusive", () => {
+  it("throws when both --context and --max-context are set", () => {
+    expect(() => assertModesExclusive(4096, true)).toThrow(ValidationError);
+  });
+
+  it("permits either mode alone or neither", () => {
+    expect(() => assertModesExclusive(4096, undefined)).not.toThrow();
+    expect(() => assertModesExclusive(undefined, true)).not.toThrow();
+    expect(() => assertModesExclusive(undefined, undefined)).not.toThrow();
+  });
+});
+
+// Llama-3.1-8B-class KV geometry: 131072 bytes/token → ~17 GB at the 128K cap.
+const LLAMA_KV = 131072;
+
+function known(id: string, diskBytes: number, kv: number, contextLength = 131072): CatalogModel {
+  return dense(id, "8B", diskBytes, { kvBytesPerToken: kv, contextLength });
+}
+
+describe("buildRecommendation --context", () => {
+  it("sizes each entry's weights and KV cache at the requested context", () => {
+    const cat = catalog([known("llama3.1:8b", 4_900_000_000, LLAMA_KV)]);
+    const result = build(cat, appleHw(64), { context: 8192 });
+    const entry = result.entries[0]!;
+    expect(entry.contextSizing).toBeDefined();
+    expect(entry.contextSizing!.tokens).toBe(8192);
+    expect(entry.contextSizing!.weightsBytes).toBeGreaterThan(0);
+    expect(entry.contextSizing!.kvCacheBytes).toBe(LLAMA_KV * 8192);
+  });
+
+  it("moves a model that fits at a small context but not a large one to won't-fit with a memory reason (CW4)", () => {
+    const cat = catalog([known("llama3.1:8b", 4_900_000_000, LLAMA_KV)]);
+
+    const small = build(cat, appleHw(16), { context: 2048 });
+    expect(small.entries.map((e) => e.model.id)).toContain("llama3.1:8b");
+
+    const large = build(cat, appleHw(16), { context: 131072 });
+    expect(large.entries).toEqual([]);
+    expect(large.wontFit).toHaveLength(1);
+    expect(large.wontFit[0]!.reason).toBe("ram-bound"); // memory, not context-bound
+  });
+
+  it("lists a model whose context exceeds its cap as context-bound", () => {
+    const cat = catalog([known("small-ctx:8b", 4_900_000_000, LLAMA_KV, 8192)]);
+    const result = build(cat, appleHw(64), { context: 16384 });
+    expect(result.entries).toEqual([]);
+    expect(result.wontFit[0]!.reason).toBe("context-bound");
+  });
+
+  it("still ranks an unknown-geometry model by weights, with a null KV cache (CW6)", () => {
+    // Large cap so the request is within the model limit; no kvBytesPerToken.
+    const cat = catalog([dense("mystery:8b", "8B", 4_900_000_000, { contextLength: 131072 })]);
+    const result = build(cat, appleHw(64), { context: 65536 });
+    const entry = result.entries.find((e) => e.model.id === "mystery:8b")!;
+    expect(entry).toBeDefined();
+    expect(entry.contextSizing!.kvCacheBytes).toBeNull();
+    expect(entry.contextSizing!.weightsBytes).toBeGreaterThan(0);
+  });
+});
+
+describe("buildRecommendation --max-context", () => {
+  it("reports the model cap when memory allows more, bound by the model", () => {
+    const cat = catalog([known("llama3.1:8b", 4_900_000_000, LLAMA_KV, 131072)]);
+    const result = build(cat, appleHw(64), { maxContext: true });
+    const entry = result.entries[0]!;
+    expect(entry.maxContext).toBeDefined();
+    expect(entry.maxContext!.tokens).toBe(131072); // clamped to the model cap
+    expect(entry.maxContext!.boundBy).toBe("model");
+  });
+
+  it("reports the memory ceiling when it is below the model cap, bound by hardware", () => {
+    const cat = catalog([known("llama3.1:8b", 4_900_000_000, LLAMA_KV, 131072)]);
+    const result = build(cat, appleHw(16), { maxContext: true });
+    const entry = result.entries[0]!;
+    expect(entry.maxContext!.boundBy).toBe("hardware");
+    expect(entry.maxContext!.tokens).toBeGreaterThan(0);
+    expect(entry.maxContext!.tokens!).toBeLessThan(131072);
+  });
+
+  it("reports unknown for a model with no sourced KV geometry", () => {
+    const cat = catalog([dense("mystery:8b", "8B", 4_900_000_000)]);
+    const result = build(cat, appleHw(64), { maxContext: true });
+    const entry = result.entries[0]!;
+    expect(entry.maxContext!.tokens).toBeNull();
+    expect(entry.maxContext!.boundBy).toBe("unknown");
+  });
+});
+
+describe("context-mode rendering", () => {
+  const cat = catalog([
+    known("llama3.1:8b", 4_900_000_000, LLAMA_KV),
+    dense("mystery:8b", "8B", 4_900_000_000),
+  ]);
+
+  it("adds Weights and KV columns and notes the context in the header (--context)", () => {
+    const text = formatRecommendationText(build(cat, appleHw(64), { context: 8192 }));
+    expect(text).toContain("Weights");
+    expect(text).toContain("KV");
+    expect(text).toContain("8192");
+    expect(text).toContain("unknown"); // the unknown-geometry model's KV cell
+  });
+
+  it("adds Max Context and Bound-By columns (--max-context) without crashing on unknown rows (CW17)", () => {
+    const text = formatRecommendationText(build(cat, appleHw(64), { maxContext: true }));
+    expect(text).toContain("Max Context");
+    expect(text).toContain("Bound");
+    expect(text).toContain("unknown");
+  });
+
+  it("emits additive JSON fields incl. kvPrecision for --context (CW18)", () => {
+    const json = JSON.parse(formatRecommendationJson(build(cat, appleHw(64), { context: 8192 })));
+    const row = json.ranked.find((r: { id: string }) => r.id === "llama3.1:8b");
+    // Existing fields still present.
+    expect(row).toMatchObject({ rank: expect.any(Number), id: "llama3.1:8b", quant: "Q4_K_M" });
+    // Additive context fields.
+    expect(row.context).toBe(8192);
+    expect(row.weightsBytes).toBeGreaterThan(0);
+    expect(row.kvCacheBytes).toBe(LLAMA_KV * 8192);
+    expect(row.kvPrecision).toBe("fp16");
+    const unknownRow = json.ranked.find((r: { id: string }) => r.id === "mystery:8b");
+    expect(unknownRow.kvCacheBytes).toBeNull();
+  });
+
+  it("emits additive JSON fields incl. kvPrecision for --max-context", () => {
+    const json = JSON.parse(formatRecommendationJson(build(cat, appleHw(64), { maxContext: true })));
+    const row = json.ranked.find((r: { id: string }) => r.id === "llama3.1:8b");
+    expect(row.maxContextTokens).toBe(131072);
+    expect(row.boundBy).toBe("model");
+    expect(row.kvPrecision).toBe("fp16");
+    const unknownRow = json.ranked.find((r: { id: string }) => r.id === "mystery:8b");
+    expect(unknownRow.maxContextTokens).toBeNull();
+    expect(unknownRow.boundBy).toBe("unknown");
+  });
+
+  it("is deterministic for identical inputs (CW10)", () => {
+    const a = formatRecommendationText(build(cat, appleHw(64), { context: 8192 }));
+    const b = formatRecommendationText(build(cat, appleHw(64), { context: 8192 }));
+    expect(a).toBe(b);
+    const ja = formatRecommendationJson(build(cat, appleHw(64), { maxContext: true }));
+    const jb = formatRecommendationJson(build(cat, appleHw(64), { maxContext: true }));
+    expect(ja).toBe(jb);
   });
 });

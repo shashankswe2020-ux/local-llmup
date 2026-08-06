@@ -349,6 +349,16 @@ describe("maxContextTokens", () => {
     expect(large).toBeGreaterThan(small);
   });
 
+  it("yields a larger max for a smaller quant at the same budget (AC-CW19)", () => {
+    // A lighter quant leaves more of the budget for the KV cache, so the same
+    // model holds a larger context. Q4 (lighter) > Q8 (heavier) at one budget.
+    const q4 = quant({ name: "Q4_K_M", diskBytes: DISK_8B });
+    const q8 = quant({ name: "Q8_0", diskBytes: 8_500_000_000 });
+    const maxQ4 = maxContextTokens(ctxModel(), q4, B) as number;
+    const maxQ8 = maxContextTokens(ctxModel(), q8, B) as number;
+    expect(maxQ4).toBeGreaterThan(maxQ8);
+  });
+
   it("clamps to 0 when weights alone exceed the budget (AC-CW16)", () => {
     const heavy = ctxModel({ params: "70B" });
     const max = maxContextTokens(heavy, quant({ name: "Q4_K_M", diskBytes: 30 * GIB }), 4 * GIB);

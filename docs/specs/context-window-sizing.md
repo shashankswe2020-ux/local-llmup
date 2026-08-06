@@ -1,7 +1,9 @@
 # Spec: local-llmup — Context-Window-Aware Sizing
 
-> Status: **Approved (v0.2)** — decisions D6–D11 signed off with proposed
-> defaults on 2026-08-06. Ready for implementation per the companion task plan.
+> Status: **Shipped (v0.3.0)** — decisions D6–D11 implemented across tasks
+> T-CW1–T-CW5; `recommend --context <n>` and `recommend --max-context` ship with
+> KV cache sized from sourced attention geometry behind an honesty gate, and the
+> no-flag path is unchanged. Approved v0.2 on 2026-08-06.
 > Last updated: 2026-08-06
 > Extends: [hardware-advisor.md](./hardware-advisor.md) and
 > [local-llmup.md](./local-llmup.md). Adds a **context-length dimension** to the

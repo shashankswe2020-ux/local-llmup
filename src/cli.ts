@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { pathToFileURL } from "node:url";
 import { cac, type Command } from "cac";
-import { runRecommend } from "./commands/recommend.js";
+import { assertModesExclusive, parseContextTokens, runRecommend } from "./commands/recommend.js";
 import { runUp } from "./commands/up.js";
 import { runDown } from "./commands/down.js";
 import { runLs } from "./commands/ls.js";
@@ -70,28 +70,42 @@ function isCapability(value: string): value is Capability {
 function registerRecommend(command: Command): void {
   command
     .option("--task <task>", `Boost models for a task: ${CAPABILITIES.join("|")}`)
+    .option("--context <tokens>", "Size the KV cache at this context (tokens) and re-rank")
+    .option("--max-context", "Report the largest context each model can hold on this hardware")
     .option("--json", "Emit machine-readable JSON")
-    .action(async (options: { task?: string; json?: boolean }) => {
-      try {
-        if (options.task !== undefined && !isCapability(options.task)) {
-          process.stderr.write(
-            `recommend: invalid --task ${JSON.stringify(options.task)} (expected ${CAPABILITIES.join(
-              "|",
-            )})\n`,
-          );
+    .action(
+      async (options: {
+        task?: string;
+        context?: string | number;
+        maxContext?: boolean;
+        json?: boolean;
+      }) => {
+        try {
+          if (options.task !== undefined && !isCapability(options.task)) {
+            process.stderr.write(
+              `recommend: invalid --task ${JSON.stringify(options.task)} (expected ${CAPABILITIES.join(
+                "|",
+              )})\n`,
+            );
+            process.exitCode = 1;
+            return;
+          }
+          const context =
+            options.context !== undefined ? parseContextTokens(String(options.context)) : undefined;
+          assertModesExclusive(context, options.maxContext);
+          await runRecommend({
+            ...(options.task !== undefined ? { task: options.task as Capability } : {}),
+            ...(context !== undefined ? { context } : {}),
+            ...(options.maxContext === true ? { maxContext: true } : {}),
+            ...(options.json === true ? { json: true } : {}),
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          process.stderr.write(`recommend: ${stripControl(message)}\n`);
           process.exitCode = 1;
-          return;
         }
-        await runRecommend({
-          ...(options.task !== undefined ? { task: options.task as Capability } : {}),
-          ...(options.json === true ? { json: true } : {}),
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        process.stderr.write(`recommend: ${stripControl(message)}\n`);
-        process.exitCode = 1;
-      }
-    });
+      },
+    );
 }
 
 /** Wire the `up` action onto its cac command. */
@@ -292,7 +306,7 @@ export function buildCli(): ReturnType<typeof cac> {
   registerRecommend(cli.command("", COMMANDS[0]?.description ?? ""));
 
   cli.help();
-  cli.version("0.2.0");
+  cli.version("0.3.0");
   return cli;
 }
 

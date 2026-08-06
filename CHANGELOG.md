@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.0 - 2026-08-06
+
+Context-window sizing — `recommend` now understands how much context each model
+can actually hold on your machine, and how a target window changes the ranking.
+
+- `recommend` gains **`--context <tokens>`**: re-ranks the catalog with the KV
+  cache sized at your chosen window (fp16), so models that no longer fit at that
+  context drop out or fall to `slow` with a `context-bound` reason.
+- `recommend` gains **`--max-context`**: reports the largest context each model
+  can hold on your hardware, bounded by either the model geometry or your memory
+  (`boundBy: model | hardware`).
+- `--context` and `--max-context` are mutually exclusive; both surface in
+  `--json` alongside a `kvPrecision: "fp16"` field. Unknown geometry reports
+  `unknown` rather than a fabricated number (honesty gate).
+- Site adds a full command reference; README revamped with real per-command
+  terminal output.
+
 ## 0.2.0 - 2026-08-06
 
 Local AI Hardware Advisor (v1.0) — the tool now tells you not just what fits, but

@@ -4,6 +4,15 @@ const hoisted = vi.hoisted(() => ({
   runUpMock: vi.fn<(options: { model: string; port?: number | undefined }) => Promise<void>>(),
   runCanRunMock:
     vi.fn<(options: { model: string; json?: boolean }) => Promise<{ runnable: "yes" | "slow" | "no" }>>(),
+  runRecommendMock:
+    vi.fn<
+      (options: {
+        task?: string;
+        json?: boolean;
+        context?: number;
+        maxContext?: boolean;
+      }) => Promise<void>
+    >(),
 }));
 
 vi.mock("../src/commands/up.js", () => ({
@@ -14,11 +23,17 @@ vi.mock("../src/commands/can-run.js", () => ({
   runCanRun: hoisted.runCanRunMock,
 }));
 
+vi.mock("../src/commands/recommend.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/commands/recommend.js")>();
+  return { ...actual, runRecommend: hoisted.runRecommendMock };
+});
+
 import { COMMANDS, buildCli, type CommandName } from "../src/cli.js";
 
 afterEach(() => {
   hoisted.runUpMock.mockReset();
   hoisted.runCanRunMock.mockReset();
+  hoisted.runRecommendMock.mockReset();
   process.exitCode = undefined;
 });
 
@@ -124,6 +139,63 @@ describe("buildCli", () => {
     expect(hoisted.runUpMock).toHaveBeenCalledTimes(2);
     expect(hoisted.runUpMock).toHaveBeenNthCalledWith(1, { model: "llama3.1:8b", port: 1 });
     expect(hoisted.runUpMock).toHaveBeenNthCalledWith(2, { model: "llama3.1:8b", port: 65535 });
+  });
+
+  it("forwards a valid --context to runRecommend", async () => {
+    hoisted.runRecommendMock.mockResolvedValue(undefined);
+    await buildCli().parse(["node", "local-llmup", "recommend", "--context", "8192"]);
+    expect(hoisted.runRecommendMock).toHaveBeenCalledWith({ context: 8192 });
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it("forwards --max-context to runRecommend", async () => {
+    hoisted.runRecommendMock.mockResolvedValue(undefined);
+    await buildCli().parse(["node", "local-llmup", "recommend", "--max-context"]);
+    expect(hoisted.runRecommendMock).toHaveBeenCalledWith({ maxContext: true });
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it("rejects an invalid --context at the CLI boundary without running (CW8)", async () => {
+    const writes: string[] = [];
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
+      writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+      return true;
+    });
+    try {
+      const cli = buildCli();
+      for (const bad of ["0", "abc", "1.5"]) {
+        process.exitCode = undefined;
+        await cli.parse(["node", "local-llmup", "recommend", "--context", bad]);
+        expect(process.exitCode).toBe(1);
+      }
+    } finally {
+      stderr.mockRestore();
+    }
+    expect(hoisted.runRecommendMock).not.toHaveBeenCalled();
+    expect(writes.join("")).toContain("recommend:");
+  });
+
+  it("rejects --context together with --max-context (mutual exclusion, CW8)", async () => {
+    const writes: string[] = [];
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
+      writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+      return true;
+    });
+    try {
+      await buildCli().parse([
+        "node",
+        "local-llmup",
+        "recommend",
+        "--context",
+        "8192",
+        "--max-context",
+      ]);
+    } finally {
+      stderr.mockRestore();
+    }
+    expect(hoisted.runRecommendMock).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(1);
+    expect(writes.join("")).toContain("mutually exclusive");
   });
 });
 

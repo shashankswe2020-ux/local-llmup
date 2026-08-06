@@ -344,6 +344,91 @@
         white-space: nowrap;
       }
 
+      .commands {
+        border-top: 1px solid var(--rule);
+        padding: 3.4rem 2rem 3.8rem;
+      }
+
+      .commands-head {
+        font-size: clamp(1.6rem, 3vw, 2.1rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        margin: 0 0 0.6rem;
+      }
+
+      .commands-sub {
+        color: var(--ink-2);
+        margin: 0 0 2rem;
+        max-width: 60ch;
+      }
+
+      .cmd-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 1px solid var(--rule);
+      }
+
+      .cmd-table th,
+      .cmd-table td {
+        text-align: start;
+        padding: 0.85rem 1.1rem;
+        border-bottom: 1px solid var(--rule-soft);
+        vertical-align: top;
+      }
+
+      .cmd-table thead th {
+        border-bottom: 1px solid var(--rule);
+        font-weight: 700;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--ink-3);
+      }
+
+      .cmd-table tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      .cmd-table td code {
+        font-family: var(--mono);
+        font-size: 0.9rem;
+        color: var(--ink);
+        white-space: nowrap;
+      }
+
+      .cmd-table td.cmd-desc {
+        color: var(--ink-2);
+        line-height: 1.5;
+      }
+
+      @media (max-width: 620px) {
+        .cmd-table,
+        .cmd-table tbody,
+        .cmd-table tr,
+        .cmd-table td {
+          display: block;
+          width: 100%;
+        }
+
+        .cmd-table thead {
+          display: none;
+        }
+
+        .cmd-table tr {
+          border-bottom: 1px solid var(--rule);
+          padding: 0.4rem 0;
+        }
+
+        .cmd-table tr:last-child {
+          border-bottom: none;
+        }
+
+        .cmd-table td {
+          border-bottom: none;
+          padding: 0.3rem 1.1rem;
+        }
+      }
+
       .foot {
         display: flex;
         align-items: center;
@@ -426,6 +511,7 @@
       <header class="nav">
         <a class="wordmark" href="./">local-llmup</a>
         <nav class="nav-links">
+          <a class="opt" href="#commands">Commands</a>
           <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
           <a class="opt" href="https://www.npmjs.com/package/local-llmup">npm</a>
           <a href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
@@ -501,7 +587,9 @@
             <h2>Runnability, not guesswork</h2>
             <p>
               An AI Hardware Score (0–100) names your bottleneck, and every model gets a
-              yes / slow / no verdict with an estimated tok/s range. Unknown hardware says
+              yes / slow / no verdict with an estimated tok/s range. Size the KV cache at a
+              chosen window with <code>recommend --context</code>, or find each model's ceiling
+              with <code>--max-context</code>. Unknown hardware or geometry says
               “unknown” — never a made-up number.
             </p>
           </article>
@@ -570,6 +658,20 @@
             </div>
 
             <div class="setup-card">
+              <h3>Size the context</h3>
+              <div class="install install--block" data-install="local-llmup recommend --context 32768">
+                <code>local-llmup recommend --context 32768</code>
+                <button class="copy" type="button" aria-label="Copy recommend context command">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <rect x="9" y="9" width="11" height="11" />
+                    <path d="M5 15V5a1 1 0 0 1 1-1h9" />
+                  </svg>
+                </button>
+              </div>
+              <p>Re-ranks with the KV cache sized at your window. Add <code>--max-context</code> for each model's ceiling.</p>
+            </div>
+
+            <div class="setup-card">
               <h3>Pull and serve</h3>
               <div class="install install--block" data-install="local-llmup up qwen3:30b-a3b">
                 <code>local-llmup up qwen3:30b-a3b</code>
@@ -611,6 +713,88 @@
               <p>Scores your hardware, names the primary bottleneck, and reports actionable issues.</p>
             </div>
           </div>
+        </section>
+
+        <section class="commands" id="commands">
+          <h2 class="commands-head">All commands</h2>
+          <p class="commands-sub">
+            Ten commands cover the whole local-LLM lifecycle — from hardware-aware discovery to
+            serving, chatting, and migrating memory. Run any command with <code>--help</code>, or
+            <code>--json</code> for machine-readable output.
+          </p>
+
+          <table class="cmd-table">
+            <thead>
+              <tr>
+                <th>Command</th>
+                <th>What it does</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>recommend</code></td>
+                <td class="cmd-desc">
+                  Default command. Ranks the catalog for your machine with a yes / slow / no verdict
+                  and est. tok/s. Size the KV cache with <code>--context</code> or find each model's
+                  ceiling with <code>--max-context</code>; filter by <code>--task</code>.
+                </td>
+              </tr>
+              <tr>
+                <td><code>can-run</code></td>
+                <td class="cmd-desc">
+                  Checks a single model and answers yes / slow / no with the binding reason and est.
+                  tok/s. Exits non-zero only on <em>no</em>, so it works as a script gate.
+                </td>
+              </tr>
+              <tr>
+                <td><code>catalog</code></td>
+                <td class="cmd-desc">
+                  Lists the curated model catalog with quantization, size, and context length.
+                  Filters to what fits your machine.
+                </td>
+              </tr>
+              <tr>
+                <td><code>doctor</code></td>
+                <td class="cmd-desc">
+                  Scores your hardware (0–100), names the primary bottleneck, and reports actionable
+                  environment issues.
+                </td>
+              </tr>
+              <tr>
+                <td><code>up</code></td>
+                <td class="cmd-desc">
+                  Pulls a model through Ollama (integrity-verified) and brings up the loopback-only
+                  server endpoint.
+                </td>
+              </tr>
+              <tr>
+                <td><code>chat</code></td>
+                <td class="cmd-desc">
+                  Opens an interactive prompt against the active or selected model; the exchange is
+                  recorded to local memory.
+                </td>
+              </tr>
+              <tr>
+                <td><code>ls</code></td>
+                <td class="cmd-desc">Shows the currently active model and server endpoint.</td>
+              </tr>
+              <tr>
+                <td><code>switch</code></td>
+                <td class="cmd-desc">Switches the active server to a different already-served model.</td>
+              </tr>
+              <tr>
+                <td><code>migrate</code></td>
+                <td class="cmd-desc">
+                  Moves local memory from one model to another when you change quality or latency
+                  targets. Preview with <code>--dry-run</code>.
+                </td>
+              </tr>
+              <tr>
+                <td><code>down</code></td>
+                <td class="cmd-desc">Stops the local server when you are done.</td>
+              </tr>
+            </tbody>
+          </table>
         </section>
       </main>
 

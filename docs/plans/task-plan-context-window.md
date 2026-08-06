@@ -123,7 +123,7 @@ Wire the optional context through `verdict` (throughput unaffected in v1).
 **Review:** code-reviewer APPROVE (no Critical/Important). Confirmed the `evaluateFit` refactor is byte-identical, the fixed-context quant monotonicity holds, and no other exhaustive `FitReason` map breaks (added `context-bound` to can-run's `REASON_LABEL`). Applied two nice-to-haves: fail-loud invariant instead of a silent `??` fallback in the known-geometry callback (memory-safety defense-in-depth), and tightened the verdict throughput doc. Deferred to T-CW4: friendly `context-bound` label in `recommend`'s won't-fit section.
 **Deps:** T-CW1, T-CW2, D8 **Files:** `src/ranking/fit.ts`, `src/ranking/rank.ts`, `src/advisor/verdict.ts`, `src/commands/can-run.ts`, tests **Scope:** M ✅ DONE (2026-08-06)
 
-### T-CW4: `recommend --context` / `--max-context` (command) — **D9**
+### T-CW4: `recommend --context` / `--max-context` (command) — **D9** — ✅ DONE (2026-08-06)
 **Description:** Parse `--context <int>` and `--max-context` (mutually exclusive;
 Zod-validated integer, ceiling ≥ largest catalog `contextLength`). `--context`:
 add Weights / KV@N columns, re-rank + verdict; won't-fit shows the memory or
@@ -133,22 +133,24 @@ clamped to `model.contextLength`, labeled `model`/`hardware`/`unknown`. `--json`
 gains fields **additively** (incl. `"kvPrecision":"fp16"`). Thin renderer;
 delegates to pure fns.
 **Acceptance (AC-CW6-cmd, CW7, CW8, CW10, CW17–19):**
-- [ ] `--context` columns + JSON; won't-fit reasons correct.
-- [ ] `--max-context` reports `min(memoryMaxTokens, model cap)` + binding label; smaller quant → larger max (CW19).
-- [ ] Mutual-exclusion + invalid `--context` (`0`, negative, non-numeric, non-integer, over ceiling) → clear error, non-zero exit (CW8).
-- [ ] `unknown` rows never crash; mixed known/unknown rank + JSON order stable (CW17); JSON additive-only (CW18); deterministic text+JSON (CW10).
+- [x] `--context` columns + JSON; won't-fit reasons correct.
+- [x] `--max-context` reports `min(memoryMaxTokens, model cap)` + binding label; smaller quant → larger max (CW19).
+- [x] Mutual-exclusion + invalid `--context` (`0`, negative, non-numeric, non-integer, over ceiling) → clear error, non-zero exit (CW8).
+- [x] `unknown` rows never crash; mixed known/unknown rank + JSON order stable (CW17); JSON additive-only (CW18); deterministic text+JSON (CW10).
 **Verify:** `npm test tests/commands/recommend tests/cli`
 **Deps:** T-CW3, D9 **Files:** `src/commands/recommend.ts`, `src/output.ts` (if new columns), tests **Scope:** M
+**Review:** code-reviewer APPROVE (no Critical/Important). Honesty gate preserved end-to-end (`kvBytesPerToken === undefined` → `kvCacheBytes: null` / `boundBy: "unknown"` / `tokens: null`, model still ranked by weights); `exactOptionalPropertyTypes` conditional-spread discipline clean; binding label `memoryMax < cap ? "hardware" : "model"` (tie → `model`, D9); re-rank threads context into both `rankModels` and `evaluateVerdict`; `toLocaleString("en-US")` pins locale (CW10). Applied nice-to-have: route `buildContextSizing` through the `kvBytesPerToken(model)` accessor seam. Validation is CLI-boundary (`parseContextTokens` + `assertModesExclusive`) — cac parses bare `-N` as a flag, so negative `--context` is caught by cac upstream. 634 tests, typecheck/build/lint clean.
 
-### T-CW5: Docs — README + site + spec status
+### T-CW5: Docs — README + site + spec status — ✅ DONE (2026-08-06)
 **Description:** Document both flags (README commands/examples, site feature/setup
 card) and flip `context-window-sizing.md` status to reflect shipped scope.
 **Acceptance:**
-- [ ] README shows `--context` and `--max-context` usage + example output.
-- [ ] Site mentions context-aware sizing; example refreshed.
-- [ ] `packs only publish-safe files` shipping test still passes.
+- [x] README shows `--context` and `--max-context` usage + example output.
+- [x] Site mentions context-aware sizing; example refreshed.
+- [x] `packs only publish-safe files` shipping test still passes.
 **Verify:** `npm test tests/shipping`
 **Deps:** T-CW4 **Files:** `README.md`, `site/index.html`, `docs/specs/context-window-sizing.md` **Scope:** S
+**Review:** Docs-only. README gains a context-aware feature bullet, two one-liners, two real example-output blocks (`--context 32768` and `--max-context`, rows trimmed from live CLI output), and an updated `recommend` command-table row; site gains context copy in the "Runnability" feature and a "Size the context" setup card; spec status flipped **Approved (v0.2) → Shipped (v0.3.0)**. `npm test tests/shipping` green (3/3); full suite 634 green.
 
 > **Checkpoint (v0.3.0):** `recommend --context <n>` and `recommend --max-context`
 > ship; KV cache sized from sourced geometry with an honesty gate; no-flag behavior

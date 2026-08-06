@@ -6,12 +6,22 @@
  */
 import { loadCatalog } from "../catalog/load.js";
 import { detectHardware } from "../hardware/detect.js";
-import { usableMemoryBytes, usableMemoryKind } from "../hardware/memory-math.js";
+import {
+  kvBytesPerToken,
+  kvCacheBytes,
+  maxContextTokens,
+  usableMemoryBytes,
+  usableMemoryKind,
+  weightBytes,
+} from "../hardware/memory-math.js";
 import { loadPerf, type PerfDataset } from "../advisor/perf-data.js";
 import { evaluateVerdict } from "../advisor/verdict.js";
 import { renderJson, renderTable, type Column } from "../output.js";
-import { rankModels, type WontFitModel } from "../ranking/rank.js";
+import { rankModels, type RankOptions, type WontFitModel } from "../ranking/rank.js";
+import { HEADROOM } from "../ranking/weights.js";
 import { stripControl } from "../sanitize.js";
+import { ValidationError } from "../errors.js";
+import { z } from "zod";
 import type {
   Capability,
   Catalog,
@@ -24,11 +34,68 @@ import type {
 
 const CLI_NAME = "local-llmup";
 
+/**
+ * Upper bound for `--context`, well above any current model's cap (largest
+ * catalog `contextLength` is 262 144). It rejects absurd input before the KV
+ * math runs; a guard test keeps it ≥ the largest catalog context length.
+ */
+export const CONTEXT_CEILING = 10_000_000;
+
+const contextSchema = z.number().int().min(1).max(CONTEXT_CEILING);
+
+/**
+ * Parse and validate a `--context` token count. Throws {@link ValidationError}
+ * for anything that is not an integer in `1..CONTEXT_CEILING` (zero, negative,
+ * non-numeric, fractional, or over the ceiling).
+ */
+export function parseContextTokens(raw: string): number {
+  const parsed = contextSchema.safeParse(Number(raw));
+  if (!parsed.success) {
+    throw new ValidationError(
+      `--context must be an integer in 1..${String(CONTEXT_CEILING)}: ${raw}`,
+    );
+  }
+  return parsed.data;
+}
+
+/**
+ * `--context` and `--max-context` are mutually exclusive. Throws
+ * {@link ValidationError} when both are requested.
+ */
+export function assertModesExclusive(
+  context: number | undefined,
+  maxContext: boolean | undefined,
+): void {
+  if (context !== undefined && maxContext === true) {
+    throw new ValidationError("--context and --max-context are mutually exclusive");
+  }
+}
+
 export interface RecommendOptions {
   /** Boost models advertising this capability; omit to stay capability-neutral. */
   readonly task?: Capability | undefined;
   /** Emit machine-readable JSON instead of a human table. */
   readonly json?: boolean | undefined;
+  /** Size the KV cache at this explicit context (tokens); re-ranks and re-verdicts. */
+  readonly context?: number | undefined;
+  /** Report the largest context each model can hold on this hardware. */
+  readonly maxContext?: boolean | undefined;
+}
+
+/** Weights and KV-cache footprint of a model at the requested `--context`. */
+export interface ContextSizing {
+  readonly tokens: number;
+  readonly weightsBytes: number;
+  /** KV cache bytes at `tokens`, or `null` when the model has no sourced geometry. */
+  readonly kvCacheBytes: number | null;
+}
+
+/** Largest holdable context for a model on the detected hardware (`--max-context`). */
+export interface MaxContextInfo {
+  /** Reported ceiling in tokens, or `null` when the model has no sourced geometry. */
+  readonly tokens: number | null;
+  /** What binds the ceiling: the `model` cap, the `hardware` budget, or `unknown` geometry. */
+  readonly boundBy: "model" | "hardware" | "unknown";
 }
 
 /** One ranked, fitting model with its selected quant and score. */
@@ -42,6 +109,10 @@ export interface RecommendationEntry {
   readonly verdict: Runnable;
   /** Estimated decode throughput; `known:false` when the hardware has no profile. */
   readonly throughput: ThroughputEstimate;
+  /** Present in `--context` mode: weights + KV footprint at the requested context. */
+  readonly contextSizing?: ContextSizing;
+  /** Present in `--max-context` mode: the largest holdable context. */
+  readonly maxContext?: MaxContextInfo;
 }
 
 /** The full recommendation: what fits, what does not, and the top-pick command. */
@@ -53,6 +124,39 @@ export interface RecommendationResult {
   readonly wontFit: readonly WontFitModel[];
   /** `local-llmup up <id>` for the top pick, or `null` when nothing fits. */
   readonly command: string | null;
+  /** The requested `--context` (tokens), present only in context mode. */
+  readonly context?: number;
+  /** True when `--max-context` was requested. */
+  readonly maxContextMode: boolean;
+}
+
+/** Weights + KV footprint of one model/quant at `tokens` (KV null when unknown). */
+function buildContextSizing(
+  model: CatalogModel,
+  quant: Quantization,
+  tokens: number,
+): ContextSizing {
+  const perToken = kvBytesPerToken(model);
+  return {
+    tokens,
+    weightsBytes: weightBytes(model, quant),
+    kvCacheBytes: perToken !== undefined ? kvCacheBytes(perToken, tokens) : null,
+  };
+}
+
+/** Largest holdable context for one model/quant within the headroom-adjusted budget. */
+function buildMaxContext(
+  model: CatalogModel,
+  quant: Quantization,
+  usableBytes: number,
+): MaxContextInfo {
+  const budget = usableBytes * (1 - HEADROOM);
+  const memoryMax = maxContextTokens(model, quant, budget);
+  if (memoryMax === undefined) return { tokens: null, boundBy: "unknown" };
+  const cap = model.contextLength;
+  // min(memory ceiling, model cap): the model cap is a hard semantic limit that
+  // more RAM cannot lift, so when memory allows more the cap binds ("model").
+  return { tokens: Math.min(memoryMax, cap), boundBy: memoryMax < cap ? "hardware" : "model" };
 }
 
 /** Rank `catalog` against `hardware` into a renderable recommendation. */
@@ -62,14 +166,23 @@ export function buildRecommendation(
   perf: PerfDataset,
   options: RecommendOptions = {},
 ): RecommendationResult {
-  const ranking = rankModels(
-    catalog,
-    hardware,
-    options.task !== undefined ? { task: options.task } : {},
-  );
+  const rankOptions: RankOptions = {
+    ...(options.task !== undefined ? { task: options.task } : {}),
+    ...(options.context !== undefined ? { context: options.context } : {}),
+  };
+  const ranking = rankModels(catalog, hardware, rankOptions);
+  const usableBytes = usableMemoryBytes(hardware);
 
   const entries: RecommendationEntry[] = ranking.ranked.map((ranked, index) => {
-    const verdict = evaluateVerdict(ranked.model, hardware, perf);
+    const verdict = evaluateVerdict(ranked.model, hardware, perf, options.context);
+    const contextSizing =
+      options.context !== undefined
+        ? buildContextSizing(ranked.model, ranked.quant, options.context)
+        : undefined;
+    const maxContext =
+      options.maxContext === true
+        ? buildMaxContext(ranked.model, ranked.quant, usableBytes)
+        : undefined;
     return {
       rank: index + 1,
       model: ranked.model,
@@ -78,17 +191,21 @@ export function buildRecommendation(
       score: ranked.score,
       verdict: verdict.runnable,
       throughput: verdict.throughput,
+      ...(contextSizing !== undefined ? { contextSizing } : {}),
+      ...(maxContext !== undefined ? { maxContext } : {}),
     };
   });
 
   const top = entries[0];
   return {
     hardware,
-    usableBytes: usableMemoryBytes(hardware),
+    usableBytes,
     memoryKind: usableMemoryKind(hardware),
     entries,
     wontFit: ranking.wontFit,
     command: top !== undefined ? `${CLI_NAME} up ${top.model.id}` : null,
+    ...(options.context !== undefined ? { context: options.context } : {}),
+    maxContextMode: options.maxContext === true,
   };
 }
 
@@ -114,17 +231,87 @@ function tokRange(t: ThroughputEstimate): string {
   return `${String(t.lowTokPerSec)}–${String(t.highTokPerSec)}`;
 }
 
-const TABLE_COLUMNS: readonly Column[] = [
+/** A byte cell that renders `unknown` for an absent (honesty-gated) figure. */
+function bytesOrUnknown(bytes: number | null): string {
+  return bytes === null ? "unknown" : formatGiB(bytes);
+}
+
+/** A token count grouped for readability, or `unknown` when absent. */
+function tokensOrUnknown(tokens: number | null): string {
+  return tokens === null ? "unknown" : tokens.toLocaleString("en-US");
+}
+
+const BASE_COLUMNS: readonly Column[] = [
   { header: "Rank", align: "right" },
   { header: "Model" },
   { header: "Params", align: "right" },
   { header: "Quant" },
-  { header: "Est. Mem", align: "right" },
+];
+
+const TAIL_COLUMNS: readonly Column[] = [
   { header: "Verdict" },
   { header: "Est. tok/s", align: "right" },
   { header: "License" },
   { header: "Score", align: "right" },
 ];
+
+/** Columns for the current mode: base + mode-specific footprint columns + tail. */
+function tableColumns(result: RecommendationResult): readonly Column[] {
+  const middle: readonly Column[] =
+    result.context !== undefined
+      ? [
+          { header: "Weights", align: "right" },
+          { header: "KV Cache", align: "right" },
+          { header: "Est. Mem", align: "right" },
+        ]
+      : result.maxContextMode
+        ? [
+            { header: "Est. Mem", align: "right" },
+            { header: "Max Context", align: "right" },
+            { header: "Bound-By" },
+          ]
+        : [{ header: "Est. Mem", align: "right" }];
+  return [...BASE_COLUMNS, ...middle, ...TAIL_COLUMNS];
+}
+
+/** One table row for `entry`, matching the columns for the current mode. */
+function tableRow(entry: RecommendationEntry, result: RecommendationResult): readonly string[] {
+  const head = [String(entry.rank), entry.model.id, entry.model.params, entry.quant.name];
+  const tail = [
+    verdictLabel(entry.verdict),
+    tokRange(entry.throughput),
+    entry.model.license,
+    entry.score.toFixed(2),
+  ];
+  let middle: string[];
+  if (result.context !== undefined) {
+    const cs = entry.contextSizing;
+    middle = [
+      cs !== undefined ? formatGiB(cs.weightsBytes) : "",
+      cs !== undefined ? bytesOrUnknown(cs.kvCacheBytes) : "",
+      formatGiB(entry.requiredBytes),
+    ];
+  } else if (result.maxContextMode) {
+    const mc = entry.maxContext;
+    middle = [
+      formatGiB(entry.requiredBytes),
+      mc !== undefined ? tokensOrUnknown(mc.tokens) : "",
+      mc !== undefined ? mc.boundBy : "",
+    ];
+  } else {
+    middle = [formatGiB(entry.requiredBytes)];
+  }
+  return [...head, ...middle, ...tail];
+}
+
+/** A one-line note describing the active sizing mode, appended to the header. */
+function modeNote(result: RecommendationResult): string {
+  if (result.context !== undefined) {
+    return ` — sized at ${String(result.context)}-token context (KV fp16)`;
+  }
+  if (result.maxContextMode) return " — largest holdable context per model (KV fp16)";
+  return "";
+}
 
 function wontFitSection(wontFit: readonly WontFitModel[]): string {
   // Sanitize ids here too: unlike the table/JSON renderers, this plain-text
@@ -141,24 +328,15 @@ export function formatRecommendationText(result: RecommendationResult): string {
 
   const header = `Ranked local LLMs for ${result.hardware.arch}/${result.hardware.platform} (${formatGiB(
     result.usableBytes,
-  )} ${result.memoryKind} usable):`;
+  )} ${result.memoryKind} usable):${modeNote(result)}`;
   const sections: string[] = [header];
 
   if (result.entries.length === 0) {
     sections.push("No models fit this hardware.");
   } else {
-    const rows = result.entries.map((entry) => [
-      String(entry.rank),
-      entry.model.id,
-      entry.model.params,
-      entry.quant.name,
-      formatGiB(entry.requiredBytes),
-      verdictLabel(entry.verdict),
-      tokRange(entry.throughput),
-      entry.model.license,
-      entry.score.toFixed(2),
-    ]);
-    sections.push(renderTable(TABLE_COLUMNS, rows));
+    const columns = tableColumns(result);
+    const rows = result.entries.map((entry) => tableRow(entry, result));
+    sections.push(renderTable(columns, rows));
     if (result.command !== null) {
       sections.push(`Run the top pick:  ${stripControl(result.command)}`);
     }
@@ -169,6 +347,26 @@ export function formatRecommendationText(result: RecommendationResult): string {
   }
 
   return sections.join("\n\n");
+}
+
+/** Additive `--context` / `--max-context` JSON fields for one ranked entry. */
+function sizingJsonFields(entry: RecommendationEntry): Record<string, unknown> {
+  if (entry.contextSizing !== undefined) {
+    return {
+      context: entry.contextSizing.tokens,
+      weightsBytes: entry.contextSizing.weightsBytes,
+      kvCacheBytes: entry.contextSizing.kvCacheBytes,
+      kvPrecision: "fp16",
+    };
+  }
+  if (entry.maxContext !== undefined) {
+    return {
+      maxContextTokens: entry.maxContext.tokens,
+      boundBy: entry.maxContext.boundBy,
+      kvPrecision: "fp16",
+    };
+  }
+  return {};
 }
 
 /** Render the stable machine-readable report for `--json`. */
@@ -197,6 +395,7 @@ export function formatRecommendationJson(result: RecommendationResult): string {
             highTokPerSec: entry.throughput.highTokPerSec,
           }
         : null,
+      ...sizingJsonFields(entry),
     })),
     wontFit: result.wontFit.map((entry) => ({ id: entry.model.id, reason: entry.reason })),
     command: result.command,
