@@ -294,7 +294,6 @@ describe("loadPerf — bundled dataset", () => {
     expect(ds.schemaVersion).toBe(1);
     expect(ds.classes.length).toBeGreaterThan(0);
   });
-
   it("resolves the default dataset to data/perf.json", () => {
     expect(DEFAULT_PERF_PATH.endsWith("data/perf.json")).toBe(true);
   });
@@ -304,5 +303,116 @@ describe("loadPerf — bundled dataset", () => {
       expect(cls.sources.bandwidth.trim().length).toBeGreaterThan(0);
       expect(cls.sources.efficiency.trim().length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("parsePerf — efficiencyByBackend (B9)", () => {
+  const provenance = {
+    value: 0.7,
+    trustTier: "session-verified",
+    basisBytesPerToken: 4.4e9,
+    url: "https://github.com/ggml-org/llama.cpp/discussions/4167",
+  };
+
+  function classWith(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      id: "apple-silicon-max",
+      label: "Apple silicon Max",
+      vendor: "apple",
+      kind: "unified",
+      memBandwidthGBps: 400,
+      efficiency: 0.7,
+      minBytes: 40 * GIB,
+      maxBytes: 96 * GIB,
+      sources: SOURCES,
+      ...overrides,
+    };
+  }
+
+  function parse(cls: Record<string, unknown>): ReturnType<typeof parsePerf> {
+    return parsePerf(
+      JSON.stringify({
+        schemaVersion: 1,
+        generatedAt: "2026-08-06T00:00:00Z",
+        classes: [cls],
+      }),
+    );
+  }
+
+  it("accepts optional per-backend scalars plus provenance", () => {
+    const ds = parse(
+      classWith({
+        efficiencyByBackend: { ollama: 0.7, llamacpp: 0.7 },
+        sources: { ...SOURCES, efficiencyByBackend: { llamacpp: provenance } },
+      }),
+    );
+    expect(ds.classes[0]?.efficiencyByBackend).toEqual({ ollama: 0.7, llamacpp: 0.7 });
+    expect(ds.classes[0]?.sources.efficiencyByBackend?.llamacpp?.value).toBe(0.7);
+  });
+
+  it("keeps schemaVersion at 1 (additive, no bump)", () => {
+    const ds = parse(classWith({ efficiencyByBackend: { llamacpp: 0.7 } }));
+    expect(ds.schemaVersion).toBe(1);
+  });
+
+  it("accepts a class with no efficiencyByBackend (fully optional)", () => {
+    expect(() => parse(classWith())).not.toThrow();
+  });
+
+  it("rejects a per-backend scalar above 1", () => {
+    expect(() => parse(classWith({ efficiencyByBackend: { llamacpp: 1.5 } }))).toThrow(
+      ValidationError,
+    );
+  });
+
+  it("rejects a per-backend scalar of zero", () => {
+    expect(() => parse(classWith({ efficiencyByBackend: { llamacpp: 0 } }))).toThrow(
+      ValidationError,
+    );
+  });
+
+  it("rejects an unknown backend key", () => {
+    expect(() => parse(classWith({ efficiencyByBackend: { bogus: 0.7 } }))).toThrow(
+      ValidationError,
+    );
+  });
+
+  it("rejects an unknown key in a provenance entry (strict)", () => {
+    expect(() =>
+      parse(
+        classWith({
+          sources: {
+            ...SOURCES,
+            efficiencyByBackend: { llamacpp: { ...provenance, rogue: true } },
+          },
+        }),
+      ),
+    ).toThrow(ValidationError);
+  });
+
+  it("rejects an invalid trustTier", () => {
+    expect(() =>
+      parse(
+        classWith({
+          sources: {
+            ...SOURCES,
+            efficiencyByBackend: { llamacpp: { ...provenance, trustTier: "made-up" } },
+          },
+        }),
+      ),
+    ).toThrow(ValidationError);
+  });
+
+  it("rejects a non-URL provenance url", () => {
+    expect(() =>
+      parse(
+        classWith({
+          sources: {
+            ...SOURCES,
+            efficiencyByBackend: { llamacpp: { ...provenance, url: "not a url" } },
+          },
+        }),
+      ),
+    ).toThrow(ValidationError);
   });
 });

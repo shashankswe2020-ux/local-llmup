@@ -273,10 +273,10 @@ call sites so the ripple stays additive (review findings I4/S1). Resolution:
 undefined)`; `undefined` → honesty-gate `UNKNOWN`. Dataset `schemaVersion`
 unchanged (additive/optional); no data values change (ollama unchanged).
 **Acceptance:**
-- [ ] `.strict()` `PerfSourcesSchema` widened for `efficiencyByBackend` provenance; rejects out-of-range/unknown keys; `schemaVersion` still `1`.
-- [ ] `backend` param optional, defaults to `ollama`; all call sites (`throughput`/`verdict`/`rank`/`fit` as applicable) still typecheck.
-- [ ] Default Ollama throughput **byte-identical** to today.
-- [ ] Absent `(class, backend)` (e.g. `mlx`) → `known:false`.
+- [x] `.strict()` `PerfSourcesSchema` widened for `efficiencyByBackend` provenance; rejects out-of-range/unknown keys; `schemaVersion` still `1`.
+- [x] `backend` param optional, defaults to `ollama`; all call sites (`throughput`/`verdict`/`rank`/`fit` as applicable) still typecheck.
+- [x] Default Ollama throughput **byte-identical** to today.
+- [x] Absent `(class, backend)` (e.g. `mlx`) → `known:false`.
 **Verify:** `npm test tests/advisor/perf-data tests/advisor/throughput && npm run typecheck`
 **Deps:** B7 **Files:** `src/advisor/perf-data.ts`, `src/advisor/throughput.ts`, `data/perf.json`, `tests/advisor/*` **Scope:** M
 

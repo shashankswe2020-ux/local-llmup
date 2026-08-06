@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { loadPerf } from "../../src/advisor/perf-data.js";
+import { loadPerf, parsePerf } from "../../src/advisor/perf-data.js";
 import { estimateTokPerSec } from "../../src/advisor/throughput.js";
 import { requiredMemoryBytes } from "../../src/hardware/memory-math.js";
 import type {
@@ -146,6 +146,72 @@ const CALIBRATION: readonly CalibrationCase[] = JSON.parse(
     "utf8",
   ),
 ) as CalibrationCase[];
+
+describe("estimateTokPerSec — per-backend efficiency resolution (B9)", () => {
+  const nvidiaHw = hw({ gpu: [{ vendor: "nvidia", vramBytes: 24 * GIB }], totalRamBytes: 64 * GIB });
+
+  function datasetWith(efficiencyByBackend?: Record<string, number>): ReturnType<typeof loadPerf> {
+    const cls: Record<string, unknown> = {
+      id: "nvidia-24gb-class",
+      label: "NVIDIA 24GB class",
+      vendor: "nvidia",
+      kind: "discrete",
+      memBandwidthGBps: 950,
+      efficiency: 0.68,
+      minBytes: 20 * GIB,
+      maxBytes: 28 * GIB,
+      sources: { bandwidth: "vendor spec sheet", efficiency: "llama.cpp decode benchmark" },
+    };
+    if (efficiencyByBackend !== undefined) cls["efficiencyByBackend"] = efficiencyByBackend;
+    return parsePerf(
+      JSON.stringify({
+        schemaVersion: 1,
+        generatedAt: "2026-08-06T00:00:00Z",
+        classes: [cls],
+      }),
+    );
+  }
+
+  it("defaults to ollama, identical to passing backend:'ollama'", () => {
+    const ds = datasetWith();
+    const bare = estimateTokPerSec(model("7B"), quant(), nvidiaHw, ds);
+    const explicit = estimateTokPerSec(model("7B"), quant(), nvidiaHw, ds, { backend: "ollama" });
+    expect(bare).toEqual(explicit);
+  });
+
+  it("llamacpp shares the class efficiency when it has no explicit scalar", () => {
+    const ds = datasetWith();
+    const ollama = estimateTokPerSec(model("7B"), quant(), nvidiaHw, ds, { backend: "ollama" });
+    const llamacpp = estimateTokPerSec(model("7B"), quant(), nvidiaHw, ds, { backend: "llamacpp" });
+    expect(llamacpp).toEqual(ollama);
+  });
+
+  it("mlx with no scalar is honesty-gated to known:false", () => {
+    const ds = datasetWith();
+    const mlx = estimateTokPerSec(model("7B"), quant(), nvidiaHw, ds, { backend: "mlx" });
+    expect(mlx.known).toBe(false);
+    expect(mlx.lowTokPerSec).toBe(0);
+    expect(mlx.highTokPerSec).toBe(0);
+  });
+
+  it("uses an explicit per-backend scalar when present", () => {
+    const ds = datasetWith({ mlx: 0.5 });
+    const mlx = estimateTokPerSec(model("7B"), quant(), nvidiaHw, ds, { backend: "mlx" });
+    const ollama = estimateTokPerSec(model("7B"), quant(), nvidiaHw, ds, { backend: "ollama" });
+    expect(mlx.known).toBe(true);
+    // 0.5/0.68 of the ollama estimate (same bandwidth & bytes/token).
+    expect(mlx.lowTokPerSec).toBeCloseTo(ollama.lowTokPerSec * (0.5 / 0.68), 1);
+  });
+
+  it("an explicit scalar overrides the shared class efficiency", () => {
+    const ds = datasetWith({ llamacpp: 0.9 });
+    const shared = estimateTokPerSec(model("7B"), quant(), nvidiaHw, ds, { backend: "ollama" });
+    const overridden = estimateTokPerSec(model("7B"), quant(), nvidiaHw, ds, {
+      backend: "llamacpp",
+    });
+    expect(overridden.lowTokPerSec).toBeGreaterThan(shared.lowTokPerSec);
+  });
+});
 
 describe("estimateTokPerSec — calibration (AC6)", () => {
   it("contains the published throughput for ≥80% of curated pairs", () => {

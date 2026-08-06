@@ -96,6 +96,29 @@ describe("evaluateVerdict", () => {
   });
 });
 
+describe("evaluateVerdict with an explicit backend (B9)", () => {
+  it("defaults to ollama — the bare call is byte-identical to an explicit ollama backend", () => {
+    const bare = evaluateVerdict(model("7B"), hw(), perf);
+    const ollama = evaluateVerdict(model("7B"), hw(), perf, undefined, "ollama");
+    expect(ollama.throughput).toEqual(bare.throughput);
+  });
+
+  it("shares the class efficiency for llama.cpp (no invented delta vs ollama)", () => {
+    const ollama = evaluateVerdict(model("7B"), hw(), perf, undefined, "ollama");
+    const llamacpp = evaluateVerdict(model("7B"), hw(), perf, undefined, "llamacpp");
+    expect(llamacpp.throughput).toEqual(ollama.throughput);
+  });
+
+  it("downgrades `yes` to `slow` for a backend with no sourced efficiency (honesty gate)", () => {
+    // The bundled dataset encodes no per-backend scalars, so `mlx` on an
+    // otherwise-`yes` machine has no sourced figure → throughput unknown.
+    const v = evaluateVerdict(model("7B"), hw(), perf, undefined, "mlx");
+    expect(v.runnable).toBe("slow");
+    expect(v.throughput.known).toBe(false);
+    expect(v.quant?.name).toBe("Q4_K_M");
+  });
+});
+
 describe("evaluateVerdict with an explicit context", () => {
   function ctxModel(kvBytesPerToken?: number, contextLength = 131072): CatalogModel {
     return {

@@ -21,6 +21,7 @@ import { COMFORT_FLOOR } from "./weights.js";
 import type { PerfDataset } from "./perf-data.js";
 import { evaluateFit, evaluateFitAtContext, type FitReason } from "../ranking/fit.js";
 import type {
+  BackendName,
   CatalogModel,
   HardwareProfile,
   Quantization,
@@ -57,12 +58,16 @@ export interface VerdictResult {
  * (`context-bound`) and a KV cache that overflows memory verdicts `no` with a
  * memory reason. The throughput model itself adds no context cost in v1; it is
  * still estimated from whichever quant fits (which a heavy KV cache can shrink).
+ *
+ * `backend` scopes the throughput estimate to a runtime (default `ollama`); an
+ * unsourced `(class, backend)` pair yields `known:false` (honesty gate).
  */
 export function evaluateVerdict(
   model: CatalogModel,
   hw: HardwareProfile,
   dataset: PerfDataset,
   context?: number,
+  backend?: BackendName,
 ): VerdictResult {
   const fit =
     context !== undefined ? evaluateFitAtContext(model, hw, context) : evaluateFit(model, hw);
@@ -70,7 +75,7 @@ export function evaluateVerdict(
     return { runnable: "no", throughput: UNKNOWN_THROUGHPUT, reason: fit.reason };
   }
 
-  const throughput = estimateTokPerSec(model, fit.quant, hw, dataset);
+  const throughput = estimateTokPerSec(model, fit.quant, hw, dataset, { backend });
   // Unknown throughput can never earn a `yes`; the midpoint of the known range
   // is the central estimate compared against the comfort floor.
   const midpoint = (throughput.lowTokPerSec + throughput.highTokPerSec) / 2;

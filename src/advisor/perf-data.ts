@@ -20,13 +20,51 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { ValidationError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
-import { GPU_VENDORS, type HardwareProfile } from "../types.js";
+import { BACKEND_NAMES, GPU_VENDORS, type HardwareProfile } from "../types.js";
 
 /** The memory pool a hardware class describes weights live in. */
 export const PERF_KINDS = ["discrete", "unified", "cpu"] as const;
 export type PerfKind = (typeof PERF_KINDS)[number];
 
 const ID_RE = /^[a-z0-9-]+$/;
+
+/** Roofline efficiency: fraction of theoretical bandwidth realized in decode. */
+const EFFICIENCY = z.number().gt(0).max(1);
+
+/**
+ * Optional per-backend absolute efficiency scalars keyed by {@link BackendName}.
+ * A backend absent here resolves via the shared-class rule in `throughput.ts`
+ * (`ollama`/`llamacpp` reuse the class `efficiency`; others → honesty-gate
+ * `unknown`). Unknown backend keys and out-of-range values are rejected.
+ */
+const EfficiencyByBackendSchema = z.record(z.enum(BACKEND_NAMES), EFFICIENCY);
+
+/**
+ * Confidence tier for an encoded efficiency figure (spec §12). A
+ * `low-confidence` figure is never encoded — it ships as `unknown`.
+ */
+export const TRUST_TIERS = ["session-verified", "spec-grade", "low-confidence"] as const;
+export type TrustTier = (typeof TRUST_TIERS)[number];
+
+/**
+ * Provenance for one per-backend efficiency scalar: the value it attests, its
+ * trust tier, the weight-bytes/token basis it was derived on (so figures stay
+ * comparable across rows, spec §2.7), and a citing URL.
+ */
+const EfficiencyProvenanceSchema = z
+  .object({
+    value: EFFICIENCY,
+    trustTier: z.enum(TRUST_TIERS),
+    basisBytesPerToken: z.number().positive(),
+    url: z.string().url(),
+  })
+  .strict();
+
+/** Per-backend provenance, keyed by {@link BackendName}; unknown keys rejected. */
+const EfficiencyProvenanceByBackendSchema = z.record(
+  z.enum(BACKEND_NAMES),
+  EfficiencyProvenanceSchema,
+);
 
 /**
  * Per-figure attribution: each measured number carries its own citation so a
@@ -39,6 +77,8 @@ const PerfSourcesSchema = z
     bandwidth: z.string().min(1),
     /** Where the `efficiency` figure comes from (the calibrating benchmark). */
     efficiency: z.string().min(1),
+    /** Optional provenance for each per-backend scalar (spec §12; B9). */
+    efficiencyByBackend: EfficiencyProvenanceByBackendSchema.optional(),
   })
   .strict();
 
@@ -53,7 +93,9 @@ const PerfClassSchema = z
     /** Effective memory bandwidth in GB/s (roofline numerator). */
     memBandwidthGBps: z.number().positive(),
     /** Fraction of theoretical bandwidth realized during decode, in (0, 1]. */
-    efficiency: z.number().gt(0).max(1),
+    efficiency: EFFICIENCY,
+    /** Optional absolute per-backend efficiency scalars (spec §12; B9). */
+    efficiencyByBackend: EfficiencyByBackendSchema.optional(),
     /** Inclusive lower bound of the matching pool size, in bytes. */
     minBytes: z.number().int().nonnegative(),
     /** Exclusive upper bound of the matching pool size, in bytes. */
@@ -94,12 +136,24 @@ function sanitizeDataset(dataset: PerfDataset): { dataset: PerfDataset; changed:
     if (out !== value) changed = true;
     return out;
   };
+  const cleanProvenance = (
+    prov: NonNullable<PerfClass["sources"]["efficiencyByBackend"]>,
+  ): NonNullable<PerfClass["sources"]["efficiencyByBackend"]> => {
+    const out: Record<string, (typeof prov)[keyof typeof prov]> = {};
+    for (const [backend, entry] of Object.entries(prov)) {
+      out[backend] = { ...entry, url: clean(entry.url) };
+    }
+    return out;
+  };
   const classes = dataset.classes.map((c) => ({
     ...c,
     label: clean(c.label),
     sources: {
       bandwidth: clean(c.sources.bandwidth),
       efficiency: clean(c.sources.efficiency),
+      ...(c.sources.efficiencyByBackend !== undefined
+        ? { efficiencyByBackend: cleanProvenance(c.sources.efficiencyByBackend) }
+        : {}),
     },
   }));
   return { dataset: { ...dataset, classes }, changed };

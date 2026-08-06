@@ -17,9 +17,15 @@
  * performance profile, the estimate is `{ known: false }` with zeroed bounds:
  * the honesty gate (spec §2) — no match means no number, never a guess.
  */
-import { matchPerf, type PerfDataset } from "./perf-data.js";
+import { matchPerf, type PerfClass, type PerfDataset } from "./perf-data.js";
 import { parseParamCount, quantBitsPerParam } from "../hardware/memory-math.js";
-import type { CatalogModel, HardwareProfile, Quantization, ThroughputEstimate } from "../types.js";
+import type {
+  BackendName,
+  CatalogModel,
+  HardwareProfile,
+  Quantization,
+  ThroughputEstimate,
+} from "../types.js";
 
 /** Default half-width of the reported range around the point estimate (±30%). */
 export const DEFAULT_BAND_FRACTION = 0.3;
@@ -27,8 +33,30 @@ export const DEFAULT_BAND_FRACTION = 0.3;
 /** GB (as used by vendor bandwidth specs) in bytes: decimal, 10⁹. */
 const BYTES_PER_GB = 1e9;
 
+/** Advice-path default backend: deterministic, never `isInstalled()`-derived. */
+const DEFAULT_THROUGHPUT_BACKEND: BackendName = "ollama";
+
+/**
+ * Backends that reuse a class's shared `efficiency` when they have no explicit
+ * `efficiencyByBackend` scalar. Ollama and llama.cpp share the roofline with no
+ * invented delta (spec §2.7); any other backend without a scalar is `unknown`.
+ */
+const SHARED_CLASS_EFFICIENCY_BACKENDS: readonly BackendName[] = ["ollama", "llamacpp"];
+
 /** An estimate carrying no usable number (honesty gate). */
 const UNKNOWN: ThroughputEstimate = { lowTokPerSec: 0, highTokPerSec: 0, known: false };
+
+/**
+ * Resolve the decode efficiency for `backend` on `perfClass`: an explicit
+ * per-backend scalar wins; otherwise `ollama`/`llamacpp` reuse the class
+ * `efficiency`; every other backend without a scalar is `undefined` (honesty
+ * gate → `unknown`).
+ */
+function resolveEfficiency(perfClass: PerfClass, backend: BackendName): number | undefined {
+  const explicit = perfClass.efficiencyByBackend?.[backend];
+  if (explicit !== undefined) return explicit;
+  return SHARED_CLASS_EFFICIENCY_BACKENDS.includes(backend) ? perfClass.efficiency : undefined;
+}
 
 function round1(value: number): number {
   return Math.round(value * 10) / 10;
@@ -59,23 +87,30 @@ function weightBytesPerToken(model: CatalogModel, quant: Quantization): number |
  * Estimate decode throughput for `model`/`quant` on `hw`, using the performance
  * `dataset` to look up the machine's memory bandwidth and efficiency. The result
  * is a ±`bandFraction` range (default ±30%); `known` is false when the hardware
- * has no profile or the decode size cannot be determined.
+ * has no profile, the decode size cannot be determined, or the requested
+ * `backend` has no efficiency figure for the matched class (honesty gate).
+ *
+ * `backend` defaults to `ollama` — the deterministic advice-path backend — so
+ * existing call sites are byte-identical.
  */
 export function estimateTokPerSec(
   model: CatalogModel,
   quant: Quantization,
   hw: HardwareProfile,
   dataset: PerfDataset,
-  options: { bandFraction?: number } = {},
+  options: { bandFraction?: number; backend?: BackendName | undefined } = {},
 ): ThroughputEstimate {
   const perfClass = matchPerf(hw, dataset);
   if (perfClass === undefined) return UNKNOWN;
+
+  const efficiency = resolveEfficiency(perfClass, options.backend ?? DEFAULT_THROUGHPUT_BACKEND);
+  if (efficiency === undefined) return UNKNOWN;
 
   const bytesPerToken = weightBytesPerToken(model, quant);
   if (bytesPerToken === undefined || bytesPerToken <= 0) return UNKNOWN;
 
   const band = options.bandFraction ?? DEFAULT_BAND_FRACTION;
-  const point = (perfClass.memBandwidthGBps * BYTES_PER_GB * perfClass.efficiency) / bytesPerToken;
+  const point = (perfClass.memBandwidthGBps * BYTES_PER_GB * efficiency) / bytesPerToken;
 
   return {
     lowTokPerSec: round1(point * (1 - band)),
