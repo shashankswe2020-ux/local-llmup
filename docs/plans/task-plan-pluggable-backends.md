@@ -298,9 +298,9 @@ proceeds **vector-less** (no throw, no fabrication) and the memory store's
 (`stripControl`-clean, arg-array/`shell:false` probes) + the machine's
 auto-selected default; missing backends show `installHint()`. Fully offline.
 **Acceptance:**
-- [ ] Lists installed backends offline (mocked probes); missing show hints.
-- [ ] Version strings pass through `stripControl` (hostile escape neutralized).
-- [ ] Exit code unchanged; no network.
+- [x] Lists installed backends offline (mocked probes); missing show hints.
+- [x] Version strings pass through `stripControl` (hostile escape neutralized).
+- [x] Exit code unchanged; no network.
 **Verify:** `npm test tests/commands/doctor`
 **Deps:** B2, B6 **Files:** `src/commands/doctor.ts`, `tests/commands/doctor.test.ts` **Scope:** S
 
@@ -465,7 +465,7 @@ presence**; where the resolved GGUF is locatable, verify its digest, else surfac
 - [ ] `down`/`switch`/`chat`/`migrate` route via `active.backend`; cross-backend `switch` → `ValidationError`; `canEmbed:false` capture is vector-less + `meta.json`-flagged (B6, B10).
 - [ ] Self-managed downloads pass `assertSafeFetchUrl`, verify-before-activate via atomic rename, never promote a partial (B13).
 - [ ] Invalid/symlink/world-writable/unknown-key config fails closed (B3).
-- [ ] `doctor` lists installed backends + default offline, `stripControl`-clean (B11).
+- [x] `doctor` lists installed backends + default offline, `stripControl`-clean (B11).
 - [ ] `npm test && npm run typecheck && npm run lint && npm run build` pass at every checkpoint.
 
 ## Risks & mitigations (plan-level)
