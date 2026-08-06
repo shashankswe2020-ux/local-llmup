@@ -34,6 +34,30 @@ export const CAPABILITIES = [
 export type Capability = (typeof CAPABILITIES)[number];
 
 /**
+ * Weight/packaging formats a backend can serve. A model's `source` keys map to
+ * these; an adapter serves a model when its {@link BackendCapabilities.formats}
+ * intersect the model's mapped formats.
+ */
+export const MODEL_FORMATS = ["gguf", "mlx", "ollama", "safetensors"] as const;
+export type ModelFormat = (typeof MODEL_FORMATS)[number];
+
+/**
+ * Declarative capability descriptor a backend advertises so command code
+ * branches on data rather than per-call feature detection.
+ */
+export interface BackendCapabilities {
+  /** False → the user installs weights via the runtime's own UI/CLI. */
+  readonly canPull: boolean;
+  /** False → embeddings must use a different backend. */
+  readonly canEmbed: boolean;
+  readonly openAiCompatible: boolean;
+  /** Weight formats this backend can serve. */
+  readonly formats: readonly ModelFormat[];
+  /** Loopback default serve port (Ollama 11434, llama-server 8080, LM Studio 1234…). */
+  readonly defaultPort: number;
+}
+
+/**
  * Open-weight licenses admitted into the catalog. Non-open (closed API) models
  * are out of scope; the catalog schema rejects anything not listed here.
  */

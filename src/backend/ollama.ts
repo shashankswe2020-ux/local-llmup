@@ -32,6 +32,7 @@ import {
   type ServeOptions,
 } from "./adapter.js";
 import { assertSafeModelId } from "./net.js";
+import type { BackendCapabilities } from "../types.js";
 
 /** Default binary name resolved from `PATH`. */
 const OLLAMA_BINARY = "ollama";
@@ -511,6 +512,13 @@ export interface OllamaAdapterOptions {
 /** Stateless adapter over the Ollama backend. */
 export class OllamaAdapter implements BackendAdapter {
   readonly name = "ollama";
+  readonly capabilities: BackendCapabilities = {
+    canPull: true,
+    canEmbed: true,
+    openAiCompatible: true,
+    formats: ["ollama"],
+    defaultPort: DEFAULT_OLLAMA_PORT,
+  };
   private readonly spawn: SpawnFn;
   private readonly probe: DigestProbe;
   private readonly binary: string;

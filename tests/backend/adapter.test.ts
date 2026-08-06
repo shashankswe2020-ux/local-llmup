@@ -12,6 +12,8 @@ import {
   type ServeHandle,
   type ServeOptions,
 } from "../../src/backend/adapter.js";
+import { OllamaAdapter } from "../../src/backend/ollama.js";
+import { MODEL_FORMATS, type BackendCapabilities, type ModelFormat } from "../../src/types.js";
 
 describe("endpoint helpers", () => {
   it("defaults to loopback and the Ollama port", () => {
@@ -41,6 +43,13 @@ describe("endpoint helpers", () => {
  */
 class FakeAdapter implements BackendAdapter {
   readonly name = "fake";
+  readonly capabilities: BackendCapabilities = {
+    canPull: true,
+    canEmbed: true,
+    openAiCompatible: true,
+    formats: ["ollama"],
+    defaultPort: DEFAULT_OLLAMA_PORT,
+  };
   readonly calls: string[] = [];
 
   isInstalled(): Promise<boolean> {
@@ -112,5 +121,36 @@ describe("BackendAdapter contract", () => {
     const embed = await adapter.embed({ model: "nomic-embed-text", input: ["a", "b"] });
     expect(embed.dimension).toBe(1);
     expect(embed.vectors).toHaveLength(2);
+  });
+});
+
+describe("BackendCapabilities", () => {
+  it("enumerates the servable model formats", () => {
+    expect(MODEL_FORMATS).toEqual(["gguf", "mlx", "ollama", "safetensors"]);
+  });
+
+  it("types a descriptor an adapter can expose", () => {
+    const caps: BackendCapabilities = {
+      canPull: true,
+      canEmbed: false,
+      openAiCompatible: true,
+      formats: ["gguf"],
+      defaultPort: 8080,
+    };
+    const formats: readonly ModelFormat[] = caps.formats;
+    expect(formats).toContain("gguf");
+  });
+});
+
+describe("OllamaAdapter capabilities descriptor", () => {
+  it("declares pull, embed, OpenAI-compat, ollama format, and the default port", () => {
+    const adapter = new OllamaAdapter();
+    expect(adapter.capabilities).toEqual({
+      canPull: true,
+      canEmbed: true,
+      openAiCompatible: true,
+      formats: ["ollama"],
+      defaultPort: DEFAULT_OLLAMA_PORT,
+    });
   });
 });
