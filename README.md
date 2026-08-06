@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/tests-634%20passing-brightgreen.svg)](#development)
+[![Tests](https://img.shields.io/badge/tests-636%20passing-brightgreen.svg)](#development)
 [![Ollama](https://img.shields.io/badge/runtime-Ollama-000000.svg)](https://ollama.com)
 
 **Know which local LLMs will actually run on your machine — `yes / slow / no`,
@@ -99,14 +99,14 @@ Verify the install:
 
 ```text
 $ local-llmup --version
-0.3.1
+0.3.2
 ```
 
 The top-level `--help` lists every command:
 
 ```text
 $ local-llmup --help
-local-llmup/0.3.1
+local-llmup/0.3.2
 
 Usage:
   $ local-llmup
@@ -160,6 +160,20 @@ $ npx local-llmup switch qwen3:14b
 $ npx local-llmup down
 ```
 
+The same lifecycle, visually — every command below flows into the next:
+
+```mermaid
+flowchart LR
+    HW([Your machine]) --> REC["recommend<br/>rank what fits"]
+    REC --> CR{"can-run?"}
+    CR -- "yes / slow" --> UP["up<br/>pull + verify + serve"]
+    CR -- "no" --> REC
+    UP --> CHAT["chat<br/>records memory"]
+    CHAT --> MIG["migrate<br/>carry memory over"]
+    MIG --> SW["switch<br/>change active model"]
+    SW --> DOWN["down<br/>stop server"]
+```
+
 Each of those commands is shown with real output below.
 
 ---
@@ -202,6 +216,18 @@ Won't fit (14):
   ❌ llama3.1:70b  (ram-bound)
   ❌ mixtral:8x22b  (ram-bound)
   … 8 more …
+```
+
+The `Est. tok/s` column is what separates a usable pick from a frustrating one.
+Here are the midpoints for a sample of the ranked models above — note how the
+MoE model (`qwen3:30b-a3b`) leaves the dense 27B–34B models far behind:
+
+```mermaid
+xychart-beta
+    title "Estimated throughput — midpoint tok/s (higher is better)"
+    x-axis ["qwen3:30b-a3b", "llama3.1:8b", "qwen2.5:14b", "gemma3:27b", "qwen3:32b", "yi:34b"]
+    y-axis "tok/s" 0 --> 110
+    bar [79.5, 29.8, 17, 8.9, 7.5, 7]
 ```
 
 **Bias the ranking toward a task** with `--task` (`chat`, `code`, `vision`,
@@ -342,6 +368,17 @@ Primary bottleneck: RAM
 All checks passed.
 ```
 
+The score is a blend of four sub-scores; the **lowest one is your bottleneck**.
+On this machine, RAM (56/100) drags down otherwise-maxed VRAM and storage:
+
+```mermaid
+xychart-beta
+    title "AI Hardware Score breakdown — this machine (total 80/100)"
+    x-axis ["VRAM", "RAM", "Compute", "Storage"]
+    y-axis "sub-score (0-100)" 0 --> 100
+    bar [100, 56, 65, 100]
+```
+
 `--json` emits the full report including the score breakdown:
 
 ```text
@@ -475,6 +512,17 @@ $ npx local-llmup migrate --from llama3.1:8b --to qwen3:14b --dry-run
 ---
 
 ## How the advice is computed
+
+Every model runs through the same decision, before any download happens:
+
+```mermaid
+flowchart TD
+    A["Model + selected quant"] --> B{"Weights + KV cache<br/>fit in usable memory?"}
+    B -- No --> C["❌ no<br/>reason: ram-bound / vram-bound /<br/>disk-bound / context-bound"]
+    B -- Yes --> D{"Memory-bandwidth<br/>limited?"}
+    D -- Yes --> E["⚠️ slow<br/>fits, but bandwidth-bound"]
+    D -- No --> F["✓ yes<br/>fits with throughput headroom"]
+```
 
 - **Memory footprint.** Estimated as resident weights (from the selected quant)
   plus runtime overhead. With `--context`, the flat overhead is replaced by an

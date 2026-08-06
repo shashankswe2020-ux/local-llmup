@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible bug to help us improve whoop-ai-mcp.
+description: Report a reproducible bug to help us improve local-llmup.
 title: "[Bug]: "
 labels:
   - bug
@@ -22,9 +22,8 @@ body:
       label: Steps to reproduce
       description: Tell us how to reproduce the issue.
       placeholder: |
-        1. Configure whoop-ai-mcp with ...
-        2. Run ...
-        3. Observe ...
+        1. Run `llmup ...`
+        2. Observe ...
     validations:
       required: true
   - type: textarea
@@ -44,8 +43,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: whoop-ai-mcp version
-      placeholder: "e.g. 0.2.1"
+      label: local-llmup version
+      placeholder: "e.g. 0.3.1"
     validations:
       required: true
   - type: input
@@ -59,7 +58,7 @@ body:
     id: environment
     attributes:
       label: Environment details
-      description: OS, MCP client (Claude Desktop/Inspector), and any relevant setup notes.
-      placeholder: "macOS 15, Claude Desktop x.y.z, WHOOP redirect URI ..."
+      description: OS, hardware (CPU/GPU/RAM), Ollama version, and any relevant setup notes.
+      placeholder: "macOS 15 (Apple M3, 16GB), Ollama 0.x.y ..."
     validations:
       required: true

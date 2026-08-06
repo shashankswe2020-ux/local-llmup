@@ -49,7 +49,7 @@ When asked to simplify code, follow these steps **in order**:
 
 ### Step 1: Understand the Scope
 
-1. Read `CLAUDE.md` or `.github/copilot-instructions.md` for project conventions
+1. Read `.github/copilot-instructions.md` for project conventions
 2. Identify the target code — recent changes unless a broader scope is specified
 3. Understand the code's purpose, callers, edge cases, and test coverage
 
@@ -57,12 +57,12 @@ When asked to simplify code, follow these steps **in order**:
 
 Invoke the `code-simplification` skill, then scan for:
 
-- Deep nesting in tool handlers → guard clauses or early returns
-- Long functions → split by responsibility (e.g., separate URL building from API calling)
-- Duplicated query-param construction across tools → shared helper in `src/api/`
-- Duplicated error handling patterns → use the `safeTool` wrapper consistently
+- Deep nesting in command handlers → guard clauses or early returns
+- Long functions → split by responsibility (e.g., separate scoring from formatting)
+- Duplicated logic across commands → shared helper in the relevant module (`advisor/`, `hardware/`, `catalog/`)
+- Duplicated error handling → use the typed errors in `src/errors.ts` consistently
 - Nested ternaries → if/else or switch
-- Generic names → descriptive names matching WHOOP domain (e.g., `data` → `recoveryRecords`)
+- Generic names → descriptive names matching the domain (e.g., `data` → `rankedModels`, `verdict`)
 - Dead code → remove after confirming no callers
 - Unused imports → remove
 - Complex type assertions → proper type narrowing with Zod

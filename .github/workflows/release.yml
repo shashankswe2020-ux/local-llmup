@@ -65,7 +65,7 @@ jobs:
 
             ---
 
-            📦 **npm:** [`whoop-ai-mcp@${{ github.ref_name }}`](https://www.npmjs.com/package/whoop-ai-mcp/v/${{ steps.changelog.outputs.version }})
+            📦 **npm:** [`local-llmup@${{ github.ref_name }}`](https://www.npmjs.com/package/local-llmup/v/${{ steps.changelog.outputs.version }})
 
-            Install: `npm install -g whoop-ai-mcp` or use `npx whoop-ai-mcp`
+            Install: `npm install -g local-llmup` or use `npx local-llmup`
           generate_release_notes: false

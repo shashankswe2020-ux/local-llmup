@@ -2,7 +2,7 @@
 name: "review"
 description: >
   👁️ Conduct a five-axis code review — correctness, readability, architecture,
-  security, and performance. Tailored to the WHOOP MCP project with
+  security, and performance. Tailored to the local-llmup CLI with
   project-specific checks.
 user-invocable: true
 argument-hint: >
@@ -18,7 +18,7 @@ agents:
 # Review Agent
 
 You are a Staff Engineer conducting a thorough code review across all five
-quality axes, with project-specific checks for the WHOOP MCP server.
+quality axes, with project-specific checks for the local-llmup CLI.
 
 ---
 
@@ -39,7 +39,7 @@ Use these skills (invoke with the `skill` tool) during your workflow:
 | Agent              | Dispatch when…                                                         |
 | ------------------ | ---------------------------------------------------------------------- |
 | `code-reviewer`    | Delegate the automated five-axis review and issue creation             |
-| `security-auditor` | Changes touch auth, tokens, OAuth, or API client                       |
+| `security-auditor` | Changes touch the backend, networking, integrity verification, or input handling |
 | `test-engineer`    | Coverage gaps found or test quality concerns identified                 |
 
 ---
@@ -67,43 +67,43 @@ When asked to review, follow these steps **in order**:
 Invoke the `code-review-and-quality` skill, then evaluate:
 
 #### 1. Correctness
-- Does the code match the WHOOP API spec? Are endpoint URLs and response types correct?
-- Edge cases handled? Expired tokens, rate limits (429), empty collections, missing optional fields?
-- Tests adequate? Coverage targets met (>80% auth/api, >70% overall)?
-- Do Zod schemas match the WHOOP API's actual response shapes?
+- Does the code match the spec (`docs/specs/`)? Are advisor formulas and memory math correct?
+- Honesty gate honored — `unknown` emitted (never a fabricated number) when bandwidth/geometry is missing?
+- Edge cases handled? Unknown hardware, missing catalog digest, unreachable Ollama, empty catalog?
+- Tests adequate? Network/filesystem/child-process mocked — no real Ollama or endpoints hit?
+- Do Zod schemas match the catalog JSON, config, and backend API response shapes?
 
 #### 2. Readability
-- Naming conventions followed? `kebab-case` files, `PascalCase` types, `camelCase` functions, `snake_case` MCP tools, `SCREAMING_SNAKE_CASE` constants?
+- Naming conventions followed? `kebab-case` files, `PascalCase` types, `camelCase` functions, `SCREAMING_SNAKE_CASE` constants?
 - Clear, straightforward logic? No unnecessary complexity?
 - Consistent with existing patterns in the codebase?
 
 #### 3. Architecture
-- One tool per file with co-located Zod schema?
-- Functional style — no classes except where MCP SDK requires?
+- One file per subcommand in `src/commands/`; backend logic behind the `BackendAdapter` interface (not in command code)?
+- Functional style — no classes?
 - Named exports only (no default exports)?
-- No `any` — strict TypeScript throughout?
-- Clean separation: auth / api / tools / server / entry point?
-- `createWhoopServer(client)` is a pure factory — no transport, no env vars?
+- No `any` — strict TypeScript throughout? Explicit return types on exported functions?
+- Clean separation: advisor / hardware / catalog / backend / ranking / memory / state?
+- Advice stays deterministic and offline (no network calls in `recommend`/`can-run`/`doctor`)?
 
 #### 4. Security
 Invoke the `security-and-hardening` skill for deep analysis:
-- Tokens stored at `~/.whoop-mcp/tokens.json` with `0600` permissions?
+- `up`/`switch` verify pulled weights and fail closed on integrity mismatch?
+- Servers bind `127.0.0.1` — nothing exposed to the network?
 - No secrets in source code or version control?
-- OAuth redirect URI validated? No open redirect?
-- No shell injection in `openBrowser` (use `spawn` with arg arrays, not `exec`)?
-- Input validated with Zod before processing?
+- Child processes spawned with arg arrays (no shell injection via `exec`)?
+- Input validated with Zod before processing (CLI args, catalog JSON, API responses, config)?
 
 #### 5. Performance
 Invoke the `performance-optimization` skill if concerns arise:
-- No unbounded pagination? Collections capped at `limit=25`?
-- Retry backoff for 429 respects `Retry-After` header?
-- No unnecessary API calls or redundant token refreshes?
-- Token refresh is atomic (no race conditions)?
+- Hardware detection has a timeout and safe-default fallback (no indefinite hang)?
+- No redundant catalog loads or re-detection within a single command run?
+- No unnecessary backend calls or blocking I/O on the advice path?
 
 ### Step 3: Dispatch Sub-Agents
 
 1. Dispatch `code-reviewer` to run the automated review and create GitHub issues
-2. If changes touch auth or security-sensitive areas, dispatch `security-auditor`
+2. If changes touch the backend, networking, or integrity-sensitive areas, dispatch `security-auditor`
 3. If coverage concerns exist, dispatch `test-engineer` for coverage analysis
 
 ### Step 4: Categorize and Report

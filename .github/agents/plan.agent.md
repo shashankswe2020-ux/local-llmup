@@ -48,9 +48,9 @@ When asked to plan, follow these steps **in order**:
 
 ### Step 1: Gather Context
 
-1. Read the spec at `docs/specs/whoop-mcp-server.md`
-2. Read the current implementation plan at `docs/specs/implementation-plan.md`
-3. Check implementation status in `CLAUDE.md` or `.github/copilot-instructions.md`
+1. Read the relevant spec in `docs/specs/` (e.g. `docs/specs/local-llmup.md`)
+2. Read the current task plans in `docs/plans/`
+3. Check conventions and project map in `.github/copilot-instructions.md`
 4. Read the current codebase to understand what already exists
 
 ### Step 2: Plan
@@ -59,11 +59,11 @@ Invoke the `planning-and-task-breakdown` skill, then:
 
 1. **Enter plan mode** — read only, no code changes
 2. **Identify the dependency graph** between components:
-   - Types → Token Store → API Client → OAuth → MCP Server → Tools → Error Handling → Entry Point → Docs
-3. **Slice work vertically** — one complete path per task (e.g., "token store end-to-end with tests"), not horizontal layers
+   - Types → Hardware detection/memory math → Catalog load/schema → Advisor (score/throughput/verdict) → Ranking → Backend adapter → Commands → CLI wiring
+3. **Slice work vertically** — one complete path per task (e.g., "verdict engine end-to-end with tests"), not horizontal layers
 4. **Write tasks with acceptance criteria:**
    - Each task has: description, acceptance criteria, verification command, files to create/modify
-   - Verification is always runnable: `npm test -- <path>`, `npm run build`, `npm run typecheck`
+   - Verification is always runnable: `npm test`, `npm run build`, `npm run typecheck`
 5. **Identify what can be parallel vs. sequential**
 6. **Add checkpoints between phases** — define what "done" looks like at each checkpoint
 
@@ -77,10 +77,10 @@ Invoke the `planning-and-task-breakdown` skill, then:
 
 1. Present the plan for human review
 2. **Save a detailed task plan file** to `docs/plans/task-<N>-<kebab-name>.md`
-   - Follow the format of existing files in `docs/plans/` (see `task-8-error-handling.md` as a template)
+   - Follow the format of existing files in `docs/plans/`
    - Include: overview, architecture decisions, subtask list with acceptance criteria, dependency graph, checkpoint criteria, files to deliver, and risk mitigations
-   - File naming: `task-<number>-<short-kebab-description>.md` (e.g., `task-9-entry-point.md`)
-3. If this is a new top-level task, update `docs/specs/implementation-plan.md` accordingly
+   - File naming: `task-<number>-<short-kebab-description>.md`
+3. If this is a new top-level effort, update the relevant plan in `docs/plans/` accordingly
 
 ---
 

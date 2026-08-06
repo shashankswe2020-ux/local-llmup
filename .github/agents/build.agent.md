@@ -40,7 +40,7 @@ Use these skills (invoke with the `skill` tool) during your workflow:
 | Agent              | Dispatch when…                                                         |
 | ------------------ | ---------------------------------------------------------------------- |
 | `code-reviewer`    | Implementation is complete — review before committing                  |
-| `security-auditor` | Changes touch auth, tokens, API client, or input handling              |
+| `security-auditor` | Changes touch the backend, networking, integrity verification, or input handling |
 | `test-engineer`    | Need help designing test strategy or analyzing coverage gaps           |
 
 ---
@@ -51,8 +51,8 @@ When asked to build, follow these steps **in order**:
 
 ### Step 1: Pick the Task
 
-1. Read `docs/specs/implementation-plan.md` for the next pending task
-2. Check `CLAUDE.md` or `.github/copilot-instructions.md` for current implementation status
+1. Read the relevant plan in `docs/plans/` for the next pending task
+2. Check `.github/copilot-instructions.md` for current conventions and project map
 3. Read the task's acceptance criteria
 
 ### Step 2: Load Context
@@ -67,13 +67,13 @@ Invoke the `test-driven-development` skill, then:
 
 1. **RED** — Write a failing test for the expected behavior:
    - Place tests in `tests/` mirroring `src/` structure
-   - Mock the WHOOP API with `vi.fn()` — never hit the real API
+   - Mock all network, filesystem, and child-process interactions with `vi.fn()` — never spawn real Ollama or hit real endpoints
    - Use Vitest conventions (`describe`, `it`, `expect`, `vi.fn()`)
 2. **GREEN** — Implement the minimum code to pass the test:
    - Follow project conventions: strict TypeScript, no `any`, named exports only
-   - One tool per file with co-located Zod schema
+   - Validate all external input with Zod; keep backend logic behind the `BackendAdapter` interface, never in command code
    - Explicit return types on all exported functions
-   - Functional style — no classes except where SDK requires
+   - Functional style — no classes
 3. **REFACTOR** — Clean up while keeping tests green
 
 ### Step 4: Verify
@@ -96,7 +96,7 @@ If any step fails, invoke the `debugging-and-error-recovery` skill:
 ### Step 5: Review
 
 1. Dispatch the `code-reviewer` sub-agent to review the changes
-2. If changes touch auth/tokens/API, dispatch the `security-auditor` sub-agent
+2. If changes touch the backend, networking, integrity verification, or input handling, dispatch the `security-auditor` sub-agent
 3. If test coverage needs analysis, dispatch the `test-engineer` sub-agent
 4. Address any Critical or Important findings before committing
 
@@ -110,11 +110,13 @@ Update implementation status if a task is complete.
 
 ## Project Constraints
 
-- WHOOP API base: `https://api.prod.whoop.com/developer`
-- Token storage: `~/.whoop-mcp/tokens.json` with 0600 permissions
-- MCP tool names use `snake_case`, files use `kebab-case`
-- All stderr logging (stdout is the MCP stdio transport channel)
-- Never hit the real WHOOP API in tests
+- Ollama backend: OpenAI-compatible API on `http://127.0.0.1:11434`; all backend logic behind the `BackendAdapter` interface
+- Advice commands make no network calls — they read the offline dataset (`data/models.json`, `data/perf.json`)
+- Honesty gate: emit `unknown` when a figure can't be sourced — never fabricate a number
+- `up`/`switch` verify pulled weights and fail closed on an integrity mismatch
+- Servers bind `127.0.0.1` by default — never expose to the network
+- Files use `kebab-case`, types `PascalCase`, functions `camelCase`, constants `SCREAMING_SNAKE_CASE`
+- Never spawn real Ollama or hit real endpoints in tests
 
 ---
 

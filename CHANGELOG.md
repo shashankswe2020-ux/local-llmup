@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2 - 2026-08-06
+
+Docs: the README now includes visual aids so command output is easier to grasp.
+
+- Added Mermaid diagrams — a command lifecycle flowchart and a `yes / slow / no`
+  verdict decision tree — plus `xychart-beta` performance graphs for estimated
+  throughput (tok/s) and the AI Hardware Score breakdown. No code changes.
+
 ## 0.3.1 - 2026-08-06
 
 Bug fix: `up` no longer fails for models without a recorded catalog digest.

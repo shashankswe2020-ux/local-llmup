@@ -50,8 +50,8 @@ Use these skills (invoke with the `skill` tool) during your workflow:
 Invoke the `test-driven-development` skill, then:
 
 1. **RED** — Write tests that describe the expected behavior (they should FAIL):
-   - Place tests in `tests/` mirroring `src/` structure (e.g., `tests/tools/get-recovery.test.ts`)
-   - Mock the WHOOP API with `vi.fn()` — never make real HTTP calls
+   - Place tests in `tests/` mirroring `src/` structure (e.g., `tests/advisor/verdict.test.ts`)
+   - Mock all network, filesystem, and child-process interactions with `vi.fn()` — never spawn real Ollama or hit real endpoints
    - Use Vitest conventions (`describe`, `it`, `expect`, `vi.fn()`)
 2. **GREEN** — Implement the code to make them pass
 3. **REFACTOR** — Clean up while keeping tests green
@@ -79,7 +79,7 @@ If the bug is hard to reproduce, invoke the `debugging-and-error-recovery` skill
 2. If tests touch auth/security paths, dispatch `security-auditor`
 3. Dispatch `test-engineer` for coverage analysis:
    ```bash
-   npm test -- --coverage
+   npm run test:cov
    ```
 
 ---
@@ -87,20 +87,16 @@ If the bug is hard to reproduce, invoke the `debugging-and-error-recovery` skill
 ## Testing Conventions
 
 - Use Vitest (`describe`, `it`, `expect`, `vi.fn()`, `vi.mocked()`)
-- Mock `fetch` globally for API client tests
-- Use `InMemoryTransport` from `@modelcontextprotocol/sdk` for MCP server integration tests
-- Test error paths: 401 (token expired), 429 (rate limited), network errors, invalid responses
-- Test edge cases: empty collections, missing optional fields, pagination tokens
+- Mock `fetch` for backend/network tests; mock `fs` and `child_process` for filesystem/process tests
+- Never spawn real Ollama or hit real endpoints — all boundaries mocked
+- Test error paths: unreachable backend, unknown hardware, missing catalog digest, malformed catalog JSON
+- Test edge cases: empty catalog, unknown attention geometry (honesty gate → `unknown`), context-bound vs vram/ram-bound verdicts
 
-## Coverage Targets
+## Coverage
 
-| Scope        | Target |
-| ------------ | ------ |
-| `src/auth/`  | >80%   |
-| `src/api/`   | >80%   |
-| Overall      | >70%   |
+Keep the advisor, hardware, catalog, and backend modules well covered.
 
-Check with: `npm test -- --coverage`
+Check with: `npm run test:cov`
 
 ---
 
