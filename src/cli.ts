@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { pathToFileURL } from "node:url";
 import { cac, type Command } from "cac";
-import { assertModesExclusive, parseContextTokens, runRecommend } from "./commands/recommend.js";
+import { assertModesExclusive, parseBackendName, parseContextTokens, runRecommend } from "./commands/recommend.js";
 import { runUp } from "./commands/up.js";
 import { runDown } from "./commands/down.js";
 import { runLs } from "./commands/ls.js";
@@ -12,7 +12,7 @@ import { runDoctor } from "./commands/doctor.js";
 import { runCatalog } from "./commands/catalog.js";
 import { runCanRun } from "./commands/can-run.js";
 import { stripControl } from "./sanitize.js";
-import { CAPABILITIES, type Capability } from "./types.js";
+import { BACKEND_NAMES, CAPABILITIES, type Capability } from "./types.js";
 
 export type CommandName =
   | "recommend"
@@ -72,12 +72,16 @@ function registerRecommend(command: Command): void {
     .option("--task <task>", `Boost models for a task: ${CAPABILITIES.join("|")}`)
     .option("--context <tokens>", "Size the KV cache at this context (tokens) and re-rank")
     .option("--max-context", "Report the largest context each model can hold on this hardware")
+    .option("--backend <name>", `Scope throughput to a runtime: ${BACKEND_NAMES.join("|")}`)
+    .option("--available-backends", "Only show models an installed backend can serve")
     .option("--json", "Emit machine-readable JSON")
     .action(
       async (options: {
         task?: string;
         context?: string | number;
         maxContext?: boolean;
+        backend?: string;
+        availableBackends?: boolean;
         json?: boolean;
       }) => {
         try {
@@ -93,10 +97,14 @@ function registerRecommend(command: Command): void {
           const context =
             options.context !== undefined ? parseContextTokens(String(options.context)) : undefined;
           assertModesExclusive(context, options.maxContext);
+          const backend =
+            options.backend !== undefined ? parseBackendName(String(options.backend)) : undefined;
           await runRecommend({
             ...(options.task !== undefined ? { task: options.task as Capability } : {}),
             ...(context !== undefined ? { context } : {}),
             ...(options.maxContext === true ? { maxContext: true } : {}),
+            ...(backend !== undefined ? { backend } : {}),
+            ...(options.availableBackends === true ? { availableBackends: true } : {}),
             ...(options.json === true ? { json: true } : {}),
           });
         } catch (error) {
@@ -234,11 +242,15 @@ function registerDoctor(command: Command): void {
 /** Wire the `can-run` action onto its cac command. Non-zero exit only for `no`. */
 function registerCanRun(command: Command): void {
   command
+    .option("--backend <name>", `Scope throughput to a runtime: ${BACKEND_NAMES.join("|")}`)
     .option("--json", "Emit machine-readable JSON")
-    .action(async (model: string, options: { json?: boolean }) => {
+    .action(async (model: string, options: { backend?: string; json?: boolean }) => {
       try {
+        const backend =
+          options.backend !== undefined ? parseBackendName(String(options.backend)) : undefined;
         const result = await runCanRun({
           model,
+          ...(backend !== undefined ? { backend } : {}),
           ...(options.json === true ? { json: true } : {}),
         });
         if (result.runnable === "no") process.exitCode = 1;

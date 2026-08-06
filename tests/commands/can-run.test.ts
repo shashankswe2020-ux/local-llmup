@@ -7,6 +7,7 @@ import {
   type CanRunDeps,
 } from "../../src/commands/can-run.js";
 import { loadPerf } from "../../src/advisor/perf-data.js";
+import { createDefaultRegistry } from "../../src/backend/registry.js";
 import type {
   Catalog,
   CatalogModel,
@@ -67,6 +68,7 @@ function deps(over: Partial<CanRunDeps> = {}): { deps: CanRunDeps; writes: strin
       loadCatalog: () => catalog([model("llama3.1:8b", "7B")]),
       detectHardware: () => Promise.resolve(hw()),
       loadPerf: () => perf,
+      registry: createDefaultRegistry(),
       write: (t) => writes.push(t),
       ...over,
     },
@@ -138,6 +140,31 @@ describe("formatCanRunJson", () => {
     const parsed = JSON.parse(formatCanRunJson(result)) as Record<string, unknown>;
     expect(parsed).toMatchObject({ model: "llama3.1:8b", verdict: "yes", quant: "Q4_K_M", reason: null });
     expect(parsed["throughput"]).toMatchObject({ known: true });
+  });
+});
+
+describe("backend surfacing (B12)", () => {
+  it("lists servable backends and pins throughputBackend to ollama by default", () => {
+    const result = buildCanRunResult(model("llama3.1:8b", "7B"), hw(), perf);
+    expect(result.backends).toEqual(["ollama"]);
+    expect(result.throughputBackend).toBe("ollama");
+  });
+
+  it("scopes throughput to --backend; an unsourced pair is unknown but still answered", () => {
+    const result = buildCanRunResult(model("llama3.1:8b", "7B"), hw(), perf, "mlx");
+    expect(result.throughputBackend).toBe("mlx");
+    expect(result.throughput.known).toBe(false);
+    expect(["yes", "slow"]).toContain(result.runnable);
+  });
+
+  it("exposes backends[] and throughputBackend in --json", () => {
+    const result = buildCanRunResult(model("llama3.1:8b", "7B"), hw(), perf);
+    const parsed = JSON.parse(formatCanRunJson(result)) as {
+      backends: string[];
+      throughputBackend: string;
+    };
+    expect(parsed.backends).toEqual(["ollama"]);
+    expect(parsed.throughputBackend).toBe("ollama");
   });
 });
 

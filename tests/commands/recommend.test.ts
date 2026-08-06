@@ -12,7 +12,31 @@ import {
 import { loadCatalog } from "../../src/catalog/load.js";
 import { loadPerf } from "../../src/advisor/perf-data.js";
 import { ValidationError } from "../../src/errors.js";
+import { createRegistry } from "../../src/backend/registry.js";
+import type { BackendAdapter } from "../../src/backend/adapter.js";
 import type { Capability, Catalog, CatalogModel, HardwareProfile } from "../../src/types.js";
+
+function fakeAdapter(overrides: Partial<BackendAdapter> = {}): BackendAdapter {
+  return {
+    name: "ollama",
+    capabilities: {
+      canPull: true,
+      canEmbed: true,
+      openAiCompatible: true,
+      formats: ["ollama"],
+      defaultPort: 11434,
+    },
+    isInstalled: async () => true,
+    installHint: () => "brew install ollama",
+    pull: async () => ({ modelId: "x", digestVerified: true }),
+    serve: async () => ({ endpoint: "http://127.0.0.1:11434", pid: 1, port: 11434, ownedByUs: true }),
+    waitUntilReady: async () => undefined,
+    stop: async () => undefined,
+    chat: async () => ({ content: "" }),
+    embed: async () => ({ vectors: [], dimension: 0 }),
+    ...overrides,
+  };
+}
 
 const GIB = 1024 ** 3;
 const PERF = loadPerf();
@@ -216,6 +240,8 @@ describe("formatRecommendationJson", () => {
       score: json.ranked[0].score,
       verdict: json.ranked[0].verdict,
       estTokPerSec: json.ranked[0].estTokPerSec,
+      backends: ["ollama"],
+      throughputBackend: "ollama",
     });
     expect(["yes", "slow"]).toContain(json.ranked[0].verdict);
     expect(json.ranked[0].estTokPerSec).toMatchObject({
@@ -223,6 +249,99 @@ describe("formatRecommendationJson", () => {
       highTokPerSec: json.ranked[0].estTokPerSec.highTokPerSec,
     });
     expect(json.wontFit).toEqual([{ id: "kimi-k2:instruct", reason: "ram-bound" }]);
+  });
+});
+
+describe("backend surfacing (B12)", () => {
+  const HF_ONLY = dense("hfmodel:1b", "1B", 1_000_000_000, { source: { hf: "org/hfmodel" } });
+
+  it("lists servable backends per entry and pins throughputBackend to ollama by default", () => {
+    const result = build(FIXTURE, appleHw(32));
+    expect(result.throughputBackend).toBe("ollama");
+    expect(result.entries[0]!.backends).toEqual(["ollama"]);
+  });
+
+  it("reports no servable backend for an advisory-only (hf) model but still ranks it", () => {
+    const result = build(catalog([HF_ONLY]), appleHw(32));
+    expect(result.entries).toHaveLength(1);
+    expect(result.entries[0]!.backends).toEqual([]);
+  });
+
+  it("exposes backends[] and throughputBackend in --json", () => {
+    const json = JSON.parse(formatRecommendationJson(build(FIXTURE, appleHw(32)))) as {
+      ranked: { backends: string[]; throughputBackend: string }[];
+    };
+    expect(json.ranked[0]!.backends).toEqual(["ollama"]);
+    expect(json.ranked[0]!.throughputBackend).toBe("ollama");
+  });
+
+  it("scopes throughput to --backend and echoes it; an unsourced pair is unknown but still ranked", () => {
+    const result = build(FIXTURE, appleHw(32), { backend: "mlx" });
+    expect(result.throughputBackend).toBe("mlx");
+    expect(result.entries.length).toBeGreaterThan(0);
+    for (const entry of result.entries) {
+      expect(entry.throughput.known).toBe(false);
+    }
+  });
+
+  it("annotates servable backends in the text table", () => {
+    const text = formatRecommendationText(build(FIXTURE, appleHw(32)));
+    expect(text).toContain("Backends");
+    expect(text).toContain("ollama");
+  });
+});
+
+describe("runRecommend — backend surfacing (B12)", () => {
+  function deps(overrides: Partial<RecommendDeps> = {}): { deps: RecommendDeps; writes: string[] } {
+    const writes: string[] = [];
+    return {
+      writes,
+      deps: {
+        loadCatalog: () => FIXTURE,
+        detectHardware: () => Promise.resolve(appleHw(32)),
+        loadPerf: () => PERF,
+        registry: createRegistry([fakeAdapter()]),
+        write: (text) => writes.push(text),
+        ...overrides,
+      },
+    };
+  }
+
+  it("default output is byte-identical whether or not a backend is installed", async () => {
+    let probed = false;
+    const installed = createRegistry([
+      fakeAdapter({
+        isInstalled: async () => {
+          probed = true;
+          return true;
+        },
+      }),
+    ]);
+    const notInstalled = createRegistry([fakeAdapter({ isInstalled: async () => false })]);
+
+    const a = deps({ registry: installed });
+    const b = deps({ registry: notInstalled });
+    await runRecommend({ json: true }, a.deps);
+    await runRecommend({ json: true }, b.deps);
+
+    expect(a.writes.join("")).toBe(b.writes.join(""));
+    expect(probed).toBe(false);
+  });
+
+  it("--available-backends drops models with no installed servable backend when passed", async () => {
+    const notInstalled = createRegistry([fakeAdapter({ isInstalled: async () => false })]);
+    const { deps: d, writes } = deps({ registry: notInstalled });
+    await runRecommend({ availableBackends: true, json: true }, d);
+    const parsed = JSON.parse(writes.join("")) as { ranked: unknown[] };
+    expect(parsed.ranked).toEqual([]);
+  });
+
+  it("default mode never drops models even when no backend is installed", async () => {
+    const notInstalled = createRegistry([fakeAdapter({ isInstalled: async () => false })]);
+    const { deps: d, writes } = deps({ registry: notInstalled });
+    await runRecommend({ json: true }, d);
+    const parsed = JSON.parse(writes.join("")) as { ranked: unknown[] };
+    expect(parsed.ranked.length).toBeGreaterThan(0);
   });
 });
 
@@ -235,6 +354,7 @@ describe("runRecommend", () => {
         loadCatalog: () => FIXTURE,
         detectHardware: () => Promise.resolve(appleHw(32)),
         loadPerf: () => PERF,
+        registry: createRegistry([fakeAdapter()]),
         write: (text) => writes.push(text),
         ...overrides,
       },

@@ -16,13 +16,18 @@ import {
 } from "../hardware/memory-math.js";
 import { loadPerf, type PerfDataset } from "../advisor/perf-data.js";
 import { evaluateVerdict } from "../advisor/verdict.js";
+import { DEFAULT_THROUGHPUT_BACKEND } from "../advisor/throughput.js";
+import { backendsForModel } from "../catalog/backends.js";
+import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import { renderJson, renderTable, type Column } from "../output.js";
 import { rankModels, type RankOptions, type WontFitModel } from "../ranking/rank.js";
 import { HEADROOM } from "../ranking/weights.js";
 import { stripControl } from "../sanitize.js";
 import { ValidationError } from "../errors.js";
 import { z } from "zod";
+import { BACKEND_NAMES } from "../types.js";
 import type {
+  BackendName,
   Capability,
   Catalog,
   CatalogModel,
@@ -71,6 +76,23 @@ export function assertModesExclusive(
   }
 }
 
+const backendSchema = z.enum(BACKEND_NAMES);
+
+/**
+ * Parse and validate a `--backend` name. Throws {@link ValidationError} for any
+ * value outside the known backend set. The raw input is `stripControl`-cleaned
+ * and length-bounded before it is echoed, so a hostile selector cannot inject
+ * terminal escapes regardless of how the caller surfaces the message.
+ */
+export function parseBackendName(raw: string): BackendName {
+  const parsed = backendSchema.safeParse(raw);
+  if (!parsed.success) {
+    const shown = stripControl(raw).slice(0, 80);
+    throw new ValidationError(`--backend must be one of ${BACKEND_NAMES.join("|")}: ${shown}`);
+  }
+  return parsed.data;
+}
+
 export interface RecommendOptions {
   /** Boost models advertising this capability; omit to stay capability-neutral. */
   readonly task?: Capability | undefined;
@@ -80,6 +102,10 @@ export interface RecommendOptions {
   readonly context?: number | undefined;
   /** Report the largest context each model can hold on this hardware. */
   readonly maxContext?: boolean | undefined;
+  /** Scope the throughput estimate to this runtime (default `ollama`). */
+  readonly backend?: BackendName | undefined;
+  /** Opt-in: drop models with no installed servable backend (never in default mode). */
+  readonly availableBackends?: boolean | undefined;
 }
 
 /** Weights and KV-cache footprint of a model at the requested `--context`. */
@@ -109,6 +135,8 @@ export interface RecommendationEntry {
   readonly verdict: Runnable;
   /** Estimated decode throughput; `known:false` when the hardware has no profile. */
   readonly throughput: ThroughputEstimate;
+  /** Registered backends that can serve this model, in registration order (may be empty). */
+  readonly backends: readonly string[];
   /** Present in `--context` mode: weights + KV footprint at the requested context. */
   readonly contextSizing?: ContextSizing;
   /** Present in `--max-context` mode: the largest holdable context. */
@@ -124,6 +152,8 @@ export interface RecommendationResult {
   readonly wontFit: readonly WontFitModel[];
   /** `local-llmup up <id>` for the top pick, or `null` when nothing fits. */
   readonly command: string | null;
+  /** The runtime the throughput estimate is scoped to (deterministic default `ollama`). */
+  readonly throughputBackend: BackendName;
   /** The requested `--context` (tokens), present only in context mode. */
   readonly context?: number;
   /** True when `--max-context` was requested. */
@@ -165,6 +195,8 @@ export function buildRecommendation(
   hardware: HardwareProfile,
   perf: PerfDataset,
   options: RecommendOptions = {},
+  registry: BackendRegistry = createDefaultRegistry(),
+  availableBackendNames?: readonly string[],
 ): RecommendationResult {
   const rankOptions: RankOptions = {
     ...(options.task !== undefined ? { task: options.task } : {}),
@@ -172,9 +204,16 @@ export function buildRecommendation(
   };
   const ranking = rankModels(catalog, hardware, rankOptions);
   const usableBytes = usableMemoryBytes(hardware);
+  const throughputBackend = options.backend ?? DEFAULT_THROUGHPUT_BACKEND;
 
-  const entries: RecommendationEntry[] = ranking.ranked.map((ranked, index) => {
-    const verdict = evaluateVerdict(ranked.model, hardware, perf, options.context);
+  let entries: RecommendationEntry[] = ranking.ranked.map((ranked, index) => {
+    const verdict = evaluateVerdict(
+      ranked.model,
+      hardware,
+      perf,
+      options.context,
+      throughputBackend,
+    );
     const contextSizing =
       options.context !== undefined
         ? buildContextSizing(ranked.model, ranked.quant, options.context)
@@ -191,10 +230,25 @@ export function buildRecommendation(
       score: ranked.score,
       verdict: verdict.runnable,
       throughput: verdict.throughput,
+      backends: backendsForModel(ranked.model, registry).map((adapter) => adapter.name),
       ...(contextSizing !== undefined ? { contextSizing } : {}),
       ...(maxContext !== undefined ? { maxContext } : {}),
     };
   });
+  let wontFit = ranking.wontFit;
+
+  // `--available-backends` (opt-in only): drop models no installed backend can
+  // serve, then renumber the surviving ranks contiguously. Default mode leaves
+  // `availableBackendNames` undefined and never drops a model.
+  if (availableBackendNames !== undefined) {
+    const installed = new Set(availableBackendNames);
+    entries = entries
+      .filter((entry) => entry.backends.some((name) => installed.has(name)))
+      .map((entry, index) => ({ ...entry, rank: index + 1 }));
+    wontFit = wontFit.filter((entry) =>
+      backendsForModel(entry.model, registry).some((adapter) => installed.has(adapter.name)),
+    );
+  }
 
   const top = entries[0];
   return {
@@ -202,8 +256,9 @@ export function buildRecommendation(
     usableBytes,
     memoryKind: usableMemoryKind(hardware),
     entries,
-    wontFit: ranking.wontFit,
+    wontFit,
     command: top !== undefined ? `${CLI_NAME} up ${top.model.id}` : null,
+    throughputBackend,
     ...(options.context !== undefined ? { context: options.context } : {}),
     maxContextMode: options.maxContext === true,
   };
@@ -251,6 +306,7 @@ const BASE_COLUMNS: readonly Column[] = [
 const TAIL_COLUMNS: readonly Column[] = [
   { header: "Verdict" },
   { header: "Est. tok/s", align: "right" },
+  { header: "Backends" },
   { header: "License" },
   { header: "Score", align: "right" },
 ];
@@ -280,6 +336,7 @@ function tableRow(entry: RecommendationEntry, result: RecommendationResult): rea
   const tail = [
     verdictLabel(entry.verdict),
     tokRange(entry.throughput),
+    entry.backends.length > 0 ? entry.backends.join(", ") : "—",
     entry.model.license,
     entry.score.toFixed(2),
   ];
@@ -395,6 +452,8 @@ export function formatRecommendationJson(result: RecommendationResult): string {
             highTokPerSec: entry.throughput.highTokPerSec,
           }
         : null,
+      backends: [...entry.backends],
+      throughputBackend: result.throughputBackend,
       ...sizingJsonFields(entry),
     })),
     wontFit: result.wontFit.map((entry) => ({ id: entry.model.id, reason: entry.reason })),
@@ -407,6 +466,7 @@ export interface RecommendDeps {
   readonly loadCatalog: () => Catalog;
   readonly detectHardware: () => Promise<HardwareProfile>;
   readonly loadPerf: () => PerfDataset;
+  readonly registry: BackendRegistry;
   readonly write: (text: string) => void;
 }
 
@@ -414,6 +474,7 @@ const defaultDeps: RecommendDeps = {
   loadCatalog: () => loadCatalog(),
   detectHardware: () => detectHardware(),
   loadPerf: () => loadPerf(),
+  registry: createDefaultRegistry(),
   write: (text) => process.stdout.write(text),
 };
 
@@ -425,7 +486,20 @@ export async function runRecommend(
   const catalog = deps.loadCatalog();
   const hardware = await deps.detectHardware();
   const perf = deps.loadPerf();
-  const result = buildRecommendation(catalog, hardware, perf, options);
+  // `--available-backends` is the only branch that probes installation; the
+  // default advice path never calls `isInstalled()`, so output is deterministic.
+  const availableBackendNames =
+    options.availableBackends === true
+      ? (await deps.registry.available()).map((adapter) => adapter.name)
+      : undefined;
+  const result = buildRecommendation(
+    catalog,
+    hardware,
+    perf,
+    options,
+    deps.registry,
+    availableBackendNames,
+  );
   const report = options.json
     ? formatRecommendationJson(result)
     : formatRecommendationText(result);

@@ -155,6 +155,39 @@ describe("buildCli", () => {
     expect(process.exitCode).toBeUndefined();
   });
 
+  it("forwards --backend and --available-backends to runRecommend", async () => {
+    hoisted.runRecommendMock.mockResolvedValue(undefined);
+    await buildCli().parse([
+      "node",
+      "local-llmup",
+      "recommend",
+      "--backend",
+      "llamacpp",
+      "--available-backends",
+    ]);
+    expect(hoisted.runRecommendMock).toHaveBeenCalledWith({
+      backend: "llamacpp",
+      availableBackends: true,
+    });
+    expect(process.exitCode).toBeUndefined();
+  });
+
+  it("rejects an invalid --backend at the CLI boundary without running", async () => {
+    const writes: string[] = [];
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
+      writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+      return true;
+    });
+    try {
+      await buildCli().parse(["node", "local-llmup", "recommend", "--backend", "bogus"]);
+    } finally {
+      stderr.mockRestore();
+    }
+    expect(hoisted.runRecommendMock).not.toHaveBeenCalled();
+    expect(process.exitCode).toBe(1);
+    expect(writes.join("")).toContain("recommend:");
+  });
+
   it("rejects an invalid --context at the CLI boundary without running (CW8)", async () => {
     const writes: string[] = [];
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
@@ -220,5 +253,11 @@ describe("can-run exit contract", () => {
     hoisted.runCanRunMock.mockResolvedValueOnce({ runnable: "yes" });
     await buildCli().parse(["node", "local-llmup", "can-run", "llama3.1:8b", "--json"]);
     expect(hoisted.runCanRunMock).toHaveBeenCalledWith({ model: "llama3.1:8b", json: true });
+  });
+
+  it("forwards --backend to runCanRun", async () => {
+    hoisted.runCanRunMock.mockResolvedValueOnce({ runnable: "yes" });
+    await buildCli().parse(["node", "local-llmup", "can-run", "llama3.1:8b", "--backend", "llamacpp"]);
+    expect(hoisted.runCanRunMock).toHaveBeenCalledWith({ model: "llama3.1:8b", backend: "llamacpp" });
   });
 });

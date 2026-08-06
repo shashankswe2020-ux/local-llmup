@@ -34,7 +34,7 @@ export const DEFAULT_BAND_FRACTION = 0.3;
 const BYTES_PER_GB = 1e9;
 
 /** Advice-path default backend: deterministic, never `isInstalled()`-derived. */
-const DEFAULT_THROUGHPUT_BACKEND: BackendName = "ollama";
+export const DEFAULT_THROUGHPUT_BACKEND: BackendName = "ollama";
 
 /**
  * Backends that reuse a class's shared `efficiency` when they have no explicit

@@ -17,11 +17,15 @@ import { loadCatalog } from "../catalog/load.js";
 import { detectHardware } from "../hardware/detect.js";
 import { loadPerf, type PerfDataset } from "../advisor/perf-data.js";
 import { evaluateVerdict } from "../advisor/verdict.js";
+import { DEFAULT_THROUGHPUT_BACKEND } from "../advisor/throughput.js";
+import { backendsForModel } from "../catalog/backends.js";
+import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import { renderJson } from "../output.js";
 import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
 import type { FitReason } from "../ranking/fit.js";
 import type {
+  BackendName,
   Catalog,
   CatalogModel,
   HardwareProfile,
@@ -34,6 +38,8 @@ export interface CanRunOptions {
   readonly model: string;
   /** Emit machine-readable JSON instead of a human line. */
   readonly json?: boolean | undefined;
+  /** Scope the throughput estimate to this runtime (default `ollama`). */
+  readonly backend?: BackendName | undefined;
 }
 
 /** The verdict plus the evidence, flattened for rendering and JSON. */
@@ -45,6 +51,10 @@ export interface CanRunResult {
   readonly quant: string | null;
   /** Why the model does not fit, or `null` for `yes`/`slow`. */
   readonly reason: FitReason | null;
+  /** Registered backends that can serve this model (may be empty). */
+  readonly backends: readonly string[];
+  /** The runtime the throughput estimate is scoped to (deterministic default `ollama`). */
+  readonly throughputBackend: BackendName;
 }
 
 /** Injectable side effects, so the command can be driven with fakes in tests. */
@@ -52,6 +62,7 @@ export interface CanRunDeps {
   readonly loadCatalog: () => Catalog;
   readonly detectHardware: () => Promise<HardwareProfile>;
   readonly loadPerf: () => PerfDataset;
+  readonly registry: BackendRegistry;
   /** Command result data → stdout. */
   readonly write: (text: string) => void;
 }
@@ -60,6 +71,7 @@ const defaultDeps: CanRunDeps = {
   loadCatalog: () => loadCatalog(),
   detectHardware: () => detectHardware(),
   loadPerf: () => loadPerf(),
+  registry: createDefaultRegistry(),
   write: (text) => process.stdout.write(text),
 };
 
@@ -88,14 +100,18 @@ export function buildCanRunResult(
   model: CatalogModel,
   hardware: HardwareProfile,
   perf: PerfDataset,
+  backend: BackendName = DEFAULT_THROUGHPUT_BACKEND,
+  registry: BackendRegistry = createDefaultRegistry(),
 ): CanRunResult {
-  const verdict = evaluateVerdict(model, hardware, perf);
+  const verdict = evaluateVerdict(model, hardware, perf, undefined, backend);
   return {
     modelId: model.id,
     runnable: verdict.runnable,
     throughput: verdict.throughput,
     quant: verdict.quant?.name ?? null,
     reason: verdict.reason ?? null,
+    backends: backendsForModel(model, registry).map((adapter) => adapter.name),
+    throughputBackend: backend,
   };
 }
 
@@ -127,6 +143,9 @@ export function formatCanRunText(result: CanRunResult): string {
   lines.push(`${SYMBOL[result.runnable]} ${id}: ${result.runnable} — ${detail}`);
   if (result.quant !== null) lines.push(`Quant: ${stripControl(result.quant)}`);
   lines.push(throughputLine(result.throughput));
+  lines.push(
+    `Backends: ${result.backends.length > 0 ? result.backends.join(", ") : "none"} (throughput scoped to ${result.throughputBackend})`,
+  );
   return lines.join("\n");
 }
 
@@ -142,6 +161,8 @@ export function formatCanRunJson(result: CanRunResult): string {
       lowTokPerSec: result.throughput.lowTokPerSec,
       highTokPerSec: result.throughput.highTokPerSec,
     },
+    backends: [...result.backends],
+    throughputBackend: result.throughputBackend,
   });
 }
 
@@ -163,7 +184,13 @@ export async function runCanRun(
   const hardware = await deps.detectHardware();
   const perf = deps.loadPerf();
 
-  const result = buildCanRunResult(model, hardware, perf);
+  const result = buildCanRunResult(
+    model,
+    hardware,
+    perf,
+    options.backend ?? DEFAULT_THROUGHPUT_BACKEND,
+    deps.registry,
+  );
   deps.write(`${options.json === true ? formatCanRunJson(result) : formatCanRunText(result)}\n`);
   return result;
 }
