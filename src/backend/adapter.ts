@@ -35,6 +35,22 @@ export interface PullProgress {
   readonly totalBytes?: number | undefined;
 }
 
+/**
+ * A pinned weight artifact for self-managed backends (llama.cpp GGUF, MLX) that
+ * download a single file directly from a Hugging Face commit. Ignored by daemon
+ * runtimes (Ollama) that pull by model id through their own content store.
+ */
+export interface PullWeightSource {
+  /** Hugging Face `owner/name` repo id. */
+  readonly repo: string;
+  /** Full 40-hex commit SHA to pin (never a floating tag). */
+  readonly revision: string;
+  /** Exact repo-relative filename (no globs, `..`, or absolute paths). */
+  readonly file: string;
+  /** Expected SHA-256 digest; when absent, integrity is reported unverified. */
+  readonly sha256?: string | undefined;
+}
+
 /** Inputs for pulling (downloading) a model quantization. */
 export interface PullOptions {
   readonly modelId: string;
@@ -47,6 +63,12 @@ export interface PullOptions {
    * a byte-exact target. Absent → the fallback only asserts the weights exist.
    */
   readonly expectedSizeBytes?: number | undefined;
+  /**
+   * Pinned Hugging Face weight artifact for self-managed backends (llama.cpp,
+   * MLX). Required by those adapters and ignored by daemon runtimes (Ollama),
+   * which resolve weights from {@link modelId} through their own store.
+   */
+  readonly source?: PullWeightSource | undefined;
   readonly onProgress?: ((event: PullProgress) => void) | undefined;
   readonly signal?: AbortSignal | undefined;
 }
@@ -56,6 +78,12 @@ export interface PullResult {
   readonly modelId: string;
   /** False when only a size check was possible (digest unavailable). */
   readonly digestVerified: boolean;
+  /**
+   * Filesystem path to the acquired weights, for per-model runtimes that must
+   * hand the path to `serve` (e.g. llama.cpp's `-m`). Omitted by daemon runtimes
+   * (Ollama) that serve from a shared store and take no explicit weights path.
+   */
+  readonly modelPath?: string | undefined;
 }
 
 /** Inputs for starting (or attaching to) a backend server. */

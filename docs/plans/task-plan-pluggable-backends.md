@@ -365,9 +365,9 @@ OpenAI-compatible `waitUntilReady`, `stop`, and the **port-ownership preflight**
 **Description:** `pull` via B13 (fail-closed digest/revision/exact-file), `chat`,
 and `embed` (or `canEmbed:false`) over the OpenAI-compatible API.
 **Acceptance:**
-- [ ] `pull` fails closed on digest/revision/exact-file mismatch (via B13).
-- [ ] `chat` round-trips against a mocked server; `embed` honors `canEmbed`.
-- [ ] `up --backend llamacpp <model>` end-to-end (mocked) records `backend:"llamacpp"`.
+- [x] `pull` fails closed on digest/revision/exact-file mismatch (via B13).
+- [x] `chat` round-trips against a mocked server; `embed` honors `canEmbed`.
+- [x] `up --backend llamacpp <model>` end-to-end (mocked) records `backend:"llamacpp"`.
 **Verify:** `npm test tests/backend/llamacpp tests/workflows`
 **Deps:** B14b **Files:** `src/backend/llamacpp.ts`, `tests/backend/llamacpp.test.ts`, `tests/workflows/*` **Scope:** M
 

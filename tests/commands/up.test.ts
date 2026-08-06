@@ -15,7 +15,14 @@ import type {
   ServeHandle,
   ServeOptions,
 } from "../../src/backend/adapter.js";
-import type { Catalog, CatalogModel, HardwareProfile, Quantization } from "../../src/types.js";
+import type {
+  BackendName,
+  Catalog,
+  CatalogModel,
+  HardwareProfile,
+  ModelFormat,
+  Quantization,
+} from "../../src/types.js";
 
 const GIB = 1024 ** 3;
 
@@ -65,6 +72,20 @@ function model(id: string, quants: readonly Quantization[]): CatalogModel {
   };
 }
 
+function ggufModel(id: string, quants: readonly Quantization[]): CatalogModel {
+  return {
+    ...model(id, quants),
+    source: {
+      gguf: {
+        repo: "Qwen/Qwen3-14B-GGUF",
+        revision: "a".repeat(40),
+        file: "qwen3-14b-q4.gguf",
+        sha256: "b".repeat(64),
+      },
+    },
+  };
+}
+
 function catalog(models: readonly CatalogModel[]): Catalog {
   return { schemaVersion: 1, generatedAt: "2026-01-01T00:00:00.000Z", models };
 }
@@ -85,6 +106,10 @@ interface FakeAdapterOptions {
   readonly installed?: boolean;
   readonly handle?: ServeHandle;
   readonly readyBehavior?: "resolve" | "reject";
+  readonly name?: BackendName;
+  readonly formats?: readonly ModelFormat[];
+  readonly pullModelPath?: string;
+  readonly pullDigestVerified?: boolean;
 }
 
 interface FakeAdapter extends BackendAdapter {
@@ -101,10 +126,13 @@ function fakeAdapter(options: FakeAdapterOptions = {}): FakeAdapter {
   const serveArgs: ServeOptions[] = [];
   const readyArgs: ReadinessOptions[] = [];
   const stopped: ServeHandle[] = [];
+  const backendName: BackendName = options.name ?? "ollama";
+  const formats = options.formats ?? (["ollama"] as const);
+  const defaultPort = backendName === "llamacpp" ? 8080 : 11434;
   const handle: ServeHandle = options.handle ?? {
-    endpoint: "http://127.0.0.1:11434",
+    endpoint: `http://127.0.0.1:${defaultPort}`,
     pid: 9001,
-    port: 11434,
+    port: defaultPort,
     ownedByUs: true,
   };
 
@@ -114,13 +142,13 @@ function fakeAdapter(options: FakeAdapterOptions = {}): FakeAdapter {
     serveArgs,
     readyArgs,
     stopped,
-    name: "ollama",
+    name: backendName,
     capabilities: {
       canPull: true,
-      canEmbed: true,
+      canEmbed: backendName !== "llamacpp",
       openAiCompatible: true,
-      formats: ["ollama"],
-      defaultPort: 11434,
+      formats: [...formats],
+      defaultPort,
     },
     isInstalled(): Promise<boolean> {
       calls.push("isInstalled");
@@ -132,7 +160,11 @@ function fakeAdapter(options: FakeAdapterOptions = {}): FakeAdapter {
     pull(opts: PullOptions): Promise<PullResult> {
       calls.push("pull");
       pullArgs.push(opts);
-      return Promise.resolve({ modelId: opts.modelId, digestVerified: true });
+      return Promise.resolve({
+        modelId: opts.modelId,
+        digestVerified: options.pullDigestVerified ?? true,
+        ...(options.pullModelPath !== undefined ? { modelPath: options.pullModelPath } : {}),
+      });
     },
     serve(opts?: ServeOptions): Promise<ServeHandle> {
       calls.push("serve");
@@ -236,6 +268,64 @@ describe("runUp", () => {
 
     expect(adapter.serveArgs[0]?.host).toBe("127.0.0.1");
     expect(adapter.serveArgs[0]?.host).not.toBe("0.0.0.0");
+  });
+
+  it("up --backend llamacpp pulls a pinned gguf, serves with the weight path, and records backend:llamacpp", async () => {
+    const adapter = fakeAdapter({
+      name: "llamacpp",
+      formats: ["gguf"],
+      pullModelPath: "/cache/qwen3-14b-q4.gguf",
+      handle: {
+        endpoint: "http://127.0.0.1:8080",
+        pid: 7070,
+        port: 8080,
+        ownedByUs: true,
+      },
+    });
+    const cat = catalog([ggufModel("qwen3:14b", [quant("Q4_K_M", 9 * GIB, { sha256: "b".repeat(64) })])]);
+
+    await runUp({ model: "qwen3:14b", backend: "llamacpp" }, deps(adapter, cat));
+
+    expect(adapter.calls).toEqual(["detect", "pull", "serve", "health", "state"]);
+    expect(adapter.pullArgs[0]).toMatchObject({
+      modelId: "qwen3:14b",
+      source: {
+        repo: "Qwen/Qwen3-14B-GGUF",
+        revision: "a".repeat(40),
+        file: "qwen3-14b-q4.gguf",
+        sha256: "b".repeat(64),
+      },
+    });
+    expect(adapter.serveArgs[0]?.modelPath).toBe("/cache/qwen3-14b-q4.gguf");
+    expect(adapter.serveArgs[0]?.host).toBe("127.0.0.1");
+    expect(readState(config).active).toEqual({
+      backend: "llamacpp",
+      modelId: "qwen3:14b",
+      endpoint: "http://127.0.0.1:8080",
+      pid: 7070,
+      port: 8080,
+      ownedByUs: true,
+    });
+  });
+
+  it("warns when the pulled weights could not be digest-verified", async () => {
+    const adapter = fakeAdapter({ pullDigestVerified: false });
+    const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
+
+    await runUp({ model: "llama3.1:8b" }, deps(adapter, cat));
+
+    expect(stderr.join("")).toContain("could not be digest-verified");
+    expect(readState(config).active).not.toBeNull();
+  });
+
+  it("rejects when the selected backend cannot serve any of the model's sources", async () => {
+    const adapter = fakeAdapter({ name: "llamacpp", formats: ["gguf"] });
+    // Ollama-only source, but llamacpp only serves gguf → no servable source.
+    const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
+
+    await expect(runUp({ model: "llama3.1:8b", backend: "llamacpp" }, deps(adapter, cat))).rejects.toThrow(
+      "has no source that backend llamacpp can serve",
+    );
   });
 
   it("aborts before pull/serve when free disk is insufficient", async () => {

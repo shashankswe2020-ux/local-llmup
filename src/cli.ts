@@ -121,7 +121,8 @@ function registerRecommend(command: Command): void {
 function registerUp(command: Command): void {
   command
     .option("--port <port>", "Port for the backend server (default 11434)")
-    .action(async (model: string, options: { port?: string | number }) => {
+    .option("--backend <name>", "Force a backend (ollama, llamacpp)")
+    .action(async (model: string, options: { port?: string | number; backend?: string }) => {
       try {
         const port = options.port === undefined ? undefined : Number(options.port);
         if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
@@ -131,7 +132,13 @@ function registerUp(command: Command): void {
           process.exitCode = 1;
           return;
         }
-        await runUp({ model, ...(port !== undefined ? { port } : {}) });
+        const backend =
+          options.backend !== undefined ? parseBackendName(String(options.backend)) : undefined;
+        await runUp({
+          model,
+          ...(port !== undefined ? { port } : {}),
+          ...(backend !== undefined ? { backend } : {}),
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         process.stderr.write(`up: ${stripControl(message)}\n`);

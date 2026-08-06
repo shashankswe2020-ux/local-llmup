@@ -21,6 +21,7 @@ import { stripControl } from "../sanitize.js";
 import {
   DEFAULT_BIND_HOST,
   type BackendAdapter,
+  type PullResult,
   type ServeHandle,
 } from "../backend/adapter.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
@@ -33,13 +34,21 @@ import {
   type RuntimeState,
   type ServerState,
 } from "../state/state.js";
-import type { Catalog, CatalogModel, HardwareProfile, Quantization } from "../types.js";
+import type {
+  BackendName,
+  Catalog,
+  CatalogModel,
+  HardwareProfile,
+  Quantization,
+} from "../types.js";
 
 /** Inputs for `up`. Servers always bind loopback in v1, so there is no host. */
 export interface UpOptions {
   readonly model: string;
   /** Port for the backend server; defaults to the backend's standard port. */
   readonly port?: number | undefined;
+  /** Force a specific backend; omitted → auto-detect the first servable one. */
+  readonly backend?: BackendName | undefined;
 }
 
 /** Injectable side effects, so the command can be driven with fakes in tests. */
@@ -144,10 +153,6 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
   // 1. Resolve the requested name to a single catalog model.
   const resolved = resolveModel(catalog, options.model);
   const model = resolved.model;
-  const ollamaId = model.source.ollama;
-  if (ollamaId === undefined) {
-    throw new ValidationError(`model ${model.id} has no ollama source to pull`);
-  }
 
   // 2. Disk preflight against the selected quant, using the injectable probe.
   const hardware = await deps.detectHardware();
@@ -173,17 +178,54 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
     registry: deps.registry,
     platform: hardware.platform,
     arch: hardware.arch,
+    ...(options.backend !== undefined ? { flag: options.backend } : {}),
   });
   const adapter = selection.adapter;
 
-  // 4. Pull and verify the weights.
-  deps.log(`Pulling ${stripControl(ollamaId)} (${quant.name})...\n`);
-  await adapter.pull({
-    modelId: ollamaId,
-    ...(quant.sha256 !== undefined ? { expectedSha256: quant.sha256 } : {}),
-    expectedSizeBytes: quant.diskBytes,
-    onProgress: (event) => deps.log(`  ${stripControl(event.status)}\n`),
-  });
+  // 4. Pull and verify the weights. Source resolution is format-aware: daemon
+  // runtimes (Ollama) pull by model id through their own store; self-managed
+  // runtimes (llama.cpp) download a pinned GGUF and hand back its on-disk path.
+  const ollamaId = adapter.capabilities.formats.includes("ollama")
+    ? model.source.ollama
+    : undefined;
+  const ggufSource = adapter.capabilities.formats.includes("gguf")
+    ? model.source.gguf
+    : undefined;
+  let pullResult: PullResult;
+  if (ollamaId !== undefined) {
+    deps.log(`Pulling ${stripControl(ollamaId)} (${quant.name})...\n`);
+    pullResult = await adapter.pull({
+      modelId: ollamaId,
+      ...(quant.sha256 !== undefined ? { expectedSha256: quant.sha256 } : {}),
+      expectedSizeBytes: quant.diskBytes,
+      onProgress: (event) => deps.log(`  ${stripControl(event.status)}\n`),
+    });
+  } else if (ggufSource !== undefined) {
+    deps.log(`Pulling ${stripControl(ggufSource.file)} (${quant.name})...\n`);
+    pullResult = await adapter.pull({
+      modelId: model.id,
+      source: {
+        repo: ggufSource.repo,
+        revision: ggufSource.revision,
+        file: ggufSource.file,
+        ...(ggufSource.sha256 !== undefined ? { sha256: ggufSource.sha256 } : {}),
+      },
+      onProgress: (event) => deps.log(`  ${stripControl(event.status)}\n`),
+    });
+  } else {
+    throw new ValidationError(
+      `model ${model.id} has no source that backend ${adapter.name} can serve`,
+    );
+  }
+
+  // Honesty gate: surface unverified integrity rather than serving silently. A
+  // pull is unverified when the catalog carried no digest, so only a weaker
+  // check (size floor or pinned commit) backed the download.
+  if (!pullResult.digestVerified) {
+    deps.log(
+      `up: warning — ${stripControl(model.id)} weights could not be digest-verified (no catalog SHA-256); serving on a weaker integrity check\n`,
+    );
+  }
 
   // 5-7. Spawn/attach, health-check, and persist under one lock.
   // This closes the race where two concurrent `up` runs could both spawn owned
@@ -191,7 +233,12 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
   const port = options.port ?? adapter.capabilities.defaultPort;
   let endpoint = "";
   await deps.withLock(deps.config, async () => {
-    const handle = await adapter.serve({ host: DEFAULT_BIND_HOST, port });
+    const modelPath = pullResult.modelPath;
+    const handle = await adapter.serve({
+      host: DEFAULT_BIND_HOST,
+      port,
+      ...(modelPath !== undefined ? { modelPath } : {}),
+    });
 
     // Second readiness probe is intentional: `serve` proves daemon liveness,
     // while this command-level check requires OpenAI-compatible readiness so

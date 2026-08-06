@@ -1,21 +1,23 @@
 /**
  * llama.cpp backend adapter (`llama-server`, GGUF).
  *
- * This slice (B14b) adds the serve/ready/stop lifecycle on top of the B14a
- * descriptor surface: `serve` forces a loopback bind, runs a port-ownership
- * preflight (attach to a running llama-server, refuse a foreign listener, or
- * spawn its own owned process), `waitUntilReady` polls the OpenAI-compatible
- * endpoint, and `stop` terminates only a process this adapter owns. `pull`,
- * `chat`, and `embed` land in B14c; until then they throw a typed
- * {@link BackendError} rather than pretending to work.
+ * This slice (B14c) completes the adapter surface on top of the B14b lifecycle:
+ * `pull` acquires a pinned GGUF via the shared, fail-closed weight-acquisition
+ * module ({@link acquireWeight}) and returns the on-disk path so the command
+ * layer can hand it to `serve -m`; `chat` speaks the OpenAI-compatible
+ * `/v1/chat/completions` API; and `embed` fails closed (this adapter declares
+ * `canEmbed:false`, so memory capture degrades to the vector-less path rather
+ * than fabricating vectors — honesty gate).
  *
- * Like the Ollama adapter, this is stateless and its process/network/clock
- * seams are injectable (`spawn`/`fetch`/`sleep`/`kill`) so tests never touch a
- * real `llama-server`. Every spawn is `shell:false` with a discrete argument
- * array; the server is only ever bound to loopback without an explicit opt-in.
+ * Like the Ollama adapter, this is stateless and its process/network/clock/
+ * download seams are injectable (`spawn`/`fetch`/`sleep`/`kill`/`acquire`) so
+ * tests never touch a real `llama-server` or the network. Every spawn is
+ * `shell:false` with a discrete argument array; the server is only ever bound to
+ * loopback without an explicit opt-in.
  */
 import { spawn as nodeSpawn } from "node:child_process";
 import type { Readable } from "node:stream";
+import { z } from "zod";
 import { BackendError, ValidationError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
 import {
@@ -32,8 +34,11 @@ import {
   type ServeHandle,
   type ServeOptions,
 } from "./adapter.js";
+import { acquireWeight, createAcquireFetch } from "./acquire.js";
+import type { AcquireRequest, AcquireResult } from "./acquire.js";
 import type {
   FetchFn,
+  FetchResponseLike,
   KillFn,
   ProcessOutputStream,
   SleepFn,
@@ -217,6 +222,24 @@ const defaultKill: KillFn = (pid, signal) => {
   process.kill(pid, signal);
 };
 
+/** Acquire a pinned weight artifact; injected in tests so no network is touched. */
+export type AcquireFn = (request: AcquireRequest) => Promise<AcquireResult>;
+
+/** Production {@link AcquireFn}: the shared fail-closed downloader with native `fetch`. */
+const defaultAcquire: AcquireFn = (request) =>
+  acquireWeight(request, { fetch: createAcquireFetch() });
+
+/**
+ * OpenAI-compatible chat completion response (the subset we consume). `choices`
+ * must be non-empty; the first choice's message content is the reply. Extra
+ * fields are ignored, so a richer server response still parses.
+ */
+const OpenAiChatResponseSchema = z.object({
+  choices: z
+    .array(z.object({ message: z.object({ content: z.string() }) }))
+    .min(1),
+});
+
 /**
  * Whether `host` is a loopback bind address. A non-loopback bind exposes the
  * unauthenticated server beyond the local machine, so it requires opt-in. This
@@ -315,6 +338,7 @@ export interface LlamaCppAdapterOptions {
   readonly fetch?: FetchFn | undefined;
   readonly sleep?: SleepFn | undefined;
   readonly kill?: KillFn | undefined;
+  readonly acquire?: AcquireFn | undefined;
 }
 
 /** Stateless adapter over the llama.cpp `llama-server` backend. */
@@ -338,6 +362,7 @@ export class LlamaCppAdapter implements BackendAdapter {
   private readonly fetch: FetchFn;
   private readonly sleep: SleepFn;
   private readonly kill: KillFn;
+  private readonly acquire: AcquireFn;
 
   constructor(options: LlamaCppAdapterOptions = {}) {
     this.spawn = options.spawn ?? defaultSpawn;
@@ -346,6 +371,7 @@ export class LlamaCppAdapter implements BackendAdapter {
     this.fetch = options.fetch ?? defaultFetch;
     this.sleep = options.sleep ?? defaultSleep;
     this.kill = options.kill ?? defaultKill;
+    this.acquire = options.acquire ?? defaultAcquire;
   }
 
   async isInstalled(): Promise<boolean> {
@@ -407,8 +433,43 @@ export class LlamaCppAdapter implements BackendAdapter {
     }
   }
 
-  pull(_options: PullOptions): Promise<PullResult> {
-    return Promise.reject(this.notImplemented("pull"));
+  /**
+   * Acquire a pinned GGUF weight via the shared, fail-closed
+   * {@link acquireWeight} module: it verifies the resolved commit and (when the
+   * catalog supplies one) the SHA-256 digest, and only promotes the file after
+   * an atomic rename — never serving a partial or mismatched download. Returns
+   * the on-disk path so the command layer can pass it to `serve -m`. Requires a
+   * pinned {@link PullOptions.source}; there is no model-id fallback because
+   * llama.cpp manages its own weights rather than pulling through a daemon.
+   */
+  async pull(options: PullOptions): Promise<PullResult> {
+    const source = options.source;
+    if (source === undefined) {
+      throw new BackendError(
+        `refusing to pull ${options.modelId}: llamacpp requires a pinned gguf weight source`,
+      );
+    }
+
+    options.onProgress?.({ status: `downloading ${source.file}` });
+    const request: AcquireRequest = {
+      backend: this.name,
+      repo: source.repo,
+      revision: source.revision,
+      file: source.file,
+      ...(source.sha256 !== undefined ? { sha256: source.sha256 } : {}),
+    };
+    const result = await this.acquire(request);
+    options.onProgress?.({
+      status: result.cached ? `cached ${source.file}` : `downloaded ${source.file}`,
+      completedBytes: result.bytes,
+      totalBytes: result.bytes,
+    });
+
+    return {
+      modelId: options.modelId,
+      digestVerified: result.digestVerified,
+      modelPath: result.path,
+    };
   }
 
   /**
@@ -671,12 +732,79 @@ export class LlamaCppAdapter implements BackendAdapter {
     );
   }
 
-  chat(_request: ChatRequest): Promise<ChatResult> {
-    return Promise.reject(this.notImplemented("chat"));
+  /**
+   * Non-streaming chat completion over the OpenAI-compatible endpoint
+   * (`POST /v1/chat/completions`). The reply is the first choice's message
+   * content; a transport failure, non-2xx status, or malformed body raises a
+   * typed {@link BackendError}. The model id travels only in the JSON body (not
+   * an argv or URL path), so it is passed through as-is.
+   */
+  async chat(request: ChatRequest): Promise<ChatResult> {
+    const endpoint = buildEndpoint(DEFAULT_BIND_HOST, LLAMACPP_DEFAULT_PORT);
+    const url = `${endpoint}/v1/chat/completions`;
+
+    let response: FetchResponseLike;
+    try {
+      response = await this.fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          model: request.model,
+          messages: request.messages,
+          stream: false,
+        }),
+        signal: request.signal,
+      });
+    } catch (error) {
+      throw new BackendError(`llamacpp chat request failed for ${request.model}`, {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+
+    if (!response.ok) {
+      throw new BackendError(
+        `llamacpp chat failed for ${request.model} (status ${response.status})`,
+      );
+    }
+    if (typeof response.json !== "function") {
+      throw new BackendError("llamacpp chat returned a malformed response body");
+    }
+
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch (error) {
+      throw new BackendError("llamacpp chat returned invalid JSON", {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+
+    const parsed = OpenAiChatResponseSchema.safeParse(payload);
+    if (!parsed.success) {
+      throw new BackendError("llamacpp chat returned a malformed response body", {
+        cause: parsed.error,
+      });
+    }
+
+    const [first] = parsed.data.choices;
+    if (first === undefined) {
+      throw new BackendError("llamacpp chat returned no choices");
+    }
+    return { content: first.message.content };
   }
 
+  /**
+   * Embeddings are not served: a single chat `llama-server` process cannot also
+   * answer `/v1/embeddings`, so this adapter declares `canEmbed:false` and fails
+   * closed here rather than fabricating vectors. Memory capture consults the
+   * capability flag and degrades to the vector-less path (honesty gate).
+   */
   embed(_request: EmbedRequest): Promise<EmbedResult> {
-    return Promise.reject(this.notImplemented("embed"));
+    return Promise.reject(
+      new BackendError(
+        "llamacpp does not serve embeddings (canEmbed is false); memory capture uses the vector-less path",
+      ),
+    );
   }
 
   /** One quick readiness attempt used to decide attach-vs-spawn / liveness. */
@@ -795,10 +923,6 @@ export class LlamaCppAdapter implements BackendAdapter {
       clearTimeout(timer);
       callerSignal?.removeEventListener("abort", onCallerAbort);
     }
-  }
-
-  private notImplemented(method: string): BackendError {
-    return new BackendError(`llamacpp ${method} is not implemented yet`);
   }
 }
 

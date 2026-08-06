@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { BackendError, ValidationError } from "../../src/errors.js";
 import { LlamaCppAdapter } from "../../src/backend/llamacpp.js";
 import { createDefaultRegistry } from "../../src/backend/registry.js";
+import type { AcquireRequest, AcquireResult } from "../../src/backend/acquire.js";
 import type {
   FetchFn,
   FetchResponseLike,
@@ -156,12 +157,129 @@ describe("LlamaCppAdapter — version", () => {
   });
 });
 
-describe("LlamaCppAdapter — unimplemented lifecycle (B14c)", () => {
-  it("throws BackendError for pull/chat/embed until later slices land", async () => {
-    const adapter = new LlamaCppAdapter();
-    await expect(adapter.pull({ modelId: "m" })).rejects.toBeInstanceOf(BackendError);
+describe("LlamaCppAdapter — chat", () => {
+  it("round-trips against the OpenAI-compatible /v1/chat/completions endpoint", async () => {
+    const seen: { url: string; init: unknown } = { url: "", init: undefined };
+    const fetch: FetchFn = (url, init) => {
+      seen.url = url;
+      seen.init = init;
+      return Promise.resolve(
+        jsonResponse(true, 200, { choices: [{ message: { content: "hi there" } }] }),
+      );
+    };
+    const adapter = new LlamaCppAdapter({ fetch });
+    const result = await adapter.chat({
+      model: "Qwen3-14B",
+      messages: [{ role: "user", content: "hello" }],
+    });
+    expect(result).toEqual({ content: "hi there" });
+    expect(seen.url).toBe("http://127.0.0.1:8080/v1/chat/completions");
+    const init = seen.init as { method?: string; body?: string };
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body ?? "{}")).toEqual({
+      model: "Qwen3-14B",
+      messages: [{ role: "user", content: "hello" }],
+      stream: false,
+    });
+  });
+
+  it("throws BackendError on a non-2xx status", async () => {
+    const fetch: FetchFn = () => Promise.resolve(jsonResponse(false, 500, {}));
+    const adapter = new LlamaCppAdapter({ fetch });
     await expect(adapter.chat({ model: "m", messages: [] })).rejects.toBeInstanceOf(BackendError);
+  });
+
+  it("throws BackendError when the transport fails", async () => {
+    const fetch: FetchFn = () => Promise.reject(new Error("ECONNREFUSED"));
+    const adapter = new LlamaCppAdapter({ fetch });
+    await expect(adapter.chat({ model: "m", messages: [] })).rejects.toBeInstanceOf(BackendError);
+  });
+
+  it("throws BackendError on a malformed body (no choices)", async () => {
+    const fetch: FetchFn = () => Promise.resolve(jsonResponse(true, 200, { choices: [] }));
+    const adapter = new LlamaCppAdapter({ fetch });
+    await expect(adapter.chat({ model: "m", messages: [] })).rejects.toBeInstanceOf(BackendError);
+  });
+});
+
+describe("LlamaCppAdapter — embed (fail-closed)", () => {
+  it("rejects with BackendError because canEmbed is false", async () => {
+    const adapter = new LlamaCppAdapter();
     await expect(adapter.embed({ model: "m", input: [] })).rejects.toBeInstanceOf(BackendError);
+  });
+});
+
+describe("LlamaCppAdapter — pull", () => {
+  it("acquires a pinned gguf and returns the on-disk path + digest status", async () => {
+    const requests: AcquireRequest[] = [];
+    const acquire = (request: AcquireRequest): Promise<AcquireResult> => {
+      requests.push(request);
+      return Promise.resolve({
+        path: "/cache/qwen3-14b-q4.gguf",
+        bytes: 9_000_000,
+        digestVerified: true,
+        cached: false,
+      });
+    };
+    const events: string[] = [];
+    const adapter = new LlamaCppAdapter({ acquire });
+    const result = await adapter.pull({
+      modelId: "qwen3-14b",
+      source: {
+        repo: "Qwen/Qwen3-14B-GGUF",
+        revision: "a".repeat(40),
+        file: "qwen3-14b-q4.gguf",
+        sha256: "b".repeat(64),
+      },
+      onProgress: (event) => events.push(event.status),
+    });
+    expect(result).toEqual({
+      modelId: "qwen3-14b",
+      digestVerified: true,
+      modelPath: "/cache/qwen3-14b-q4.gguf",
+    });
+    expect(requests[0]).toEqual({
+      backend: "llamacpp",
+      repo: "Qwen/Qwen3-14B-GGUF",
+      revision: "a".repeat(40),
+      file: "qwen3-14b-q4.gguf",
+      sha256: "b".repeat(64),
+    });
+    expect(events).toContain("downloaded qwen3-14b-q4.gguf");
+  });
+
+  it("reports a cache hit in progress without changing the result path", async () => {
+    const acquire = (): Promise<AcquireResult> =>
+      Promise.resolve({ path: "/cache/x.gguf", bytes: 10, digestVerified: false, cached: true });
+    const events: string[] = [];
+    const adapter = new LlamaCppAdapter({ acquire });
+    const result = await adapter.pull({
+      modelId: "x",
+      source: { repo: "o/r", revision: "c".repeat(40), file: "x.gguf" },
+      onProgress: (event) => events.push(event.status),
+    });
+    expect(result.modelPath).toBe("/cache/x.gguf");
+    expect(result.digestVerified).toBe(false);
+    expect(events).toContain("cached x.gguf");
+  });
+
+  it("refuses to pull without a pinned weight source", async () => {
+    const adapter = new LlamaCppAdapter({
+      acquire: () => Promise.reject(new Error("acquire must not be called")),
+    });
+    await expect(adapter.pull({ modelId: "m" })).rejects.toBeInstanceOf(BackendError);
+  });
+
+  it("propagates a fail-closed acquire error (digest/revision/file mismatch)", async () => {
+    const adapter = new LlamaCppAdapter({
+      acquire: () => Promise.reject(new BackendError("sha256 mismatch")),
+    });
+    await expect(
+      adapter.pull({
+        modelId: "m",
+        source: { repo: "o/r", revision: "d".repeat(40), file: "m.gguf" },
+      }),
+    ).rejects.toBeInstanceOf(BackendError);
   });
 });
 
