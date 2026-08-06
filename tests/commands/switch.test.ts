@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
 import { BackendError, ValidationError } from "../../src/errors.js";
-import { readState, withLock, writeState } from "../../src/state/state.js";
+import { readState, STATE_SCHEMA_VERSION, withLock, writeState } from "../../src/state/state.js";
 import { runSwitch, type SwitchDeps } from "../../src/commands/switch.js";
 import type {
   BackendAdapter,
@@ -111,8 +111,9 @@ function deps(adapter: FakeAdapter, cat: Catalog = CAT): SwitchDeps {
 
 function seedActive(modelId: string): void {
   writeState(config, {
-    schemaVersion: 1,
+    schemaVersion: STATE_SCHEMA_VERSION,
     active: {
+      backend: "ollama",
       modelId,
       endpoint: "http://127.0.0.1:11434",
       pid: 9001,
@@ -154,6 +155,7 @@ describe("runSwitch", () => {
     expect(adapter.pullArgs[0]?.modelId).toBe("qwen2.5:7b");
     expect(adapter.readyArgs[0]?.endpoint).toBe("http://127.0.0.1:11434");
     expect(readState(config).active).toEqual({
+      backend: "ollama",
       modelId: "qwen2.5:7b",
       endpoint: "http://127.0.0.1:11434",
       pid: 9001,

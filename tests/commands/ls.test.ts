@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
-import { readState, writeState } from "../../src/state/state.js";
+import { readState, STATE_SCHEMA_VERSION, writeState } from "../../src/state/state.js";
 import { runLs, type LsDeps } from "../../src/commands/ls.js";
 
 let home: string;
@@ -36,8 +36,9 @@ describe("runLs", () => {
 
   it("reflects the active owned server from state", () => {
     writeState(config, {
-      schemaVersion: 1,
+      schemaVersion: STATE_SCHEMA_VERSION,
       active: {
+        backend: "ollama",
         modelId: "llama3.1:8b",
         endpoint: "http://127.0.0.1:11434",
         pid: 9001,
@@ -57,8 +58,9 @@ describe("runLs", () => {
 
   it("marks an attached server distinctly from an owned one", () => {
     writeState(config, {
-      schemaVersion: 1,
+      schemaVersion: STATE_SCHEMA_VERSION,
       active: {
+        backend: "ollama",
         modelId: "llama3.1:8b",
         endpoint: "http://127.0.0.1:11434",
         port: 11434,

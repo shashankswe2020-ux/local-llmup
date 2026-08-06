@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
 import { BackendError, ValidationError } from "../../src/errors.js";
-import { readState, withLock, writeState } from "../../src/state/state.js";
+import { readState, STATE_SCHEMA_VERSION, withLock, writeState } from "../../src/state/state.js";
 import { runDown, type DownDeps } from "../../src/commands/down.js";
 import type {
   BackendAdapter,
@@ -90,8 +90,9 @@ function deps(adapter: FakeAdapter, cat: Catalog = catalog([model("llama3.1:8b")
 
 function seedOwned(): void {
   writeState(config, {
-    schemaVersion: 1,
+    schemaVersion: STATE_SCHEMA_VERSION,
     active: {
+      backend: "ollama",
       modelId: "llama3.1:8b",
       endpoint: "http://127.0.0.1:11434",
       pid: 9001,
@@ -103,8 +104,9 @@ function seedOwned(): void {
 
 function seedAttached(): void {
   writeState(config, {
-    schemaVersion: 1,
+    schemaVersion: STATE_SCHEMA_VERSION,
     active: {
+      backend: "ollama",
       modelId: "llama3.1:8b",
       endpoint: "http://127.0.0.1:11434",
       port: 11434,

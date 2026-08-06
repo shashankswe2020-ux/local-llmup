@@ -216,8 +216,11 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
           ownedByUs: prior.ownedByUs,
         });
       }
+      // Phase 0 is Ollama-only; B6 will source this from select().
+      const backend = "ollama" as const;
       const active: ServerState = handle.ownedByUs
         ? {
+            backend,
             modelId: model.id,
             endpoint: handle.endpoint,
             pid: handle.pid,
@@ -225,6 +228,7 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
             ownedByUs: true,
           }
         : {
+            backend,
             modelId: model.id,
             endpoint: handle.endpoint,
             port: handle.port,

@@ -14,13 +14,21 @@ import { join } from "node:path";
 import { z } from "zod";
 import { DIR_MODE, FILE_MODE, type Config } from "../config.js";
 import { StateError } from "../errors.js";
+import { BACKEND_NAMES, type BackendName } from "../types.js";
 
 /** Bumped when the on-disk state layout changes in a backward-incompatible way. */
-export const STATE_SCHEMA_VERSION = 1 as const;
+export const STATE_SCHEMA_VERSION = 2 as const;
+
+/** The last schema version that predated the `backend` field. */
+const V1_SCHEMA_VERSION = 1 as const;
+
+/** The only backend a v1 state file could have described. */
+const V1_DEFAULT_BACKEND = "ollama" satisfies BackendName;
 
 /** Shared fields persisted for any active server entry. */
 const ServerStateCommonSchema = z
   .object({
+    backend: z.enum(BACKEND_NAMES),
     modelId: z.string().min(1),
     endpoint: z.string().url(),
     port: z.number().int().min(1).max(65535),
@@ -56,19 +64,43 @@ export type ServerState = z.infer<typeof ServerStateSchema>;
 export type RuntimeState = z.infer<typeof RuntimeStateSchema>;
 
 /**
- * Backward-compatibility for legacy state files that encoded attached daemons
- * as `{ ownedByUs: false, pid: 0 }`. We normalize that shape in-memory before
- * schema validation so persisted state no longer relies on a sentinel pid.
+ * Normalize on-disk state into the current schema shape before validation.
+ *
+ * Two backward-compatibility transforms are composed here:
+ *  - **v1 → v2:** a `schemaVersion: 1` file predates the `backend` field, so we
+ *    stamp `schemaVersion: 2` and default the active server's `backend` to
+ *    `"ollama"` (the only backend v1 could serve). The migrated state is
+ *    rewritten as v2 on the next mutation.
+ *  - **legacy pid 0:** older files encoded attached daemons as
+ *    `{ ownedByUs: false, pid: 0 }`; we drop the sentinel pid so persisted state
+ *    no longer relies on it.
  */
 function normalizeLegacyRuntimeState(parsed: unknown): unknown {
   if (typeof parsed !== "object" || parsed === null) return parsed;
-  const candidate = parsed as Record<string, unknown>;
+  let candidate = parsed as Record<string, unknown>;
+
+  if (candidate["schemaVersion"] === V1_SCHEMA_VERSION) {
+    const active = candidate["active"];
+    let migratedActive: unknown = active;
+    if (typeof active === "object" && active !== null) {
+      const activeRecord = active as Record<string, unknown>;
+      if (activeRecord["backend"] === undefined) {
+        migratedActive = { ...activeRecord, backend: V1_DEFAULT_BACKEND };
+      }
+    }
+    candidate = {
+      ...candidate,
+      schemaVersion: STATE_SCHEMA_VERSION,
+      active: migratedActive,
+    };
+  }
+
   const active = candidate["active"];
-  if (typeof active !== "object" || active === null) return parsed;
+  if (typeof active !== "object" || active === null) return candidate;
 
   const activeRecord = active as Record<string, unknown>;
   if (activeRecord["ownedByUs"] !== false || activeRecord["pid"] !== 0) {
-    return parsed;
+    return candidate;
   }
 
   const { pid: _legacyPid, ...normalizedActive } = activeRecord;

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
 import { BackendError, ModelResolutionError, ValidationError } from "../../src/errors.js";
-import { readState, withLock, writeState } from "../../src/state/state.js";
+import { readState, STATE_SCHEMA_VERSION, withLock, writeState } from "../../src/state/state.js";
 import { runUp, type UpDeps } from "../../src/commands/up.js";
 import type {
   BackendAdapter,
@@ -210,6 +210,7 @@ describe("runUp", () => {
       requireOpenAiCompatibility: true,
     });
     expect(readState(config).active).toEqual({
+      backend: "ollama",
       modelId: "llama3.1:8b",
       endpoint: "http://127.0.0.1:11434",
       pid: 9001,
@@ -328,6 +329,7 @@ describe("runUp", () => {
     await runUp({ model: "llama3.1:8b" }, deps(adapter, cat));
 
     expect(readState(config).active).toEqual({
+      backend: "ollama",
       modelId: "llama3.1:8b",
       endpoint: "http://127.0.0.1:11434",
       port: 11434,
@@ -342,8 +344,9 @@ describe("runUp", () => {
     const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
     // Seed state with a different owned daemon already recorded.
     writeState(config, {
-      schemaVersion: 1,
+      schemaVersion: STATE_SCHEMA_VERSION,
       active: {
+        backend: "ollama",
         modelId: "phi3:mini",
         endpoint: "http://127.0.0.1:11500",
         pid: 4242,

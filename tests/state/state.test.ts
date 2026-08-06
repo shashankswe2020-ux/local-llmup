@@ -1,4 +1,4 @@
-import { mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -36,6 +36,7 @@ function deferred(): { promise: Promise<void>; resolve: () => void } {
 const SERVER: RuntimeState = {
   schemaVersion: STATE_SCHEMA_VERSION,
   active: {
+    backend: "ollama",
     modelId: "llama3.1:8b",
     endpoint: "http://localhost:11434",
     pid: 4242,
@@ -58,6 +59,7 @@ describe("readState", () => {
     const attached: RuntimeState = {
       schemaVersion: STATE_SCHEMA_VERSION,
       active: {
+        backend: "ollama",
         modelId: "llama3.1:8b",
         endpoint: "http://localhost:11434",
         port: 11434,
@@ -74,6 +76,7 @@ describe("readState", () => {
       JSON.stringify({
         schemaVersion: STATE_SCHEMA_VERSION,
         active: {
+          backend: "ollama",
           modelId: "llama3.1:8b",
           endpoint: "http://localhost:11434",
           pid: 0,
@@ -86,6 +89,7 @@ describe("readState", () => {
     expect(readState(config)).toEqual({
       schemaVersion: STATE_SCHEMA_VERSION,
       active: {
+        backend: "ollama",
         modelId: "llama3.1:8b",
         endpoint: "http://localhost:11434",
         port: 11434,
@@ -94,12 +98,146 @@ describe("readState", () => {
     });
   });
 
+  it("migrates a v1 owned server to v2 defaulting backend to ollama", () => {
+    writeFileSync(
+      config.stateFile,
+      JSON.stringify({
+        schemaVersion: 1,
+        active: {
+          modelId: "llama3.1:8b",
+          endpoint: "http://localhost:11434",
+          pid: 4242,
+          port: 11434,
+          ownedByUs: true,
+        },
+      }),
+    );
+
+    expect(readState(config)).toEqual({
+      schemaVersion: STATE_SCHEMA_VERSION,
+      active: {
+        backend: "ollama",
+        modelId: "llama3.1:8b",
+        endpoint: "http://localhost:11434",
+        pid: 4242,
+        port: 11434,
+        ownedByUs: true,
+      },
+    });
+  });
+
+  it("migrates a v1 attached server to v2 without inventing a pid", () => {
+    writeFileSync(
+      config.stateFile,
+      JSON.stringify({
+        schemaVersion: 1,
+        active: {
+          modelId: "llama3.1:8b",
+          endpoint: "http://localhost:11434",
+          port: 11434,
+          ownedByUs: false,
+        },
+      }),
+    );
+
+    expect(readState(config)).toEqual({
+      schemaVersion: STATE_SCHEMA_VERSION,
+      active: {
+        backend: "ollama",
+        modelId: "llama3.1:8b",
+        endpoint: "http://localhost:11434",
+        port: 11434,
+        ownedByUs: false,
+      },
+    });
+  });
+
+  it("migrates a v1 idle state (active: null) to v2", () => {
+    writeFileSync(config.stateFile, JSON.stringify({ schemaVersion: 1, active: null }));
+    expect(readState(config)).toEqual({ schemaVersion: STATE_SCHEMA_VERSION, active: null });
+  });
+
+  it("migrates a v1 attached server that used the legacy pid 0 sentinel", () => {
+    writeFileSync(
+      config.stateFile,
+      JSON.stringify({
+        schemaVersion: 1,
+        active: {
+          modelId: "llama3.1:8b",
+          endpoint: "http://localhost:11434",
+          pid: 0,
+          port: 11434,
+          ownedByUs: false,
+        },
+      }),
+    );
+
+    expect(readState(config)).toEqual({
+      schemaVersion: STATE_SCHEMA_VERSION,
+      active: {
+        backend: "ollama",
+        modelId: "llama3.1:8b",
+        endpoint: "http://localhost:11434",
+        port: 11434,
+        ownedByUs: false,
+      },
+    });
+  });
+
+  it("rewrites a migrated v1 file as v2 on the next mutation", () => {
+    writeFileSync(
+      config.stateFile,
+      JSON.stringify({
+        schemaVersion: 1,
+        active: {
+          modelId: "llama3.1:8b",
+          endpoint: "http://localhost:11434",
+          pid: 4242,
+          port: 11434,
+          ownedByUs: true,
+        },
+      }),
+    );
+
+    const migrated = readState(config);
+    writeState(config, migrated);
+    const onDisk = JSON.parse(readFileSync(config.stateFile, "utf8")) as {
+      schemaVersion: number;
+      active: { backend: string } | null;
+    };
+    expect(onDisk.schemaVersion).toBe(STATE_SCHEMA_VERSION);
+    expect(onDisk.active?.backend).toBe("ollama");
+  });
+
+  it("rejects a v2 active server that is missing a backend", () => {
+    writeFileSync(
+      config.stateFile,
+      JSON.stringify({
+        schemaVersion: STATE_SCHEMA_VERSION,
+        active: {
+          modelId: "llama3.1:8b",
+          endpoint: "http://localhost:11434",
+          pid: 4242,
+          port: 11434,
+          ownedByUs: true,
+        },
+      }),
+    );
+    try {
+      readState(config);
+      expect.unreachable("expected StateError");
+    } catch (error) {
+      expect((error as StateError).kind).toBe("invalid");
+    }
+  });
+
   it("rejects an owned server with a non-positive pid", () => {
     writeFileSync(
       config.stateFile,
       JSON.stringify({
         schemaVersion: STATE_SCHEMA_VERSION,
         active: {
+          backend: "ollama",
           modelId: "llama3.1:8b",
           endpoint: "http://localhost:11434",
           pid: 0,
@@ -122,6 +260,7 @@ describe("readState", () => {
       JSON.stringify({
         schemaVersion: STATE_SCHEMA_VERSION,
         active: {
+          backend: "ollama",
           modelId: "llama3.1:8b",
           endpoint: "http://localhost:11434",
           pid: 42,
