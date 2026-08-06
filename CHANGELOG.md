@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.4.0 - 2026-08-07
+
+Pluggable backends (foundation) — the advisor now understands that a model can be
+served by more than one runtime, and surfaces which backends apply. Ollama
+remains the sole servable backend in this release; the new flags are informational.
+
+- `doctor` gains a **Backends** section: each known backend (`ollama`,
+  `llamacpp`, `mlx`, `lmstudio`) with its installed/version status and the
+  default. Detection is offline and best-effort — an absent backend reports
+  cleanly rather than erroring.
+- `recommend` and `can-run` now surface a **`backends`** list per model and a
+  **`throughputBackend`** field in `--json`, pinned to `ollama` by default so
+  advice stays deterministic and byte-identical regardless of what is installed.
+- `recommend`/`can-run` gain **`--backend <name>`** to scope the throughput
+  estimate to a specific runtime; `recommend` gains opt-in
+  **`--available-backends`** to filter to models servable by an installed
+  backend. The default advice path never probes installation and never drops
+  models — unsourced `(class, backend)` pairs report `unknown` (honesty gate).
+- The model catalog now accepts **`gguf`** and **`mlx`** sources alongside
+  `ollama`, and memory capture is vector-less when the active backend cannot
+  embed (no fabricated vectors). Internal: backend registry, capability
+  descriptors, intent-split selection, fail-closed user config, and a state
+  schema v2 (with v1→v2 migration) now underpin all commands.
+
 ## 0.3.2 - 2026-08-06
 
 Docs: the README now includes visual aids so command output is easier to grasp.
