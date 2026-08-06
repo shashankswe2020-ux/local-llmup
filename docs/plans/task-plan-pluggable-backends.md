@@ -257,9 +257,9 @@ Keep the "≥1 source" refine.
 match)`; `backendsForModel(model, registry)` returns adapters whose
 `capabilities.formats` intersect the model's mapped formats.
 **Acceptance:**
-- [ ] Ollama-only model → `["ollama"]` (annotated, never dropped).
-- [ ] `gguf`+`ollama` model → both llama.cpp (when registered) and ollama.
-- [ ] `hf`-only does not match any backend.
+- [x] Ollama-only model → `["ollama"]` (annotated, never dropped).
+- [x] `gguf`+`ollama` model → both llama.cpp (when registered) and ollama.
+- [x] `hf`-only does not match any backend.
 **Verify:** `npm test tests/catalog tests/backend/registry`
 **Deps:** B7 **Files:** `src/catalog/*.ts` (or `src/backend/registry.ts`), `tests/**` **Scope:** S
 
