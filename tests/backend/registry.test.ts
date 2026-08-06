@@ -56,7 +56,7 @@ describe("createDefaultRegistry", () => {
     const registry = createDefaultRegistry();
     const ollama = registry.get("ollama");
     expect(ollama).toBeInstanceOf(OllamaAdapter);
-    expect(registry.all().map((a) => a.name)).toEqual(["ollama"]);
+    expect(registry.all().map((a) => a.name)).toEqual(["ollama", "llamacpp"]);
   });
 });
 

@@ -345,8 +345,8 @@ digest-verify → **atomic rename**. Reject cache symlinks; discard partials.
 capabilities (`canPull:true`, `canEmbed` per `llama-server`, `formats:["gguf"]`,
 `defaultPort:8080`), registered in `createDefaultRegistry`. No serve/pull yet.
 **Acceptance:**
-- [ ] Adapter appears in `registry.all()`; `get("llamacpp")` resolves it.
-- [ ] Capabilities descriptor correct; `installHint()` records the target version [D4].
+- [x] Adapter appears in `registry.all()`; `get("llamacpp")` resolves it.
+- [x] Capabilities descriptor correct; `installHint()` records the target version [D4].
 **Verify:** `npm test tests/backend/llamacpp tests/backend/registry`
 **Deps:** B5, B13 **Files:** `src/backend/llamacpp.ts`, `src/backend/registry.ts`, `tests/backend/llamacpp.test.ts` **Scope:** S
 

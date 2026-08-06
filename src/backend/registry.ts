@@ -7,6 +7,7 @@
  */
 import { ValidationError } from "../errors.js";
 import type { BackendAdapter } from "./adapter.js";
+import { LlamaCppAdapter } from "./llamacpp.js";
 import { OllamaAdapter } from "./ollama.js";
 
 /** A read-only lookup over the registered inference backends. */
@@ -66,7 +67,8 @@ export function createRegistry(adapters: readonly BackendAdapter[]): BackendRegi
   };
 }
 
-/** The default registry for v1. Phase 0 registers Ollama only. */
+/** The default registry for v1. Registers Ollama and llama.cpp (serving is
+ * Ollama-only until the llama.cpp lifecycle slices land). */
 export function createDefaultRegistry(): BackendRegistry {
-  return createRegistry([new OllamaAdapter()]);
+  return createRegistry([new OllamaAdapter(), new LlamaCppAdapter()]);
 }
