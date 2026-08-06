@@ -304,6 +304,7 @@ function buildModel(raw: RawRegistryModel, prior: CatalogModel | undefined): Cat
       ...(raw.source.hf !== undefined ? { hf: stripControl(raw.source.hf) } : {}),
     },
     quantizations,
+    ...(prior?.kvBytesPerToken !== undefined ? { kvBytesPerToken: prior.kvBytesPerToken } : {}),
     ...(prior?.benchmarkProxy !== undefined ? { benchmarkProxy: prior.benchmarkProxy } : {}),
   };
 

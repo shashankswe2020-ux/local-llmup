@@ -90,6 +90,27 @@ describe("CatalogModelSchema", () => {
   it("requires a source with at least ollama or hf", () => {
     expect(() => CatalogModelSchema.parse({ ...denseModel, source: {} })).toThrow();
   });
+
+  describe("kvBytesPerToken (optional attention-geometry field)", () => {
+    it("accepts a valid positive-integer value", () => {
+      expect(() =>
+        CatalogModelSchema.parse({ ...denseModel, kvBytesPerToken: 131072 }),
+      ).not.toThrow();
+    });
+
+    it("accepts absence (honesty gate — unknown geometry)", () => {
+      expect(denseModel).not.toHaveProperty("kvBytesPerToken");
+      expect(() => CatalogModelSchema.parse(denseModel)).not.toThrow();
+    });
+
+    it.each([0, -1, 1.5, 131072.0001])("rejects a non-positive-integer value %s", (bad) => {
+      expect(() => CatalogModelSchema.parse({ ...denseModel, kvBytesPerToken: bad })).toThrow();
+    });
+
+    it.each([Number.NaN, Number.POSITIVE_INFINITY])("rejects a non-finite value %s", (bad) => {
+      expect(() => CatalogModelSchema.parse({ ...denseModel, kvBytesPerToken: bad })).toThrow();
+    });
+  });
 });
 
 describe("CatalogSchema", () => {

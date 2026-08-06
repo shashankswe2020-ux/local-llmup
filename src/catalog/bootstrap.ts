@@ -65,6 +65,48 @@ function round2(value: number): number {
 }
 
 /**
+ * Curated fp16 KV-cache bytes per token, keyed by model id (D6, D11). Each value
+ * is the standard MHA/GQA formula `2 (K,V) × nLayers × nKvHeads × headDim × 2`
+ * bytes, computed from the model's published attention geometry and folded into
+ * the catalog at bootstrap so the runtime never re-derives geometry.
+ *
+ * Honesty gate: only standard-attention (MHA/GQA) models with confidently known
+ * geometry are listed. A model **absent** here reports context sizing as
+ * `unknown` rather than a fabricated number. Deliberately excluded:
+ * - MLA models (DeepSeek-V2/V3 and its 671B R1) — a compressed latent KV; the
+ *   generic formula over-counts ~5–10×.
+ * - Sliding-window / hybrid-attention models (Gemma 2/3) — per-layer KV differs
+ *   from the flat formula; deferred until curated correctly.
+ * The R1 *distills* (Qwen/Llama backbones) are standard attention but left for a
+ * later tranche to keep this first pass to high-confidence geometries.
+ */
+export const KV_BYTES_PER_TOKEN_FP16: Readonly<Record<string, number>> = {
+  // Llama 3.x — GQA, 8 KV heads, head-dim 128 (3.2 1B uses head-dim 64).
+  "llama3.1:8b": 131_072, //  32 L × 8 kv × 128 hd
+  "llama3.1:70b": 327_680, // 80 L × 8 kv × 128 hd
+  "llama3.3:70b": 327_680, // 80 L × 8 kv × 128 hd
+  "llama3.2:1b": 32_768, //   16 L × 8 kv ×  64 hd
+  "llama3.2:3b": 114_688, //  28 L × 8 kv × 128 hd
+  // Qwen2.5 — GQA, head-dim 128 (0.5B uses head-dim 64).
+  "qwen2.5:0.5b": 12_288, //  24 L × 2 kv ×  64 hd
+  "qwen2.5:1.5b": 28_672, //  28 L × 2 kv × 128 hd
+  "qwen2.5:3b": 36_864, //    36 L × 2 kv × 128 hd
+  "qwen2.5:7b": 57_344, //    28 L × 4 kv × 128 hd
+  "qwen2.5:14b": 196_608, //  48 L × 8 kv × 128 hd
+  "qwen2.5:32b": 262_144, //  64 L × 8 kv × 128 hd
+  "qwen2.5:72b": 327_680, //  80 L × 8 kv × 128 hd
+  "qwen2.5-coder:7b": 57_344, //  same geometry as qwen2.5:7b
+  "qwen2.5-coder:32b": 262_144, // same geometry as qwen2.5:32b
+  // Mistral — GQA, 8 KV heads, explicit head-dim 128 (read explicitly, not
+  // hidden_size/nHeads, per D11 — Nemo/Small publish head_dim independently).
+  // Pinned upstream revisions: mistral:7b → v0.3 (32 L), mistral-small:24b →
+  // the 2501 24B build (40 L); a future retag to a different arch must re-curate.
+  "mistral:7b": 131_072, //       32 L × 8 kv × 128 hd
+  "mistral-nemo:12b": 163_840, //  40 L × 8 kv × 128 hd
+  "mistral-small:24b": 163_840, // 40 L × 8 kv × 128 hd
+};
+
+/**
  * Param-class base score as a discrete `[exclusiveCeilingInBillions, score]`
  * ladder. A step table (rather than a `Math.log10` curve) keeps the derived
  * proxy bit-exact across V8/Node versions — transcendental functions are only
@@ -131,10 +173,14 @@ export function buildBootstrapCatalog(
     candidates: snapshot,
     now,
   });
-  const models = catalog.models.map((model) => ({
-    ...model,
-    benchmarkProxy: deriveBenchmarkProxy(model),
-  }));
+  const models = catalog.models.map((model) => {
+    const kv = KV_BYTES_PER_TOKEN_FP16[model.id];
+    return {
+      ...model,
+      ...(kv !== undefined ? { kvBytesPerToken: kv } : {}),
+      benchmarkProxy: deriveBenchmarkProxy(model),
+    };
+  });
   const validated: Catalog = CatalogSchema.parse({
     schemaVersion: 2,
     generatedAt: catalog.generatedAt,

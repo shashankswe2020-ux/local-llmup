@@ -56,6 +56,7 @@ export const CatalogModelSchema = z
       .refine(isRealCalendarDate, { message: "releaseDate must be a real calendar date" }),
     source: ModelSourceSchema,
     quantizations: z.array(QuantizationSchema).min(1),
+    kvBytesPerToken: z.number().int().positive().optional(),
     benchmarkProxy: z.number().min(0).max(1).optional(),
   })
   .strict()

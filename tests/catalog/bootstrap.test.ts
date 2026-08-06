@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   BOOTSTRAP_CLOCK,
   FAMILY_QUALITY_OFFSET,
+  KV_BYTES_PER_TOKEN_FP16,
   buildBootstrapCatalog,
 } from "../../src/catalog/bootstrap.js";
 import { DEFAULT_CATALOG_PATH, loadCatalog } from "../../src/catalog/load.js";
@@ -96,5 +97,73 @@ describe("bootstrap catalog generation", () => {
     for (const model of REGISTRY_SNAPSHOT) {
       expect(FAMILY_QUALITY_OFFSET).toHaveProperty(model.family);
     }
+  });
+
+  describe("kvBytesPerToken attention-geometry backfill (T-CW2)", () => {
+    const byId = new Map(catalog.models.map((m) => [m.id, m]));
+
+    // Independent geometry ledger [layers, kvHeads, headDim] per curated id, so
+    // the expected KV figure is DERIVED here (`2×2×L×kv×hd`) rather than copied
+    // from the source constant. This catches a fat-fingered figure in
+    // KV_BYTES_PER_TOKEN_FP16 — the exact under-count that would falsely claim a
+    // model fits — instead of comparing the constant to itself.
+    const GEOMETRY: Readonly<Record<string, readonly [number, number, number]>> = {
+      "llama3.1:8b": [32, 8, 128],
+      "llama3.1:70b": [80, 8, 128],
+      "llama3.3:70b": [80, 8, 128],
+      "llama3.2:1b": [16, 8, 64],
+      "llama3.2:3b": [28, 8, 128],
+      "qwen2.5:0.5b": [24, 2, 64],
+      "qwen2.5:1.5b": [28, 2, 128],
+      "qwen2.5:3b": [36, 2, 128],
+      "qwen2.5:7b": [28, 4, 128],
+      "qwen2.5:14b": [48, 8, 128],
+      "qwen2.5:32b": [64, 8, 128],
+      "qwen2.5:72b": [80, 8, 128],
+      "qwen2.5-coder:7b": [28, 4, 128],
+      "qwen2.5-coder:32b": [64, 8, 128],
+      "mistral:7b": [32, 8, 128],
+      "mistral-nemo:12b": [40, 8, 128],
+      "mistral-small:24b": [40, 8, 128],
+    };
+
+    it("the geometry ledger covers exactly the curated table", () => {
+      expect(new Set(Object.keys(GEOMETRY))).toEqual(new Set(Object.keys(KV_BYTES_PER_TOKEN_FP16)));
+    });
+
+    it("each curated figure equals 2×2×layers×kvHeads×headDim from its geometry", () => {
+      for (const [id, [layers, kvHeads, headDim]] of Object.entries(GEOMETRY)) {
+        const expected = 2 * 2 * layers * kvHeads * headDim;
+        expect(KV_BYTES_PER_TOKEN_FP16[id]).toBe(expected);
+        expect(byId.get(id)?.kvBytesPerToken).toBe(expected);
+      }
+    });
+
+    it("only curates ids that exist in the catalog (no typo'd keys)", () => {
+      for (const id of Object.keys(KV_BYTES_PER_TOKEN_FP16)) {
+        expect(byId.has(id)).toBe(true);
+      }
+    });
+
+    it("curates only positive-integer figures", () => {
+      for (const value of Object.values(KV_BYTES_PER_TOKEN_FP16)) {
+        expect(Number.isInteger(value)).toBe(true);
+        expect(value).toBeGreaterThan(0);
+      }
+    });
+
+    it("leaves MLA and sliding-window models on the honesty gate (no figure)", () => {
+      // DeepSeek-V2/V3 use MLA; Gemma 2/3 use hybrid sliding-window attention.
+      // The generic formula would be wrong for both, so they stay `unknown`.
+      for (const id of ["deepseek-v3", "deepseek-r1:671b", "gemma2:9b", "gemma3:12b"]) {
+        expect(KV_BYTES_PER_TOKEN_FP16).not.toHaveProperty(id);
+        expect(byId.get(id)?.kvBytesPerToken).toBeUndefined();
+      }
+    });
+
+    it("anchors Llama 3.1 8B to its exact geometry (32 L × 8 kv × 128 hd)", () => {
+      // 2 (K,V) × 32 layers × 8 KV heads × 128 head-dim × 2 bytes = 131,072.
+      expect(byId.get("llama3.1:8b")?.kvBytesPerToken).toBe(131072);
+    });
   });
 });

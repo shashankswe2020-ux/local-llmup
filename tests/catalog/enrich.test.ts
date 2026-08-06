@@ -220,6 +220,23 @@ describe("enrichCatalog — merge-by-id reconciliation", () => {
     expect(merged?.benchmarkProxy).toBe(0.71); // curated field preserved
   });
 
+  it("preserves a curated kvBytesPerToken across an upstream refresh", () => {
+    const existing: Catalog = {
+      schemaVersion: 2,
+      generatedAt: "2025-01-01T00:00:00Z",
+      models: [{ ...denseModel, kvBytesPerToken: 131072 }],
+    };
+    const { catalog } = enrichCatalog({
+      mode: "backfill",
+      existing,
+      candidates: [rawDense({ contextLength: 262144 })],
+      now: NOW,
+    });
+    const merged = catalog.models.find((m) => m.id === denseModel.id);
+    expect(merged?.contextLength).toBe(262144); // upstream field updated
+    expect(merged?.kvBytesPerToken).toBe(131072); // curated geometry preserved
+  });
+
   it("drops a half-formed new entry while still adding the valid ones", () => {
     const { catalog, diff } = enrichCatalog({
       mode: "backfill",

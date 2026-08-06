@@ -452,6 +452,7 @@
           "minVramBytes": 16215000000
         }
       ],
+      "kvBytesPerToken": 163840,
       "benchmarkProxy": 0.63
     },
     {
@@ -762,6 +763,7 @@
           "minVramBytes": 48300000000
         }
       ],
+      "kvBytesPerToken": 327680,
       "benchmarkProxy": 0.78
     },
     {
@@ -843,6 +845,7 @@
           "minVramBytes": 22425000000
         }
       ],
+      "kvBytesPerToken": 262144,
       "benchmarkProxy": 0.72
     },
     {
@@ -871,6 +874,7 @@
           "minVramBytes": 5405000000
         }
       ],
+      "kvBytesPerToken": 57344,
       "benchmarkProxy": 0.52
     },
     {
@@ -1005,6 +1009,7 @@
           "minVramBytes": 920000000
         }
       ],
+      "kvBytesPerToken": 32768,
       "benchmarkProxy": 0.2
     },
     {
@@ -1032,6 +1037,7 @@
           "minVramBytes": 2300000000
         }
       ],
+      "kvBytesPerToken": 114688,
       "benchmarkProxy": 0.28
     },
     {
@@ -1058,6 +1064,7 @@
           "minVramBytes": 460000000
         }
       ],
+      "kvBytesPerToken": 12288,
       "benchmarkProxy": 0.18
     },
     {
@@ -1085,6 +1092,7 @@
           "minVramBytes": 1150000000
         }
       ],
+      "kvBytesPerToken": 28672,
       "benchmarkProxy": 0.26
     },
     {
@@ -1113,6 +1121,7 @@
           "minVramBytes": 10350000000
         }
       ],
+      "kvBytesPerToken": 196608,
       "benchmarkProxy": 0.58
     },
     {
@@ -1141,6 +1150,7 @@
           "minVramBytes": 22425000000
         }
       ],
+      "kvBytesPerToken": 262144,
       "benchmarkProxy": 0.7
     },
     {
@@ -1168,6 +1178,7 @@
           "minVramBytes": 2185000000
         }
       ],
+      "kvBytesPerToken": 36864,
       "benchmarkProxy": 0.34
     },
     {
@@ -1196,6 +1207,7 @@
           "minVramBytes": 49450000000
         }
       ],
+      "kvBytesPerToken": 327680,
       "benchmarkProxy": 0.76
     },
     {
@@ -1224,6 +1236,7 @@
           "minVramBytes": 5405000000
         }
       ],
+      "kvBytesPerToken": 57344,
       "benchmarkProxy": 0.5
     },
     {
@@ -1306,6 +1319,7 @@
           "minVramBytes": 48300000000
         }
       ],
+      "kvBytesPerToken": 327680,
       "benchmarkProxy": 0.74
     },
     {
@@ -1334,6 +1348,7 @@
           "minVramBytes": 5635000000
         }
       ],
+      "kvBytesPerToken": 131072,
       "benchmarkProxy": 0.48
     },
     {
@@ -1362,6 +1377,7 @@
           "minVramBytes": 8165000000
         }
       ],
+      "kvBytesPerToken": 163840,
       "benchmarkProxy": 0.55
     },
     {
@@ -1608,6 +1624,7 @@
           "minVramBytes": 5060000000
         }
       ],
+      "kvBytesPerToken": 131072,
       "benchmarkProxy": 0.46
     }
   ]
