@@ -32,6 +32,7 @@ Use these skills (invoke with the `skill` tool) during your workflow:
 | `incremental-implementation`   | Structuring work into thin vertical slices                   |
 | `test-driven-development`      | Writing failing tests before code (RED → GREEN → REFACTOR)   |
 | `debugging-and-error-recovery` | Any step fails — tests, build, typecheck, or lint            |
+| `runtime-production-smoke-test` | Real-process validation after backend/runtime tests are green |
 
 ---
 
@@ -93,14 +94,34 @@ If any step fails, invoke the `debugging-and-error-recovery` skill:
 - Fix the root cause, not the symptom
 - Re-run verification before continuing
 
-### Step 5: Review
+### Step 5: Production Runtime Smoke (runtime/backend changes only)
+
+When changes add or materially alter a runtime adapter, weight acquisition,
+serve/readiness/chat/embed/stop behavior, process ownership, endpoint routing,
+or runtime state:
+
+1. Invoke the `runtime-production-smoke-test` skill after all mocked tests and
+  quality gates pass
+2. Use the production build (`dist/`) and the lightest verified real artifact
+3. Bind loopback on a free port; never disturb a pre-existing listener/server
+4. Prove pull/cache integrity, real process identity/readiness, real inference,
+  capability behavior, and ownership-safe cleanup
+5. Convert every discovered code defect into a failing automated regression test
+  before fixing it, then repeat the real failing step
+6. Do not declare the runtime task complete if the smoke result is `PARTIAL` or
+  `FAIL`; document genuine environment blockers explicitly
+
+Real processes and external model downloads are permitted **only in this smoke
+step**, never inside Vitest/unit/contract tests.
+
+### Step 6: Review
 
 1. Dispatch the `code-reviewer` sub-agent to review the changes
 2. If changes touch the backend, networking, integrity verification, or input handling, dispatch the `security-auditor` sub-agent
 3. If test coverage needs analysis, dispatch the `test-engineer` sub-agent
 4. Address any Critical or Important findings before committing
 
-### Step 6: Commit
+### Step 7: Commit
 
 Commit with a descriptive message: `feat: implement <component> — <brief description>`
 
@@ -129,3 +150,6 @@ Update implementation status if a task is complete.
 5. Never use `any` — strict TypeScript throughout
 6. Never remove or skip existing tests
 7. One task at a time — finish and verify before starting the next
+8. Runtime/backend changes require a passing `runtime-production-smoke-test`
+  before final review and commit, unless a genuine environment blocker is
+  documented and the task remains incomplete
