@@ -89,7 +89,7 @@ const createDefaultDeps = (): MigrateDeps => ({
  * role boundaries; any stored `system` turn is demoted to `user` so it cannot
  * inject a fresh instruction. The planner sanitizes and bounds the returned text.
  */
-function buildSummarizer(adapter: BackendAdapter, ollamaId: string): Summarizer {
+function buildSummarizer(adapter: BackendAdapter, modelId: string, endpoint: string): Summarizer {
   return async (turns: readonly ConversationTurn[]): Promise<string> => {
     const history: ChatMessage[] = turns.map((turn) => ({
       role: turn.role === "assistant" ? "assistant" : "user",
@@ -110,7 +110,7 @@ function buildSummarizer(adapter: BackendAdapter, ollamaId: string): Summarizer 
           "preserves key facts, decisions, and context. Do not add commentary.",
       },
     ];
-    const result = await adapter.chat({ model: ollamaId, messages });
+    const result = await adapter.chat({ endpoint, model: modelId, messages });
     return result.content;
   };
 }
@@ -146,7 +146,6 @@ export async function runMigrate(
   // The same active adapter also decides embedding: a backend that cannot embed
   // migrates vector-less rather than reusing or fabricating an index (§3.3).
   const active = deps.readState(deps.config).active;
-  const targetOllamaId = toResolved.model.source.ollama;
   let summarizer = deps.summarizer;
   let embedder = deps.embedder;
   let embeddingUnsupported = false;
@@ -158,8 +157,13 @@ export async function runMigrate(
       embeddingUnsupported = true;
       embedder = undefined;
     }
-    if (summarizer === undefined && targetOllamaId !== undefined) {
-      summarizer = buildSummarizer(adapter, targetOllamaId);
+    if (summarizer === undefined) {
+      const backendModelId = adapter.capabilities.formats.includes("ollama")
+        ? toResolved.model.source.ollama
+        : toId;
+      if (backendModelId !== undefined) {
+        summarizer = buildSummarizer(adapter, backendModelId, active.endpoint);
+      }
     }
   }
 

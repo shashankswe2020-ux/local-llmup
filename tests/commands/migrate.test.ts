@@ -280,7 +280,7 @@ describe("runMigrate", () => {
         active: {
           backend: "ollama",
           modelId: "small",
-          endpoint: "http://x",
+          endpoint: "http://127.0.0.1:12000",
           pid: 1,
           port: 2,
           ownedByUs: true,
@@ -291,6 +291,10 @@ describe("runMigrate", () => {
     await runMigrate({ from: "a", to: "small" }, deps);
 
     expect(chat).toHaveBeenCalled();
+    expect(chat.mock.calls[0]?.[0]).toMatchObject({
+      endpoint: "http://127.0.0.1:12000",
+      model: "small",
+    });
     expect(stdout.join("")).toContain("summarize");
   });
 

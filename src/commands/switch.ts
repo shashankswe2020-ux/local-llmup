@@ -57,11 +57,6 @@ export async function runSwitch(
 ): Promise<void> {
   const resolved = resolveModel(deps.loadCatalog(), options.model);
   const target = resolved.model;
-  const ollamaId = target.source.ollama;
-  if (ollamaId === undefined) {
-    throw new ValidationError(`model ${target.id} has no ollama source to serve`);
-  }
-
   const current = deps.readState(deps.config).active;
   if (current === null) {
     throw new ValidationError(
@@ -78,12 +73,24 @@ export async function runSwitch(
   const adapter = (
     await select({ intent: "attach", registry: deps.registry, activeBackend: current.backend })
   ).adapter;
-  const quant = resolved.quant;
+  if (adapter.capabilities.formats.includes("gguf")) {
+    throw new ValidationError(
+      `${adapter.name} is a single-model server; run \`local-llmup up ${target.id} --backend ${adapter.name}\` to replace it`,
+    );
+  }
+  const ollamaId = target.source.ollama;
+  if (ollamaId === undefined) {
+    throw new ValidationError(`model ${target.id} has no ollama source to serve`);
+  }
+  const quant = resolved.quant ?? target.quantizations[0];
+  if (quant === undefined) {
+    throw new ValidationError(`model ${target.id} has no quantization to verify`);
+  }
   deps.log(`Preparing ${stripControl(ollamaId)}...\n`);
   await adapter.pull({
     modelId: ollamaId,
-    ...(quant?.sha256 !== undefined ? { expectedSha256: quant.sha256 } : {}),
-    ...(quant !== undefined ? { expectedSizeBytes: quant.diskBytes } : {}),
+    ...(quant.sha256 !== undefined ? { expectedSha256: quant.sha256 } : {}),
+    expectedSizeBytes: quant.diskBytes,
     onProgress: (event) => deps.log(`  ${stripControl(event.status)}\n`),
   });
   await adapter.waitUntilReady({ endpoint: current.endpoint });
@@ -93,6 +100,15 @@ export async function runSwitch(
     const active = deps.readState(deps.config).active;
     if (active === null) {
       throw new ValidationError("the active server stopped during switch; run `up` again.");
+    }
+    const sameServer =
+      active.backend === current.backend &&
+      active.endpoint === current.endpoint &&
+      active.port === current.port &&
+      active.ownedByUs === current.ownedByUs &&
+      (!active.ownedByUs || !current.ownedByUs || active.pid === current.pid);
+    if (!sameServer) {
+      throw new ValidationError("the active server changed during switch; retry the command.");
     }
     // A concurrent switch may have already made the target active; treat that as
     // done rather than rewriting identical state.

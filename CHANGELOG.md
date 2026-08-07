@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+Phase 2 llama.cpp production hardening after real-process smoke testing.
+
+- Replaced invalid GGUF catalog coordinates with verified Hugging Face commit,
+  filename, size, and LFS SHA-256 metadata; self-managed weights now require a
+  digest and are never served after an unverified pull.
+- Bounded and serialized direct downloads with cancellation, byte ceilings,
+  progress, redirect/SSRF validation, stale-part cleanup, owner-only cache
+  permissions, symlink refusal, and atomic verified promotion.
+- Chat and migration now use the active loopback endpoint and canonical runtime
+  model alias instead of hard-coded ports/Ollama ids.
+- llama.cpp attach/spawn/stop now bind HTTP identity to the expected model path,
+  alias, listening address, PID, canonical executable, and process start time.
+- Fixed repeated/cross-backend `up`, single-model `switch`, backend preference
+  precedence, persistent log-pipe deadlocks, and stale-state cleanup.
+
 ## 0.4.1 - 2026-08-07
 
 Bug fix: `--version` now reports the actual installed version.

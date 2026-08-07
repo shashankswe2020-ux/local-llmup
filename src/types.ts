@@ -128,8 +128,8 @@ export interface GgufSource {
   readonly revision: string;
   /** Repo-relative file path (no globs, no `..`, not absolute). */
   readonly file: string;
-  /** Weight digest when published; absent → size-only verify (honesty gate). */
-  readonly sha256?: string | undefined;
+  /** Required weight digest; self-managed artifacts are never served unverified. */
+  readonly sha256: string;
 }
 
 /** A pinned MLX weight repo in Hugging Face. */

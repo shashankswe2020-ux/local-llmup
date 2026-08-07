@@ -90,6 +90,12 @@ export async function runDown(
           pid: active.pid,
           port: active.port,
           ownedByUs: true,
+          ...(active.processExecutable !== undefined
+            ? { processExecutable: active.processExecutable }
+            : {}),
+          ...(active.processStartedAt !== undefined
+            ? { processStartedAt: active.processStartedAt }
+            : {}),
         });
       } catch (error) {
         deps.writeState(deps.config, previousState);

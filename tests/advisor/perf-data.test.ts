@@ -357,7 +357,10 @@ describe("parsePerf — efficiencyByBackend (B9)", () => {
     const ds = parse(
       classWith({
         efficiencyByBackend: { ollama: 0.7, llamacpp: 0.7 },
-        sources: { ...SOURCES, efficiencyByBackend: { llamacpp: provenance } },
+        sources: {
+          ...SOURCES,
+          efficiencyByBackend: { ollama: provenance, llamacpp: provenance },
+        },
       }),
     );
     expect(ds.classes[0]?.efficiencyByBackend).toEqual({ ollama: 0.7, llamacpp: 0.7 });
@@ -365,12 +368,60 @@ describe("parsePerf — efficiencyByBackend (B9)", () => {
   });
 
   it("keeps schemaVersion at 1 (additive, no bump)", () => {
-    const ds = parse(classWith({ efficiencyByBackend: { llamacpp: 0.7 } }));
+    const ds = parse(
+      classWith({
+        efficiencyByBackend: { llamacpp: 0.7 },
+        sources: { ...SOURCES, efficiencyByBackend: { llamacpp: provenance } },
+      }),
+    );
     expect(ds.schemaVersion).toBe(1);
   });
 
   it("accepts a class with no efficiencyByBackend (fully optional)", () => {
     expect(() => parse(classWith())).not.toThrow();
+  });
+
+  it("rejects a backend scalar without matching provenance", () => {
+    expect(() => parse(classWith({ efficiencyByBackend: { llamacpp: 0.7 } }))).toThrow(
+      ValidationError,
+    );
+  });
+
+  it("rejects provenance whose value differs from the consumed scalar", () => {
+    expect(() =>
+      parse(
+        classWith({
+          efficiencyByBackend: { llamacpp: 0.7 },
+          sources: {
+            ...SOURCES,
+            efficiencyByBackend: { llamacpp: { ...provenance, value: 0.6 } },
+          },
+        }),
+      ),
+    ).toThrow(ValidationError);
+  });
+
+  it("rejects orphan or low-confidence provenance", () => {
+    expect(() =>
+      parse(
+        classWith({
+          sources: { ...SOURCES, efficiencyByBackend: { llamacpp: provenance } },
+        }),
+      ),
+    ).toThrow(ValidationError);
+    expect(() =>
+      parse(
+        classWith({
+          efficiencyByBackend: { llamacpp: 0.7 },
+          sources: {
+            ...SOURCES,
+            efficiencyByBackend: {
+              llamacpp: { ...provenance, trustTier: "low-confidence" },
+            },
+          },
+        }),
+      ),
+    ).toThrow(ValidationError);
   });
 
   it("rejects a per-backend scalar above 1", () => {

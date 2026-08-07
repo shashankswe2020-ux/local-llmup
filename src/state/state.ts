@@ -15,6 +15,7 @@ import { z } from "zod";
 import { DIR_MODE, FILE_MODE, type Config } from "../config.js";
 import { StateError } from "../errors.js";
 import { BACKEND_NAMES, type BackendName } from "../types.js";
+import { assertLoopbackEndpoint } from "../backend/adapter.js";
 
 /** Bumped when the on-disk state layout changes in a backward-incompatible way. */
 export const STATE_SCHEMA_VERSION = 2 as const;
@@ -30,7 +31,17 @@ const ServerStateCommonSchema = z
   .object({
     backend: z.enum(BACKEND_NAMES),
     modelId: z.string().min(1),
-    endpoint: z.string().url(),
+    endpoint: z.string().url().refine(
+      (endpoint) => {
+        try {
+          assertLoopbackEndpoint(endpoint);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { message: "endpoint must be loopback HTTP" },
+    ),
     port: z.number().int().min(1).max(65535),
   })
   .strict();
@@ -39,6 +50,8 @@ const ServerStateCommonSchema = z
 const OwnedServerStateSchema = ServerStateCommonSchema.extend({
   ownedByUs: z.literal(true),
   pid: z.number().int().positive(),
+  processExecutable: z.string().min(1).optional(),
+  processStartedAt: z.string().min(1).optional(),
 }).strict();
 
 /** A daemon we attached to and do not own (no trusted pid available). */
@@ -58,7 +71,19 @@ const RuntimeStateSchema = z
     schemaVersion: z.literal(STATE_SCHEMA_VERSION),
     active: ServerStateSchema.nullable(),
   })
-  .strict();
+  .strict()
+  .superRefine((state, context) => {
+    if (state.active === null) return;
+    const url = new URL(state.active.endpoint);
+    const endpointPort = Number(url.port || "80");
+    if (endpointPort !== state.active.port) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["active", "port"],
+        message: "recorded port must match endpoint port",
+      });
+    }
+  });
 
 export type ServerState = z.infer<typeof ServerStateSchema>;
 export type RuntimeState = z.infer<typeof RuntimeStateSchema>;

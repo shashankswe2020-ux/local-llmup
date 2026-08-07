@@ -312,7 +312,7 @@ export const REGISTRY_SNAPSHOT: readonly RawRegistryModel[] = [
     capabilities: ["chat", "reasoning", "tools", "code"],
     releaseDate: "2025-04-28",
     source: { ollama: "qwen3:14b", hf: "Qwen/Qwen3-14B" },
-    quantizations: [{ name: "Q4_K_M", diskBytes: 9 * GB }],
+    quantizations: [{ name: "Q4_K_M", diskBytes: 9_001_752_960 }],
   },
   {
     id: "qwen3:32b",
@@ -325,7 +325,7 @@ export const REGISTRY_SNAPSHOT: readonly RawRegistryModel[] = [
     capabilities: ["chat", "reasoning", "tools", "code"],
     releaseDate: "2025-04-28",
     source: { ollama: "qwen3:32b", hf: "Qwen/Qwen3-32B" },
-    quantizations: [{ name: "Q4_K_M", diskBytes: 19500 * MB }],
+    quantizations: [{ name: "Q4_K_M", diskBytes: 19_762_149_024 }],
   },
   {
     id: "qwen3:30b-a3b",
@@ -339,7 +339,7 @@ export const REGISTRY_SNAPSHOT: readonly RawRegistryModel[] = [
     capabilities: ["chat", "reasoning", "tools", "code"],
     releaseDate: "2025-04-28",
     source: { ollama: "qwen3:30b-a3b", hf: "Qwen/Qwen3-30B-A3B" },
-    quantizations: [{ name: "Q4_K_M", diskBytes: 18500 * MB }],
+    quantizations: [{ name: "Q4_K_M", diskBytes: 18_556_685_824 }],
   },
   {
     id: "qwen3:235b-a22b",

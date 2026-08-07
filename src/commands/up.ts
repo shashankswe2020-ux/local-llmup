@@ -12,7 +12,7 @@
  * be driven with fakes.
  */
 import { loadCatalog } from "../catalog/load.js";
-import { loadConfig, type Config } from "../config.js";
+import { loadConfig, loadUserConfig, type Config } from "../config.js";
 import { BackendError, ValidationError } from "../errors.js";
 import { detectHardware } from "../hardware/detect.js";
 import { evaluateFit } from "../ranking/fit.js";
@@ -57,6 +57,8 @@ export interface UpDeps {
   readonly loadCatalog: () => Catalog;
   readonly detectHardware: () => Promise<HardwareProfile>;
   readonly registry: BackendRegistry;
+  readonly env: NodeJS.ProcessEnv;
+  readonly configBackend?: BackendName | undefined;
   readonly readState: (config: Config) => RuntimeState;
   readonly writeState: (config: Config, state: RuntimeState) => void;
   readonly withLock: <T>(config: Config, fn: () => T | Promise<T>) => Promise<T>;
@@ -66,17 +68,23 @@ export interface UpDeps {
   readonly log: (text: string) => void;
 }
 
-const createDefaultDeps = (): UpDeps => ({
-  config: loadConfig(),
-  loadCatalog: () => loadCatalog(),
-  detectHardware: () => detectHardware(),
-  registry: createDefaultRegistry(),
-  readState,
-  writeState,
-  withLock,
-  write: (text) => process.stdout.write(text),
-  log: (text) => process.stderr.write(text),
-});
+const createDefaultDeps = (): UpDeps => {
+  const config = loadConfig();
+  const userConfig = loadUserConfig(config);
+  return {
+    config,
+    loadCatalog: () => loadCatalog(),
+    detectHardware: () => detectHardware(),
+    registry: createDefaultRegistry(),
+    env: process.env,
+    ...(userConfig !== undefined ? { configBackend: userConfig.defaultBackend } : {}),
+    readState,
+    writeState,
+    withLock,
+    write: (text) => process.stdout.write(text),
+    log: (text) => process.stderr.write(text),
+  };
+};
 
 /**
  * Pick the quant to install: the one named by a `-<quant>` suffix if given,
@@ -179,6 +187,8 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
     platform: hardware.platform,
     arch: hardware.arch,
     ...(options.backend !== undefined ? { flag: options.backend } : {}),
+    env: deps.env,
+    ...(deps.configBackend !== undefined ? { configBackend: deps.configBackend } : {}),
   });
   const adapter = selection.adapter;
 
@@ -210,6 +220,7 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
         file: ggufSource.file,
         ...(ggufSource.sha256 !== undefined ? { sha256: ggufSource.sha256 } : {}),
       },
+      expectedSizeBytes: quant.diskBytes,
       onProgress: (event) => deps.log(`  ${stripControl(event.status)}\n`),
     });
   } else {
@@ -218,9 +229,14 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
     );
   }
 
-  // Honesty gate: surface unverified integrity rather than serving silently. A
-  // pull is unverified when the catalog carried no digest, so only a weaker
-  // check (size floor or pinned commit) backed the download.
+  if (ggufSource !== undefined && !pullResult.digestVerified) {
+    throw new BackendError(
+      `refusing to serve ${model.id}: self-managed weights failed digest verification`,
+    );
+  }
+
+  // Daemon-managed stores may use the catalog size floor when no digest is
+  // available. Surface that weaker integrity result rather than hiding it.
   if (!pullResult.digestVerified) {
     deps.log(
       `up: warning — ${stripControl(model.id)} weights could not be digest-verified (no catalog SHA-256); serving on a weaker integrity check\n`,
@@ -234,40 +250,38 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
   let endpoint = "";
   await deps.withLock(deps.config, async () => {
     const modelPath = pullResult.modelPath;
-    const handle = await adapter.serve({
-      host: DEFAULT_BIND_HOST,
-      port,
-      ...(modelPath !== undefined ? { modelPath } : {}),
-    });
+    const prior = deps.readState(deps.config).active;
+    if (prior !== null && prior.ownedByUs) {
+      const priorAdapter = deps.registry.get(prior.backend);
+      await priorAdapter.stop({
+        endpoint: prior.endpoint,
+        pid: prior.pid,
+        port: prior.port,
+        ownedByUs: true,
+        ...(prior.processExecutable !== undefined
+          ? { processExecutable: prior.processExecutable }
+          : {}),
+        ...(prior.processStartedAt !== undefined ? { processStartedAt: prior.processStartedAt } : {}),
+      });
+      // Do not retain a stale owned PID if replacement startup fails.
+      deps.writeState(deps.config, { schemaVersion: STATE_SCHEMA_VERSION, active: null });
+    }
 
-    // Second readiness probe is intentional: `serve` proves daemon liveness,
-    // while this command-level check requires OpenAI-compatible readiness so
-    // the endpoint is usable by the rest of llmup before state is persisted.
-    // On failure, stop only a daemon we spawned, then abort.
+    let handle: ServeHandle | undefined;
     try {
+      handle = await adapter.serve({
+        host: DEFAULT_BIND_HOST,
+        port,
+        modelId: model.id,
+        ...(modelPath !== undefined ? { modelPath } : {}),
+      });
+
+      // `serve` proves backend-specific load readiness; this command-level probe
+      // additionally requires the OpenAI-compatible API before persistence.
       await adapter.waitUntilReady({
         endpoint: handle.endpoint,
         requireOpenAiCompatibility: true,
       });
-    } catch (error) {
-      await stopQuietly(adapter, handle);
-      throw new BackendError(`server for ${model.id} did not become ready`, { cause: error });
-    }
-
-    // Reconcile inside the lock: a previously-recorded server we own is stopped
-    // before its record is replaced, so re-running `up` cannot orphan a daemon
-    // that `down` would no longer be able to find. If persistence fails, stop the
-    // daemon we just started so it is not left running without a state record.
-    try {
-      const prior = deps.readState(deps.config).active;
-      if (prior !== null && prior.ownedByUs && !(prior.pid === handle.pid && prior.port === handle.port)) {
-        await stopQuietly(adapter, {
-          endpoint: prior.endpoint,
-          pid: prior.pid,
-          port: prior.port,
-          ownedByUs: prior.ownedByUs,
-        });
-      }
       const backend = adapter.name;
       const active: ServerState = handle.ownedByUs
         ? {
@@ -277,6 +291,12 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
             pid: handle.pid,
             port: handle.port,
             ownedByUs: true,
+            ...(handle.processExecutable !== undefined
+              ? { processExecutable: handle.processExecutable }
+              : {}),
+            ...(handle.processStartedAt !== undefined
+              ? { processStartedAt: handle.processStartedAt }
+              : {}),
           }
         : {
             backend,
@@ -288,7 +308,7 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
       deps.writeState(deps.config, { schemaVersion: STATE_SCHEMA_VERSION, active });
       endpoint = handle.endpoint;
     } catch (error) {
-      await stopQuietly(adapter, handle);
+      if (handle !== undefined) await stopQuietly(adapter, handle);
       throw error;
     }
   });

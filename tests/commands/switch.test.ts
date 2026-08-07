@@ -52,18 +52,21 @@ interface FakeAdapter extends BackendAdapter {
   readyError?: Error;
 }
 
-function fakeAdapter(): FakeAdapter {
+function fakeAdapter(options: {
+  name?: "ollama" | "llamacpp";
+  formats?: readonly ("ollama" | "gguf")[];
+} = {}): FakeAdapter {
   const pullArgs: PullOptions[] = [];
   const readyArgs: ReadinessOptions[] = [];
   const adapter: FakeAdapter = {
     pullArgs,
     readyArgs,
-    name: "ollama",
+    name: options.name ?? "ollama",
     capabilities: {
       canPull: true,
       canEmbed: true,
       openAiCompatible: true,
-      formats: ["ollama"],
+      formats: options.formats ?? ["ollama"],
       defaultPort: 11434,
     },
     isInstalled: () => Promise.resolve(true),
@@ -117,11 +120,11 @@ function deps(adapter: FakeAdapter, cat: Catalog = CAT): SwitchDeps {
   };
 }
 
-function seedActive(modelId: string): void {
+function seedActive(modelId: string, backend: "ollama" | "llamacpp" = "ollama"): void {
   writeState(config, {
     schemaVersion: STATE_SCHEMA_VERSION,
     active: {
-      backend: "ollama",
+      backend,
       modelId,
       endpoint: "http://127.0.0.1:11434",
       pid: 9001,
@@ -207,5 +210,54 @@ describe("runSwitch", () => {
       modelId: "qwen2.5:7b",
       expectedSha256: "b".repeat(64),
     });
+  });
+
+  it("always supplies the catalog size floor when switching without a quant suffix", async () => {
+    seedActive("llama3.1:8b");
+    const adapter = fakeAdapter();
+
+    await runSwitch({ model: "qwen2.5:7b" }, deps(adapter));
+
+    expect(adapter.pullArgs[0]?.expectedSizeBytes).toBe(5_000_000_000);
+  });
+
+  it("rejects switch on a single-model llama.cpp server without pulling or rewriting state", async () => {
+    seedActive("llama3.1:8b", "llamacpp");
+    const adapter = fakeAdapter({ name: "llamacpp", formats: ["gguf"] });
+
+    await expect(runSwitch({ model: "qwen2.5:7b" }, deps(adapter))).rejects.toThrow(
+      /single-model|local-llmup up/i,
+    );
+
+    expect(adapter.pullArgs).toHaveLength(0);
+    expect(readState(config).active).toMatchObject({ modelId: "llama3.1:8b" });
+  });
+
+  it("aborts commit when the active server changes during preparation", async () => {
+    seedActive("llama3.1:8b");
+    const adapter = fakeAdapter();
+    const d = deps(adapter);
+    const racing: SwitchDeps = {
+      ...d,
+      withLock: async (_config, fn) => {
+        writeState(config, {
+          schemaVersion: STATE_SCHEMA_VERSION,
+          active: {
+            backend: "ollama",
+            modelId: "other:1b",
+            endpoint: "http://127.0.0.1:12000",
+            pid: 9999,
+            port: 12000,
+            ownedByUs: true,
+          },
+        });
+        return fn();
+      },
+    };
+
+    await expect(runSwitch({ model: "qwen2.5:7b" }, racing)).rejects.toThrow(
+      /changed during switch/i,
+    );
+    expect(readState(config).active).toMatchObject({ endpoint: "http://127.0.0.1:12000" });
   });
 });

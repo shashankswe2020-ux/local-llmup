@@ -162,7 +162,24 @@ describe("estimateTokPerSec — per-backend efficiency resolution (B9)", () => {
       maxBytes: 28 * GIB,
       sources: { bandwidth: "vendor spec sheet", efficiency: "llama.cpp decode benchmark" },
     };
-    if (efficiencyByBackend !== undefined) cls["efficiencyByBackend"] = efficiencyByBackend;
+    if (efficiencyByBackend !== undefined) {
+      cls["efficiencyByBackend"] = efficiencyByBackend;
+      cls["sources"] = {
+        bandwidth: "vendor spec sheet",
+        efficiency: "llama.cpp decode benchmark",
+        efficiencyByBackend: Object.fromEntries(
+          Object.entries(efficiencyByBackend).map(([backend, value]) => [
+            backend,
+            {
+              value,
+              trustTier: "session-verified",
+              basisBytesPerToken: 4.4e9,
+              url: "https://github.com/ggml-org/llama.cpp/discussions/4167",
+            },
+          ]),
+        ),
+      };
+    }
     return parsePerf(
       JSON.stringify({
         schemaVersion: 1,

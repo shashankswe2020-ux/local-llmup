@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ValidationError } from "../../src/errors.js";
 import {
+  assertLoopbackEndpoint,
   buildEndpoint,
   DEFAULT_BIND_HOST,
   DEFAULT_OLLAMA_PORT,
@@ -35,6 +36,19 @@ describe("endpoint helpers", () => {
       expect(() => buildEndpoint("127.0.0.1", port)).toThrow(ValidationError);
     });
   }
+
+  it("normalizes loopback endpoints", () => {
+    expect(assertLoopbackEndpoint("http://127.0.0.1:8080/")).toBe("http://127.0.0.1:8080");
+    expect(assertLoopbackEndpoint("http://[::1]:8080")).toBe("http://[::1]:8080");
+  });
+
+  it.each([
+    "https://127.0.0.1:8080",
+    "http://example.com:8080",
+    "http://user:pass@127.0.0.1:8080",
+  ])("rejects unsafe backend endpoint %s", (endpoint) => {
+    expect(() => assertLoopbackEndpoint(endpoint)).toThrow(ValidationError);
+  });
 });
 
 /**

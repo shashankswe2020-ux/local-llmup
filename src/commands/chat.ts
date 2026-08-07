@@ -141,15 +141,24 @@ export async function runChat(
 
   const resolved = resolveModel(deps.loadCatalog(), options.model ?? active.modelId);
   const modelId = resolved.model.id;
-  const ollamaId = resolved.model.source.ollama;
-  if (ollamaId === undefined) {
-    throw new ValidationError(`model ${modelId} has no ollama source to chat with`);
-  }
-
-  const store = deps.openMemoryStore(deps.config, modelId);
   const adapter = (
     await select({ intent: "attach", registry: deps.registry, activeBackend: active.backend })
   ).adapter;
+  if (adapter.capabilities.formats.includes("gguf") && modelId !== active.modelId) {
+    throw new ValidationError(
+      `active ${adapter.name} server is serving ${active.modelId}; run \`local-llmup up ${modelId} --backend ${adapter.name}\` first`,
+    );
+  }
+  const backendModelId = adapter.capabilities.formats.includes("ollama")
+    ? resolved.model.source.ollama
+    : modelId;
+  if (backendModelId === undefined) {
+    throw new ValidationError(
+      `model ${modelId} has no source that backend ${adapter.name} can chat with`,
+    );
+  }
+
+  const store = deps.openMemoryStore(deps.config, modelId);
   // Best-effort embeddings: a backend that cannot embed captures vector-less
   // rather than fabricating vectors or hard-failing (honesty gate, spec §3.3).
   const canEmbed = adapter.capabilities.canEmbed;
@@ -180,7 +189,11 @@ export async function runChat(
 
     messages.push({ role: "user", content: turn });
     const context = messages.slice(-MAX_CONTEXT_MESSAGES);
-    const result = await adapter.chat({ model: ollamaId, messages: context });
+    const result = await adapter.chat({
+      endpoint: active.endpoint,
+      model: backendModelId,
+      messages: context,
+    });
     const reply = result.content;
 
     deps.write(`${stripControl(reply)}\n`);

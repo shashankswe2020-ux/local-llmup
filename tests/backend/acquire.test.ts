@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { lstatSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
@@ -10,6 +10,7 @@ import {
   acquireWeight,
   assertExactFileMatch,
   buildHfResolveUrl,
+  createAcquireFetch,
   type AcquireDeps,
   type FetchResponseLike,
 } from "../../src/backend/acquire.js";
@@ -25,6 +26,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllGlobals();
   rmSync(home, { recursive: true, force: true });
 });
 
@@ -71,6 +73,54 @@ describe("buildHfResolveUrl", () => {
   });
 });
 
+describe("createAcquireFetch — redirect policy", () => {
+  it("rejects a redirect to a private or non-allowlisted host before following it", async () => {
+    let cancelled = false;
+    const fetchFn = vi.fn(() =>
+      Promise.resolve(
+        new Response(
+          new ReadableStream({
+            cancel: () => {
+              cancelled = true;
+            },
+          }),
+          {
+          status: 302,
+          headers: { location: "https://169.254.169.254/weights.gguf" },
+          },
+        ),
+      ),
+    );
+    vi.stubGlobal("fetch", fetchFn);
+
+    await expect(
+      createAcquireFetch()(`https://huggingface.co/o/r/resolve/${REV}/x.gguf`),
+    ).rejects.toThrow(ValidationError);
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(cancelled).toBe(true);
+  });
+
+  it("follows a validated Hugging Face CDN redirect manually", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: { location: "https://cdn.hf.co/weights.gguf" },
+        }),
+      )
+      .mockResolvedValueOnce(new Response(WEIGHTS, { status: 200 }));
+    vi.stubGlobal("fetch", fetchFn);
+
+    const result = await createAcquireFetch()(
+      `https://huggingface.co/o/r/resolve/${REV}/x.gguf`,
+    );
+
+    expect(result.ok).toBe(true);
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("assertExactFileMatch", () => {
   it("returns the single exact match", () => {
     expect(assertExactFileMatch(["a.gguf", "model-q4.gguf"], "model-q4.gguf")).toBe("model-q4.gguf");
@@ -104,11 +154,11 @@ describe("acquireWeight — happy path", () => {
     expect(lstatSync(expectedPath).isSymbolicLink()).toBe(false);
   });
 
-  it("marks digestVerified false when no expected digest is supplied", async () => {
+  it("rejects a self-managed acquisition without an expected digest", async () => {
     const { sha256: _omit, ...noDigest } = request;
-    const result = await acquireWeight(noDigest, deps(okResponse(WEIGHTS)));
-    expect(result.digestVerified).toBe(false);
-    expect(statSync(result.path).isFile()).toBe(true);
+    await expect(acquireWeight(noDigest, deps(okResponse(WEIGHTS)))).rejects.toThrow(
+      ValidationError,
+    );
   });
 
   it("tolerates an absent X-Repo-Commit header (URL pins the commit)", async () => {
@@ -151,6 +201,54 @@ describe("acquireWeight — cache hit", () => {
     expect(result.digestVerified).toBe(true);
     expect(fetchFn).toHaveBeenCalledTimes(1);
   });
+
+  it("normalizes a verified cache hit back to owner-only mode", async () => {
+    const finalPath = join(home, "cache", "llamacpp", "owner", `Repo-Name@${REV}`, "model-q4.gguf");
+    mkdirSync(dirname(finalPath), { recursive: true });
+    writeFileSync(finalPath, WEIGHTS);
+    chmodSync(finalPath, 0o666);
+
+    const result = await acquireWeight(request, deps(okResponse(WEIGHTS)));
+
+    expect(result.cached).toBe(true);
+    expect(statSync(finalPath).mode & 0o777).toBe(0o600);
+  });
+});
+
+describe("acquireWeight — artifact locking", () => {
+  it("refuses a concurrent acquisition of the same artifact", async () => {
+    let releaseFetch: ((response: FetchResponseLike) => void) | undefined;
+    let markStarted: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    const pending = new Promise<FetchResponseLike>((resolve) => {
+      releaseFetch = resolve;
+    });
+    const fetchFn = vi.fn(() => {
+      markStarted?.();
+      return pending;
+    });
+    const first = acquireWeight(request, { config: config(), fetch: fetchFn });
+    await started;
+
+    await expect(
+      acquireWeight(request, { config: config(), fetch: vi.fn(async () => okResponse(WEIGHTS)) }),
+    ).rejects.toThrow(/already in progress/);
+
+    releaseFetch?.(okResponse(WEIGHTS));
+    await expect(first).resolves.toMatchObject({ digestVerified: true });
+  });
+
+  it("reclaims an artifact lock owned by a dead process", async () => {
+    const dir = join(home, "cache", "llamacpp", "owner", `Repo-Name@${REV}`);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, `${request.file}.lock`), "99999999");
+
+    await expect(acquireWeight(request, deps(okResponse(WEIGHTS)))).resolves.toMatchObject({
+      digestVerified: true,
+    });
+  });
 });
 
 describe("acquireWeight — fail closed", () => {
@@ -182,6 +280,59 @@ describe("acquireWeight — fail closed", () => {
     await expect(acquireWeight(request, deps(notFound))).rejects.toThrow(BackendError);
   });
 
+  it("aborts before fetch when the caller signal is already aborted", async () => {
+    const fetchFn = vi.fn(async () => okResponse(WEIGHTS));
+    await expect(
+      acquireWeight(request, {
+        config: config(),
+        fetch: fetchFn,
+        signal: AbortSignal.abort(),
+      }),
+    ).rejects.toThrow(BackendError);
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("aborts a stalled fetch at the configured timeout", async () => {
+    const fetchFn = vi.fn(
+      (_url: string, signal?: AbortSignal): Promise<FetchResponseLike> =>
+        new Promise((_resolve, reject) => {
+          signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+        }),
+    );
+
+    await expect(
+      acquireWeight(request, { config: config(), fetch: fetchFn, timeoutMs: 1 }),
+    ).rejects.toThrow(BackendError);
+    expect(fetchFn.mock.calls[0]?.[1]).toBeInstanceOf(AbortSignal);
+  });
+
+  it("rejects a response that exceeds the configured byte ceiling and discards it", async () => {
+    const dir = join(home, "cache", "llamacpp", "owner", `Repo-Name@${REV}`);
+    await expect(
+      acquireWeight(request, deps(okResponse(WEIGHTS), { maxBytes: WEIGHTS.length - 1 })),
+    ).rejects.toThrow(BackendError);
+    expect(readdirSync(dir).filter((file) => file.endsWith(".part"))).toEqual([]);
+    expect(() => statSync(join(dir, request.file))).toThrow();
+  });
+
+  it("emits bounded byte progress while streaming", async () => {
+    const progress = vi.fn();
+    const result = await acquireWeight(request, deps(okResponse(WEIGHTS), { onProgress: progress }));
+    expect(result.bytes).toBe(WEIGHTS.length);
+    expect(progress).toHaveBeenLastCalledWith(WEIGHTS.length);
+  });
+
+  it("reclaims an abandoned partial owned by a dead process before downloading", async () => {
+    const dir = join(home, "cache", "llamacpp", "owner", `Repo-Name@${REV}`);
+    mkdirSync(dir, { recursive: true });
+    const stale = join(dir, ".Repo-Name.99999999.deadbeef.part");
+    writeFileSync(stale, Buffer.alloc(4));
+
+    await acquireWeight(request, deps(okResponse(WEIGHTS)));
+
+    expect(() => statSync(stale)).toThrow();
+  });
+
   it("rejects a non-HTTPS / private-host base URL via the SSRF guard", async () => {
     const d = deps(okResponse(WEIGHTS), { baseUrl: "http://169.254.169.254" });
     await expect(acquireWeight(request, d)).rejects.toThrow(ValidationError);
@@ -199,6 +350,19 @@ describe("acquireWeight — fail closed", () => {
     symlinkSync(external, join(backendDir, "owner")); // owner -> outside the cache root
     try {
       await expect(acquireWeight(request, deps(okResponse(WEIGHTS)))).rejects.toThrow(BackendError);
+    } finally {
+      rmSync(external, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a cache root symlink that escapes the configured home", async () => {
+    const external = mkdtempSync(join(tmpdir(), "llmup-cache-root-"));
+    mkdirSync(home, { recursive: true });
+    symlinkSync(external, join(home, "cache"));
+    try {
+      await expect(acquireWeight(request, deps(okResponse(WEIGHTS)))).rejects.toThrow(
+        BackendError,
+      );
     } finally {
       rmSync(external, { recursive: true, force: true });
     }

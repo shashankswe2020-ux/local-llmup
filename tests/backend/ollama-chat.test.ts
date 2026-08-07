@@ -36,6 +36,34 @@ describe("OllamaAdapter.chat", () => {
     });
   });
 
+  it("posts to the active custom loopback endpoint", async () => {
+    const fetch = vi.fn<FetchFn>(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ message: { content: "ok" } }),
+      }),
+    );
+    const adapter = new OllamaAdapter({ fetch });
+
+    await adapter.chat({
+      endpoint: "http://127.0.0.1:12000",
+      model: "llama3.1:8b",
+      messages: [],
+    });
+
+    expect(fetch.mock.calls[0]?.[0]).toBe("http://127.0.0.1:12000/api/chat");
+  });
+
+  it("refuses a non-loopback chat endpoint", async () => {
+    const fetch = vi.fn<FetchFn>();
+    const adapter = new OllamaAdapter({ fetch });
+    await expect(
+      adapter.chat({ endpoint: "http://example.com", model: "llama3.1:8b", messages: [] }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("throws BackendError on non-2xx response", async () => {
     const fetch = vi.fn<FetchFn>(() => Promise.resolve({ ok: false, status: 500 }));
     const adapter = new OllamaAdapter({ fetch });

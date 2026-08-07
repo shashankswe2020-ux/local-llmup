@@ -277,6 +277,42 @@ describe("readState", () => {
     }
   });
 
+  it("rejects a non-loopback active endpoint", () => {
+    writeFileSync(
+      config.stateFile,
+      JSON.stringify({
+        schemaVersion: STATE_SCHEMA_VERSION,
+        active: {
+          backend: "ollama",
+          modelId: "llama3.1:8b",
+          endpoint: "http://example.com:11434",
+          pid: 4242,
+          port: 11434,
+          ownedByUs: true,
+        },
+      }),
+    );
+    expect(() => readState(config)).toThrow(StateError);
+  });
+
+  it("rejects state whose endpoint port differs from its recorded port", () => {
+    writeFileSync(
+      config.stateFile,
+      JSON.stringify({
+        schemaVersion: STATE_SCHEMA_VERSION,
+        active: {
+          backend: "ollama",
+          modelId: "llama3.1:8b",
+          endpoint: "http://127.0.0.1:12000",
+          pid: 4242,
+          port: 11434,
+          ownedByUs: true,
+        },
+      }),
+    );
+    expect(() => readState(config)).toThrow(StateError);
+  });
+
   it("distinguishes a zero-byte file", () => {
     writeFileSync(config.stateFile, "");
     try {

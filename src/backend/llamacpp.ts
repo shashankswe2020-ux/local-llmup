@@ -16,11 +16,13 @@
  * loopback without an explicit opt-in.
  */
 import { spawn as nodeSpawn } from "node:child_process";
+import { resolve } from "node:path";
 import type { Readable } from "node:stream";
 import { z } from "zod";
 import { BackendError, ValidationError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
 import {
+  assertLoopbackEndpoint,
   buildEndpoint,
   DEFAULT_BIND_HOST,
   type BackendAdapter,
@@ -46,6 +48,13 @@ import type {
   SpawnedProcess,
 } from "./ollama.js";
 import type { BackendCapabilities } from "../types.js";
+import { assertSafeModelId } from "./net.js";
+import {
+  matchesExpectedExecutable,
+  probeListenerIdentity,
+  sameListenerProcess,
+  type ListenerIdentity,
+} from "./listener.js";
 
 /** Default binary name resolved from `PATH`. */
 const LLAMA_SERVER_BINARY = "llama-server";
@@ -92,7 +101,10 @@ function adaptStream(stream: Readable | null): ProcessOutputStream | null {
 
 const defaultSpawn: SpawnFn = (command, args, options) => {
   const child = nodeSpawn(command, [...args], {
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio:
+      options.stdio === "ignore"
+        ? ["ignore", "ignore", "ignore"]
+        : ["ignore", "pipe", "pipe"],
     shell: false,
     signal: options.signal,
     ...(options.env ? { env: options.env } : {}),
@@ -146,7 +158,7 @@ function probe(
   return new Promise<ProbeResult>((resolve, reject) => {
     let child: SpawnedProcess;
     try {
-      child = spawn(binary, args, { shell: false, signal });
+      child = spawn(binary, args, { shell: false, stdio: "pipe", signal });
     } catch (error) {
       reject(wrapSpawnError(binary, error));
       return;
@@ -194,6 +206,7 @@ function parseVersion(output: string): string | null {
 const defaultFetch: FetchFn = (url, init) => {
   const requestInit: RequestInit = {
     signal: init?.signal ?? null,
+    redirect: "error",
     ...(init?.method !== undefined ? { method: init.method } : {}),
     ...(init?.headers !== undefined ? { headers: init.headers } : {}),
     ...(init?.body !== undefined ? { body: init.body } : {}),
@@ -223,11 +236,20 @@ const defaultKill: KillFn = (pid, signal) => {
 };
 
 /** Acquire a pinned weight artifact; injected in tests so no network is touched. */
-export type AcquireFn = (request: AcquireRequest) => Promise<AcquireResult>;
+export interface AcquireRuntimeOptions {
+  readonly signal?: AbortSignal | undefined;
+  readonly maxBytes?: number | undefined;
+  readonly onProgress?: ((completedBytes: number) => void) | undefined;
+}
+
+export type AcquireFn = (
+  request: AcquireRequest,
+  options?: AcquireRuntimeOptions,
+) => Promise<AcquireResult>;
 
 /** Production {@link AcquireFn}: the shared fail-closed downloader with native `fetch`. */
-const defaultAcquire: AcquireFn = (request) =>
-  acquireWeight(request, { fetch: createAcquireFetch() });
+const defaultAcquire: AcquireFn = (request, options = {}) =>
+  acquireWeight(request, { fetch: createAcquireFetch(), ...options });
 
 /**
  * OpenAI-compatible chat completion response (the subset we consume). `choices`
@@ -305,15 +327,24 @@ function readinessBackoffMs(attempt: number): number {
  * that answers it with this shape is trusted for attach; anything else is
  * refused rather than risk sending prompts to an unrelated local process.
  */
-function isLikelyLlamaServerProps(payload: unknown): boolean {
-  if (typeof payload !== "object" || payload === null) return false;
+interface LlamaServerIdentity {
+  readonly modelPath: string;
+  readonly modelAlias: string;
+}
+
+function llamaServerIdentity(payload: unknown): LlamaServerIdentity | null {
+  if (typeof payload !== "object" || payload === null) return null;
   const props = payload as Record<string, unknown>;
-  return (
+  const likely =
     typeof props["default_generation_settings"] === "object" ||
     typeof props["total_slots"] === "number" ||
     typeof props["chat_template"] === "string" ||
-    typeof props["model_path"] === "string"
-  );
+    typeof props["model_path"] === "string";
+  if (!likely) return null;
+  return {
+    modelPath: typeof props["model_path"] === "string" ? props["model_path"] : "",
+    modelAlias: typeof props["model_alias"] === "string" ? props["model_alias"] : "",
+  };
 }
 
 /** Outcome of one readiness attempt across all probe paths. */
@@ -339,6 +370,9 @@ export interface LlamaCppAdapterOptions {
   readonly sleep?: SleepFn | undefined;
   readonly kill?: KillFn | undefined;
   readonly acquire?: AcquireFn | undefined;
+  readonly listenerProbe?:
+    | ((port: number, host: string) => Promise<ListenerIdentity | null>)
+    | undefined;
 }
 
 /** Stateless adapter over the llama.cpp `llama-server` backend. */
@@ -363,6 +397,10 @@ export class LlamaCppAdapter implements BackendAdapter {
   private readonly sleep: SleepFn;
   private readonly kill: KillFn;
   private readonly acquire: AcquireFn;
+  private readonly listenerProbe: (
+    port: number,
+    host: string,
+  ) => Promise<ListenerIdentity | null>;
 
   constructor(options: LlamaCppAdapterOptions = {}) {
     this.spawn = options.spawn ?? defaultSpawn;
@@ -372,6 +410,7 @@ export class LlamaCppAdapter implements BackendAdapter {
     this.sleep = options.sleep ?? defaultSleep;
     this.kill = options.kill ?? defaultKill;
     this.acquire = options.acquire ?? defaultAcquire;
+    this.listenerProbe = options.listenerProbe ?? probeListenerIdentity;
   }
 
   async isInstalled(): Promise<boolean> {
@@ -449,6 +488,11 @@ export class LlamaCppAdapter implements BackendAdapter {
         `refusing to pull ${options.modelId}: llamacpp requires a pinned gguf weight source`,
       );
     }
+    if (source.sha256 === undefined) {
+      throw new BackendError(
+        `refusing to pull ${options.modelId}: llamacpp requires a catalog SHA-256 digest`,
+      );
+    }
 
     options.onProgress?.({ status: `downloading ${source.file}` });
     const request: AcquireRequest = {
@@ -456,9 +500,24 @@ export class LlamaCppAdapter implements BackendAdapter {
       repo: source.repo,
       revision: source.revision,
       file: source.file,
-      ...(source.sha256 !== undefined ? { sha256: source.sha256 } : {}),
+      sha256: source.sha256,
     };
-    const result = await this.acquire(request);
+    const maxBytes =
+      options.expectedSizeBytes !== undefined
+        ? Math.ceil(Math.max(options.expectedSizeBytes * 1.5, options.expectedSizeBytes + 64 * 1024 * 1024))
+        : undefined;
+    const result = await this.acquire(request, {
+      signal: options.signal,
+      ...(maxBytes !== undefined ? { maxBytes } : {}),
+      onProgress: (completedBytes) =>
+        options.onProgress?.({
+          status: `downloading ${source.file}`,
+          completedBytes,
+          ...(options.expectedSizeBytes !== undefined
+            ? { totalBytes: options.expectedSizeBytes }
+            : {}),
+        }),
+    });
     options.onProgress?.({
       status: result.cached ? `cached ${source.file}` : `downloaded ${source.file}`,
       completedBytes: result.bytes,
@@ -501,13 +560,45 @@ export class LlamaCppAdapter implements BackendAdapter {
 
     // Port-ownership preflight: attach to a trusted llama-server, refuse a
     // foreign listener, and only spawn when the port is free.
-    const attach = await this.probeAttachTarget(endpoint, signal);
+    const requestedModelPath = options?.modelPath?.trim();
+    const requestedModelId = options?.modelId?.trim();
+    const listenerBefore = await this.listenerProbe(port, host);
+    const attach = await this.probeAttachTarget(
+      endpoint,
+      signal,
+      requestedModelPath,
+      requestedModelId,
+    );
     if (attach === "trusted") {
-      return { endpoint, pid: 0, port, ownedByUs: false };
+      await this.pollUntilReady(
+        endpoint,
+        DEFAULT_READINESS_TIMEOUT_MS,
+        DEFAULT_READINESS_RETRIES,
+        signal,
+        (probeSignal, requestTimeoutMs) =>
+          this.probeServeReady(endpoint, probeSignal, requestTimeoutMs),
+      );
+      const listenerAfter = await this.listenerProbe(port, host);
+      if (
+        listenerBefore === null ||
+        listenerAfter === null ||
+        !sameListenerProcess(listenerBefore, listenerAfter) ||
+        !matchesExpectedExecutable(listenerAfter, this.binary)
+      ) {
+        throw new BackendError(
+          `refusing to attach to ${endpoint}: listener ownership could not be verified`,
+        );
+      }
+      return { endpoint, pid: listenerAfter.pid, port, ownedByUs: false };
     }
     if (attach === "untrusted") {
       throw new BackendError(
         `refusing to attach to ${endpoint}: listener did not pass llama-server identity check`,
+      );
+    }
+    if (listenerBefore !== null) {
+      throw new BackendError(
+        `refusing to spawn at ${endpoint}: port has an unresponsive listener`,
       );
     }
 
@@ -518,7 +609,7 @@ export class LlamaCppAdapter implements BackendAdapter {
 
     // llama-server loads exactly one model per process, so a weights path is
     // mandatory to spawn our own server (attaching above needs none).
-    const modelPath = options?.modelPath?.trim();
+    const modelPath = requestedModelPath;
     if (modelPath === undefined || modelPath.length === 0) {
       throw new BackendError(`refusing to serve ${endpoint}: no model path was provided`);
     }
@@ -530,14 +621,25 @@ export class LlamaCppAdapter implements BackendAdapter {
 
     // Arg array, `shell:false`, explicit loopback bind. llama-server takes no
     // positional args (the model is the `-m` option), so no `--` separator.
-    const args = ["-m", modelPath, "--host", host, "--port", String(port)];
+    const modelId = requestedModelId;
+    if (modelId !== undefined && modelId.length > 0) assertSafeModelId(modelId);
+    const args = [
+      "-m",
+      modelPath,
+      "--host",
+      host,
+      "--port",
+      String(port),
+      ...(modelId !== undefined && modelId.length > 0 ? ["--alias", modelId] : []),
+    ];
 
     // The caller's signal is deliberately NOT passed to this (persistent) child:
     // a successful serve leaves the server running, and its shutdown is owned by
     // stop()/state, not by the caller's request-scoped signal.
     let child: SpawnedProcess;
+    let spawnedIdentity: ListenerIdentity | undefined;
     try {
-      child = this.spawn(this.binary, args, { shell: false });
+      child = this.spawn(this.binary, args, { shell: false, stdio: "ignore" });
     } catch (error) {
       throw wrapSpawnError(this.binary, error);
     }
@@ -575,14 +677,42 @@ export class LlamaCppAdapter implements BackendAdapter {
         ),
         earlyFailure,
       ]);
+      const listener = await this.listenerProbe(port, host);
+      if (
+        listener === null ||
+        listener.pid !== pid ||
+        !matchesExpectedExecutable(listener, this.binary) ||
+        !(await this.isLikelyLlamaServer(
+          endpoint,
+          signal,
+          READINESS_REQUEST_TIMEOUT_MS,
+          modelPath,
+          modelId,
+        ))
+      ) {
+        throw new BackendError(
+          `llama-server readiness did not belong to spawned pid ${pid}`,
+        );
+      }
+      spawnedIdentity = listener;
     } catch (error) {
       await stopSpawnedChild(child);
       throw error instanceof BackendError
         ? error
         : new BackendError(`llama-server failed to become ready at ${endpoint}`, { cause: error });
     }
+    if (spawnedIdentity === undefined) {
+      throw new BackendError(`llama-server did not produce a verified process identity`);
+    }
 
-    return { endpoint, pid, port, ownedByUs: true };
+    return {
+      endpoint,
+      pid,
+      port,
+      ownedByUs: true,
+      processExecutable: spawnedIdentity.executable,
+      processStartedAt: spawnedIdentity.started,
+    };
   }
 
   /**
@@ -593,14 +723,15 @@ export class LlamaCppAdapter implements BackendAdapter {
    * request is itself bounded so a hung probe cannot outlive the deadline.
    */
   async waitUntilReady(options: ReadinessOptions): Promise<void> {
+    const endpoint = assertLoopbackEndpoint(options.endpoint);
     await this.pollUntilReady(
-      options.endpoint,
+      endpoint,
       options.timeoutMs ?? DEFAULT_READINESS_TIMEOUT_MS,
       Math.max(1, options.retries ?? DEFAULT_READINESS_RETRIES),
       options.signal,
       (probeSignal, requestTimeoutMs) =>
         this.probeReady(
-          options.endpoint,
+          endpoint,
           probeSignal,
           requestTimeoutMs,
           options.requireOpenAiCompatibility ?? false,
@@ -661,17 +792,45 @@ export class LlamaCppAdapter implements BackendAdapter {
    */
   async stop(handle: ServeHandle): Promise<void> {
     if (!handle.ownedByUs) return;
+    const endpoint = assertLoopbackEndpoint(handle.endpoint);
     // Refuse non-positive pids: `kill(0)`/`kill(-n)` would signal a whole process
     // group rather than the single server we own (handles round-trip through the
     // untrusted state file).
     if (!isUsablePid(handle.pid)) {
       throw new BackendError(`refusing to stop llama-server: invalid pid ${handle.pid}`);
     }
+    const host = new URL(endpoint).hostname.replace(/^\[/, "").replace(/\]$/, "");
+    const listener = await this.listenerProbe(handle.port, host);
+    if (listener === null) {
+      try {
+        this.kill(handle.pid, 0);
+      } catch (error) {
+        if (isEsrch(error)) return;
+        throw error;
+      }
+      throw new BackendError(
+        `refusing to stop llama-server (pid ${handle.pid}): no verified listener owns the port`,
+      );
+    }
+    if (listener.pid !== handle.pid || !matchesExpectedExecutable(listener, this.binary)) {
+      throw new BackendError(
+        `refusing to stop llama-server (pid ${handle.pid}): pid does not own the recorded listener`,
+      );
+    }
+    if (
+      (handle.processExecutable !== undefined &&
+        listener.executable !== handle.processExecutable) ||
+      (handle.processStartedAt !== undefined && listener.started !== handle.processStartedAt)
+    ) {
+      throw new BackendError(
+        `refusing to stop llama-server (pid ${handle.pid}): process identity changed`,
+      );
+    }
 
     // Defend against stale state + pid reuse: only terminate when the recorded
     // endpoint is still serving. If the endpoint is gone but the pid is still
     // alive, the pid may now belong to an unrelated process.
-    if (!(await this.isReachable(handle.endpoint, undefined))) {
+    if (!(await this.isReachable(endpoint, undefined))) {
       try {
         this.kill(handle.pid, 0);
       } catch (error) {
@@ -681,7 +840,26 @@ export class LlamaCppAdapter implements BackendAdapter {
         });
       }
       throw new BackendError(
-        `refusing to stop llama-server (pid ${handle.pid}): ${handle.endpoint} is not reachable and pid may have been reused`,
+        `refusing to stop llama-server (pid ${handle.pid}): ${endpoint} is not reachable and pid may have been reused`,
+      );
+    }
+    if (
+      !(await this.isLikelyLlamaServer(
+        endpoint,
+        undefined,
+        READINESS_REQUEST_TIMEOUT_MS,
+        undefined,
+        undefined,
+      ))
+    ) {
+      throw new BackendError(
+        `refusing to stop llama-server (pid ${handle.pid}): endpoint failed identity check`,
+      );
+    }
+    const listenerAfter = await this.listenerProbe(handle.port, host);
+    if (listenerAfter === null || !sameListenerProcess(listener, listenerAfter)) {
+      throw new BackendError(
+        `refusing to stop llama-server (pid ${handle.pid}): listener changed during identity check`,
       );
     }
 
@@ -740,7 +918,9 @@ export class LlamaCppAdapter implements BackendAdapter {
    * an argv or URL path), so it is passed through as-is.
    */
   async chat(request: ChatRequest): Promise<ChatResult> {
-    const endpoint = buildEndpoint(DEFAULT_BIND_HOST, LLAMACPP_DEFAULT_PORT);
+    const endpoint = assertLoopbackEndpoint(
+      request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, LLAMACPP_DEFAULT_PORT),
+    );
     const url = `${endpoint}/v1/chat/completions`;
 
     let response: FetchResponseLike;
@@ -820,9 +1000,17 @@ export class LlamaCppAdapter implements BackendAdapter {
   private async probeAttachTarget(
     endpoint: string,
     signal: AbortSignal | undefined,
+    expectedModelPath: string | undefined,
+    expectedModelId: string | undefined,
   ): Promise<AttachClassification> {
     if (!(await this.isReachable(endpoint, signal))) return "unreachable";
-    return (await this.isLikelyLlamaServer(endpoint, signal, READINESS_REQUEST_TIMEOUT_MS))
+    return (await this.isLikelyLlamaServer(
+      endpoint,
+      signal,
+      READINESS_REQUEST_TIMEOUT_MS,
+      expectedModelPath,
+      expectedModelId,
+    ))
       ? "trusted"
       : "untrusted";
   }
@@ -832,6 +1020,8 @@ export class LlamaCppAdapter implements BackendAdapter {
     endpoint: string,
     callerSignal: AbortSignal | undefined,
     requestTimeoutMs: number,
+    expectedModelPath: string | undefined,
+    expectedModelId: string | undefined,
   ): Promise<boolean> {
     const base = endpoint.replace(/\/+$/, "");
     const controller = new AbortController();
@@ -843,7 +1033,13 @@ export class LlamaCppAdapter implements BackendAdapter {
     try {
       const response = await this.fetch(`${base}${IDENTITY_PATH}`, { signal: controller.signal });
       if (!response.ok || typeof response.json !== "function") return false;
-      return isLikelyLlamaServerProps(await response.json());
+      const identity = llamaServerIdentity(await response.json());
+      if (identity === null) return false;
+      return (
+        (expectedModelPath === undefined ||
+          resolve(identity.modelPath) === resolve(expectedModelPath)) &&
+        (expectedModelId === undefined || identity.modelAlias === expectedModelId)
+      );
     } catch {
       return false;
     } finally {

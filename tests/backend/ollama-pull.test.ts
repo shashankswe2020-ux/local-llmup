@@ -217,6 +217,7 @@ describe("OllamaAdapter.isInstalled / installHint", () => {
 
     await expect(adapter.isInstalled()).resolves.toBe(true);
     expect(recorded[0]?.args).toEqual(["--version"]);
+    expect(recorded[0]?.signal).toBeInstanceOf(AbortSignal);
   });
 
   it("reports not installed when the binary is missing", async () => {

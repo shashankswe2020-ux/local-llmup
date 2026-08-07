@@ -110,6 +110,7 @@ interface FakeAdapterOptions {
   readonly formats?: readonly ModelFormat[];
   readonly pullModelPath?: string;
   readonly pullDigestVerified?: boolean;
+  readonly stopBehavior?: "resolve" | "reject";
 }
 
 interface FakeAdapter extends BackendAdapter {
@@ -181,7 +182,9 @@ function fakeAdapter(options: FakeAdapterOptions = {}): FakeAdapter {
     stop(h: ServeHandle): Promise<void> {
       calls.push("stop");
       stopped.push(h);
-      return Promise.resolve();
+      return options.stopBehavior === "reject"
+        ? Promise.reject(new BackendError("stop failed"))
+        : Promise.resolve();
     },
     chat(): Promise<never> {
       return Promise.reject(new Error("unused"));
@@ -221,6 +224,7 @@ function deps(
       return Promise.resolve(hw);
     },
     registry: createRegistry([adapter]),
+    env: {},
     writeState: (c, s) => {
       adapter.calls.push("state");
       writeState(c, s);
@@ -297,6 +301,7 @@ describe("runUp", () => {
       },
     });
     expect(adapter.serveArgs[0]?.modelPath).toBe("/cache/qwen3-14b-q4.gguf");
+    expect(adapter.serveArgs[0]?.modelId).toBe("qwen3:14b");
     expect(adapter.serveArgs[0]?.host).toBe("127.0.0.1");
     expect(readState(config).active).toEqual({
       backend: "llamacpp",
@@ -308,6 +313,52 @@ describe("runUp", () => {
     });
   });
 
+  it("honors LOCAL_LLMUP_BACKEND when no flag is provided", async () => {
+    const ollama = fakeAdapter({ name: "ollama" });
+    const llamacpp = fakeAdapter({
+      name: "llamacpp",
+      formats: ["gguf"],
+      pullModelPath: "/cache/qwen.gguf",
+      handle: {
+        endpoint: "http://127.0.0.1:8080",
+        pid: 8081,
+        port: 8080,
+        ownedByUs: true,
+      },
+    });
+    const both = ggufModel("qwen3:14b", [quant("Q4_K_M", 9 * GIB)]);
+    const cat = catalog([{ ...both, source: { ...both.source, ollama: "qwen3:14b" } }]);
+    const d: UpDeps = {
+      ...deps(llamacpp, cat),
+      registry: createRegistry([ollama, llamacpp]),
+      env: { LOCAL_LLMUP_BACKEND: "llamacpp" },
+    };
+
+    await runUp({ model: "qwen3:14b" }, d);
+
+    expect(readState(config).active?.backend).toBe("llamacpp");
+  });
+
+  it("honors the user-config backend when flag and env are absent", async () => {
+    const ollama = fakeAdapter({ name: "ollama" });
+    const llamacpp = fakeAdapter({
+      name: "llamacpp",
+      formats: ["gguf"],
+      pullModelPath: "/cache/qwen.gguf",
+    });
+    const both = ggufModel("qwen3:14b", [quant("Q4_K_M", 9 * GIB)]);
+    const cat = catalog([{ ...both, source: { ...both.source, ollama: "qwen3:14b" } }]);
+    const d: UpDeps = {
+      ...deps(llamacpp, cat),
+      registry: createRegistry([ollama, llamacpp]),
+      configBackend: "llamacpp",
+    };
+
+    await runUp({ model: "qwen3:14b" }, d);
+
+    expect(readState(config).active?.backend).toBe("llamacpp");
+  });
+
   it("warns when the pulled weights could not be digest-verified", async () => {
     const adapter = fakeAdapter({ pullDigestVerified: false });
     const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
@@ -316,6 +367,25 @@ describe("runUp", () => {
 
     expect(stderr.join("")).toContain("could not be digest-verified");
     expect(readState(config).active).not.toBeNull();
+  });
+
+  it("refuses to serve digest-unverified self-managed weights", async () => {
+    const adapter = fakeAdapter({
+      name: "llamacpp",
+      formats: ["gguf"],
+      pullModelPath: "/cache/qwen3-14b-q4.gguf",
+      pullDigestVerified: false,
+    });
+    const cat = catalog([
+      ggufModel("qwen3:14b", [quant("Q4_K_M", 9 * GIB, { sha256: "b".repeat(64) })]),
+    ]);
+
+    await expect(
+      runUp({ model: "qwen3:14b", backend: "llamacpp" }, deps(adapter, cat)),
+    ).rejects.toThrow("digest verification");
+
+    expect(adapter.calls).not.toContain("serve");
+    expect(readState(config).active).toBeNull();
   });
 
   it("rejects when the selected backend cannot serve any of the model's sources", async () => {
@@ -417,7 +487,7 @@ describe("runUp", () => {
     const adapter = fakeAdapter({
       handle: {
         endpoint: "http://127.0.0.1:11434",
-        pid: 0,
+        pid: 4242,
         port: 11434,
         ownedByUs: false,
       },
@@ -458,6 +528,104 @@ describe("runUp", () => {
     expect(adapter.stopped).toHaveLength(1);
     expect(adapter.stopped[0]).toMatchObject({ pid: 4242, port: 11500, ownedByUs: true });
     expect(readState(config).active).toMatchObject({ modelId: "llama3.1:8b", pid: 9001 });
+  });
+
+  it("replaces a prior owned server instead of resurrecting ownership from state", async () => {
+    const adapter = fakeAdapter({
+      handle: {
+        endpoint: "http://127.0.0.1:11434",
+        pid: 9002,
+        port: 11434,
+        ownedByUs: true,
+      },
+    });
+    const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
+    writeState(config, {
+      schemaVersion: STATE_SCHEMA_VERSION,
+      active: {
+        backend: "ollama",
+        modelId: "llama3.1:8b",
+        endpoint: "http://127.0.0.1:11434",
+        pid: 4242,
+        port: 11434,
+        ownedByUs: true,
+      },
+    });
+
+    await runUp({ model: "llama3.1:8b" }, deps(adapter, cat));
+
+    expect(adapter.stopped).toHaveLength(1);
+    expect(adapter.stopped[0]).toMatchObject({ pid: 4242 });
+    expect(readState(config).active).toMatchObject({ ownedByUs: true, pid: 9002 });
+  });
+
+  it("stops a prior owned server through its own backend adapter", async () => {
+    const prior = fakeAdapter({ name: "ollama" });
+    const next = fakeAdapter({
+      name: "llamacpp",
+      formats: ["gguf"],
+      pullModelPath: "/cache/qwen.gguf",
+      handle: {
+        endpoint: "http://127.0.0.1:18080",
+        pid: 8081,
+        port: 18080,
+        ownedByUs: true,
+      },
+    });
+    const cat = catalog([ggufModel("qwen3:14b", [quant("Q4_K_M", 9 * GIB)])]);
+    writeState(config, {
+      schemaVersion: STATE_SCHEMA_VERSION,
+      active: {
+        backend: "ollama",
+        modelId: "llama3.1:8b",
+        endpoint: "http://127.0.0.1:11434",
+        pid: 4242,
+        port: 11434,
+        ownedByUs: true,
+      },
+    });
+    const d = { ...deps(next, cat), registry: createRegistry([prior, next]) };
+
+    await runUp({ model: "qwen3:14b", backend: "llamacpp", port: 18080 }, d);
+
+    expect(prior.stopped).toHaveLength(1);
+    expect(next.stopped).toHaveLength(0);
+  });
+
+  it("keeps prior state and does not start a new server when prior stop fails", async () => {
+    const prior = fakeAdapter({ name: "ollama", stopBehavior: "reject" });
+    const next = fakeAdapter({
+      name: "llamacpp",
+      formats: ["gguf"],
+      pullModelPath: "/cache/qwen.gguf",
+      handle: {
+        endpoint: "http://127.0.0.1:18080",
+        pid: 8081,
+        port: 18080,
+        ownedByUs: true,
+      },
+    });
+    const cat = catalog([ggufModel("qwen3:14b", [quant("Q4_K_M", 9 * GIB)])]);
+    const oldState: RuntimeState = {
+      schemaVersion: STATE_SCHEMA_VERSION,
+      active: {
+        backend: "ollama",
+        modelId: "llama3.1:8b",
+        endpoint: "http://127.0.0.1:11434",
+        pid: 4242,
+        port: 11434,
+        ownedByUs: true,
+      },
+    };
+    writeState(config, oldState);
+    const d = { ...deps(next, cat), registry: createRegistry([prior, next]) };
+
+    await expect(
+      runUp({ model: "qwen3:14b", backend: "llamacpp", port: 18080 }, d),
+    ).rejects.toThrow("stop failed");
+
+    expect(next.stopped).toHaveLength(0);
+    expect(readState(config)).toEqual(oldState);
   });
 
   it("stops the owned daemon when persisting state fails", async () => {

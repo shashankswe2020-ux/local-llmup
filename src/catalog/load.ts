@@ -36,9 +36,7 @@ function sanitizeCatalog(catalog: Catalog): { catalog: Catalog; changed: boolean
               repo: clean(model.source.gguf.repo),
               revision: clean(model.source.gguf.revision),
               file: clean(model.source.gguf.file),
-              ...(model.source.gguf.sha256 !== undefined
-                ? { sha256: clean(model.source.gguf.sha256) }
-                : {}),
+              sha256: clean(model.source.gguf.sha256),
             },
           }
         : {}),

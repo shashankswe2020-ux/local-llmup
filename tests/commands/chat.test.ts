@@ -84,7 +84,10 @@ function reader(turns: readonly string[]): () => Promise<string | null> {
   return () => Promise.resolve(index < turns.length ? (turns[index++] as string) : null);
 }
 
-function activeState(modelId: string): RuntimeState {
+function activeState(
+  modelId: string,
+  overrides: Partial<NonNullable<RuntimeState["active"]>> = {},
+): RuntimeState {
   return {
     schemaVersion: STATE_SCHEMA_VERSION,
     active: {
@@ -94,6 +97,7 @@ function activeState(modelId: string): RuntimeState {
       pid: 9001,
       port: 11434,
       ownedByUs: true,
+      ...overrides,
     },
   };
 }
@@ -130,12 +134,22 @@ function harness(options: {
   state?: RuntimeState;
   cat?: Catalog;
   canEmbed?: boolean;
+  backendName?: "ollama" | "llamacpp";
+  formats?: readonly ("ollama" | "gguf")[];
 }): Harness {
   const { adapter: chatCapable, chat } = chatAdapter(options.replies);
+  const withBackend: BackendAdapter = {
+    ...chatCapable,
+    name: options.backendName ?? "ollama",
+    capabilities: {
+      ...chatCapable.capabilities,
+      formats: options.formats ?? ["ollama"],
+    },
+  };
   const adapter: BackendAdapter =
     options.canEmbed === false
-      ? { ...chatCapable, capabilities: { ...chatCapable.capabilities, canEmbed: false } }
-      : chatCapable;
+      ? { ...withBackend, capabilities: { ...withBackend.capabilities, canEmbed: false } }
+      : withBackend;
   const store: MemoryStore = {
     modelId: "llama3.1:8b",
     dir: join(config.memoryDir, "llama3.1-8b"),
@@ -254,6 +268,54 @@ describe("runChat", () => {
     await runChat({}, deps);
 
     expect((chat.mock.calls[0]?.[0] as ChatRequest).model).toBe("qwen2.5:7b");
+  });
+
+  it("passes the active custom endpoint to the adapter", async () => {
+    const { deps, chat } = harness({
+      turns: ["hi"],
+      replies: ["ok"],
+      state: activeState("llama3.1:8b", {
+        endpoint: "http://127.0.0.1:12000",
+        port: 12000,
+      }),
+    });
+
+    await runChat({}, deps);
+
+    expect((chat.mock.calls[0]?.[0] as ChatRequest).endpoint).toBe("http://127.0.0.1:12000");
+  });
+
+  it("chats with a llama.cpp model using its catalog id and active endpoint", async () => {
+    const gguf = model("qwen3:14b", {
+      source: {
+        gguf: {
+          repo: "Qwen/Qwen3-14B-GGUF",
+          revision: "a".repeat(40),
+          file: "Qwen3-14B-Q4_K_M.gguf",
+          sha256: "b".repeat(64),
+        },
+      },
+    });
+    const { deps, chat } = harness({
+      turns: ["hi"],
+      replies: ["ok"],
+      cat: catalog([gguf]),
+      backendName: "llamacpp",
+      formats: ["gguf"],
+      canEmbed: false,
+      state: activeState("qwen3:14b", {
+        backend: "llamacpp",
+        endpoint: "http://127.0.0.1:18080",
+        port: 18080,
+      }),
+    });
+
+    await runChat({}, deps);
+
+    expect(chat.mock.calls[0]?.[0]).toMatchObject({
+      endpoint: "http://127.0.0.1:18080",
+      model: "qwen3:14b",
+    });
   });
 
   it("throws when there is no active server", async () => {

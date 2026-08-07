@@ -17,6 +17,7 @@ import type { Readable } from "node:stream";
 import { z } from "zod";
 import { BackendError, ValidationError } from "../errors.js";
 import {
+  assertLoopbackEndpoint,
   buildEndpoint,
   DEFAULT_BIND_HOST,
   DEFAULT_OLLAMA_PORT,
@@ -33,6 +34,12 @@ import {
   type ServeOptions,
 } from "./adapter.js";
 import { assertSafeModelId } from "./net.js";
+import {
+  matchesExpectedExecutable,
+  probeListenerIdentity,
+  sameListenerProcess,
+  type ListenerIdentity,
+} from "./listener.js";
 import { stripControl } from "../sanitize.js";
 import type { BackendCapabilities } from "../types.js";
 
@@ -82,6 +89,8 @@ export type SpawnFn = (
   options: {
     /** Shell execution is forbidden: arguments must remain discrete argv. */
     readonly shell: false;
+    /** Persistent servers use `ignore` so unconsumed log pipes cannot deadlock. */
+    readonly stdio?: "pipe" | "ignore" | undefined;
     readonly signal?: AbortSignal | undefined;
     readonly env?: NodeJS.ProcessEnv | undefined;
   },
@@ -183,6 +192,7 @@ function readinessBackoffMs(attempt: number): number {
 const defaultFetch: FetchFn = (url, init) => {
   const requestInit: RequestInit = {
     signal: init?.signal ?? null,
+    redirect: "error",
     ...(init?.method !== undefined ? { method: init.method } : {}),
     ...(init?.headers !== undefined ? { headers: init.headers } : {}),
     ...(init?.body !== undefined ? { body: init.body } : {}),
@@ -238,7 +248,10 @@ function adaptStream(stream: Readable | null): ProcessOutputStream | null {
 
 const defaultSpawn: SpawnFn = (command, args, options) => {
   const child = nodeSpawn(command, [...args], {
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio:
+      options.stdio === "ignore"
+        ? ["ignore", "ignore", "ignore"]
+        : ["ignore", "pipe", "pipe"],
     shell: false,
     signal: options.signal,
     ...(options.env ? { env: options.env } : {}),
@@ -371,7 +384,7 @@ function runProcess(
   return new Promise<number>((resolve, reject) => {
     let child: SpawnedProcess;
     try {
-      child = spawn(binary, args, { shell: false, signal: options.signal });
+      child = spawn(binary, args, { shell: false, stdio: "pipe", signal: options.signal });
     } catch (error) {
       reject(wrapSpawnError(binary, error instanceof Error ? error : new Error(String(error))));
       return;
@@ -552,6 +565,9 @@ export interface OllamaAdapterOptions {
   readonly fetch?: FetchFn | undefined;
   readonly sleep?: SleepFn | undefined;
   readonly kill?: KillFn | undefined;
+  readonly listenerProbe?:
+    | ((port: number, host: string) => Promise<ListenerIdentity | null>)
+    | undefined;
 }
 
 /** Stateless adapter over the Ollama backend. */
@@ -571,6 +587,10 @@ export class OllamaAdapter implements BackendAdapter {
   private readonly fetch: FetchFn;
   private readonly sleep: SleepFn;
   private readonly kill: KillFn;
+  private readonly listenerProbe: (
+    port: number,
+    host: string,
+  ) => Promise<ListenerIdentity | null>;
 
   constructor(options: OllamaAdapterOptions = {}) {
     this.spawn = options.spawn ?? defaultSpawn;
@@ -580,14 +600,21 @@ export class OllamaAdapter implements BackendAdapter {
     this.fetch = options.fetch ?? defaultFetch;
     this.sleep = options.sleep ?? defaultSleep;
     this.kill = options.kill ?? defaultKill;
+    this.listenerProbe = options.listenerProbe ?? probeListenerIdentity;
   }
 
   async isInstalled(): Promise<boolean> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), VERSION_PROBE_TIMEOUT_MS);
     try {
-      const code = await runProcess(this.spawn, this.binary, ["--version"]);
+      const code = await runProcess(this.spawn, this.binary, ["--version"], {
+        signal: controller.signal,
+      });
       return code === 0;
     } catch {
       return false;
+    } finally {
+      clearTimeout(timer);
     }
   }
 
@@ -728,13 +755,30 @@ export class OllamaAdapter implements BackendAdapter {
     // Attach only when a reachable listener also passes a lightweight identity
     // check. Failing closed here avoids sending prompts/memory to arbitrary
     // local processes that happen to answer readiness probes.
+    const listenerBefore = await this.listenerProbe(port, host);
     const attachProbe = await this.probeAttachTarget(endpoint, signal);
     if (attachProbe === "trusted") {
-      return { endpoint, pid: 0, port, ownedByUs: false };
+      const listenerAfter = await this.listenerProbe(port, host);
+      if (
+        listenerBefore === null ||
+        listenerAfter === null ||
+        !sameListenerProcess(listenerBefore, listenerAfter) ||
+        !matchesExpectedExecutable(listenerAfter, this.binary)
+      ) {
+        throw new BackendError(
+          `refusing to attach to ${endpoint}: listener ownership could not be verified`,
+        );
+      }
+      return { endpoint, pid: listenerAfter.pid, port, ownedByUs: false };
     }
     if (attachProbe === "untrusted") {
       throw new BackendError(
         `refusing to attach to ${endpoint}: listener did not pass Ollama identity check`,
+      );
+    }
+    if (listenerBefore !== null) {
+      throw new BackendError(
+        `refusing to spawn at ${endpoint}: port has an unresponsive listener`,
       );
     }
 
@@ -748,9 +792,11 @@ export class OllamaAdapter implements BackendAdapter {
     // a successful serve leaves the daemon running, and its shutdown is owned by
     // stop()/state, not by the caller's request-scoped signal.
     let child: SpawnedProcess;
+    let spawnedIdentity: ListenerIdentity | undefined;
     try {
       child = this.spawn(this.binary, ["serve"], {
         shell: false,
+        stdio: "ignore",
         env: buildServeEnv(host, port),
       });
     } catch (error) {
@@ -779,7 +825,19 @@ export class OllamaAdapter implements BackendAdapter {
     }
 
     try {
-      await Promise.race([this.waitUntilReady({ endpoint, signal }), earlyFailure]);
+      await Promise.race([this.waitUntilReadyInternal({ endpoint, signal }), earlyFailure]);
+      const listener = await this.listenerProbe(port, host);
+      if (
+        listener === null ||
+        listener.pid !== pid ||
+        !matchesExpectedExecutable(listener, this.binary) ||
+        !(await this.isLikelyOllamaDaemon(endpoint, signal, READINESS_REQUEST_TIMEOUT_MS))
+      ) {
+        throw new BackendError(
+          `ollama serve readiness did not belong to spawned pid ${pid}`,
+        );
+      }
+      spawnedIdentity = listener;
     } catch (error) {
       // Readiness failed/timed out or the daemon crashed: clean up our own child.
       await stopSpawnedChild(child);
@@ -787,8 +845,18 @@ export class OllamaAdapter implements BackendAdapter {
         ? error
         : new BackendError(`ollama serve failed to become ready at ${endpoint}`, { cause: error });
     }
+    if (spawnedIdentity === undefined) {
+      throw new BackendError(`ollama serve did not produce a verified process identity`);
+    }
 
-    return { endpoint, pid, port, ownedByUs: true };
+    return {
+      endpoint,
+      pid,
+      port,
+      ownedByUs: true,
+      processExecutable: spawnedIdentity.executable,
+      processStartedAt: spawnedIdentity.started,
+    };
   }
 
   /** One quick readiness attempt used to decide attach-vs-spawn. */
@@ -845,6 +913,11 @@ export class OllamaAdapter implements BackendAdapter {
    * outlive the deadline. `retries` is the maximum number of attempts.
    */
   async waitUntilReady(options: ReadinessOptions): Promise<void> {
+    const endpoint = assertLoopbackEndpoint(options.endpoint);
+    await this.waitUntilReadyInternal({ ...options, endpoint });
+  }
+
+  private async waitUntilReadyInternal(options: ReadinessOptions): Promise<void> {
     const timeoutMs = options.timeoutMs ?? DEFAULT_READINESS_TIMEOUT_MS;
     const maxAttempts = Math.max(1, options.retries ?? DEFAULT_READINESS_RETRIES);
     const deadline = Date.now() + timeoutMs;
@@ -926,17 +999,46 @@ export class OllamaAdapter implements BackendAdapter {
    */
   async stop(handle: ServeHandle): Promise<void> {
     if (!handle.ownedByUs) return;
+    assertLoopbackEndpoint(handle.endpoint);
     // Refuse non-positive pids: `kill(0)`/`kill(-n)` would signal a whole process
     // group rather than the single daemon we own (handles round-trip through the
     // untrusted state file).
     if (!isUsablePid(handle.pid)) {
       throw new BackendError(`refusing to stop ollama daemon: invalid pid ${handle.pid}`);
     }
+    const endpoint = assertLoopbackEndpoint(handle.endpoint);
+    const host = new URL(endpoint).hostname.replace(/^\[/, "").replace(/\]$/, "");
+    const listener = await this.listenerProbe(handle.port, host);
+    if (listener === null) {
+      try {
+        this.kill(handle.pid, 0);
+      } catch (error) {
+        if ((error as { code?: unknown }).code === "ESRCH") return;
+        throw error;
+      }
+      throw new BackendError(
+        `refusing to stop ollama daemon (pid ${handle.pid}): no verified listener owns the port`,
+      );
+    }
+    if (listener.pid !== handle.pid || !matchesExpectedExecutable(listener, this.binary)) {
+      throw new BackendError(
+        `refusing to stop ollama daemon (pid ${handle.pid}): pid does not own the recorded listener`,
+      );
+    }
+    if (
+      (handle.processExecutable !== undefined &&
+        listener.executable !== handle.processExecutable) ||
+      (handle.processStartedAt !== undefined && listener.started !== handle.processStartedAt)
+    ) {
+      throw new BackendError(
+        `refusing to stop ollama daemon (pid ${handle.pid}): process identity changed`,
+      );
+    }
 
     // Defend against stale state + pid reuse: only terminate when the recorded
     // endpoint is still serving Ollama. If the endpoint is gone but the pid is
     // still alive, the pid may now belong to an unrelated process.
-    if (!(await this.isReachable(handle.endpoint, undefined))) {
+    if (!(await this.isReachable(endpoint, undefined))) {
       try {
         this.kill(handle.pid, 0);
       } catch (error) {
@@ -947,7 +1049,24 @@ export class OllamaAdapter implements BackendAdapter {
         });
       }
       throw new BackendError(
-        `refusing to stop ollama daemon (pid ${handle.pid}): ${handle.endpoint} is not reachable and pid may have been reused`,
+        `refusing to stop ollama daemon (pid ${handle.pid}): ${endpoint} is not reachable and pid may have been reused`,
+      );
+    }
+    if (
+      !(await this.isLikelyOllamaDaemon(
+        endpoint,
+        undefined,
+        READINESS_REQUEST_TIMEOUT_MS,
+      ))
+    ) {
+      throw new BackendError(
+        `refusing to stop ollama daemon (pid ${handle.pid}): endpoint failed identity check`,
+      );
+    }
+    const listenerAfter = await this.listenerProbe(handle.port, host);
+    if (listenerAfter === null || !sameListenerProcess(listener, listenerAfter)) {
+      throw new BackendError(
+        `refusing to stop ollama daemon (pid ${handle.pid}): listener changed during identity check`,
       );
     }
 
@@ -1005,7 +1124,9 @@ export class OllamaAdapter implements BackendAdapter {
   async chat(request: ChatRequest): Promise<ChatResult> {
     assertSafeModelId(request.model);
 
-    const endpoint = buildEndpoint(DEFAULT_BIND_HOST, DEFAULT_OLLAMA_PORT);
+    const endpoint = assertLoopbackEndpoint(
+      request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, DEFAULT_OLLAMA_PORT),
+    );
     const url = `${endpoint}/api/chat`;
 
     let response: FetchResponseLike;

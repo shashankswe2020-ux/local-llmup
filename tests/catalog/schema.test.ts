@@ -134,9 +134,9 @@ describe("CatalogModelSchema", () => {
       expect(() => CatalogModelSchema.parse(withSource({ mlx: validMlx }))).not.toThrow();
     });
 
-    it("accepts a gguf source without the optional sha256", () => {
+    it("rejects a gguf source without sha256 (self-managed weights fail closed)", () => {
       const { sha256: _drop, ...noDigest } = validGguf;
-      expect(() => CatalogModelSchema.parse(withSource({ gguf: noDigest }))).not.toThrow();
+      expect(() => CatalogModelSchema.parse(withSource({ gguf: noDigest }))).toThrow();
     });
 
     it("satisfies the ≥1-source refine with only gguf", () => {

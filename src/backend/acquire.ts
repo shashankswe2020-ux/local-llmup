@@ -24,17 +24,22 @@
 import { createHash } from "node:crypto";
 import {
   chmodSync,
+  closeSync,
   createReadStream,
   createWriteStream,
   lstatSync,
   mkdirSync,
+  openSync,
+  readFileSync,
+  readdirSync,
   realpathSync,
   renameSync,
   statSync,
   unlinkSync,
+  writeSync,
 } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { dirname, join, sep } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { Transform } from "node:stream";
@@ -52,6 +57,10 @@ const HF_REPO_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/
 const REVISION_RE = /^[0-9a-f]{40}$/i;
 /** A lowercase-or-upper hex SHA-256 digest (exactly 64 hex chars). */
 const SHA256_RE = /^[0-9a-f]{64}$/i;
+const DEFAULT_DOWNLOAD_TIMEOUT_MS = 30 * 60 * 1_000;
+const PROGRESS_INTERVAL_BYTES = 8 * 1024 * 1024;
+const MAX_REDIRECTS = 5;
+const DOWNLOAD_ALLOWED_HOSTS = ["huggingface.co", "hf.co"] as const;
 
 /** A single artifact to acquire, resolved from a catalog `gguf`/`mlx` source. */
 export interface AcquireRequest {
@@ -63,8 +72,8 @@ export interface AcquireRequest {
   readonly revision: string;
   /** Exact repo-relative filename (no globs, `..`, or absolute paths). */
   readonly file: string;
-  /** Expected SHA-256 digest; when absent, integrity is reported unverified. */
-  readonly sha256?: string | undefined;
+  /** Expected SHA-256 digest; required for self-managed artifacts. */
+  readonly sha256: string;
 }
 
 /** Outcome of a successful {@link acquireWeight}. */
@@ -89,7 +98,10 @@ export interface FetchResponseLike {
 }
 
 /** Perform an HTTP GET, returning a streaming body; injected in tests. */
-export type AcquireFetch = (url: string) => Promise<FetchResponseLike>;
+export type AcquireFetch = (
+  url: string,
+  signal?: AbortSignal | undefined,
+) => Promise<FetchResponseLike>;
 
 /**
  * The production {@link AcquireFetch}: native `fetch`, adapting the web response
@@ -97,23 +109,35 @@ export type AcquireFetch = (url: string) => Promise<FetchResponseLike>;
  * buffering a multi-gigabyte artifact fully into memory).
  */
 export function createAcquireFetch(): AcquireFetch {
-  return async (url: string): Promise<FetchResponseLike> => {
-    // Redirects are followed because Hugging Face resolve URLs hand off to a CDN
-    // host. The trust anchor is not the transport but the content: the pinned
-    // commit and the SHA-256 digest are verified after download, so a redirect
-    // cannot promote bytes that do not match the expected digest, and no
-    // credentials are ever attached to leak across a hop.
-    const response = await fetch(url, { redirect: "follow" });
-    const webBody = response.body;
-    return {
-      ok: response.ok,
-      status: response.status,
-      headers: { get: (name: string): string | null => response.headers.get(name) },
-      body:
-        webBody !== null
-          ? Readable.fromWeb(webBody as Parameters<typeof Readable.fromWeb>[0])
-          : null,
-    };
+  return async (url: string, signal?: AbortSignal): Promise<FetchResponseLike> => {
+    let current = url;
+    for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects += 1) {
+      const safe = assertSafeFetchUrl(current, { allowedHosts: DOWNLOAD_ALLOWED_HOSTS });
+      const response = await fetch(safe, {
+        redirect: "manual",
+        ...(signal !== undefined ? { signal } : {}),
+      });
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+        const location = response.headers.get("location");
+        await response.body?.cancel();
+        if (location === null || redirects === MAX_REDIRECTS) {
+          throw new BackendError(`unsafe or excessive redirect while downloading weights`);
+        }
+        current = new URL(location, safe).toString();
+        continue;
+      }
+      const webBody = response.body;
+      return {
+        ok: response.ok,
+        status: response.status,
+        headers: { get: (name: string): string | null => response.headers.get(name) },
+        body:
+          webBody !== null
+            ? Readable.fromWeb(webBody as Parameters<typeof Readable.fromWeb>[0])
+            : null,
+      };
+    }
+    throw new BackendError(`weight download exceeded ${MAX_REDIRECTS} redirects`);
   };
 }
 
@@ -121,6 +145,11 @@ export function createAcquireFetch(): AcquireFetch {
 export interface AcquireDeps {
   readonly config?: Config | undefined;
   readonly fetch: AcquireFetch;
+  readonly signal?: AbortSignal | undefined;
+  /** Hard upper bound for streamed bytes; required from catalog sizing in production. */
+  readonly maxBytes?: number | undefined;
+  readonly timeoutMs?: number | undefined;
+  readonly onProgress?: ((completedBytes: number) => void) | undefined;
   /** Origin to build the resolve URL against; defaults to Hugging Face. */
   readonly baseUrl?: string | undefined;
 }
@@ -174,6 +203,9 @@ export async function acquireWeight(
 ): Promise<AcquireResult> {
   const config = deps.config ?? loadConfig();
   assertValidRequest(request);
+  if (deps.signal?.aborted) {
+    throw new BackendError(`weight acquisition aborted for ${request.file}`);
+  }
 
   const cacheRoot = join(config.homeDir, "cache");
   const [owner, name] = request.repo.split("/") as [string, string];
@@ -187,7 +219,10 @@ export async function acquireWeight(
   }
 
   const parentDir = dirname(finalPath);
-  ensureCacheDir(cacheRoot, parentDir);
+  ensureCacheDir(config.homeDir, cacheRoot, parentDir);
+  removeAbandonedPartials(parentDir);
+  const releaseLock = acquireArtifactLock(finalPath);
+  try {
 
   // A pre-existing symlink at the target is a promotion/traversal vector.
   const existing = lstatSafe(finalPath);
@@ -199,7 +234,7 @@ export async function acquireWeight(
     if (hit !== null) {
       return hit;
     }
-    unlinkSync(finalPath); // corrupt/mismatched cache entry — re-download
+    discard(finalPath); // corrupt/mismatched cache entry — re-download (race-safe)
   }
 
   const url = assertSafeFetchUrl(
@@ -207,8 +242,22 @@ export async function acquireWeight(
     { allowedHosts: ["huggingface.co"] },
   ).toString();
 
-  const response = await deps.fetch(url);
+  const controller = new AbortController();
+  const onCallerAbort = (): void => controller.abort();
+  deps.signal?.addEventListener("abort", onCallerAbort, { once: true });
+  const timer = setTimeout(() => controller.abort(), deps.timeoutMs ?? DEFAULT_DOWNLOAD_TIMEOUT_MS);
+  let response: FetchResponseLike;
+  try {
+    response = await deps.fetch(url, controller.signal);
+  } catch (cause) {
+    clearTimeout(timer);
+    deps.signal?.removeEventListener("abort", onCallerAbort);
+    throw new BackendError(`weight download failed for ${request.file}`, { cause });
+  }
   if (!response.ok) {
+    response.body?.destroy();
+    clearTimeout(timer);
+    deps.signal?.removeEventListener("abort", onCallerAbort);
     throw new BackendError(`weight download failed (HTTP ${response.status}) for ${request.file}`);
   }
   // The resolve URL already pins the exact 40-hex commit, so Hugging Face serves
@@ -218,31 +267,67 @@ export async function acquireWeight(
   // integrity gate.
   const resolvedCommit = response.headers.get("x-repo-commit");
   if (resolvedCommit !== null && resolvedCommit.toLowerCase() !== request.revision.toLowerCase()) {
+    response.body?.destroy();
+    clearTimeout(timer);
+    deps.signal?.removeEventListener("abort", onCallerAbort);
     throw new BackendError(
       `resolved commit ${resolvedCommit} does not match pinned revision ${request.revision}`,
     );
   }
   if (response.body === null) {
+    clearTimeout(timer);
+    deps.signal?.removeEventListener("abort", onCallerAbort);
     throw new BackendError(`weight download returned no body for ${request.file}`);
+  }
+  const declaredBytes = Number(response.headers.get("content-length"));
+  if (
+    deps.maxBytes !== undefined &&
+    Number.isFinite(declaredBytes) &&
+    declaredBytes > deps.maxBytes
+  ) {
+    response.body?.destroy();
+    clearTimeout(timer);
+    deps.signal?.removeEventListener("abort", onCallerAbort);
+    throw new BackendError(
+      `weight download exceeds ${deps.maxBytes} byte limit for ${request.file}`,
+    );
   }
 
   const tempPath = join(parentDir, `.${name}.${process.pid}.${randomUUID()}.part`);
   let bytes = 0;
+  let lastProgress = 0;
   try {
     const hash = createHash("sha256");
     const hasher = new Transform({
       transform(chunk: Buffer, _enc, callback) {
         hash.update(chunk);
         bytes += chunk.length;
+        if (deps.maxBytes !== undefined && bytes > deps.maxBytes) {
+          callback(
+            new BackendError(
+              `weight download exceeds ${deps.maxBytes} byte limit for ${request.file}`,
+            ),
+          );
+          return;
+        }
+        if (bytes - lastProgress >= PROGRESS_INTERVAL_BYTES) {
+          lastProgress = bytes;
+          deps.onProgress?.(bytes);
+        }
         callback(null, chunk);
       },
     });
-    await pipeline(response.body, hasher, createWriteStream(tempPath, { mode: FILE_MODE, flags: "wx" }));
+    await pipeline(
+      response.body,
+      hasher,
+      createWriteStream(tempPath, { mode: FILE_MODE, flags: "wx" }),
+      { signal: controller.signal },
+    );
+    if (bytes !== lastProgress) deps.onProgress?.(bytes);
     chmodSync(tempPath, FILE_MODE);
 
     const digest = hash.digest("hex");
-    const digestVerified = request.sha256 !== undefined;
-    if (digestVerified && digest !== request.sha256!.toLowerCase()) {
+    if (digest !== request.sha256.toLowerCase()) {
       throw new BackendError(
         `digest mismatch for ${request.file}: expected ${request.sha256}, got ${digest}`,
       );
@@ -251,13 +336,23 @@ export async function acquireWeight(
     // A same-directory rename is atomic on POSIX; the temp file already lives
     // in the destination directory, so no cross-device copy can occur.
     renameSync(tempPath, finalPath);
-    return { path: finalPath, bytes, digestVerified, cached: false };
+    return { path: finalPath, bytes, digestVerified: true, cached: false };
   } catch (error) {
     discard(tempPath);
     if (error instanceof BackendError || error instanceof ValidationError) {
       throw error;
     }
+    const winner = lstatSafe(finalPath)?.isFile()
+      ? await tryCacheHit(finalPath, request.sha256)
+      : null;
+    if (winner !== null) return winner;
     throw new BackendError(`failed to acquire ${request.file}`, { cause: error });
+  } finally {
+    clearTimeout(timer);
+    deps.signal?.removeEventListener("abort", onCallerAbort);
+  }
+  } finally {
+    releaseLock();
   }
 }
 
@@ -273,7 +368,7 @@ function assertValidRequest(request: AcquireRequest): void {
       `unsafe weight file path (no globs, \`..\`, or absolute paths): ${request.file}`,
     );
   }
-  if (request.sha256 !== undefined && !SHA256_RE.test(request.sha256)) {
+  if (!SHA256_RE.test(request.sha256)) {
     throw new ValidationError(`expected sha256 must be 64 hex chars: ${request.sha256}`);
   }
 }
@@ -296,32 +391,116 @@ function isSafeRepoRelativePath(f: string): boolean {
 }
 
 /** Create `parentDir` (0700) and assert it resolves inside the cache root. */
-function ensureCacheDir(cacheRoot: string, parentDir: string): void {
+function ensureCacheDir(homeDir: string, cacheRoot: string, parentDir: string): void {
+  assertNoSymlinkComponents(homeDir, parentDir);
   mkdirSync(parentDir, { recursive: true, mode: DIR_MODE });
-  chmodSync(parentDir, DIR_MODE);
+  assertNoSymlinkComponents(homeDir, parentDir);
+  for (const component of pathComponents(cacheRoot, parentDir)) {
+    chmodSync(component, DIR_MODE);
+  }
+  const homeReal = realpathSync(homeDir);
   const rootReal = realpathSync(cacheRoot);
   const parentReal = realpathSync(parentDir);
-  if (!isWithin(rootReal, parentReal)) {
+  if (!isWithin(homeReal, rootReal) || !isWithin(rootReal, parentReal)) {
     throw new BackendError(
       `refusing to use a cache path that resolves outside the cache root: ${parentDir}`,
     );
   }
 }
 
+function assertNoSymlinkComponents(homeDir: string, candidate: string): void {
+  const home = lstatSafe(homeDir);
+  if (home?.isSymbolicLink()) {
+    throw new BackendError(`refusing symlinked local-llmup home: ${homeDir}`);
+  }
+  let current = homeDir;
+  for (const segment of relative(homeDir, candidate).split(sep).filter(Boolean)) {
+    current = join(current, segment);
+    if (lstatSafe(current)?.isSymbolicLink()) {
+      throw new BackendError(`refusing symlinked cache component: ${current}`);
+    }
+  }
+}
+
+function pathComponents(root: string, candidate: string): string[] {
+  const components: string[] = [root];
+  let current = root;
+  for (const segment of relative(root, candidate).split(sep).filter(Boolean)) {
+    current = join(current, segment);
+    components.push(current);
+  }
+  return components;
+}
+
 /** Return a cache-hit result when `finalPath` matches the expected digest. */
 async function tryCacheHit(
   finalPath: string,
-  expectedSha: string | undefined,
+  expectedSha: string,
 ): Promise<AcquireResult | null> {
   const bytes = statSync(finalPath).size;
-  if (expectedSha === undefined) {
-    return { path: finalPath, bytes, digestVerified: false, cached: true };
-  }
   const digest = await sha256File(finalPath);
   if (digest !== expectedSha.toLowerCase()) {
     return null;
   }
+  chmodSync(finalPath, FILE_MODE);
   return { path: finalPath, bytes, digestVerified: true, cached: true };
+}
+
+/** Remove crash leftovers only when their recorded process no longer exists. */
+function removeAbandonedPartials(parentDir: string): void {
+  for (const name of readdirSync(parentDir)) {
+    if (!name.endsWith(".part")) continue;
+    const match = name.match(/\.(\d+)\.[^.]+\.part$/);
+    if (match === null) continue;
+    const pid = Number(match[1]);
+    if (!Number.isSafeInteger(pid) || pid <= 0 || isProcessAlive(pid)) continue;
+    discard(join(parentDir, name));
+  }
+}
+
+function acquireArtifactLock(finalPath: string): () => void {
+  const lockPath = `${finalPath}.lock`;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const fd = openSync(lockPath, "wx", FILE_MODE);
+      writeSync(fd, String(process.pid));
+      return () => {
+        try {
+          closeSync(fd);
+        } finally {
+          discard(lockPath);
+        }
+      };
+    } catch (error) {
+      if ((error as { code?: unknown }).code !== "EEXIST") {
+        throw new BackendError(`failed to lock weight artifact: ${finalPath}`, { cause: error });
+      }
+      const ownerPid = Number(readFileSafe(lockPath));
+      if (Number.isSafeInteger(ownerPid) && ownerPid > 0 && !isProcessAlive(ownerPid)) {
+        discard(lockPath);
+        continue;
+      }
+      throw new BackendError(`weight acquisition already in progress: ${finalPath}`);
+    }
+  }
+  throw new BackendError(`failed to reclaim stale weight lock: ${finalPath}`);
+}
+
+function readFileSafe(path: string): string {
+  try {
+    return readFileSync(path, "utf8");
+  } catch {
+    return "";
+  }
+}
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as { code?: unknown }).code !== "ESRCH";
+  }
 }
 
 function sha256File(path: string): Promise<string> {

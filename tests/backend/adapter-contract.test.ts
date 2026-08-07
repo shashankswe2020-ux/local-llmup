@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { existsSync, realpathSync } from "node:fs";
+import { delimiter, join } from "node:path";
 import { BackendError, ValidationError } from "../../src/errors.js";
 import { assertExactFileMatch, type AcquireRequest } from "../../src/backend/acquire.js";
 import type { BackendAdapter, PullOptions, ServeOptions } from "../../src/backend/adapter.js";
@@ -17,11 +19,20 @@ import type { BackendName } from "../../src/types.js";
 
 const noSleep = vi.fn<SleepFn>(() => Promise.resolve());
 
+function testExecutable(binary: string): string {
+  for (const directory of (process.env["PATH"] ?? "").split(delimiter)) {
+    const candidate = join(directory, binary);
+    if (existsSync(candidate)) return realpathSync(candidate);
+  }
+  return `/nonexistent/${binary}`;
+}
+
 interface SpawnRecord {
   readonly command: string;
   readonly args: readonly string[];
   readonly shell: false | undefined;
   readonly env: NodeJS.ProcessEnv | undefined;
+  readonly stdio: "pipe" | "ignore" | undefined;
 }
 
 interface FakeListener {
@@ -54,6 +65,7 @@ function makeSpawnHarness(listener: FakeListener, startsListener = true): SpawnH
       args: [...args],
       shell: (options as { readonly shell?: false }).shell,
       env: options.env,
+      stdio: options.stdio,
     });
     if (startsListener) listener.listening = true;
 
@@ -91,6 +103,7 @@ function successfulProcessSpawn(records: SpawnRecord[]): SpawnFn {
       args: [...args],
       shell: (options as { readonly shell?: false }).shell,
       env: options.env,
+      stdio: options.stdio,
     });
     const closeListeners: Array<(code: number | null) => void> = [];
     const child: SpawnedProcess = {
@@ -241,6 +254,16 @@ const CONTRACTS: readonly AdapterContract[] = [
           spawn: spawn.spawn,
           fetch: ollamaFetch(listener),
           sleep: noSleep,
+          listenerProbe: async () =>
+            listener.listening
+              ? {
+                  pid: 4242,
+                  process: "ollama",
+                  executable: testExecutable("ollama"),
+                  started: "2026-08-07T00:00:00Z",
+                  localAddress: "127.0.0.1",
+                }
+              : null,
         }),
         listener,
         spawn,
@@ -280,6 +303,16 @@ const CONTRACTS: readonly AdapterContract[] = [
           spawn: spawn.spawn,
           fetch: llamaCppFetch(listener),
           sleep: noSleep,
+          listenerProbe: async () =>
+            listener.listening
+              ? {
+                  pid: 4242,
+                  process: "llama-server",
+                  executable: testExecutable("llama-server"),
+                  started: "2026-08-07T00:00:00Z",
+                  localAddress: "127.0.0.1",
+                }
+              : null,
         }),
         listener,
         spawn,
@@ -347,6 +380,7 @@ describe.each(CONTRACTS)("BackendAdapter contract — $name", (contract) => {
     if (record === undefined) throw new Error("expected one spawn record");
     expect(Array.isArray(record.args)).toBe(true);
     expect(record.shell).toBe(false);
+    expect(record.stdio).toBe("ignore");
     instance.assertExplicitLoopback(record);
   });
 
@@ -375,7 +409,7 @@ describe.each(CONTRACTS)("BackendAdapter contract — $name", (contract) => {
     const handle = await instance.adapter.serve(instance.options);
 
     expect(handle.ownedByUs).toBe(false);
-    expect(handle.pid).toBe(0);
+    expect(handle.pid).toBe(4242);
     expect(instance.spawn.records).toHaveLength(0);
   });
 

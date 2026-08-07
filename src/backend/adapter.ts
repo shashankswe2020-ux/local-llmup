@@ -28,6 +28,28 @@ export function buildEndpoint(host: string, port: number): string {
   return `http://${hostPart}:${port}`;
 }
 
+/** Validate and normalize an unauthenticated backend endpoint to loopback HTTP. */
+export function assertLoopbackEndpoint(raw: string): string {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch (cause) {
+    throw new ValidationError(`invalid backend endpoint: ${raw}`, { cause });
+  }
+  const host = url.hostname.replace(/^\[/, "").replace(/\]$/, "").toLowerCase();
+  const loopback =
+    host === "localhost" || host === "::1" || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host);
+  if (
+    url.protocol !== "http:" ||
+    url.username !== "" ||
+    url.password !== "" ||
+    !loopback
+  ) {
+    throw new ValidationError(`refusing non-loopback backend endpoint: ${raw}`);
+  }
+  return url.origin;
+}
+
 /** Progress event emitted while a model is being pulled. */
 export interface PullProgress {
   readonly status: string;
@@ -97,6 +119,8 @@ export interface ServeOptions {
    * pulled models from a shared store (e.g. Ollama).
    */
   readonly modelPath?: string | undefined;
+  /** Canonical catalog id exposed to OpenAI clients by single-model runtimes. */
+  readonly modelId?: string | undefined;
   /**
    * Permit binding a non-loopback host (e.g. `0.0.0.0`). Off by default: the
    * server is unauthenticated, so exposing it beyond loopback must be an
@@ -113,6 +137,9 @@ export interface ServeHandle {
   readonly port: number;
   /** True when this process spawned the daemon (so `down` may stop it). */
   readonly ownedByUs: boolean;
+  /** Immutable process identity captured from the listening socket owner. */
+  readonly processExecutable?: string | undefined;
+  readonly processStartedAt?: string | undefined;
 }
 
 /** Inputs for the readiness probe. */
@@ -136,6 +163,8 @@ export interface ChatMessage {
 
 /** Inputs for a (non-streaming) chat completion. */
 export interface ChatRequest {
+  /** Active server endpoint from state; omitted only by legacy/default callers. */
+  readonly endpoint?: string | undefined;
   readonly model: string;
   readonly messages: readonly ChatMessage[];
   readonly signal?: AbortSignal | undefined;

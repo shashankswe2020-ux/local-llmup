@@ -54,7 +54,7 @@ const GgufSourceSchema = z
       .refine(isSafeModelFile, {
         message: "file must be a safe repo-relative path (no globs, `..`, or absolute paths)",
       }),
-    sha256: z.string().regex(SHA256_RE).optional(),
+    sha256: z.string().regex(SHA256_RE),
   })
   .strict();
 

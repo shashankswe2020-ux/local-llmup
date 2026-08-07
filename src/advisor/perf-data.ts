@@ -107,6 +107,42 @@ const PerfClassSchema = z
   .refine((c) => c.maxBytes > c.minBytes, {
     message: "maxBytes must be greater than minBytes",
     path: ["maxBytes"],
+  })
+  .superRefine((hardwareClass, context) => {
+    for (const backend of BACKEND_NAMES) {
+      const scalar = hardwareClass.efficiencyByBackend?.[backend];
+      const provenance = hardwareClass.sources.efficiencyByBackend?.[backend];
+      if (scalar !== undefined && provenance === undefined) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["sources", "efficiencyByBackend", backend],
+          message: `missing provenance for ${backend} efficiency`,
+        });
+      }
+      if (scalar === undefined && provenance !== undefined) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["sources", "efficiencyByBackend", backend],
+          message: `orphan provenance for absent ${backend} efficiency`,
+        });
+      }
+      if (scalar !== undefined && provenance !== undefined) {
+        if (provenance.value !== scalar) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["sources", "efficiencyByBackend", backend, "value"],
+            message: `provenance value must equal ${backend} efficiency scalar`,
+          });
+        }
+        if (provenance.trustTier === "low-confidence") {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["sources", "efficiencyByBackend", backend, "trustTier"],
+            message: "low-confidence efficiency must remain unknown",
+          });
+        }
+      }
+    }
   });
 
 const PerfDatasetSchema = z

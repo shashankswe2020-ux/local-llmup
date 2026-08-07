@@ -77,4 +77,31 @@ describe("dev seed data/models.json", () => {
       expect(gguf?.file.endsWith(".gguf")).toBe(true);
     }
   });
+
+  it("pins the bundled gguf artifacts to verified upstream LFS coordinates", () => {
+    const expected = {
+      "qwen3:14b": {
+        repo: "Qwen/Qwen3-14B-GGUF",
+        revision: "530227a7d994db8eca5ab5ced2fb692b614357fd",
+        file: "Qwen3-14B-Q4_K_M.gguf",
+        sha256: "500a8806e85ee9c83f3ae08420295592451379b4f8cf2d0f41c15dffeb6b81f0",
+      },
+      "qwen3:30b-a3b": {
+        repo: "Qwen/Qwen3-30B-A3B-GGUF",
+        revision: "e4d4bafdfb96a411a163846265362aceb0b9c63a",
+        file: "Qwen3-30B-A3B-Q4_K_M.gguf",
+        sha256: "0d003f6662faee786ed5da3e31b29c978de5ae5d275c8794c606a7f3c01aa8f5",
+      },
+      "qwen3:32b": {
+        repo: "Qwen/Qwen3-32B-GGUF",
+        revision: "938a7432affaec9157f883a87164e2646ae17555",
+        file: "Qwen3-32B-Q4_K_M.gguf",
+        sha256: "efd971561896866f0e910cce52761ca77b1b138090c7f15fe284676d57d1f689",
+      },
+    } as const;
+
+    for (const [id, source] of Object.entries(expected)) {
+      expect(catalog.models.find((model) => model.id === id)?.source.gguf).toEqual(source);
+    }
+  });
 });

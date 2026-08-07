@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { existsSync, realpathSync } from "node:fs";
+import { delimiter, join } from "node:path";
 import { BackendError, ValidationError } from "../../src/errors.js";
 import {
   OllamaAdapter,
@@ -16,6 +18,20 @@ const notFound: FetchResponseLike = { ok: false, status: 404 };
 
 /** A sleep that resolves immediately (no real waiting in tests). */
 const immediateSleep: SleepFn = () => Promise.resolve();
+function testExecutable(binary: string): string {
+  for (const directory of (process.env["PATH"] ?? "").split(delimiter)) {
+    const candidate = join(directory, binary);
+    if (existsSync(candidate)) return realpathSync(candidate);
+  }
+  return `/nonexistent/${binary}`;
+}
+const ollamaListener = (pid = 9001) => async () => ({
+  pid,
+  process: "ollama",
+  executable: testExecutable("ollama"),
+  started: "2026-08-07T00:00:00Z",
+  localAddress: "127.0.0.1",
+});
 
 interface RecordedSpawn {
   command: string;
@@ -93,6 +109,40 @@ function notReachableThenHanging(recorded: readonly unknown[]): FetchFn {
     recorded.length > 0 ? new Promise<FetchResponseLike>(() => {}) : Promise.resolve(notFound);
 }
 
+function trustedOllamaFetch(): FetchFn {
+  return vi.fn((url: string) =>
+    Promise.resolve(
+      url.endsWith("/api/version")
+        ? { ok: true, status: 200, json: () => Promise.resolve({ version: "0.5.0" }) }
+        : ok,
+    ),
+  );
+}
+
+function spawnedOllamaFetch(recorded: readonly unknown[]): FetchFn {
+  return vi.fn((url: string) => {
+    if (recorded.length === 0) return Promise.resolve(notFound);
+    return Promise.resolve(
+      url.endsWith("/api/version")
+        ? { ok: true, status: 200, json: () => Promise.resolve({ version: "0.5.0" }) }
+        : ok,
+    );
+  });
+}
+
+function spawnedOllamaListener(recorded: readonly unknown[], pid = 4242) {
+  return async () => (recorded.length === 0 ? null : await ollamaListener(pid)());
+}
+
+function ownedOllamaAdapter(fetch: FetchFn, kill: KillFn): OllamaAdapter {
+  return new OllamaAdapter({
+    fetch,
+    kill,
+    sleep: immediateSleep,
+    listenerProbe: ollamaListener(),
+  });
+}
+
 describe("OllamaAdapter.serve", () => {
   it("attaches to an already-running daemon without spawning", async () => {
     const fetch = vi.fn<FetchFn>((url) => {
@@ -102,13 +152,19 @@ describe("OllamaAdapter.serve", () => {
       return Promise.resolve(ok);
     });
     const { spawn, recorded } = fakeServeSpawn();
-    const adapter = new OllamaAdapter({ fetch, spawn, sleep: immediateSleep });
+    const adapter = new OllamaAdapter({
+      fetch,
+      spawn,
+      sleep: immediateSleep,
+      listenerProbe: ollamaListener(5151),
+    });
 
     const handle = await adapter.serve();
 
     expect(handle.ownedByUs).toBe(false);
     expect(handle.endpoint).toBe(ENDPOINT);
     expect(handle.port).toBe(11434);
+    expect(handle.pid).toBe(5151);
     expect(fetch).toHaveBeenCalledWith(`${ENDPOINT}/api/version`, expect.any(Object));
     expect(recorded).toHaveLength(0);
   });
@@ -130,8 +186,13 @@ describe("OllamaAdapter.serve", () => {
   it("spawns a loopback-bound daemon when none is running", async () => {
     const { spawn, recorded } = fakeServeSpawn({ pid: 9001 });
     // Only reachable once we have started our own daemon.
-    const fetch = vi.fn<FetchFn>(() => Promise.resolve(recorded.length > 0 ? ok : notFound));
-    const adapter = new OllamaAdapter({ fetch, spawn, sleep: immediateSleep });
+    const fetch = spawnedOllamaFetch(recorded);
+    const adapter = new OllamaAdapter({
+      fetch,
+      spawn,
+      sleep: immediateSleep,
+      listenerProbe: spawnedOllamaListener(recorded, 9001),
+    });
 
     const handle = await adapter.serve();
 
@@ -145,8 +206,13 @@ describe("OllamaAdapter.serve", () => {
 
   it("binds the requested host and port", async () => {
     const { spawn, recorded } = fakeServeSpawn();
-    const fetch = vi.fn<FetchFn>(() => Promise.resolve(recorded.length > 0 ? ok : notFound));
-    const adapter = new OllamaAdapter({ fetch, spawn, sleep: immediateSleep });
+    const fetch = spawnedOllamaFetch(recorded);
+    const adapter = new OllamaAdapter({
+      fetch,
+      spawn,
+      sleep: immediateSleep,
+      listenerProbe: spawnedOllamaListener(recorded),
+    });
 
     const handle = await adapter.serve({ host: "127.0.0.1", port: 12000 });
 
@@ -162,8 +228,13 @@ describe("OllamaAdapter.serve", () => {
 
     try {
       const { spawn, recorded } = fakeServeSpawn();
-      const fetch = vi.fn<FetchFn>(() => Promise.resolve(recorded.length > 0 ? ok : notFound));
-      const adapter = new OllamaAdapter({ fetch, spawn, sleep: immediateSleep });
+      const fetch = spawnedOllamaFetch(recorded);
+      const adapter = new OllamaAdapter({
+        fetch,
+        spawn,
+        sleep: immediateSleep,
+        listenerProbe: spawnedOllamaListener(recorded),
+      });
 
       await adapter.serve({ host: "127.0.0.1", port: 12003 });
 
@@ -210,7 +281,7 @@ describe("OllamaAdapter.serve", () => {
 
   it("aborts before spawning when the signal is already aborted", async () => {
     const { spawn, recorded } = fakeServeSpawn();
-    const fetch = vi.fn<FetchFn>(() => Promise.resolve(ok));
+    const fetch = trustedOllamaFetch();
     const adapter = new OllamaAdapter({ fetch, spawn, sleep: immediateSleep });
     const controller = new AbortController();
     controller.abort();
@@ -231,8 +302,13 @@ describe("OllamaAdapter.serve", () => {
 
   it("binds a non-loopback host only when explicitly opted in", async () => {
     const { spawn, recorded } = fakeServeSpawn();
-    const fetch = vi.fn<FetchFn>(() => Promise.resolve(recorded.length > 0 ? ok : notFound));
-    const adapter = new OllamaAdapter({ fetch, spawn, sleep: immediateSleep });
+    const fetch = spawnedOllamaFetch(recorded);
+    const adapter = new OllamaAdapter({
+      fetch,
+      spawn,
+      sleep: immediateSleep,
+      listenerProbe: spawnedOllamaListener(recorded),
+    });
 
     const handle = await adapter.serve({ host: "0.0.0.0", port: 12002, allowNonLoopback: true });
 
@@ -280,8 +356,8 @@ describe("OllamaAdapter.stop", () => {
   it("never kills an attached (foreign) daemon", async () => {
     const killed: number[] = [];
     const kill: KillFn = (pid) => killed.push(pid);
-    const fetch = vi.fn<FetchFn>(() => Promise.resolve(ok));
-    const adapter = new OllamaAdapter({ fetch, kill, sleep: immediateSleep });
+    const fetch = trustedOllamaFetch();
+    const adapter = ownedOllamaAdapter(fetch, kill);
 
     await adapter.stop({ endpoint: ENDPOINT, pid: 0, port: 11434, ownedByUs: false });
 
@@ -297,8 +373,8 @@ describe("OllamaAdapter.stop", () => {
         throw Object.assign(new Error("kill ESRCH"), { code: "ESRCH" });
       }
     };
-    const fetch = vi.fn<FetchFn>(() => Promise.resolve(ok));
-    const adapter = new OllamaAdapter({ fetch, kill, sleep: immediateSleep });
+    const fetch = trustedOllamaFetch();
+    const adapter = ownedOllamaAdapter(fetch, kill);
 
     await adapter.stop({ endpoint: ENDPOINT, pid: 9001, port: 11434, ownedByUs: true });
 
@@ -320,8 +396,8 @@ describe("OllamaAdapter.stop", () => {
         }
       }
     };
-    const fetch = vi.fn<FetchFn>(() => Promise.resolve(ok));
-    const adapter = new OllamaAdapter({ fetch, kill, sleep: immediateSleep });
+    const fetch = trustedOllamaFetch();
+    const adapter = ownedOllamaAdapter(fetch, kill);
 
     await adapter.stop({ endpoint: ENDPOINT, pid: 9001, port: 11434, ownedByUs: true });
 
@@ -334,7 +410,7 @@ describe("OllamaAdapter.stop", () => {
     const kill: KillFn = () => {
       throw Object.assign(new Error("kill ESRCH"), { code: "ESRCH" });
     };
-    const adapter = new OllamaAdapter({ fetch, kill, sleep: immediateSleep });
+    const adapter = ownedOllamaAdapter(fetch, kill);
 
     await expect(
       adapter.stop({ endpoint: ENDPOINT, pid: 9001, port: 11434, ownedByUs: true }),
@@ -342,11 +418,11 @@ describe("OllamaAdapter.stop", () => {
   });
 
   it("wraps an unexpected kill failure in a BackendError", async () => {
-    const fetch = vi.fn<FetchFn>(() => Promise.resolve(ok));
+    const fetch = trustedOllamaFetch();
     const kill: KillFn = () => {
       throw Object.assign(new Error("kill EPERM"), { code: "EPERM" });
     };
-    const adapter = new OllamaAdapter({ fetch, kill, sleep: immediateSleep });
+    const adapter = ownedOllamaAdapter(fetch, kill);
 
     await expect(
       adapter.stop({ endpoint: ENDPOINT, pid: 9001, port: 11434, ownedByUs: true }),
@@ -357,7 +433,7 @@ describe("OllamaAdapter.stop", () => {
     const killed: number[] = [];
     const kill: KillFn = (pid) => killed.push(pid);
     const fetch = vi.fn<FetchFn>(() => Promise.resolve(ok));
-    const adapter = new OllamaAdapter({ fetch, kill, sleep: immediateSleep });
+    const adapter = ownedOllamaAdapter(fetch, kill);
 
     await expect(
       adapter.stop({ endpoint: ENDPOINT, pid: 0, port: 11434, ownedByUs: true }),
@@ -369,7 +445,7 @@ describe("OllamaAdapter.stop", () => {
     const killed: Array<{ pid: number; signal: NodeJS.Signals | 0 | undefined }> = [];
     const kill: KillFn = (pid, signal) => killed.push({ pid, signal });
     const fetch = vi.fn<FetchFn>(() => Promise.resolve(notFound));
-    const adapter = new OllamaAdapter({ fetch, kill, sleep: immediateSleep });
+    const adapter = ownedOllamaAdapter(fetch, kill);
 
     await expect(
       adapter.stop({ endpoint: ENDPOINT, pid: 9001, port: 11434, ownedByUs: true }),
@@ -377,5 +453,22 @@ describe("OllamaAdapter.stop", () => {
 
     // A liveness probe (`signal: 0`) is allowed; termination is refused.
     expect(killed).toEqual([{ pid: 9001, signal: 0 }]);
+  });
+
+  it("refuses to signal an owned pid when the endpoint fails Ollama identity", async () => {
+    const killed = vi.fn<KillFn>();
+    const fetch = vi.fn<FetchFn>((url) =>
+      Promise.resolve(
+        url.endsWith("/api/version")
+          ? { ok: true, status: 200, json: () => Promise.resolve({}) }
+          : ok,
+      ),
+    );
+    const adapter = ownedOllamaAdapter(fetch, killed);
+
+    await expect(
+      adapter.stop({ endpoint: ENDPOINT, pid: 9001, port: 11434, ownedByUs: true }),
+    ).rejects.toBeInstanceOf(BackendError);
+    expect(killed).not.toHaveBeenCalledWith(9001, "SIGTERM");
   });
 });
