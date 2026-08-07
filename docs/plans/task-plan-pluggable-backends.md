@@ -393,8 +393,8 @@ on digest/revision/exact-file/size-floor; readiness-probe timeout;
 **port-ownership preflight** (foreign server on shared 8080 → attach or
 `BackendError`, never `ownedByUs:true`).
 **Acceptance:**
-- [ ] Suite green for ollama + llamacpp; adding a future adapter only registers it.
-- [ ] Every clause has an asserting case; ollama's env-based loopback and arg-less `serve` pass without special-casing.
+- [x] Suite green for ollama + llamacpp; adding a future adapter only registers it.
+- [x] Every clause has an asserting case; ollama's env-based loopback and arg-less `serve` pass without special-casing.
 **Verify:** `npm test tests/backend`
 **Deps:** B14c **Files:** `tests/backend/adapter-contract.test.ts` **Scope:** M
 

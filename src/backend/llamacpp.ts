@@ -146,7 +146,7 @@ function probe(
   return new Promise<ProbeResult>((resolve, reject) => {
     let child: SpawnedProcess;
     try {
-      child = spawn(binary, args, { signal });
+      child = spawn(binary, args, { shell: false, signal });
     } catch (error) {
       reject(wrapSpawnError(binary, error));
       return;
@@ -537,7 +537,7 @@ export class LlamaCppAdapter implements BackendAdapter {
     // stop()/state, not by the caller's request-scoped signal.
     let child: SpawnedProcess;
     try {
-      child = this.spawn(this.binary, args, {});
+      child = this.spawn(this.binary, args, { shell: false });
     } catch (error) {
       throw wrapSpawnError(this.binary, error);
     }

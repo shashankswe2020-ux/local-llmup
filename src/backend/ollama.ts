@@ -80,6 +80,8 @@ export type SpawnFn = (
   command: string,
   args: readonly string[],
   options: {
+    /** Shell execution is forbidden: arguments must remain discrete argv. */
+    readonly shell: false;
     readonly signal?: AbortSignal | undefined;
     readonly env?: NodeJS.ProcessEnv | undefined;
   },
@@ -369,7 +371,7 @@ function runProcess(
   return new Promise<number>((resolve, reject) => {
     let child: SpawnedProcess;
     try {
-      child = spawn(binary, args, { signal: options.signal });
+      child = spawn(binary, args, { shell: false, signal: options.signal });
     } catch (error) {
       reject(wrapSpawnError(binary, error instanceof Error ? error : new Error(String(error))));
       return;
@@ -748,6 +750,7 @@ export class OllamaAdapter implements BackendAdapter {
     let child: SpawnedProcess;
     try {
       child = this.spawn(this.binary, ["serve"], {
+        shell: false,
         env: buildServeEnv(host, port),
       });
     } catch (error) {
