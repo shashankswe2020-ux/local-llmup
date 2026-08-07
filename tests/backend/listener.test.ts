@@ -1,5 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { findListenerIdentity } from "../../src/backend/listener.js";
+import {
+  findListenerIdentity,
+  parseLsofTextExecutable,
+} from "../../src/backend/listener.js";
+
+describe("parseLsofTextExecutable", () => {
+  it("returns the first txt mapping without comparing the process display name", () => {
+    expect(
+      parseLsofTextExecutable(
+        [
+          "p34739",
+          "ftxt",
+          "n/opt/homebrew/Cellar/ollama/0.32.5/libexec/ollama",
+          "ftxt",
+          "n/usr/lib/dyld",
+        ].join("\n"),
+      ),
+    ).toBe("/opt/homebrew/Cellar/ollama/0.32.5/libexec/ollama");
+  });
+
+  it("returns null when no txt executable mapping is present", () => {
+    expect(parseLsofTextExecutable("p1\nfmem\nn/tmp/file")).toBeNull();
+  });
+});
 
 describe("findListenerIdentity", () => {
   it("returns the unique listening process for the requested port", () => {

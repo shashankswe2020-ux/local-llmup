@@ -16,6 +16,9 @@ Phase 2 llama.cpp production hardening after real-process smoke testing.
   alias, listening address, PID, canonical executable, and process start time.
 - Fixed repeated/cross-backend `up`, single-model `switch`, backend preference
   precedence, persistent log-pipe deadlocks, and stale-state cleanup.
+- Real Ollama smoke testing fixed macOS listener identity for `ollama serve` and
+  implemented the advertised embedding capability with trusted-endpoint checks,
+  bounded requests/responses, timeout/cancellation, and strict vector validation.
 
 ## 0.4.1 - 2026-08-07
 

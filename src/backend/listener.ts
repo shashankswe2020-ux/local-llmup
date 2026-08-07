@@ -149,10 +149,8 @@ async function processExecutable(
         ["-a", "-p", String(pid), "-d", "txt", "-Fn"],
         { timeout: 2_000, maxBuffer: 64 * 1024, encoding: "utf8" },
       );
-      const executableLine = stdout
-        .split("\n")
-        .find((line) => line.startsWith("n") && basename(line.slice(1)) === name);
-      if (executableLine !== undefined) return canonicalPath(executableLine.slice(1));
+      const executable = parseLsofTextExecutable(stdout);
+      if (executable !== null) return canonicalPath(executable);
     } catch {
       return null;
     }
@@ -164,4 +162,15 @@ async function processExecutable(
   } catch {
     return null;
   }
+}
+
+/** Parse the first text-executable path from `lsof -d txt -Fn` output. */
+export function parseLsofTextExecutable(output: string): string | null {
+  const lines = output.split("\n");
+  for (let index = 0; index < lines.length - 1; index += 1) {
+    if (lines[index] !== "ftxt") continue;
+    const pathLine = lines[index + 1];
+    if (pathLine?.startsWith("n") && pathLine.length > 1) return pathLine.slice(1);
+  }
+  return null;
 }

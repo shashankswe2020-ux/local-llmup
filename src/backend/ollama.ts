@@ -115,7 +115,10 @@ export type DigestProbe = (modelId: string) => Promise<PullVerification>;
 export interface FetchResponseLike {
   readonly ok: boolean;
   readonly status: number;
+  readonly headers?: { get(name: string): string | null } | undefined;
+  readonly body?: ReadableStream<Uint8Array> | null | undefined;
   json?(): Promise<unknown>;
+  text?(): Promise<string>;
 }
 
 /** Minimal fetch init surface this adapter needs for probes and chat calls. */
@@ -149,6 +152,12 @@ const READINESS_REQUEST_TIMEOUT_MS = 5_000;
 const VERSION_PROBE_TIMEOUT_MS = 1_500;
 /** Cap on characters kept from a non-semver version banner. */
 const VERSION_BANNER_MAX_CHARS = 100;
+const INFERENCE_REQUEST_TIMEOUT_MS = 30_000;
+const MAX_EMBED_RESPONSE_BYTES = 16 * 1024 * 1024;
+const MAX_EMBED_DIMENSION = 8_192;
+const MAX_EMBED_SCALARS = 1_000_000;
+const MAX_EMBED_INPUT_BYTES = 1024 * 1024;
+const MAX_EMBED_REQUEST_BYTES = 4 * 1024 * 1024;
 
 const SHUTDOWN_GRACE_MS = 500;
 const SHUTDOWN_POLL_INTERVAL_MS = 50;
@@ -205,6 +214,11 @@ const OllamaChatResponseSchema = z.object({
     content: z.string(),
   }),
 });
+
+const OllamaEmbedResponseSchema = z.object({
+  embeddings: z.array(z.array(z.number().finite()).min(1)).min(1),
+});
+const OllamaEmbedInputsSchema = z.array(z.string().min(1)).min(1).max(1_024);
 
 const defaultSleep: SleepFn = (ms, signal) =>
   new Promise<void>((resolve, reject) => {
@@ -1127,6 +1141,7 @@ export class OllamaAdapter implements BackendAdapter {
     const endpoint = assertLoopbackEndpoint(
       request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, DEFAULT_OLLAMA_PORT),
     );
+    await this.assertTrustedInferenceEndpoint(endpoint, request.signal);
     const url = `${endpoint}/api/chat`;
 
     let response: FetchResponseLike;
@@ -1173,7 +1188,140 @@ export class OllamaAdapter implements BackendAdapter {
     return { content: parsed.data.message.content };
   }
 
-  embed(_request: EmbedRequest): Promise<EmbedResult> {
-    return Promise.reject(new BackendError("ollama embed is implemented in a later task"));
+  async embed(request: EmbedRequest): Promise<EmbedResult> {
+    assertSafeModelId(request.model);
+    const parsedInputs = OllamaEmbedInputsSchema.safeParse(request.input);
+    if (!parsedInputs.success) {
+      throw new ValidationError("ollama embed inputs must be 1..1024 non-empty strings", {
+        cause: parsedInputs.error,
+      });
+    }
+    let totalInputBytes = 0;
+    for (const input of parsedInputs.data) {
+      const bytes = Buffer.byteLength(input, "utf8");
+      if (bytes > MAX_EMBED_INPUT_BYTES) {
+        throw new ValidationError("ollama embed input exceeds 1 MiB byte limit");
+      }
+      totalInputBytes += bytes;
+    }
+    if (totalInputBytes > MAX_EMBED_REQUEST_BYTES) {
+      throw new ValidationError("ollama embed request exceeds 4 MiB byte limit");
+    }
+    const endpoint = assertLoopbackEndpoint(
+      request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, DEFAULT_OLLAMA_PORT),
+    );
+    await this.assertTrustedInferenceEndpoint(endpoint, request.signal);
+
+    const controller = new AbortController();
+    const onCallerAbort = (): void => controller.abort();
+    if (request.signal?.aborted) controller.abort();
+    else request.signal?.addEventListener("abort", onCallerAbort, { once: true });
+    const timer = setTimeout(() => controller.abort(), INFERENCE_REQUEST_TIMEOUT_MS);
+
+    let response: FetchResponseLike;
+    try {
+      response = await this.fetch(`${endpoint}/api/embed`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ model: request.model, input: parsedInputs.data }),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      clearTimeout(timer);
+      request.signal?.removeEventListener("abort", onCallerAbort);
+      throw new BackendError(`ollama embed request failed for ${request.model}`, {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+    try {
+      if (!response.ok) {
+        throw new BackendError(
+          `ollama embed failed for ${request.model} (status ${response.status})`,
+        );
+      }
+      const declaredBytes = Number(response.headers?.get("content-length"));
+      if (Number.isFinite(declaredBytes) && declaredBytes > MAX_EMBED_RESPONSE_BYTES) {
+        controller.abort();
+        await response.body?.cancel("embedding response content-length exceeds limit");
+        throw new BackendError("ollama embed response exceeds byte limit");
+      }
+
+      const payload = await readBoundedJson(response);
+
+      const parsed = OllamaEmbedResponseSchema.safeParse(payload);
+      if (!parsed.success || parsed.data.embeddings.length !== request.input.length) {
+        throw new BackendError("ollama embed returned a malformed response body", {
+          ...(parsed.success ? {} : { cause: parsed.error }),
+        });
+      }
+      const [first] = parsed.data.embeddings;
+      if (first === undefined) {
+        throw new BackendError("ollama embed returned no vectors");
+      }
+      const dimension = first.length;
+      if (
+        dimension > MAX_EMBED_DIMENSION ||
+        dimension * parsed.data.embeddings.length > MAX_EMBED_SCALARS
+      ) {
+        throw new BackendError("ollama embed response exceeds vector limits");
+      }
+      if (parsed.data.embeddings.some((vector) => vector.length !== dimension)) {
+        throw new BackendError("ollama embed returned inconsistent vector dimensions");
+      }
+      return { vectors: parsed.data.embeddings, dimension };
+    } catch (error) {
+      if (error instanceof BackendError) throw error;
+      throw new BackendError("ollama embed returned invalid JSON", { cause: error });
+    } finally {
+      clearTimeout(timer);
+      request.signal?.removeEventListener("abort", onCallerAbort);
+    }
   }
+
+  private async assertTrustedInferenceEndpoint(
+    endpoint: string,
+    signal: AbortSignal | undefined,
+  ): Promise<void> {
+    const url = new URL(endpoint);
+    const port = url.port === "" ? 80 : Number(url.port);
+    const host = url.hostname.replace(/^\[/, "").replace(/\]$/, "");
+    const before = await this.listenerProbe(port, host);
+    if (before === null || !matchesExpectedExecutable(before, this.binary)) {
+      throw new BackendError(`refusing inference at ${endpoint}: listener ownership is untrusted`);
+    }
+    if (!(await this.isLikelyOllamaDaemon(endpoint, signal, READINESS_REQUEST_TIMEOUT_MS))) {
+      throw new BackendError(`refusing inference at ${endpoint}: Ollama identity check failed`);
+    }
+    const after = await this.listenerProbe(port, host);
+    if (after === null || !sameListenerProcess(before, after)) {
+      throw new BackendError(`refusing inference at ${endpoint}: listener changed during check`);
+    }
+  }
+}
+
+async function readBoundedJson(response: FetchResponseLike): Promise<unknown> {
+  if (response.body !== undefined && response.body !== null) {
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let bytes = 0;
+    try {
+      for (;;) {
+        const next = await reader.read();
+        if (next.done) break;
+        bytes += next.value.byteLength;
+        if (bytes > MAX_EMBED_RESPONSE_BYTES) {
+          await reader.cancel("embedding response byte limit exceeded");
+          throw new BackendError("ollama embed response exceeds byte limit");
+        }
+        chunks.push(next.value);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    return JSON.parse(Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))).toString("utf8")) as unknown;
+  }
+  // Test seams may provide parsed JSON directly; native fetch responses always
+  // expose a body and therefore use the byte-capped production path above.
+  if (typeof response.json === "function") return response.json();
+  throw new BackendError("ollama embed returned a malformed response body");
 }

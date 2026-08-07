@@ -177,6 +177,8 @@ export interface ChatResult {
 
 /** Inputs for an embedding request. */
 export interface EmbedRequest {
+  /** Active server endpoint from state; omitted only by legacy/default callers. */
+  readonly endpoint?: string | undefined;
   readonly model: string;
   readonly input: readonly string[];
   readonly signal?: AbortSignal | undefined;
