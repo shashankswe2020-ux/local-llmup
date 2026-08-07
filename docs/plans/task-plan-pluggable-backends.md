@@ -377,9 +377,9 @@ and `embed` (or `canEmbed:false`) over the OpenAI-compatible API.
 existing scalar with provenance. Real pinned SHAs cross-checked vs HF LFS
 pointers at ingest — **data curation, not code**. No fabricated numbers.
 **Acceptance:**
-- [ ] Chosen models validate with `gguf` sources (real pinned revisions/digests).
-- [ ] `recommend --backend llamacpp` scopes throughput; unsourced class → `unknown`.
-- [ ] `llamacpp` output equals `ollama` for shared classes (no invented delta).
+- [x] Chosen models validate with `gguf` sources (real pinned revisions/digests).
+- [x] `recommend --backend llamacpp` scopes throughput; unsourced class → `unknown`.
+- [x] `llamacpp` output equals `ollama` for shared classes (no invented delta).
 **Verify:** `npm test tests/catalog tests/advisor/throughput tests/commands/recommend`
 **Deps:** B8, B14c **Files:** `data/models.json`, `data/perf.json`, `tests/**` **Scope:** M
 

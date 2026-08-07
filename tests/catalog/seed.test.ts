@@ -65,4 +65,16 @@ describe("dev seed data/models.json", () => {
     expect(catalog.models.some((m) => m.capabilities.includes("code"))).toBe(true);
     expect(catalog.models.some((m) => m.capabilities.includes("reasoning"))).toBe(true);
   });
+
+  it("seeds at least three pinned gguf sources with digest for llamacpp (B15)", () => {
+    const ggufModels = catalog.models.filter((m) => m.source.gguf !== undefined);
+    expect(ggufModels.length).toBeGreaterThanOrEqual(3);
+    for (const model of ggufModels) {
+      const gguf = model.source.gguf;
+      expect(gguf).toBeDefined();
+      expect(gguf?.revision).toMatch(/^[a-f0-9]{40}$/);
+      expect(gguf?.sha256).toMatch(/^[a-f0-9]{64}$/);
+      expect(gguf?.file.endsWith(".gguf")).toBe(true);
+    }
+  });
 });

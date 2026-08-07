@@ -30,6 +30,26 @@ function sanitizeCatalog(catalog: Catalog): { catalog: Catalog; changed: boolean
     source: {
       ...(model.source.ollama !== undefined ? { ollama: clean(model.source.ollama) } : {}),
       ...(model.source.hf !== undefined ? { hf: clean(model.source.hf) } : {}),
+      ...(model.source.gguf !== undefined
+        ? {
+            gguf: {
+              repo: clean(model.source.gguf.repo),
+              revision: clean(model.source.gguf.revision),
+              file: clean(model.source.gguf.file),
+              ...(model.source.gguf.sha256 !== undefined
+                ? { sha256: clean(model.source.gguf.sha256) }
+                : {}),
+            },
+          }
+        : {}),
+      ...(model.source.mlx !== undefined
+        ? {
+            mlx: {
+              repo: clean(model.source.mlx.repo),
+              revision: clean(model.source.mlx.revision),
+            },
+          }
+        : {}),
     },
     quantizations: model.quantizations.map((quant) => ({ ...quant, name: clean(quant.name) })),
   }));

@@ -119,6 +119,46 @@ describe("parseCatalog", () => {
     expect(catalog.models[0]?.family).toBe("llama");
   });
 
+  it("preserves gguf/mlx sources through parseCatalog", () => {
+    const dirty = clone(validCatalog) as unknown as {
+      models: {
+        source: {
+          ollama?: string;
+          hf?: string;
+          gguf?: { repo: string; revision: string; file: string; sha256?: string };
+          mlx?: { repo: string; revision: string };
+        };
+      }[];
+    };
+    dirty.models[0]!.source = {
+      ollama: "llama3.1:8b",
+      hf: "meta-llama/Llama-3.1-8B",
+      gguf: {
+        repo: "Qwen/Qwen3-14B-GGUF",
+        revision: "a".repeat(40),
+        file: "Qwen3-14B-Q4_K_M.gguf",
+        sha256: "b".repeat(64),
+      },
+      mlx: {
+        repo: "mlx-community/Qwen3-14B-4bit",
+        revision: "c".repeat(40),
+      },
+    };
+
+    const catalog = parseCatalog(JSON.stringify(dirty));
+    const source = catalog.models[0]!.source;
+    expect(source.gguf).toEqual({
+      repo: "Qwen/Qwen3-14B-GGUF",
+      revision: "a".repeat(40),
+      file: "Qwen3-14B-Q4_K_M.gguf",
+      sha256: "b".repeat(64),
+    });
+    expect(source.mlx).toEqual({
+      repo: "mlx-community/Qwen3-14B-4bit",
+      revision: "c".repeat(40),
+    });
+  });
+
   it("rejects a control character smuggled into params at the schema layer", () => {
     // params is an anchored-regex field, so control chars never reach sanitize.
     const dirty = clone(validCatalog) as unknown as { models: { params: string }[] };

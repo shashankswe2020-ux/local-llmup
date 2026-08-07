@@ -15,6 +15,33 @@ import type { Catalog, CatalogModel } from "../types.js";
 import { enrichCatalog, type RawRegistryModel } from "./enrich.js";
 import { CatalogSchema } from "./schema.js";
 
+/**
+ * Curated pinned GGUF artifacts for llama.cpp-backed pulls (B15). These are
+ * injected during bootstrap so reruns reproduce `data/models.json` exactly.
+ */
+const BOOTSTRAP_GGUF_SOURCES: Readonly<
+  Record<string, { readonly repo: string; readonly revision: string; readonly file: string; readonly sha256: string }>
+> = {
+  "qwen3:14b": {
+    repo: "Qwen/Qwen3-14B-GGUF",
+    revision: "f7f0328f7ef6a20f6ed8d9c9fd7d3b6a52f6a1bd",
+    file: "Qwen3-14B-Q4_K_M.gguf",
+    sha256: "c4f0a29df5f6c4e16d289f88ecf4f5a7f53e6c8149fadc4b2f6a3d43f46a1d22",
+  },
+  "qwen3:30b-a3b": {
+    repo: "Qwen/Qwen3-30B-A3B-GGUF",
+    revision: "63c2a7b0b2e7d25871f5a31f8f1df4f2d28de381",
+    file: "Qwen3-30B-A3B-Q4_K_M.gguf",
+    sha256: "6f3c9337ec5df11b5d519fba4e9f1f27eec90f0f33ce3884ba49f3c44f779b6e",
+  },
+  "qwen3:32b": {
+    repo: "Qwen/Qwen3-32B-GGUF",
+    revision: "9d8cb5e3d7ac2861e5cf5a49fe0d4e2893ac5b78",
+    file: "Qwen3-32B-Q4_K_M.gguf",
+    sha256: "9f328a5fd0f8f8aa5af3c8b56de8e125ec8fbe4e0b68b8bc0de8e5b18497de4b",
+  },
+};
+
 /** Frozen clock for the v1 bootstrap; also caps the future-date guard. */
 export const BOOTSTRAP_CLOCK = new Date("2026-08-04T00:00:00.000Z");
 
@@ -175,8 +202,13 @@ export function buildBootstrapCatalog(
   });
   const models = catalog.models.map((model) => {
     const kv = KV_BYTES_PER_TOKEN_FP16[model.id];
+    const gguf = BOOTSTRAP_GGUF_SOURCES[model.id];
     return {
       ...model,
+      source: {
+        ...model.source,
+        ...(gguf !== undefined ? { gguf } : {}),
+      },
       ...(kv !== undefined ? { kvBytesPerToken: kv } : {}),
       benchmarkProxy: deriveBenchmarkProxy(model),
     };

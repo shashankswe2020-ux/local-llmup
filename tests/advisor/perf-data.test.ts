@@ -304,6 +304,20 @@ describe("loadPerf — bundled dataset", () => {
       expect(cls.sources.efficiency.trim().length).toBeGreaterThan(0);
     }
   });
+
+  it("seeds a cited llamacpp scalar per class that matches shared efficiency (B15/D2)", () => {
+    for (const cls of loadPerf().classes) {
+      const byBackend = cls.efficiencyByBackend;
+      expect(byBackend?.llamacpp).toBeDefined();
+      expect(byBackend?.llamacpp).toBeCloseTo(cls.efficiency, 10);
+
+      const provenance = cls.sources.efficiencyByBackend?.llamacpp;
+      expect(provenance).toBeDefined();
+      expect(provenance?.value).toBeCloseTo(cls.efficiency, 10);
+      expect(provenance?.basisBytesPerToken).toBeGreaterThan(0);
+      expect(provenance?.url.startsWith("https://")).toBe(true);
+    }
+  });
 });
 
 describe("parsePerf — efficiencyByBackend (B9)", () => {
