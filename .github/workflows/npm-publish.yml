@@ -3,7 +3,6 @@ name: Publish to npm
 on:
   release:
     types: [published]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,17 +14,28 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
         with:
           node-version: 22.x
           cache: npm
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
+
+      - name: Enforce dependency policy
+        run: npm run tui:dependency-policy
+
+      - name: Production audit
+        run: npm audit --omit=dev --audit-level=low
+
+      - name: Generate production SBOM
+        run: npm sbom --omit=dev --sbom-format=cyclonedx > tui-production-sbom-check.json
 
       - name: Type check
         run: npm run typecheck
@@ -39,7 +49,26 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Publish to npm
-        run: npm publish --access public
+      - name: Enforce package budgets
+        run: npm run tui:package-budget
+
+      - name: Download verified GitHub Release artifacts
+        id: artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$GITHUB_REF_NAME" --pattern "local-llmup-*.tgz" --pattern "tui-production-sbom.json"
+          PACKAGE_FILE=$(node -e 'const fs=require("node:fs"); const files=fs.readdirSync(".").filter(f=>/^local-llmup-.*\.tgz$/.test(f)); if(files.length!==1) throw new Error(`expected one package, found ${files.length}`); process.stdout.write(files[0])')
+          node -e 'JSON.parse(require("node:fs").readFileSync("tui-production-sbom.json","utf8"))'
+          echo "package_file=$PACKAGE_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Verify exact release artifact
+        run: npm publish "${{ steps.artifact.outputs.package_file }}" --dry-run --ignore-scripts --json > artifact.json
+
+      - name: Verify release identity
+        run: npm run verify:release-identity -- "$GITHUB_REF_NAME" artifact.json
+
+      - name: Publish verified tarball to npm
+        run: npm publish "${{ steps.artifact.outputs.package_file }}" --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

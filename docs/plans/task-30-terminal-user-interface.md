@@ -2,7 +2,7 @@
 
 > Source spec: [docs/specs/terminal-user-interface.md](../specs/terminal-user-interface.md)
 > Related: [docs/specs/local-llmup.md](../specs/local-llmup.md), [docs/plans/task-plan-local-llmup.md](./task-plan-local-llmup.md)
-> Status: **Draft — planning complete, awaiting human approval for dependencies and spec decisions**
+> Status: **Draft — U0b implemented locally; required CI matrix pending; U1 awaits remaining spec decisions**
 > Last updated: 2026-08-08
 
 ## Overview
@@ -39,11 +39,11 @@ The plan enforces these non-negotiables from the spec:
 
 ## Human Approval Gates (must resolve before implementation)
 
-1. Approve runtime dependencies in spec §6.4 (Ink/React/string-width + lockfile policy).
-2. Approve global flags in spec §3.1 (`--tui`, `--no-tui`, `--accessible`, `--no-color`).
-3. Approve command-scoped `--yes` behavior scope (`down`, `migrate --move`).
-4. Approve interactive stdout summary change for TUI chat session end (§5.6).
-5. Approve performance/package gates in §9 as release blockers.
+1. [x] Runtime dependencies in spec §6.4 (Ink/React/string-width + lockfile policy).
+2. [ ] Global flags in spec §3.1 (`--tui`, `--no-tui`, `--accessible`, `--no-color`).
+3. [ ] Command-scoped `--yes` behavior scope (`down`, `migrate --move`).
+4. [ ] Interactive stdout summary change for TUI chat session end (§5.6).
+5. [x] Performance/package gates in §9 as release blockers.
 
 ## Dependency Graph
 
@@ -99,16 +99,38 @@ Focused verification: 12 files / 192 tests passed. Full verification: 61 files /
 
 ---
 
-#### Task U0b: Renderer/dependency spike and enforcement
+#### Task U0b: Renderer/dependency spike and enforcement — IMPLEMENTED (CI matrix pending)
 
 **Description:** Validate Ink runtime viability on Node 18/20/22/24 and establish CI
 policy gates for dependency provenance, native/script checks, and package budgets.
 
 **Acceptance criteria:**
 
-- [ ] Spike validates renderer boot/teardown with injected streams and cleanup.
-- [ ] CI gate fails on disallowed runtime dependency graph changes.
-- [ ] Pack/install size checks are automated with hard thresholds from spec §9.
+- [x] Spike validates renderer boot/teardown with injected streams, input/raw-mode cleanup, `patchConsole:false`, manual Ctrl+C ownership, idempotent unmount, and Ink instance cleanup.
+- [x] CI gate fails on exact-version drift, missing provenance, unapproved license/engine, lifecycle scripts, native/WASM artifacts, optional React DevTools, production audit findings, or SBOM failure.
+- [x] Pack/install/cold-start/module-load checks are automated with hard thresholds from spec §9.
+
+**Evidence:** exact pins `ink@5.2.1`, `react@18.3.1`,
+`string-width@7.2.0`, and dev `@types/react@18.3.12`; production audit 0;
+renderer closure with no install scripts/native artifacts and no
+`react-devtools-core`. Yoga 3.2.1's embedded WASM loader is the sole exception,
+SHA-256 pinned to `2cfeda49ae87f57bcd4a5fe433940edefc531a69bd0f83e32759fb5837df205c`.
+Local same-platform gates measured +1,398 packed bytes (limit 250 KiB),
++8,525,090 production-install bytes (limit 15 MiB), plain cold-start median/p90
+83.0/84.9 ms versus pre-TUI 83.0/87.9 ms, and renderer module-load p90 108.3 ms
+(limit 150 ms). `.github/workflows/tui-compatibility.yml` is configured for Node
+18/20/22/24 on macOS/Linux/Windows and package budgets on all three OSes.
+U0b becomes DONE only after that required matrix passes.
+Full local verification: 64 files / 1,090 tests, build, typecheck, lint, production
+audit, CycloneDX SBOM generation, dependency policy, package/runtime budgets, and
+script-free pack dry-run passed.
+
+**Authoritative sources:**
+
+- Ink v5.2.1 API: https://github.com/vadimdemedes/ink/tree/v5.2.1
+- npm registry metadata: https://registry.npmjs.org/ink/5.2.1
+- React 18.3.1 metadata: https://registry.npmjs.org/react/18.3.1
+- string-width 7.2.0 metadata: https://registry.npmjs.org/string-width/7.2.0
 
 **Verification command:**
 
@@ -129,9 +151,9 @@ policy gates for dependency provenance, native/script checks, and package budget
 
 **Done criteria:**
 
-- [ ] Noninteractive contracts frozen and green.
-- [ ] Dependency/runtime policy gates active.
-- [ ] No renderer import on plain/JSON/ineligible paths.
+- [x] Noninteractive contracts frozen and green.
+- [ ] Dependency/runtime policy gates pass the required cross-platform CI matrix.
+- [x] No renderer import on plain/JSON/ineligible paths.
 
 ---
 

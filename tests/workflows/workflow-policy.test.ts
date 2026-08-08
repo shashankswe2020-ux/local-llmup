@@ -36,6 +36,16 @@ function parseTopLevelPermissions(yaml: string): Record<string, string> {
   return permissions;
 }
 
+function extractJob(yaml: string, jobName: string): string {
+  const escaped = jobName.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+  const match = new RegExp(
+    `(?:^|\\n)  ${escaped}:\\n([\\s\\S]*?)(?=\\n  [a-zA-Z0-9_-]+:\\n|$)`,
+    "u",
+  ).exec(yaml);
+  if (match?.[1] === undefined) throw new Error(`workflow job ${jobName} not found`);
+  return match[1];
+}
+
 describe("T30 coverage gate", () => {
   it("keeps coverage thresholds at agreed policy levels", () => {
     const thresholds = vitestConfig.test?.coverage?.thresholds;
@@ -74,6 +84,63 @@ describe("T30 workflow hardening", () => {
     const ci = readWorkflow("ci.yml");
     const permissions = parseTopLevelPermissions(ci);
     expect(permissions).toEqual({ contents: "read" });
+  });
+
+  it("enforces the U0b renderer matrix and dependency/package/runtime gates", () => {
+    const tui = readWorkflow("tui-compatibility.yml");
+    const permissions = parseTopLevelPermissions(tui);
+    expect(permissions).toEqual({ contents: "read" });
+
+    const refs = extractUsesRefs(tui);
+    expect(refs.length).toBeGreaterThan(0);
+    for (const ref of refs) expect(ref).toMatch(/@[0-9a-f]{40}$/u);
+
+    const runtimeJob = extractJob(tui, "runtime-proof");
+    const packageJob = extractJob(tui, "package-budget");
+    for (const os of ["macos-latest", "ubuntu-latest", "windows-latest"]) {
+      expect(runtimeJob).toContain(os);
+      expect(packageJob).toContain(os);
+    }
+    for (const version of ["18.x", "20.x", "22.x", "24.x"]) {
+      expect(runtimeJob).toContain(version);
+    }
+    expect(runtimeJob).toContain("fetch-depth: 0");
+    expect(runtimeJob).toContain("npm ci --ignore-scripts");
+    expect(runtimeJob).toContain("npm run tui:dependency-policy");
+    expect(runtimeJob).toContain("npm sbom --omit=dev --sbom-format=cyclonedx");
+    expect(runtimeJob).toContain("npm run test:tui-proof");
+    expect(runtimeJob).toContain("npm run tui:runtime-budget");
+    expect(packageJob).toContain("fetch-depth: 0");
+    expect(packageJob).toContain("npm run tui:package-budget");
+    expect(packageJob).toContain("npm audit --omit=dev --audit-level=low");
+  });
+
+  it("protects publish and release paths with pinned actions and verified artifacts", () => {
+    for (const fileName of ["npm-publish.yml", "release.yml"]) {
+      const workflow = readWorkflow(fileName);
+      for (const ref of extractUsesRefs(workflow)) expect(ref).toMatch(/@[0-9a-f]{40}$/u);
+      expect(workflow).toContain("npm ci --ignore-scripts");
+      expect(workflow).toContain("npm run tui:dependency-policy");
+      expect(workflow).toContain("npm audit --omit=dev --audit-level=low");
+      expect(workflow).toContain("npm sbom --omit=dev --sbom-format=cyclonedx");
+      expect(workflow).toContain("npm run tui:package-budget");
+      expect(workflow).toContain("--dry-run --ignore-scripts --json");
+      expect(workflow).toMatch(
+        /npm run verify:release-identity -- "\$GITHUB_REF_NAME" (?:pack|artifact)\.json/u,
+      );
+    }
+
+    const publish = readWorkflow("npm-publish.yml");
+    expect(publish).not.toContain("workflow_dispatch:");
+    expect(publish).toContain('gh release download "$GITHUB_REF_NAME"');
+    expect(publish).not.toContain("npm pack --ignore-scripts");
+    expect(publish).toContain(
+      'npm publish "${{ steps.artifact.outputs.package_file }}" --access public --ignore-scripts',
+    );
+    const release = readWorkflow("release.yml");
+    expect(release).toContain("npm pack --ignore-scripts");
+    expect(release).toContain("softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65");
+    expect(release).toContain("tui-production-sbom.json");
   });
 
   it("pins every CI action by full commit SHA", () => {

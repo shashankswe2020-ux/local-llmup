@@ -15,16 +15,27 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
         with:
           node-version: 22.x
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
+
+      - name: Enforce dependency policy
+        run: npm run tui:dependency-policy
+
+      - name: Production audit
+        run: npm audit --omit=dev --audit-level=low
+
+      - name: Generate production SBOM
+        run: npm sbom --omit=dev --sbom-format=cyclonedx > tui-production-sbom.json
 
       - name: Type check
         run: npm run typecheck
@@ -37,6 +48,22 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Enforce package budgets
+        run: npm run tui:package-budget
+
+      - name: Pack verified artifact
+        id: pack
+        run: |
+          npm pack --ignore-scripts --json > pack.json
+          PACKAGE_FILE=$(node -e 'const [p]=require("./pack.json"); process.stdout.write(p.filename)')
+          echo "package_file=$PACKAGE_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Verify exact packed artifact
+        run: npm publish "${{ steps.pack.outputs.package_file }}" --dry-run --ignore-scripts --json
+
+      - name: Verify release identity
+        run: npm run verify:release-identity -- "$GITHUB_REF_NAME" pack.json
 
       - name: Extract release notes from CHANGELOG
         id: changelog
@@ -58,7 +85,7 @@ jobs:
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
           body: |
             ${{ steps.changelog.outputs.notes }}
@@ -69,3 +96,7 @@ jobs:
 
             Install: `npm install -g local-llmup` or use `npx local-llmup`
           generate_release_notes: false
+          files: |
+            ${{ steps.pack.outputs.package_file }}
+            tui-production-sbom.json
+          fail_on_unmatched_files: true
