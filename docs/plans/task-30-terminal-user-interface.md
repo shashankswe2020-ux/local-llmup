@@ -2,7 +2,7 @@
 
 > Source spec: [docs/specs/terminal-user-interface.md](../specs/terminal-user-interface.md)
 > Related: [docs/specs/local-llmup.md](../specs/local-llmup.md), [docs/plans/task-plan-local-llmup.md](./task-plan-local-llmup.md)
-> Status: **Draft — U0b implemented locally; required CI matrix pending; U1 awaits remaining spec decisions**
+> Status: **Draft — U1a selector complete; U0b CI matrix pending; later U1 decisions remain**
 > Last updated: 2026-08-08
 
 ## Overview
@@ -40,7 +40,7 @@ The plan enforces these non-negotiables from the spec:
 ## Human Approval Gates (must resolve before implementation)
 
 1. [x] Runtime dependencies in spec §6.4 (Ink/React/string-width + lockfile policy).
-2. [ ] Global flags in spec §3.1 (`--tui`, `--no-tui`, `--accessible`, `--no-color`).
+2. [x] Global flag contract in spec §3.1 (`--tui`, `--no-tui`, `--accessible`, `--no-color`). CLI registration waits for a functional driver so eligible invocations never select an unimplemented mode.
 3. [ ] Command-scoped `--yes` behavior scope (`down`, `migrate --move`).
 4. [ ] Interactive stdout summary change for TUI chat session end (§5.6).
 5. [x] Performance/package gates in §9 as release blockers.
@@ -159,16 +159,26 @@ script-free pack dry-run passed.
 
 ### Phase U1 — Foundation + Read-Only Commands
 
-#### Task U1a: Mode selection engine and fail-closed reason codes
+#### Task U1a: Mode selection engine and fail-closed reason codes ✅ DONE (2026-08-08)
 
 **Description:** Implement mode resolution for `plain|json|tui|accessible` including
 full precedence matrix and explicit ineligibility reason enum.
 
 **Acceptance criteria:**
 
-- [ ] Every row in spec normative mode table is test-covered.
-- [ ] `--tui` incompatibility fails pre-domain with stable reason code.
-- [ ] `--accessible` uses independent predicate (>=40x10, TTY, non-CI/non-dumb).
+- [x] Every row in spec normative mode table is test-covered, including all eight TTY combinations.
+- [x] Explicit interactive incompatibility throws a typed pre-domain `UiModeValidationError` with a stable reason code; auto mode returns silent plain fallback with the same reason.
+- [x] `--accessible` uses its independent predicate (>=40x10, all TTY, non-CI/non-dumb), forces ASCII/no-color, and never enables visual mode by implication.
+
+**Evidence:** `src/tui/capabilities.ts` provides a pure validated selector and one
+conservative process capability snapshot. `tests/tui/capabilities.test.ts` covers
+the normative table, conflict precedence, all stable reasons, visual/accessibility
+thresholds, fixed telemetry CI allowlist, `NO_COLOR`, `FORCE_COLOR` non-eligibility,
+atomic environment capture, hostile/disguised `TERM` rejection, interactive-only
+style policy, safe missing-capability defaults, and typed errors. Focused verification: 39 tests,
+typecheck, and lint passed. Full verification: 65 files / 1,129 tests, build,
+typecheck, lint, and script-free pack dry-run passed. The module is not imported by `src/cli.ts`; U0a output
+and lazy-import contracts remain unchanged until U1c/U1d supply a functional driver.
 
 **Verification command:**
 
