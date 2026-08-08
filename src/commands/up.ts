@@ -43,6 +43,11 @@ import type {
   HardwareProfile,
   Quantization,
 } from "../types.js";
+import {
+  assertConfirmationUnchanged,
+  captureLiveProcessIdentity,
+  createRuntimeConfirmationSnapshot,
+} from "../tui/snapshots.js";
 
 /** Inputs for `up`. Servers always bind loopback in v1, so there is no host. */
 export interface UpOptions {
@@ -64,6 +69,7 @@ export interface UpDeps {
   readonly readState: (config: Config) => RuntimeState;
   readonly writeState: (config: Config, state: RuntimeState) => void;
   readonly withLock: <T>(config: Config, fn: () => T | Promise<T>) => Promise<T>;
+  readonly captureLiveProcessIdentity: typeof captureLiveProcessIdentity;
   /** Command result data → stdout. */
   readonly write: (text: string) => void;
   /** Progress and diagnostics → stderr. */
@@ -83,6 +89,7 @@ const createDefaultDeps = (): UpDeps => {
     readState,
     writeState,
     withLock,
+    captureLiveProcessIdentity,
     write: (text) => process.stdout.write(text),
     log: (text) => process.stderr.write(text),
   };
@@ -216,6 +223,18 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
   if (adapter.capabilities.canPull && quant.diskBytes > hardware.freeDiskBytes) {
     throw new ValidationError(insufficientDiskMessage(model, quant, hardware.freeDiskBytes));
   }
+  const preparedState = deps.readState(deps.config);
+  const preparedProcessIdentity =
+    preparedState.active === null
+      ? null
+      : await deps.captureLiveProcessIdentity(preparedState.active);
+  const approvedSnapshot = createRuntimeConfirmationSnapshot({
+    operation: "replace_server",
+    canonicalTargetIds:
+      preparedState.active === null ? [model.id] : [preparedState.active.modelId, model.id],
+    state: preparedState,
+    processIdentityHash: preparedProcessIdentity?.hash ?? null,
+  });
 
   // 4. Pull and verify the weights. Source resolution is format-aware: daemon
   // runtimes (Ollama) pull by model id through their own store; self-managed
@@ -338,20 +357,33 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
   let endpoint = "";
   await deps.withLock(deps.config, async () => {
     const modelPath = pullResult.modelPath;
-    const prior = deps.readState(deps.config).active;
+    const lockedState = deps.readState(deps.config);
+    const prior = lockedState.active;
+    const lockedProcessIdentity =
+      prior === null ? null : await deps.captureLiveProcessIdentity(prior);
+    const currentSnapshot = createRuntimeConfirmationSnapshot({
+      operation: "replace_server",
+      canonicalTargetIds: prior === null ? [model.id] : [prior.modelId, model.id],
+      state: lockedState,
+      processIdentityHash: lockedProcessIdentity?.hash ?? null,
+    });
+    assertConfirmationUnchanged(
+      approvedSnapshot,
+      currentSnapshot,
+      "the active server changed during up; retry the command.",
+    );
     if (prior !== null && prior.ownedByUs) {
+      if (lockedProcessIdentity === null) {
+        throw new ValidationError("prior owned runtime process identity is unavailable");
+      }
       const priorAdapter = deps.registry.get(prior.backend);
       await priorAdapter.stop({
         endpoint: prior.endpoint,
         pid: prior.pid,
         port: prior.port,
         ownedByUs: true,
-        ...(prior.processExecutable !== undefined
-          ? { processExecutable: prior.processExecutable }
-          : {}),
-        ...(prior.processStartedAt !== undefined
-          ? { processStartedAt: prior.processStartedAt }
-          : {}),
+        processExecutable: lockedProcessIdentity.expectedProcess.executable,
+        processStartedAt: lockedProcessIdentity.expectedProcess.started,
       });
       // Do not retain a stale owned PID if replacement startup fails.
       deps.writeState(deps.config, { schemaVersion: STATE_SCHEMA_VERSION, active: null });
@@ -385,6 +417,16 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
         ...(handle.modelPath !== undefined ? { expectedModelPath: handle.modelPath } : {}),
       });
       const backend = adapter.name;
+      if (
+        !handle.ownedByUs &&
+        (handle.pid <= 0 ||
+          handle.processExecutable === undefined ||
+          handle.processStartedAt === undefined)
+      ) {
+        throw new BackendError(
+          `refusing to persist ${adapter.name} attachment without complete process identity`,
+        );
+      }
       const active: ServerState = handle.ownedByUs
         ? {
             backend,
@@ -405,15 +447,11 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
             backend,
             modelId: model.id,
             endpoint: handle.endpoint,
+            pid: handle.pid,
             port: handle.port,
             ownedByUs: false,
-            ...(backend === "lmstudio" && handle.pid > 0 ? { pid: handle.pid } : {}),
-            ...(handle.processExecutable !== undefined
-              ? { processExecutable: handle.processExecutable }
-              : {}),
-            ...(handle.processStartedAt !== undefined
-              ? { processStartedAt: handle.processStartedAt }
-              : {}),
+            processExecutable: handle.processExecutable,
+            processStartedAt: handle.processStartedAt,
             ...(handle.modelPath !== undefined ? { modelPath: handle.modelPath } : {}),
           };
       deps.writeState(deps.config, { schemaVersion: STATE_SCHEMA_VERSION, active });

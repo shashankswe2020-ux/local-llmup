@@ -920,6 +920,18 @@ function defaultTrustedExecutables(
   return ["/usr/bin/llmster", "/usr/local/bin/llmster", "/opt/lm-studio/bin/llmster"];
 }
 
+/** Whether a canonical executable belongs to a default trusted LM Studio installation. */
+export function isDefaultTrustedLmStudioExecutable(
+  executable: string,
+  platform: NodeJS.Platform = process.platform,
+  env: NodeJS.ProcessEnv = process.env,
+): boolean {
+  const trusted = new Set(
+    defaultTrustedExecutables(platform, env).map((path) => executableKey(path, platform)),
+  );
+  return trusted.has(executableKey(executable, platform));
+}
+
 function executableKey(path: string, platform: NodeJS.Platform): string {
   return platform === "win32" ? path.replace(/\//g, "\\").toLowerCase() : path;
 }

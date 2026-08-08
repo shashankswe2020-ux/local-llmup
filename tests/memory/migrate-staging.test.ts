@@ -5,8 +5,10 @@ import {
   mkdtempSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -36,6 +38,7 @@ function makePlan(overrides: Partial<MigrationPlan> = {}): MigrationPlan {
     ],
     systemPrompt: "You are helpful.",
     factsText: `{"schemaVersion":1,"facts":[{"text":"name = Ada","ts":"t"}]}`,
+    factsPresent: true,
     embedding: {
       meta: { model: "nomic-embed-text", dimension: 2 },
       chunks: [
@@ -146,6 +149,36 @@ describe("writeMigration", () => {
     expect(existsSync(sourceDir)).toBe(false);
     expect(existsSync(join(targetDir, "conversation.jsonl"))).toBe(true);
   });
+
+  it.skipIf(process.platform === "win32")(
+    "refuses to delete through a substituted memory root after verification",
+    () => {
+      seedStore(sourceDir, "approved-source");
+      const approvedRoot = `${config.memoryDir}.approved`;
+      const outsideRoot = join(home, "outside-memory");
+      const outsideSource = join(outsideRoot, "source-model");
+      seedStore(outsideSource, "outside-victim");
+
+      expect(() =>
+        writeMigration(
+          config,
+          { sourceDir, targetDir, targetModelId: "m", plan: makePlan() },
+          {
+            move: true,
+            now,
+            verify: (dir, plan) => {
+              verifyMigration(dir, plan);
+              renameSync(config.memoryDir, approvedRoot);
+              symlinkSync(outsideRoot, config.memoryDir);
+            },
+          },
+        ),
+      ).toThrow(MemoryError);
+
+      expect(existsSync(join(approvedRoot, "source-model"))).toBe(true);
+      expect(existsSync(outsideSource)).toBe(true);
+    },
+  );
 
   it("preserves the source when the target write fails (--move)", () => {
     seedStore(sourceDir, "source");

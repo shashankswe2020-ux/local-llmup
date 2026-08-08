@@ -329,16 +329,34 @@ Independent security review: GO.
 
 ### Phase U2 — Lifecycle Commands and Safety Hardening
 
-#### Task U2a: Confirmation snapshots + locked revalidation framework
+#### Task U2a: Confirmation snapshots + locked revalidation framework ✅ DONE (2026-08-09)
 
 **Description:** Implement snapshot object hashing and lock-time revalidation
 framework for destructive/replaceable operations.
 
 **Acceptance criteria:**
 
-- [ ] Snapshot hashes are RFC-8785 canonical JSON SHA-256 lowercase hex.
-- [ ] Drift after confirm fails closed and returns to fresh review.
-- [ ] `--yes` never bypasses drift protection.
+- [x] Snapshot hashes are RFC-8785 canonical JSON SHA-256 lowercase hex.
+- [x] Drift after confirm fails closed and returns to fresh review.
+- [x] `--yes` never bypasses drift protection.
+
+**Evidence:** `src/tui/snapshots.ts` implements bounded RFC-8785 canonicalization,
+strict operation-aware confirmation snapshots, exact runtime/process/store
+identities, and typed lock-time drift. `up`, `switch`, `down`, `chat`, and
+`migrate` capture live listener identity and fail closed on state, process, or
+store substitution; backend inference and destructive signals revalidate exact
+PID/executable/start identity. Logical memory reads are byte-bounded, fatal UTF-8,
+no-follow, root-contained, and descriptor/file/root identity checked. Because
+Node.js exposes no descriptor-relative read/rename/unlink primitives, production
+`migrate` currently rejects every mode before store access; internal migration
+algorithms remain regression-tested through injected dependencies. Final
+verification: 79 files / 1,346 tests, build, typecheck, lint, script-free pack
+dry-run, and `git diff --check` passed. Real production llama.cpp smoke used the
+verified 639,446,688-byte Qwen3 artifact, exact expected-process chat, safe
+attachment, unsupported-embedding rejection, command-level live identity,
+state preservation, and ownership-safe cleanup on `127.0.0.1:18080`.
+Independent code review: SHIP (checkpoint 44). Independent security review: GO
+(audit 32).
 
 **Verification command:**
 

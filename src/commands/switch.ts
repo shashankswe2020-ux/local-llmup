@@ -25,6 +25,11 @@ import {
   type RuntimeState,
 } from "../state/state.js";
 import type { Catalog } from "../types.js";
+import {
+  assertConfirmationUnchanged,
+  captureLiveProcessIdentity,
+  createRuntimeConfirmationSnapshot,
+} from "../tui/snapshots.js";
 
 /** Inputs for `switch`. */
 export interface SwitchOptions {
@@ -38,6 +43,7 @@ export interface SwitchDeps {
   readonly readState: (config: Config) => RuntimeState;
   readonly writeState: (config: Config, state: RuntimeState) => void;
   readonly withLock: <T>(config: Config, fn: () => T | Promise<T>) => Promise<T>;
+  readonly captureLiveProcessIdentity: typeof captureLiveProcessIdentity;
   readonly registry: BackendRegistry;
   /** Command result data → stdout. */
   readonly write: (text: string) => void;
@@ -51,6 +57,7 @@ const createDefaultDeps = (): SwitchDeps => ({
   readState,
   writeState,
   withLock,
+  captureLiveProcessIdentity,
   registry: createDefaultRegistry(),
   write: (text) => process.stdout.write(text),
   log: (text) => process.stderr.write(text),
@@ -63,7 +70,8 @@ export async function runSwitch(
 ): Promise<void> {
   const resolved = resolveModel(deps.loadCatalog(), options.model);
   const target = resolved.model;
-  const current = deps.readState(deps.config).active;
+  const preparedState = deps.readState(deps.config);
+  const current = preparedState.active;
   if (current === null) {
     throw new ValidationError("no active server to switch. Run `local-llmup up <model>` first.");
   }
@@ -71,6 +79,13 @@ export async function runSwitch(
     deps.write(`${stripControl(target.id)} is already active.\n`);
     return;
   }
+  const preparedProcessIdentity = await deps.captureLiveProcessIdentity(current);
+  const approvedSnapshot = createRuntimeConfirmationSnapshot({
+    operation: "replace_server",
+    canonicalTargetIds: [current.modelId, target.id],
+    state: preparedState,
+    processIdentityHash: preparedProcessIdentity.hash,
+  });
 
   // Prepare the target on the running daemon. Both steps run before the lock, so
   // a failure here never rewrites state — the prior active model is preserved.
@@ -108,19 +123,25 @@ export async function runSwitch(
   await adapter.waitUntilReady({ endpoint: current.endpoint });
 
   // Commit the pointer move under the lock, inheriting the live daemon handle.
-  const endpoint = await deps.withLock(deps.config, () => {
-    const active = deps.readState(deps.config).active;
+  const endpoint = await deps.withLock(deps.config, async () => {
+    const lockedState = deps.readState(deps.config);
+    const active = lockedState.active;
+    const lockedProcessIdentity =
+      active === null ? null : await deps.captureLiveProcessIdentity(active);
+    const currentSnapshot = createRuntimeConfirmationSnapshot({
+      operation: "replace_server",
+      canonicalTargetIds:
+        active === null ? [target.id] : [active.modelId, target.id],
+      state: lockedState,
+      processIdentityHash: lockedProcessIdentity?.hash ?? null,
+    });
+    assertConfirmationUnchanged(
+      approvedSnapshot,
+      currentSnapshot,
+      "the active server changed during switch; retry the command.",
+    );
     if (active === null) {
       throw new ValidationError("the active server stopped during switch; run `up` again.");
-    }
-    const sameServer =
-      active.backend === current.backend &&
-      active.endpoint === current.endpoint &&
-      active.port === current.port &&
-      active.ownedByUs === current.ownedByUs &&
-      (!active.ownedByUs || !current.ownedByUs || active.pid === current.pid);
-    if (!sameServer) {
-      throw new ValidationError("the active server changed during switch; retry the command.");
     }
     // A concurrent switch may have already made the target active; treat that as
     // done rather than rewriting identical state.

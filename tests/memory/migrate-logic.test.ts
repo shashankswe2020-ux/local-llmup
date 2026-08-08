@@ -42,6 +42,7 @@ function baseSource(overrides: Partial<SourceMemory> = {}): SourceMemory {
     turns: TURNS,
     systemPrompt: SYSTEM,
     factsText: FACTS,
+    factsPresent: true,
     embedding: undefined,
     ...overrides,
   };

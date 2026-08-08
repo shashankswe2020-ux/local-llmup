@@ -23,6 +23,10 @@ import { select } from "../backend/select.js";
 import { captureExchange, type CaptureEmbedder, type CaptureResult } from "../memory/capture.js";
 import { openMemoryStore, type MemoryStore } from "../memory/store.js";
 import { readState, withLock, type RuntimeState } from "../state/state.js";
+import {
+  captureLiveProcessIdentity,
+  type LiveProcessIdentity,
+} from "../tui/snapshots.js";
 import type { Catalog } from "../types.js";
 
 /**
@@ -70,6 +74,9 @@ export interface ChatDeps {
   readonly write: (text: string) => void;
   /** Prompts and diagnostics → stderr. */
   readonly log: (text: string) => void;
+  readonly captureLiveProcessIdentity: (
+    active: NonNullable<RuntimeState["active"]>,
+  ) => Promise<LiveProcessIdentity>;
   readonly now?: (() => Date) | undefined;
   readonly embedder?: CaptureEmbedder | undefined;
 }
@@ -123,6 +130,7 @@ const createDefaultDeps = (): ChatDeps => ({
   readTurn: createStdinReader(),
   write: (text) => process.stdout.write(text),
   log: (text) => process.stderr.write(text),
+  captureLiveProcessIdentity,
 });
 
 /**
@@ -138,6 +146,7 @@ export async function runChat(
   if (active === null) {
     throw new ValidationError("no active server. Run `local-llmup up <model>` first.");
   }
+  const liveProcessIdentity = await deps.captureLiveProcessIdentity(active);
 
   const resolved = resolveModel(deps.loadCatalog(), options.model ?? active.modelId);
   const modelId = resolved.model.id;
@@ -199,17 +208,7 @@ export async function runChat(
         ? { authToken: active.authToken }
         : {}),
       ...(active.modelPath !== undefined ? { expectedModelPath: active.modelPath } : {}),
-      ...(active.pid !== undefined &&
-      active.processExecutable !== undefined &&
-      active.processStartedAt !== undefined
-        ? {
-            expectedProcess: {
-              pid: active.pid,
-              executable: active.processExecutable,
-              started: active.processStartedAt,
-            },
-          }
-        : {}),
+      expectedProcess: liveProcessIdentity.expectedProcess,
     });
     const reply = result.content;
 

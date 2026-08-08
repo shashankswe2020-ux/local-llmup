@@ -18,7 +18,7 @@
  */
 import { loadCatalog } from "../catalog/load.js";
 import { loadConfig, type Config } from "../config.js";
-import { ValidationError } from "../errors.js";
+import { MemoryError, ValidationError } from "../errors.js";
 import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
 import type { BackendAdapter, ChatMessage, ExpectedProcessIdentity } from "../backend/adapter.js";
@@ -37,6 +37,14 @@ import {
 import { memoryStoreDir } from "../memory/store.js";
 import { readState, withLock, type RuntimeState } from "../state/state.js";
 import type { Catalog } from "../types.js";
+import {
+  assertConfirmationUnchanged,
+  captureLiveProcessIdentity,
+  captureMemoryStoreIdentity,
+  createRuntimeConfirmationSnapshot,
+  type ConfirmationSnapshot,
+  type MemoryStoreIdentity,
+} from "../tui/snapshots.js";
 
 /** Inputs for `migrate`. */
 export interface MigrateOptions {
@@ -57,6 +65,10 @@ export interface MigrateDeps {
   readonly loadSourceMemory: typeof loadSourceMemory;
   readonly planMigration: typeof planMigration;
   readonly writeMigration: typeof writeMigration;
+  readonly captureMemoryStoreIdentity: typeof captureMemoryStoreIdentity;
+  readonly captureLiveProcessIdentity: typeof captureLiveProcessIdentity;
+  /** True only when the host exposes descriptor-relative read and mutation primitives. */
+  readonly supportsSecureFilesystem: boolean;
   readonly withLock: <T>(config: Config, fn: () => T | Promise<T>) => Promise<T>;
   /** Command result data (the run summary) → stdout. */
   readonly write: (text: string) => void;
@@ -77,10 +89,39 @@ const createDefaultDeps = (): MigrateDeps => ({
   loadSourceMemory,
   planMigration,
   writeMigration,
+  captureMemoryStoreIdentity,
+  captureLiveProcessIdentity,
+  supportsSecureFilesystem: false,
   withLock,
   write: (text) => process.stdout.write(text),
   log: (text) => process.stderr.write(text),
 });
+
+function requirePresentStore(identity: MemoryStoreIdentity, modelId: string) {
+  if (identity.status !== "present") {
+    throw new ValidationError(`source memory store is absent: ${modelId}`);
+  }
+  return identity;
+}
+
+function migrationSnapshot(options: {
+  readonly move: boolean;
+  readonly fromId: string;
+  readonly toId: string;
+  readonly state: RuntimeState;
+  readonly source: MemoryStoreIdentity;
+  readonly target: MemoryStoreIdentity;
+  readonly processIdentityHash: string | null;
+}): ConfirmationSnapshot {
+  return createRuntimeConfirmationSnapshot({
+    operation: options.move ? "migrate_move" : "migrate",
+    canonicalTargetIds: [options.fromId, options.toId],
+    state: options.state,
+    sourceStoreIdentityHash: options.source.hash,
+    targetStoreIdentityHash: options.target.hash,
+    processIdentityHash: options.processIdentityHash,
+  });
+}
 
 /**
  * Build a summarizer backed by `ollamaId`: overflow turns are folded into a
@@ -152,14 +193,69 @@ export async function runMigrate(
       `source and target resolve to the same memory store: ${stripControl(fromId)}`,
     );
   }
+  if (!deps.supportsSecureFilesystem) {
+    throw new MemoryError(
+      "migration is unavailable: this Node.js runtime cannot bind store reads and mutations to trusted directory descriptors",
+    );
+  }
 
-  const source = deps.loadSourceMemory(deps.config, fromId);
+  const preparedSource = requirePresentStore(
+    deps.captureMemoryStoreIdentity(deps.config, fromId),
+    fromId,
+  );
+  const preparedTarget = deps.captureMemoryStoreIdentity(deps.config, toId, {
+    allowAbsent: true,
+  });
+  const preparedState = deps.readState(deps.config);
+  const preparedProcessIdentity =
+    preparedState.active === null
+      ? null
+      : await deps.captureLiveProcessIdentity(preparedState.active);
+  const approvedSnapshot = migrationSnapshot({
+    move: options.move === true,
+    fromId,
+    toId,
+    state: preparedState,
+    source: preparedSource,
+    target: preparedTarget,
+    processIdentityHash: preparedProcessIdentity?.hash ?? null,
+  });
+
+  // Reopen both logical stores immediately before any approved model-assisted
+  // materialization. Drift returns to review in TUI controllers and fails
+  // closed in explicit noninteractive invocations.
+  const materializationSource = requirePresentStore(
+    deps.captureMemoryStoreIdentity(deps.config, fromId),
+    fromId,
+  );
+  const materializationTarget = deps.captureMemoryStoreIdentity(deps.config, toId, {
+    allowAbsent: true,
+  });
+  const materializationState = deps.readState(deps.config);
+  const materializationProcessIdentity =
+    materializationState.active === null
+      ? null
+      : await deps.captureLiveProcessIdentity(materializationState.active);
+  assertConfirmationUnchanged(
+    approvedSnapshot,
+    migrationSnapshot({
+      move: options.move === true,
+      fromId,
+      toId,
+      state: materializationState,
+      source: materializationSource,
+      target: materializationTarget,
+      processIdentityHash: materializationProcessIdentity?.hash ?? null,
+    }),
+    "migration source, target, or runtime changed before planning; retry the command.",
+  );
+  const source = materializationSource.source;
 
   // Summarize with the target model only when it is the running server; the
   // planner falls back to deterministic truncation when no summarizer is given.
   // The same active adapter also decides embedding: a backend that cannot embed
   // migrates vector-less rather than reusing or fabricating an index (§3.3).
-  const active = deps.readState(deps.config).active;
+  const active = materializationState.active;
   let summarizer = deps.summarizer;
   let embedder = deps.embedder;
   let embeddingUnsupported = false;
@@ -176,16 +272,7 @@ export async function runMigrate(
         ? toResolved.model.source.ollama
         : toId;
       if (backendModelId !== undefined) {
-        const expectedProcess =
-          active.pid !== undefined &&
-          active.processExecutable !== undefined &&
-          active.processStartedAt !== undefined
-            ? {
-                pid: active.pid,
-                executable: active.processExecutable,
-                started: active.processStartedAt,
-              }
-            : undefined;
+        const expectedProcess = materializationProcessIdentity?.expectedProcess;
         summarizer = buildSummarizer(
           adapter,
           backendModelId,
@@ -213,16 +300,41 @@ export async function runMigrate(
     return;
   }
 
-  await deps.withLock(deps.config, () =>
-    deps.writeMigration(
+  await deps.withLock(deps.config, async () => {
+    const lockedSource = requirePresentStore(
+      deps.captureMemoryStoreIdentity(deps.config, fromId),
+      fromId,
+    );
+    const lockedTarget = deps.captureMemoryStoreIdentity(deps.config, toId, {
+      allowAbsent: true,
+    });
+    const lockedState = deps.readState(deps.config);
+    const lockedProcessIdentity =
+      lockedState.active === null
+        ? null
+        : await deps.captureLiveProcessIdentity(lockedState.active);
+    assertConfirmationUnchanged(
+      approvedSnapshot,
+      migrationSnapshot({
+        move: options.move === true,
+        fromId,
+        toId,
+        state: lockedState,
+        source: lockedSource,
+        target: lockedTarget,
+        processIdentityHash: lockedProcessIdentity?.hash ?? null,
+      }),
+      "migration source, target, or runtime changed before commit; retry the command.",
+    );
+    return deps.writeMigration(
       deps.config,
       { sourceDir, targetDir, targetModelId: toId, plan },
       {
         ...(options.move === true ? { move: true } : {}),
         ...(deps.now !== undefined ? { now: deps.now } : {}),
       },
-    ),
-  );
+    );
+  });
 
   deps.write(formatSummary(fromId, toId, plan, { dryRun: false, move: options.move === true }));
 }

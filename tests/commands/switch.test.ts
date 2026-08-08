@@ -1,11 +1,15 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
 import { BackendError, ValidationError } from "../../src/errors.js";
 import { readState, STATE_SCHEMA_VERSION, withLock, writeState } from "../../src/state/state.js";
 import { runSwitch, type SwitchDeps } from "../../src/commands/switch.js";
+import {
+  captureLiveProcessIdentity,
+  ConfirmationDriftError,
+} from "../../src/tui/snapshots.js";
 import { createRegistry } from "../../src/backend/registry.js";
 import type {
   BackendAdapter,
@@ -125,6 +129,17 @@ function deps(adapter: FakeAdapter, cat: Catalog = CAT): SwitchDeps {
     readState,
     writeState,
     withLock,
+    captureLiveProcessIdentity: (active) =>
+      captureLiveProcessIdentity(active, {
+        isBackendExecutable: () => true,
+        probeListenerIdentity: async () => ({
+          pid: active.pid ?? 9999,
+          process: active.backend,
+          executable: active.processExecutable ?? `/fake/${active.backend}`,
+          started: active.processStartedAt ?? "test-start",
+          localAddress: "127.0.0.1",
+        }),
+      }),
     registry: createRegistry([adapter]),
     write: (t) => stdout.push(t),
     log: (t) => stderr.push(t),
@@ -316,5 +331,25 @@ describe("runSwitch", () => {
       /changed during switch/i,
     );
     expect(readState(config).active).toMatchObject({ endpoint: "http://127.0.0.1:12000" });
+  });
+
+  it("returns typed confirmation drift when the active server disappears", async () => {
+    seedActive("llama3.1:8b");
+    const adapter = fakeAdapter();
+    const d = deps(adapter);
+    const writeStateSpy = vi.fn(d.writeState);
+    const racing: SwitchDeps = {
+      ...d,
+      writeState: writeStateSpy,
+      withLock: async (_config, fn) => {
+        writeState(config, { schemaVersion: STATE_SCHEMA_VERSION, active: null });
+        return fn();
+      },
+    };
+
+    await expect(runSwitch({ model: "qwen2.5:7b" }, racing)).rejects.toBeInstanceOf(
+      ConfirmationDriftError,
+    );
+    expect(writeStateSpy).not.toHaveBeenCalled();
   });
 });

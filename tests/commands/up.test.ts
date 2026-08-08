@@ -6,6 +6,7 @@ import { loadConfig, type Config } from "../../src/config.js";
 import { BackendError, ModelResolutionError, ValidationError } from "../../src/errors.js";
 import { readState, STATE_SCHEMA_VERSION, withLock, writeState } from "../../src/state/state.js";
 import { runUp, type UpDeps } from "../../src/commands/up.js";
+import { captureLiveProcessIdentity } from "../../src/tui/snapshots.js";
 import { createRegistry } from "../../src/backend/registry.js";
 import type {
   BackendAdapter,
@@ -260,6 +261,17 @@ function deps(adapter: FakeAdapter, cat: Catalog, hw: HardwareProfile = hardware
     },
     readState,
     withLock,
+    captureLiveProcessIdentity: (active) =>
+      captureLiveProcessIdentity(active, {
+        isBackendExecutable: () => true,
+        probeListenerIdentity: async () => ({
+          pid: active.pid ?? 9999,
+          process: active.backend,
+          executable: active.processExecutable ?? `/fake/${active.backend}`,
+          started: active.processStartedAt ?? "test-start",
+          localAddress: "127.0.0.1",
+        }),
+      }),
     write: (t) => stdout.push(t),
     log: (t) => stderr.push(t),
   };
@@ -696,13 +708,15 @@ describe("runUp", () => {
     expect(readState(config).active).toBeNull();
   });
 
-  it("persists an attached daemon without a pid field", async () => {
+  it("persists complete process identity for an attached daemon", async () => {
     const adapter = fakeAdapter({
       handle: {
         endpoint: "http://127.0.0.1:11434",
         pid: 4242,
         port: 11434,
         ownedByUs: false,
+        processExecutable: "/fake/ollama",
+        processStartedAt: "test-start",
       },
     });
     const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
@@ -713,8 +727,11 @@ describe("runUp", () => {
       backend: "ollama",
       modelId: "llama3.1:8b",
       endpoint: "http://127.0.0.1:11434",
+      pid: 4242,
       port: 11434,
       ownedByUs: false,
+      processExecutable: "/fake/ollama",
+      processStartedAt: "test-start",
     });
   });
 
@@ -856,6 +873,39 @@ describe("runUp", () => {
 
     expect(adapter.stopped).toHaveLength(1);
     expect(readState(config).active).toBeNull();
+  });
+
+  it("does not stop or serve when active state drifts before replacement lock", async () => {
+    const adapter = fakeAdapter();
+    const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
+    const base = deps(adapter, cat);
+
+    await expect(
+      runUp(
+        { model: "llama3.1:8b" },
+        {
+          ...base,
+          withLock: async (_config, fn) => {
+            writeState(config, {
+              schemaVersion: STATE_SCHEMA_VERSION,
+              active: {
+                backend: "ollama",
+                modelId: "qwen2.5:7b",
+                endpoint: "http://127.0.0.1:11434",
+                pid: 7001,
+                port: 11434,
+                ownedByUs: true,
+              },
+            });
+            return await fn();
+          },
+        },
+      ),
+    ).rejects.toThrow("changed during up");
+
+    expect(adapter.serveArgs).toEqual([]);
+    expect(adapter.stopped).toEqual([]);
+    expect(readState(config).active?.modelId).toBe("qwen2.5:7b");
   });
 
   it("serializes concurrent up runs so only one serve can happen at a time", async () => {

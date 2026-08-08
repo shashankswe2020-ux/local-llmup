@@ -1,10 +1,18 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
 import { MemoryError, ValidationError } from "../../src/errors.js";
-import { memorySlug } from "../../src/memory/store.js";
+import { memorySlug, readMemoryMeta } from "../../src/memory/store.js";
 import {
   loadSourceMemory,
   planMigration,
@@ -13,6 +21,10 @@ import {
 } from "../../src/memory/migrate.js";
 import { withLock } from "../../src/state/state.js";
 import { runMigrate, type MigrateDeps } from "../../src/commands/migrate.js";
+import {
+  captureLiveProcessIdentity,
+  captureMemoryStoreIdentity,
+} from "../../src/tui/snapshots.js";
 import { createRegistry } from "../../src/backend/registry.js";
 import type { BackendAdapter, ChatRequest, ChatResult } from "../../src/backend/adapter.js";
 import type { Catalog, CatalogModel } from "../../src/types.js";
@@ -129,6 +141,19 @@ function makeDeps(cat: Catalog, overrides: Partial<MigrateDeps> = {}): MigrateDe
     loadSourceMemory,
     planMigration,
     writeMigration,
+    captureMemoryStoreIdentity,
+    captureLiveProcessIdentity: (active) =>
+      captureLiveProcessIdentity(active, {
+        isBackendExecutable: () => true,
+        probeListenerIdentity: async () => ({
+          pid: active.pid ?? 9999,
+          process: active.backend,
+          executable: active.processExecutable ?? `/fake/${active.backend}`,
+          started: active.processStartedAt ?? "test-start",
+          localAddress: "127.0.0.1",
+        }),
+      }),
+    supportsSecureFilesystem: true,
     withLock,
     write: (t) => stdout.push(t),
     log: (t) => stderr.push(t),
@@ -150,6 +175,70 @@ afterEach(() => {
 });
 
 describe("runMigrate", () => {
+  it("fails closed for writes and dry-runs when descriptor-relative filesystem access is unavailable", async () => {
+    const cat = catalog([model("llama3.1:8b"), model("qwen2.5:14b")]);
+    seedSourceStore(config, "llama3.1:8b", {});
+    const write = vi.fn(writeMigration);
+
+    await expect(
+      runMigrate(
+        { from: "llama3.1:8b", to: "qwen2.5:14b" },
+        makeDeps(cat, { supportsSecureFilesystem: false, writeMigration: write }),
+      ),
+    ).rejects.toThrow(/descriptor/u);
+    await expect(
+      runMigrate(
+        { from: "llama3.1:8b", to: "qwen2.5:14b", dryRun: true },
+        makeDeps(cat, { supportsSecureFilesystem: false, writeMigration: write }),
+      ),
+    ).rejects.toThrow(/descriptor/u);
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it("does not materialize when a store drifts after preparation", async () => {
+    const cat = catalog([model("llama3.1:8b"), model("qwen2.5:14b")]);
+    seedSourceStore(config, "llama3.1:8b", {});
+    const plan = vi.fn(planMigration);
+    let targetCaptures = 0;
+    const capture: typeof captureMemoryStoreIdentity = (inputConfig, modelId, options) => {
+      const identity = captureMemoryStoreIdentity(inputConfig, modelId, options);
+      if (modelId === "qwen2.5:14b" && ++targetCaptures === 2) {
+        return { ...identity, hash: "f".repeat(64) };
+      }
+      return identity;
+    };
+
+    await expect(
+      runMigrate(
+        { from: "llama3.1:8b", to: "qwen2.5:14b" },
+        makeDeps(cat, { planMigration: plan, captureMemoryStoreIdentity: capture }),
+      ),
+    ).rejects.toThrow("changed before planning");
+    expect(plan).not.toHaveBeenCalled();
+  });
+
+  it("does not commit when a store drifts under the product lock", async () => {
+    const cat = catalog([model("llama3.1:8b"), model("qwen2.5:14b")]);
+    seedSourceStore(config, "llama3.1:8b", {});
+    const write = vi.fn(writeMigration);
+    let targetCaptures = 0;
+    const capture: typeof captureMemoryStoreIdentity = (inputConfig, modelId, options) => {
+      const identity = captureMemoryStoreIdentity(inputConfig, modelId, options);
+      if (modelId === "qwen2.5:14b" && ++targetCaptures === 3) {
+        return { ...identity, hash: "f".repeat(64) };
+      }
+      return identity;
+    };
+
+    await expect(
+      runMigrate(
+        { from: "llama3.1:8b", to: "qwen2.5:14b" },
+        makeDeps(cat, { writeMigration: write, captureMemoryStoreIdentity: capture }),
+      ),
+    ).rejects.toThrow("changed before commit");
+    expect(write).not.toHaveBeenCalled();
+  });
+
   it("carries source memory into the target store and prints a summary", async () => {
     const cat = catalog([model("llama3.1:8b"), model("qwen2.5:14b")]);
     seedSourceStore(config, "llama3.1:8b", {
@@ -376,6 +465,65 @@ describe("runMigrate", () => {
 });
 
 describe("loadSourceMemory", () => {
+  it.skipIf(process.platform === "win32")(
+    "rejects a symlinked logical store file",
+    () => {
+      const dir = seedSourceStore(config, "a", {});
+      const external = join(home, "external.jsonl");
+      writeFileSync(external, '{"role":"user","content":"outside","ts":"t"}\n');
+      rmSync(join(dir, "conversation.jsonl"));
+      symlinkSync(external, join(dir, "conversation.jsonl"));
+      expect(() => loadSourceMemory(config, "a")).toThrow(MemoryError);
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "rejects metadata outside the configured memory root",
+    () => {
+      const outside = join(home, "outside-store");
+      seedSourceStore(config, "a", {});
+      mkdirSync(outside);
+      writeFileSync(
+        join(outside, "meta.json"),
+        JSON.stringify({ schemaVersion: 1, modelId: "a", createdAt: "2026-01-01T00:00:00.000Z" }),
+      );
+
+      expect(() => readMemoryMeta(outside, "a", config.memoryDir)).toThrow(MemoryError);
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "rejects a symlinked embeddings parent directory",
+    () => {
+      const dir = seedSourceStore(config, "a", {
+        embedding: {
+          meta: { model: "nomic-embed-text", dimension: 2 },
+          chunks: [{ id: "c1", text: "inside", ts: "t" }],
+          vectors: [{ id: "c1", vector: [0.1, 0.2] }],
+        },
+      });
+      const external = join(home, "external-embeddings");
+      mkdirSync(external);
+      writeFileSync(join(external, "chunks.jsonl"), '{"id":"c1","text":"outside","ts":"t"}\n');
+      writeFileSync(join(external, "vectors.jsonl"), '{"id":"c1","vector":[0.1,0.2]}\n');
+      rmSync(join(dir, "embeddings"), { recursive: true });
+      symlinkSync(external, join(dir, "embeddings"));
+
+      expect(() => loadSourceMemory(config, "a")).toThrow(MemoryError);
+    },
+  );
+
+  it("rejects an oversized logical store file before parsing", () => {
+    seedSourceStore(config, "a", { systemPrompt: "x".repeat(64 * 1024 + 1) });
+    expect(() => loadSourceMemory(config, "a")).toThrow(/system prompt exceeds/u);
+  });
+
+  it("rejects invalid UTF-8 before facts bytes are normalized", () => {
+    const dir = seedSourceStore(config, "a", {});
+    writeFileSync(join(dir, "facts.json"), Buffer.from([0xff]));
+    expect(() => loadSourceMemory(config, "a")).toThrow(/not valid UTF-8/u);
+  });
+
   it("reads turns, facts bytes, system prompt, and the embedding index", () => {
     seedSourceStore(config, "a", {
       turns: [{ role: "user", content: "hi", ts: "t" }],
@@ -392,6 +540,7 @@ describe("loadSourceMemory", () => {
     expect(source.turns).toHaveLength(1);
     expect(source.systemPrompt).toBe("You are helpful.");
     expect(source.factsText).toBe(`{"schemaVersion":1,"facts":[]}`);
+    expect(source.factsPresent).toBe(true);
     expect(source.embedding?.meta).toEqual({ model: "nomic-embed-text", dimension: 2 });
     expect(source.embedding?.vectors).toHaveLength(1);
   });
@@ -400,6 +549,7 @@ describe("loadSourceMemory", () => {
     seedSourceStore(config, "a", { turns: [{ role: "user", content: "hi", ts: "t" }] });
     const source = loadSourceMemory(config, "a");
     expect(source.factsText).toBe("");
+    expect(source.factsPresent).toBe(false);
     expect(source.systemPrompt).toBeUndefined();
     expect(source.embedding).toBeUndefined();
   });

@@ -37,8 +37,10 @@ import { assertSafeModelId } from "./net.js";
 import {
   matchesExpectedExecutable,
   probeListenerIdentity,
+  probeProcessIdentity,
   sameListenerProcess,
   type ListenerIdentity,
+  type ProcessIdentity,
 } from "./listener.js";
 import { stripControl } from "../sanitize.js";
 import type { BackendCapabilities } from "../types.js";
@@ -575,6 +577,7 @@ export interface OllamaAdapterOptions {
   readonly kill?: KillFn | undefined;
   readonly listenerProbe?:
     ((port: number, host: string) => Promise<ListenerIdentity | null>) | undefined;
+  readonly processProbe?: ((pid: number) => Promise<ProcessIdentity | null>) | undefined;
 }
 
 /** Stateless adapter over the Ollama backend. */
@@ -595,6 +598,7 @@ export class OllamaAdapter implements BackendAdapter {
   private readonly sleep: SleepFn;
   private readonly kill: KillFn;
   private readonly listenerProbe: (port: number, host: string) => Promise<ListenerIdentity | null>;
+  private readonly processProbe: (pid: number) => Promise<ProcessIdentity | null>;
 
   constructor(options: OllamaAdapterOptions = {}) {
     this.spawn = options.spawn ?? defaultSpawn;
@@ -605,6 +609,7 @@ export class OllamaAdapter implements BackendAdapter {
     this.sleep = options.sleep ?? defaultSleep;
     this.kill = options.kill ?? defaultKill;
     this.listenerProbe = options.listenerProbe ?? probeListenerIdentity;
+    this.processProbe = options.processProbe ?? probeProcessIdentity;
   }
 
   async isInstalled(): Promise<boolean> {
@@ -773,7 +778,14 @@ export class OllamaAdapter implements BackendAdapter {
           `refusing to attach to ${endpoint}: listener ownership could not be verified`,
         );
       }
-      return { endpoint, pid: listenerAfter.pid, port, ownedByUs: false };
+      return {
+        endpoint,
+        pid: listenerAfter.pid,
+        port,
+        ownedByUs: false,
+        processExecutable: listenerAfter.executable,
+        processStartedAt: listenerAfter.started,
+      };
     }
     if (attachProbe === "untrusted") {
       throw new BackendError(
@@ -1087,6 +1099,18 @@ export class OllamaAdapter implements BackendAdapter {
       await this.sleep(SHUTDOWN_POLL_INTERVAL_MS);
     }
 
+    const forceIdentity = await this.processProbe(handle.pid);
+    if (
+      forceIdentity === null ||
+      forceIdentity.pid !== listener.pid ||
+      forceIdentity.executable !== listener.executable ||
+      forceIdentity.started !== listener.started
+    ) {
+      throw new BackendError(
+        `refusing to force-stop ollama daemon (pid ${handle.pid}): process identity changed`,
+      );
+    }
+
     try {
       this.kill(handle.pid, "SIGKILL");
     } catch (error) {
@@ -1120,6 +1144,10 @@ export class OllamaAdapter implements BackendAdapter {
 
     const endpoint = assertLoopbackEndpoint(
       request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, DEFAULT_OLLAMA_PORT),
+    );
+    const expectedListener = await this.captureExpectedInferenceListener(
+      endpoint,
+      request.expectedProcess,
     );
     await this.assertTrustedInferenceEndpoint(endpoint, request.signal);
     const url = `${endpoint}/api/chat`;
@@ -1165,6 +1193,8 @@ export class OllamaAdapter implements BackendAdapter {
       });
     }
 
+    await this.assertInferenceListenerUnchanged(endpoint, expectedListener);
+
     return { content: parsed.data.message.content };
   }
 
@@ -1189,6 +1219,10 @@ export class OllamaAdapter implements BackendAdapter {
     }
     const endpoint = assertLoopbackEndpoint(
       request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, DEFAULT_OLLAMA_PORT),
+    );
+    const expectedListener = await this.captureExpectedInferenceListener(
+      endpoint,
+      request.expectedProcess,
     );
     await this.assertTrustedInferenceEndpoint(endpoint, request.signal);
 
@@ -1248,6 +1282,7 @@ export class OllamaAdapter implements BackendAdapter {
       if (parsed.data.embeddings.some((vector) => vector.length !== dimension)) {
         throw new BackendError("ollama embed returned inconsistent vector dimensions");
       }
+      await this.assertInferenceListenerUnchanged(endpoint, expectedListener);
       return { vectors: parsed.data.embeddings, dimension };
     } catch (error) {
       if (error instanceof BackendError) throw error;
@@ -1255,6 +1290,41 @@ export class OllamaAdapter implements BackendAdapter {
     } finally {
       clearTimeout(timer);
       request.signal?.removeEventListener("abort", onCallerAbort);
+    }
+  }
+
+  private async captureExpectedInferenceListener(
+    endpoint: string,
+    expected: import("./adapter.js").ExpectedProcessIdentity | undefined,
+  ): Promise<ListenerIdentity | null> {
+    if (expected === undefined) return null;
+    const url = new URL(endpoint);
+    const host = url.hostname.replace(/^\[/u, "").replace(/\]$/u, "");
+    const port = Number(url.port || "80");
+    const listener = await this.listenerProbe(port, host);
+    if (
+      listener === null ||
+      listener.pid !== expected.pid ||
+      listener.executable !== expected.executable ||
+      listener.started !== expected.started ||
+      !matchesExpectedExecutable(listener, this.binary)
+    ) {
+      throw new BackendError("ollama inference listener does not match expected process identity");
+    }
+    return listener;
+  }
+
+  private async assertInferenceListenerUnchanged(
+    endpoint: string,
+    before: ListenerIdentity | null,
+  ): Promise<void> {
+    if (before === null) return;
+    const url = new URL(endpoint);
+    const host = url.hostname.replace(/^\[/u, "").replace(/\]$/u, "");
+    const port = Number(url.port || "80");
+    const after = await this.listenerProbe(port, host);
+    if (after === null || !sameListenerProcess(before, after)) {
+      throw new BackendError("ollama inference listener changed during request");
     }
   }
 

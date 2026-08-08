@@ -170,11 +170,27 @@ describe("LlamaCppAdapter — chat", () => {
         jsonResponse(true, 200, { choices: [{ message: { content: "hi there" } }] }),
       );
     };
-    const adapter = new LlamaCppAdapter({ fetch });
+    const listener = {
+      pid: 42,
+      process: "llama-server",
+      executable: "/nonexistent/llama-server",
+      started: "2026-08-08 00:00:00",
+      localAddress: "127.0.0.1",
+    };
+    const adapter = new LlamaCppAdapter({
+      fetch,
+      binary: "/nonexistent/llama-server",
+      listenerProbe: async () => listener,
+    });
     const result = await adapter.chat({
       endpoint: "http://127.0.0.1:18080",
       model: "Qwen3-14B",
       messages: [{ role: "user", content: "hello" }],
+      expectedProcess: {
+        pid: listener.pid,
+        executable: listener.executable,
+        started: listener.started,
+      },
     });
     expect(result).toEqual({ content: "hi there" });
     expect(seen.url).toBe("http://127.0.0.1:18080/v1/chat/completions");
@@ -185,6 +201,38 @@ describe("LlamaCppAdapter — chat", () => {
       messages: [{ role: "user", content: "hello" }],
       stream: false,
     });
+  });
+
+  it("rejects a substituted listener before sending chat content", async () => {
+    const fetch = vi.fn<FetchFn>(() =>
+      Promise.resolve(
+        jsonResponse(true, 200, { choices: [{ message: { content: "unsafe" } }] }),
+      ),
+    );
+    const adapter = new LlamaCppAdapter({
+      fetch,
+      binary: "/nonexistent/llama-server",
+      listenerProbe: async () => ({
+        pid: 42,
+        process: "llama-server",
+        executable: "/nonexistent/llama-server",
+        started: "2026-08-08 00:00:00",
+        localAddress: "127.0.0.1",
+      }),
+    });
+    await expect(
+      adapter.chat({
+        endpoint: "http://127.0.0.1:18080",
+        model: "Qwen3-14B",
+        messages: [{ role: "user", content: "secret history" }],
+        expectedProcess: {
+          pid: 99,
+          executable: "/replacement/process",
+          started: "later",
+        },
+      }),
+    ).rejects.toThrow("does not match expected process identity");
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("throws BackendError on a non-2xx status", async () => {
@@ -720,6 +768,34 @@ describe("LlamaCppAdapter — stop (ownership)", () => {
       ownedByUs: true,
     });
     expect(signals).toContain("SIGTERM");
+  });
+
+  it("refuses SIGKILL when process identity changes during shutdown polling", async () => {
+    const server: FakeServer = { listening: true, identity: "llama", healthy: true };
+    const signals: (NodeJS.Signals | 0)[] = [];
+    const adapter = new LlamaCppAdapter({
+      fetch: makeFetch(server),
+      sleep: noSleep,
+      kill: (_pid, signal) => signals.push(signal ?? "SIGTERM"),
+      listenerProbe: llamaListener(),
+      processProbe: async (pid) => ({
+        pid,
+        process: "replacement",
+        executable: "/replacement/process",
+        started: "later",
+      }),
+    });
+
+    await expect(
+      adapter.stop({
+        endpoint: "http://127.0.0.1:8080",
+        pid: 4242,
+        port: 8080,
+        ownedByUs: true,
+      }),
+    ).rejects.toThrow("process identity changed");
+    expect(signals).toContain("SIGTERM");
+    expect(signals).not.toContain("SIGKILL");
   });
 
   it("refuses to stop when the endpoint is unreachable (possible pid reuse)", async () => {

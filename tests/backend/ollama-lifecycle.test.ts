@@ -139,11 +139,18 @@ function spawnedOllamaListener(recorded: readonly unknown[], pid = 4242) {
 }
 
 function ownedOllamaAdapter(fetch: FetchFn, kill: KillFn): OllamaAdapter {
+  const executable = testExecutable("ollama");
   return new OllamaAdapter({
     fetch,
     kill,
     sleep: immediateSleep,
     listenerProbe: ollamaListener(),
+    processProbe: async (pid) => ({
+      pid,
+      process: "ollama",
+      executable,
+      started: "2026-08-07T00:00:00Z",
+    }),
   });
 }
 
@@ -411,6 +418,28 @@ describe("OllamaAdapter.stop", () => {
 
     expect(killed[0]).toEqual({ pid: 9001, signal: "SIGTERM" });
     expect(killed).toContainEqual({ pid: 9001, signal: "SIGKILL" });
+  });
+
+  it("refuses SIGKILL when process identity changes during shutdown polling", async () => {
+    const killed: Array<NodeJS.Signals | 0 | undefined> = [];
+    const adapter = new OllamaAdapter({
+      fetch: trustedOllamaFetch(),
+      kill: (_pid, signal) => killed.push(signal),
+      sleep: immediateSleep,
+      listenerProbe: ollamaListener(),
+      processProbe: async (pid) => ({
+        pid,
+        process: "replacement",
+        executable: "/replacement/process",
+        started: "later",
+      }),
+    });
+
+    await expect(
+      adapter.stop({ endpoint: ENDPOINT, pid: 9001, port: 11434, ownedByUs: true }),
+    ).rejects.toThrow("process identity changed");
+    expect(killed).toContain("SIGTERM");
+    expect(killed).not.toContain("SIGKILL");
   });
 
   it("treats an already-dead process (ESRCH) as a successful stop", async () => {

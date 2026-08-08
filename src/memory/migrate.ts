@@ -25,9 +25,11 @@ import {
   closeSync,
   existsSync,
   fsyncSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   writeFileSync,
@@ -38,6 +40,7 @@ import { z } from "zod";
 import { DIR_MODE, FILE_MODE, type Config } from "../config.js";
 import { MemoryError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
+import { readBoundedUtf8File } from "./bounded-read.js";
 import {
   CHUNKS_FILE,
   CONVERSATION_FILE,
@@ -91,6 +94,8 @@ export interface SourceMemory {
   readonly systemPrompt: string | undefined;
   /** Raw `facts.json` bytes, carried through unchanged (`""` when absent). */
   readonly factsText: string;
+  /** Whether `facts.json` exists; distinguishes absent from a present empty file. */
+  readonly factsPresent: boolean;
   /** The source embedding index, or `undefined` when none was captured. */
   readonly embedding: SourceEmbedding | undefined;
 }
@@ -156,6 +161,7 @@ export interface MigrationPlan {
   readonly turns: readonly ConversationTurn[];
   readonly systemPrompt: string | undefined;
   readonly factsText: string;
+  readonly factsPresent: boolean;
   readonly embedding: MigrationEmbeddingPlan | undefined;
   /** Set when vectors are intentionally absent (target backend cannot embed). */
   readonly embeddingUnsupported?: boolean | undefined;
@@ -376,6 +382,7 @@ export async function planMigration(input: MigrationInput): Promise<MigrationPla
     turns: remap.turns,
     systemPrompt: source.systemPrompt,
     factsText: source.factsText,
+    factsPresent: source.factsPresent,
     embedding: embed.embedding,
     ...(input.embeddingUnsupported === true ? { embeddingUnsupported: true } : {}),
     summary: {
@@ -404,17 +411,32 @@ const StoredChunkSchema = z.object({ id: z.string(), text: z.string(), ts: z.str
 
 const StoredVectorSchema = z.object({ id: z.string(), vector: z.array(z.number()) }).strict();
 
+const MAX_JSONL_RECORDS = 100_000;
+const MAX_CONVERSATION_BYTES = 8 * 1024 * 1024;
+const MAX_FACTS_BYTES = 1024 * 1024;
+const MAX_SYSTEM_PROMPT_BYTES = 64 * 1024;
+const MAX_CHUNKS_BYTES = 8 * 1024 * 1024;
+const MAX_VECTORS_BYTES = 16 * 1024 * 1024;
+
+function readBoundedOptionalFile(
+  path: string,
+  label: string,
+  maxBytes: number,
+  allowedRoot: string,
+): string | undefined {
+  return readBoundedUtf8File(path, label, maxBytes, { allowMissing: true, allowedRoot });
+}
+
 /** Read and validate newline-delimited JSON records, tolerating a missing file. */
-function readJsonlRecords<T>(path: string, schema: z.ZodType<T>, label: string): T[] {
-  let raw: string;
-  try {
-    raw = readFileSync(path, "utf8");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return [];
-    }
-    throw new MemoryError(`failed to read ${label}: ${path}`, { cause: error });
-  }
+function readJsonlRecords<T>(
+  path: string,
+  schema: z.ZodType<T>,
+  label: string,
+  maxBytes: number,
+  allowedRoot: string,
+): T[] {
+  const raw = readBoundedOptionalFile(path, label, maxBytes, allowedRoot);
+  if (raw === undefined) return [];
 
   const records: T[] = [];
   const lines = raw.split(/\r?\n/);
@@ -436,20 +458,17 @@ function readJsonlRecords<T>(path: string, schema: z.ZodType<T>, label: string):
       });
     }
     records.push(result.data);
+    if (records.length > MAX_JSONL_RECORDS) {
+      throw new MemoryError(`${label} exceeds ${String(MAX_JSONL_RECORDS)} records: ${path}`);
+    }
   }
   return records;
 }
 
 /** Read a file's raw bytes, returning `undefined` when it does not exist. */
-function readOptionalFile(path: string, label: string): string | undefined {
-  try {
-    return readFileSync(path, "utf8");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return undefined;
-    }
-    throw new MemoryError(`failed to read ${label}: ${path}`, { cause: error });
-  }
+function readOptionalFile(path: string, label: string, allowedRoot: string): string | undefined {
+  const maxBytes = label === "facts" ? MAX_FACTS_BYTES : MAX_SYSTEM_PROMPT_BYTES;
+  return readBoundedOptionalFile(path, label, maxBytes, allowedRoot);
 }
 
 /**
@@ -461,11 +480,23 @@ function readOptionalFile(path: string, label: string): string | undefined {
  */
 export function loadSourceMemory(config: Config, modelId: string): SourceMemory {
   const dir = memoryStoreDir(config, modelId);
-  const meta = readMemoryMeta(dir, modelId);
+  const meta = readMemoryMeta(dir, modelId, config.memoryDir);
 
-  const turns = readJsonlRecords(join(dir, CONVERSATION_FILE), StoredTurnSchema, "conversation");
-  const systemPrompt = readOptionalFile(join(dir, SYSTEM_FILE), "system prompt");
-  const factsText = readOptionalFile(join(dir, FACTS_FILE), "facts") ?? "";
+  const turns = readJsonlRecords(
+    join(dir, CONVERSATION_FILE),
+    StoredTurnSchema,
+    "conversation",
+    MAX_CONVERSATION_BYTES,
+    config.memoryDir,
+  );
+  const systemPrompt = readOptionalFile(
+    join(dir, SYSTEM_FILE),
+    "system prompt",
+    config.memoryDir,
+  );
+  const loadedFacts = readOptionalFile(join(dir, FACTS_FILE), "facts", config.memoryDir);
+  const factsText = loadedFacts ?? "";
+  const factsPresent = loadedFacts !== undefined;
 
   let embedding: SourceEmbedding | undefined;
   if (meta.embedding !== undefined) {
@@ -473,16 +504,20 @@ export function loadSourceMemory(config: Config, modelId: string): SourceMemory 
       join(dir, EMBEDDINGS_DIR, CHUNKS_FILE),
       StoredChunkSchema,
       "chunks",
+      MAX_CHUNKS_BYTES,
+      config.memoryDir,
     );
     const vectors = readJsonlRecords(
       join(dir, EMBEDDINGS_DIR, VECTORS_FILE),
       StoredVectorSchema,
       "vectors",
+      MAX_VECTORS_BYTES,
+      config.memoryDir,
     );
     embedding = { meta: meta.embedding, chunks, vectors };
   }
 
-  return { turns, systemPrompt, factsText, embedding };
+  return { turns, systemPrompt, factsText, factsPresent, embedding };
 }
 
 // ---------------------------------------------------------------------------
@@ -620,7 +655,7 @@ export function stageMigration(
       writeStagedFile(join(stagedDir, SYSTEM_FILE), plan.systemPrompt);
     }
     // facts.json is carried byte-identically; only materialize it when present.
-    if (plan.factsText.length > 0) {
+    if (plan.factsPresent) {
       writeStagedFile(join(stagedDir, FACTS_FILE), plan.factsText);
     }
     if (plan.embedding !== undefined) {
@@ -734,6 +769,71 @@ export interface MigrateWriteOptions {
   readonly now?: (() => Date) | undefined;
 }
 
+interface PathIdentity {
+  readonly dev: number;
+  readonly ino: number;
+}
+
+interface MigrationPathGuard {
+  readonly root: PathIdentity;
+  readonly source?: PathIdentity | undefined;
+}
+
+function samePathIdentity(first: PathIdentity, second: PathIdentity): boolean {
+  return first.dev === second.dev && first.ino === second.ino;
+}
+
+function captureMigrationPathGuard(
+  config: Config,
+  params: MigrateWriteParams,
+  requireSource: boolean,
+): MigrationPathGuard {
+  const root = resolve(config.memoryDir);
+  if (dirname(resolve(params.sourceDir)) !== root || dirname(resolve(params.targetDir)) !== root) {
+    throw new MemoryError("migration source and target must be direct children of the memory root");
+  }
+  const rootStat = lstatSync(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) {
+    throw new MemoryError("configured memory root is not a trusted directory");
+  }
+  realpathSync(root);
+  let source: PathIdentity | undefined;
+  if (requireSource) {
+    const sourceStat = lstatSync(params.sourceDir);
+    if (!sourceStat.isDirectory() || sourceStat.isSymbolicLink()) {
+      throw new MemoryError("migration source is not a trusted directory");
+    }
+    source = { dev: sourceStat.dev, ino: sourceStat.ino };
+  }
+  return {
+    root: { dev: rootStat.dev, ino: rootStat.ino },
+    ...(source !== undefined ? { source } : {}),
+  };
+}
+
+function assertMigrationPathGuard(
+  config: Config,
+  params: MigrateWriteParams,
+  expected: MigrationPathGuard,
+  requireSource: boolean,
+): void {
+  let current: MigrationPathGuard;
+  try {
+    current = captureMigrationPathGuard(config, params, requireSource);
+  } catch (error) {
+    throw new MemoryError("memory paths changed during migration", { cause: error });
+  }
+  if (
+    !samePathIdentity(expected.root, current.root) ||
+    (requireSource &&
+      (expected.source === undefined ||
+        current.source === undefined ||
+        !samePathIdentity(expected.source, current.source)))
+  ) {
+    throw new MemoryError("memory paths changed during migration");
+  }
+}
+
 /**
  * Materialize a {@link MigrationPlan} onto disk with crash and rollback safety:
  * stage the full target store on the same filesystem, atomically swap it into
@@ -746,6 +846,7 @@ export function writeMigration(
   params: MigrateWriteParams,
   options: MigrateWriteOptions = {},
 ): void {
+  const pathGuard = captureMigrationPathGuard(config, params, options.move === true);
   if (options.move === true) {
     assertMovableSource(params.sourceDir, params.targetDir);
   }
@@ -760,12 +861,14 @@ export function writeMigration(
   const verify = options.verify ?? verifyMigration;
 
   try {
+    assertMigrationPathGuard(config, params, pathGuard, options.move === true);
     staged.commit((dir) => verify(dir, params.plan));
   } catch (error) {
     staged.cleanup();
     throw error;
   }
 
+  assertMigrationPathGuard(config, params, pathGuard, options.move === true);
   if (options.move === true) {
     rmSync(params.sourceDir, { recursive: true, force: true });
   }
@@ -801,7 +904,7 @@ export function verifyMigration(targetDir: string, plan: MigrationPlan): void {
     );
   }
 
-  if (plan.factsText.length > 0) {
+  if (plan.factsPresent) {
     let facts: string;
     try {
       facts = readFileSync(join(targetDir, FACTS_FILE), "utf8");
@@ -811,6 +914,8 @@ export function verifyMigration(targetDir: string, plan: MigrationPlan): void {
     if (facts !== plan.factsText) {
       throw new MemoryError("migration verify failed: facts.json bytes differ from the source");
     }
+  } else if (existsSync(join(targetDir, FACTS_FILE))) {
+    throw new MemoryError("migration verify failed: unexpected facts.json is present");
   }
 
   if (plan.embedding !== undefined) {

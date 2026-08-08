@@ -40,6 +40,11 @@ describe("OllamaAdapter.chat", () => {
     const result = await adapter.chat({
       model: "llama3.1:8b",
       messages: [{ role: "user", content: "hi" }],
+      expectedProcess: {
+        pid: 42,
+        executable: "/nonexistent/ollama",
+        started: "2026-08-08 00:00:00",
+      },
     });
 
     expect(result).toEqual({ content: "hello from ollama" });
@@ -59,6 +64,28 @@ describe("OllamaAdapter.chat", () => {
       messages: [{ role: "user", content: "hi" }],
       stream: false,
     });
+  });
+
+  it("rejects a substituted listener before sending chat content", async () => {
+    const { fetch, adapter } = trustedAdapter(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ message: { content: "unsafe" } }),
+      }),
+    );
+    await expect(
+      adapter.chat({
+        model: "llama3.1:8b",
+        messages: [{ role: "user", content: "secret history" }],
+        expectedProcess: {
+          pid: 99,
+          executable: "/replacement/process",
+          started: "later",
+        },
+      }),
+    ).rejects.toThrow("does not match expected process identity");
+    expect(fetch.mock.calls.some(([url]) => url.endsWith("/api/chat"))).toBe(false);
   });
 
   it("posts to the active custom loopback endpoint", async () => {

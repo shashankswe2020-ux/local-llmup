@@ -52,8 +52,10 @@ import { assertSafeModelId } from "./net.js";
 import {
   matchesExpectedExecutable,
   probeListenerIdentity,
+  probeProcessIdentity,
   sameListenerProcess,
   type ListenerIdentity,
+  type ProcessIdentity,
 } from "./listener.js";
 
 /** Default binary name resolved from `PATH`. */
@@ -366,6 +368,7 @@ export interface LlamaCppAdapterOptions {
   readonly acquire?: AcquireFn | undefined;
   readonly listenerProbe?:
     ((port: number, host: string) => Promise<ListenerIdentity | null>) | undefined;
+  readonly processProbe?: ((pid: number) => Promise<ProcessIdentity | null>) | undefined;
 }
 
 /** Stateless adapter over the llama.cpp `llama-server` backend. */
@@ -391,6 +394,7 @@ export class LlamaCppAdapter implements BackendAdapter {
   private readonly kill: KillFn;
   private readonly acquire: AcquireFn;
   private readonly listenerProbe: (port: number, host: string) => Promise<ListenerIdentity | null>;
+  private readonly processProbe: (pid: number) => Promise<ProcessIdentity | null>;
 
   constructor(options: LlamaCppAdapterOptions = {}) {
     this.spawn = options.spawn ?? defaultSpawn;
@@ -401,6 +405,7 @@ export class LlamaCppAdapter implements BackendAdapter {
     this.kill = options.kill ?? defaultKill;
     this.acquire = options.acquire ?? defaultAcquire;
     this.listenerProbe = options.listenerProbe ?? probeListenerIdentity;
+    this.processProbe = options.processProbe ?? probeProcessIdentity;
   }
 
   async isInstalled(): Promise<boolean> {
@@ -581,7 +586,14 @@ export class LlamaCppAdapter implements BackendAdapter {
           `refusing to attach to ${endpoint}: listener ownership could not be verified`,
         );
       }
-      return { endpoint, pid: listenerAfter.pid, port, ownedByUs: false };
+      return {
+        endpoint,
+        pid: listenerAfter.pid,
+        port,
+        ownedByUs: false,
+        processExecutable: listenerAfter.executable,
+        processStartedAt: listenerAfter.started,
+      };
     }
     if (attach === "untrusted") {
       throw new BackendError(
@@ -870,6 +882,18 @@ export class LlamaCppAdapter implements BackendAdapter {
       await this.sleep(SHUTDOWN_POLL_INTERVAL_MS);
     }
 
+    const forceIdentity = await this.processProbe(handle.pid);
+    if (
+      forceIdentity === null ||
+      forceIdentity.pid !== listener.pid ||
+      forceIdentity.executable !== listener.executable ||
+      forceIdentity.started !== listener.started
+    ) {
+      throw new BackendError(
+        `refusing to force-stop llama-server (pid ${handle.pid}): process identity changed`,
+      );
+    }
+
     try {
       this.kill(handle.pid, "SIGKILL");
     } catch (error) {
@@ -906,6 +930,10 @@ export class LlamaCppAdapter implements BackendAdapter {
   async chat(request: ChatRequest): Promise<ChatResult> {
     const endpoint = assertLoopbackEndpoint(
       request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, LLAMACPP_DEFAULT_PORT),
+    );
+    const expectedListener = await this.captureExpectedInferenceListener(
+      endpoint,
+      request.expectedProcess,
     );
     const url = `${endpoint}/v1/chat/completions`;
 
@@ -956,6 +984,7 @@ export class LlamaCppAdapter implements BackendAdapter {
     if (first === undefined) {
       throw new BackendError("llamacpp chat returned no choices");
     }
+    await this.assertInferenceListenerUnchanged(endpoint, expectedListener);
     return { content: first.message.content };
   }
 
@@ -971,6 +1000,43 @@ export class LlamaCppAdapter implements BackendAdapter {
         "llamacpp does not serve embeddings (canEmbed is false); memory capture uses the vector-less path",
       ),
     );
+  }
+
+  private async captureExpectedInferenceListener(
+    endpoint: string,
+    expected: import("./adapter.js").ExpectedProcessIdentity | undefined,
+  ): Promise<ListenerIdentity | null> {
+    if (expected === undefined) return null;
+    const url = new URL(endpoint);
+    const host = url.hostname.replace(/^\[/u, "").replace(/\]$/u, "");
+    const port = Number(url.port || "80");
+    const listener = await this.listenerProbe(port, host);
+    if (
+      listener === null ||
+      listener.pid !== expected.pid ||
+      listener.executable !== expected.executable ||
+      listener.started !== expected.started ||
+      !matchesExpectedExecutable(listener, this.binary)
+    ) {
+      throw new BackendError(
+        "llamacpp inference listener does not match expected process identity",
+      );
+    }
+    return listener;
+  }
+
+  private async assertInferenceListenerUnchanged(
+    endpoint: string,
+    before: ListenerIdentity | null,
+  ): Promise<void> {
+    if (before === null) return;
+    const url = new URL(endpoint);
+    const host = url.hostname.replace(/^\[/u, "").replace(/\]$/u, "");
+    const port = Number(url.port || "80");
+    const after = await this.listenerProbe(port, host);
+    if (after === null || !sameListenerProcess(before, after)) {
+      throw new BackendError("llamacpp inference listener changed during request");
+    }
   }
 
   /** One quick readiness attempt used to decide attach-vs-spawn / liveness. */

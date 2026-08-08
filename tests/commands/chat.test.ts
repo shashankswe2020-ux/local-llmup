@@ -9,6 +9,7 @@ import { createRegistry } from "../../src/backend/registry.js";
 import type { BackendAdapter, ChatRequest, ChatResult } from "../../src/backend/adapter.js";
 import type { MemoryStore } from "../../src/memory/store.js";
 import { STATE_SCHEMA_VERSION, type RuntimeState } from "../../src/state/state.js";
+import type { LiveProcessIdentity } from "../../src/tui/snapshots.js";
 import type { Catalog, CatalogModel, Quantization } from "../../src/types.js";
 import {
   expectNoninteractiveGolden,
@@ -174,12 +175,37 @@ function harness(options: {
     readTurn: reader(options.turns),
     write: (text) => stdout.push(text),
     log: (text) => stderr.push(text),
+    captureLiveProcessIdentity: (active): Promise<LiveProcessIdentity> =>
+      Promise.resolve({
+        expectedProcess: {
+          pid: active.pid ?? 9001,
+          executable: active.processExecutable ?? "/usr/bin/ollama",
+          started: active.processStartedAt ?? "2026-08-08T00:00:00Z",
+        },
+        hash: "a".repeat(64),
+      }),
     now,
   };
   return { deps, chat, capture, openStore, store };
 }
 
 describe("runChat", () => {
+  it("captures a live process identity for legacy state before inference", async () => {
+    const { deps, chat } = harness({ turns: ["hi"], replies: ["ok"] });
+
+    await runChat({}, deps);
+
+    expect(chat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedProcess: {
+          pid: 9001,
+          executable: "/usr/bin/ollama",
+          started: "2026-08-08T00:00:00Z",
+        },
+      }),
+    );
+  });
+
   it("forwards each user turn to the backend and writes the reply", async () => {
     const { deps, chat } = harness({
       turns: ["hi", "how are you"],

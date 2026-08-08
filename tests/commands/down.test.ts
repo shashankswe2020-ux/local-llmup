@@ -14,6 +14,10 @@ import {
   plainGoldenName,
   withGoldenEnvironment,
 } from "../fixtures/noninteractive-golden.js";
+import {
+  ConfirmationDriftError,
+  captureLiveProcessIdentity,
+} from "../../src/tui/snapshots.js";
 
 function model(id: string): CatalogModel {
   return {
@@ -98,6 +102,17 @@ function deps(adapter: FakeAdapter, cat: Catalog = catalog([model("llama3.1:8b")
     writeState,
     withLock,
     registry: createRegistry([adapter]),
+    captureLiveProcessIdentity: (active) =>
+      captureLiveProcessIdentity(active, {
+        isBackendExecutable: () => true,
+        probeListenerIdentity: async () => ({
+          pid: active.pid ?? 9999,
+          process: active.backend,
+          executable: active.processExecutable ?? `/fake/${active.backend}`,
+          started: active.processStartedAt ?? "test-start",
+          localAddress: "127.0.0.1",
+        }),
+      }),
     write: (t) => stdout.push(t),
     log: (t) => stderr.push(t),
   };
@@ -215,6 +230,38 @@ describe("runDown", () => {
 
     expect(adapter.stopped).toHaveLength(0);
     expect(readState(config).active).not.toBeNull();
+  });
+
+  it("does not clear or signal when state drifts before lock acquisition", async () => {
+    seedOwned();
+    const adapter = fakeAdapter();
+    const base = deps(adapter);
+
+    await expect(
+      runDown(
+        {},
+        {
+          ...base,
+          withLock: async (_config, fn) => {
+            writeState(config, {
+              schemaVersion: STATE_SCHEMA_VERSION,
+              active: {
+                backend: "ollama",
+                modelId: "qwen2.5:7b",
+                endpoint: "http://127.0.0.1:11434",
+                pid: 9002,
+                port: 11434,
+                ownedByUs: true,
+              },
+            });
+            return await fn();
+          },
+        },
+      ),
+    ).rejects.toBeInstanceOf(ConfirmationDriftError);
+
+    expect(adapter.stopped).toEqual([]);
+    expect(readState(config).active?.modelId).toBe("qwen2.5:7b");
   });
 
   it("is idempotent across repeated invocations", async () => {

@@ -82,13 +82,13 @@ describe("U0a noninteractive compatibility manifest", () => {
     );
   });
 
-  it("keeps the pre-TUI CLI static import graph free of TUI modules", () => {
+  it("keeps the plain CLI static import graph free of renderer-bearing TUI modules", () => {
     const cliPath = fileURLToPath(new URL("../src/cli.ts", import.meta.url));
     const tuiRoot = resolve(dirname(cliPath), "tui");
     const eagerTuiImports = [...collectStaticImportGraph(cliPath)].filter(
       (path) => path === `${tuiRoot}.ts` || path.startsWith(`${tuiRoot}/`),
     );
-    expect(eagerTuiImports).toEqual([]);
+    expect(eagerTuiImports).toEqual([resolve(tuiRoot, "snapshots.ts")]);
   });
 
   it("preserves the global help output byte-for-byte", async () => {

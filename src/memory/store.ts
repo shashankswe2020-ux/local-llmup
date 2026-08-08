@@ -33,6 +33,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { dirname, join, sep } from "node:path";
 import { z } from "zod";
 import { DIR_MODE, FILE_MODE, type Config } from "../config.js";
+import { readBoundedUtf8File } from "./bounded-read.js";
 import { MemoryError, ValidationError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
 
@@ -85,6 +86,7 @@ export interface MemoryStore {
 const META_FILE = "meta.json";
 
 const MEMORY_SLUG_MAX_LENGTH = 128;
+const MAX_MEMORY_META_BYTES = 16 * 1024;
 const MEMORY_SLUG_HASH_HEX_LENGTH = 16;
 const WINDOWS_RESERVED_DEVICE_NAMES = new Set([
   "con",
@@ -382,14 +384,12 @@ export function openMemoryStore(config: Config, modelId: string): MemoryStore {
  * {@link openMemoryStore}, this never creates the file — the store must already
  * exist — so callers can observe writes made since the store was opened.
  */
-export function readMemoryMeta(dir: string, modelId: string): MemoryMeta {
+export function readMemoryMeta(dir: string, modelId: string, allowedRoot?: string): MemoryMeta {
   const target = join(dir, META_FILE);
-  let raw: string;
-  try {
-    raw = readFileSync(target, "utf8");
-  } catch (error) {
-    throw new MemoryError(`failed to read memory metadata: ${target}`, { cause: error });
-  }
+  const raw = readBoundedUtf8File(target, "memory metadata", MAX_MEMORY_META_BYTES, {
+    ...(allowedRoot !== undefined ? { allowedRoot } : {}),
+  });
+  if (raw === undefined) throw new MemoryError(`failed to read memory metadata: ${target}`);
   return parseMeta(raw, target, modelId);
 }
 

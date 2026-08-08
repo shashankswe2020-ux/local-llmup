@@ -126,13 +126,22 @@ const RuntimeStateSchema = z
           }
         }
       }
-    } else if (!state.active.ownedByUs && state.active.pid !== undefined) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["active", "pid"],
-        message: "attached PID is only valid for LM Studio state",
-      });
-    } else if (state.active.ownedByUs && state.active.authToken !== undefined) {
+    } else if (!state.active.ownedByUs) {
+      const identity = [
+        state.active.pid,
+        state.active.processExecutable,
+        state.active.processStartedAt,
+      ];
+      const complete = identity.every((value) => value !== undefined);
+      const absent = identity.every((value) => value === undefined);
+      if (!complete && !absent) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["active", "pid"],
+          message: "attached process identity must be complete or absent for legacy state",
+        });
+      }
+    } else if (state.active.authToken !== undefined) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["active", "authToken"],
