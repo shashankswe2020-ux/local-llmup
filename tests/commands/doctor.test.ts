@@ -124,6 +124,11 @@ describe("runDoctor", () => {
     expect(find(report, "backend").status).toBe("ok");
     expect(find(report, "hardware").status).toBe("ok");
     expect(find(report, "state").status).toBe("ok");
+    expect(Object.isFrozen(report)).toBe(true);
+    expect(Object.isFrozen(report.checks)).toBe(true);
+    expect(Object.isFrozen(report.checks[0])).toBe(true);
+    expect(Object.isFrozen(report.backends)).toBe(true);
+    expect(Object.isFrozen(report.hardwareScore)).toBe(true);
     expectNoninteractiveGolden(plainGoldenName("doctor"), stdout.join(""));
   });
 

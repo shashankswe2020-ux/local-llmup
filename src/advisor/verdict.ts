@@ -46,6 +46,8 @@ export interface VerdictResult {
   readonly quant?: Quantization;
   /** Why the model does not fit; present only when `runnable` is `no`. */
   readonly reason?: FitReason;
+  readonly requiredBytes: number | null;
+  readonly usableBytes: number;
 }
 
 /**
@@ -72,7 +74,13 @@ export function evaluateVerdict(
   const fit =
     context !== undefined ? evaluateFitAtContext(model, hw, context) : evaluateFit(model, hw);
   if (!fit.fits) {
-    return { runnable: "no", throughput: UNKNOWN_THROUGHPUT, reason: fit.reason };
+    return {
+      runnable: "no",
+      throughput: UNKNOWN_THROUGHPUT,
+      reason: fit.reason,
+      requiredBytes: fit.requiredBytes,
+      usableBytes: fit.usableBytes,
+    };
   }
 
   const throughput = estimateTokPerSec(model, fit.quant, hw, dataset, { backend });
@@ -81,5 +89,11 @@ export function evaluateVerdict(
   const midpoint = (throughput.lowTokPerSec + throughput.highTokPerSec) / 2;
   const runnable: Runnable = throughput.known && midpoint >= COMFORT_FLOOR ? "yes" : "slow";
 
-  return { runnable, throughput, quant: fit.quant };
+  return {
+    runnable,
+    throughput,
+    quant: fit.quant,
+    requiredBytes: fit.requiredBytes,
+    usableBytes: fit.usableBytes,
+  };
 }

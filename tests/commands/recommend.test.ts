@@ -141,6 +141,17 @@ const FIXTURE = catalog([
 ]);
 
 describe("buildRecommendation", () => {
+  it("returns a deeply immutable result snapshot", () => {
+    const result = build(FIXTURE, appleHw(32));
+
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(Object.isFrozen(result.hardware)).toBe(true);
+    expect(Object.isFrozen(result.entries)).toBe(true);
+    expect(Object.isFrozen(result.entries[0]?.model)).toBe(true);
+    expect(Object.isFrozen(result.entries[0]?.scores)).toBe(true);
+    expect(Object.isFrozen(result.wontFit)).toBe(true);
+  });
+
   it("ranks fitting models, lists won't-fit, and picks a top command", () => {
     const result = build(FIXTURE, appleHw(32));
     expect(result.entries.map((e) => e.model.id)).toEqual(["llama3.1:8b", "gemma2:2b"]);
@@ -422,7 +433,8 @@ describe("runRecommend", () => {
 
   it("writes the text report by default", async () => {
     const { deps: d, writes } = deps();
-    await withGoldenEnvironment(() => runRecommend({}, d));
+    const result = await withGoldenEnvironment(() => runRecommend({}, d));
+    expect(result).toMatchObject({ command: "local-llmup up llama3.1:8b" });
     expectNoninteractiveGolden(plainGoldenName("recommend"), writes.join(""));
   });
 

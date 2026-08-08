@@ -30,12 +30,23 @@ const TABLE_COLUMNS: readonly Column[] = [
   { header: "Status" },
 ];
 
+export type LsResult =
+  | { readonly type: "empty" }
+  | {
+      readonly type: "active";
+      readonly modelId: string;
+      readonly backend: NonNullable<RuntimeState["active"]>["backend"];
+      readonly endpoint: string;
+      readonly port: number;
+      readonly ownedByUs: boolean;
+    };
+
 /** Print the active server recorded in state, or a note when there is none. */
-export function runLs(deps: LsDeps = createDefaultDeps()): void {
+export function runLs(deps: LsDeps = createDefaultDeps()): LsResult {
   const active = deps.readState(deps.config).active;
   if (active === null) {
     deps.write("No active model.\n");
-    return;
+    return Object.freeze({ type: "empty" });
   }
 
   // renderTable sanitizes every cell, so registry-sourced strings are safe.
@@ -49,4 +60,12 @@ export function runLs(deps: LsDeps = createDefaultDeps()): void {
     ],
   ]);
   deps.write(`${table}\n`);
+  return Object.freeze({
+    type: "active",
+    modelId: active.modelId,
+    backend: active.backend,
+    endpoint: active.endpoint,
+    port: active.port,
+    ownedByUs: active.ownedByUs,
+  });
 }

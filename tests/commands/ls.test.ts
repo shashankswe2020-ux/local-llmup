@@ -35,8 +35,9 @@ function deps(): LsDeps {
 
 describe("runLs", () => {
   it("reports when no model is active", async () => {
-    await withGoldenEnvironment(() => runLs(deps()));
+    const result = await withGoldenEnvironment(() => runLs(deps()));
     expectNoninteractiveGolden(plainGoldenName("ls"), stdout.join(""));
+    expect(result).toEqual({ type: "empty" });
   });
 
   it("reflects the active owned server from state", () => {
@@ -52,7 +53,7 @@ describe("runLs", () => {
       },
     });
 
-    runLs(deps());
+    const result = runLs(deps());
 
     const out = stdout.join("");
     expect(out).toContain("llama3.1:8b");
@@ -61,6 +62,15 @@ describe("runLs", () => {
     expect(out).toContain("http://127.0.0.1:11434");
     expect(out).toContain("11434");
     expect(out).toMatch(/owned/i);
+    expect(result).toEqual({
+      type: "active",
+      modelId: "llama3.1:8b",
+      backend: "ollama",
+      endpoint: "http://127.0.0.1:11434",
+      port: 11434,
+      ownedByUs: true,
+    });
+    expect(Object.isFrozen(result)).toBe(true);
   });
 
   it("marks an attached server distinctly from an owned one", () => {

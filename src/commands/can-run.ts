@@ -23,6 +23,7 @@ import { createDefaultRegistry, type BackendRegistry } from "../backend/registry
 import { renderJson } from "../output.js";
 import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
+import { immutableSnapshot } from "../immutable.js";
 import type { FitReason } from "../ranking/fit.js";
 import type {
   BackendName,
@@ -55,6 +56,15 @@ export interface CanRunResult {
   readonly backends: readonly string[];
   /** The runtime the throughput estimate is scoped to (deterministic default `ollama`). */
   readonly throughputBackend: BackendName;
+  readonly requiredBytes: number | null;
+  readonly usableBytes: number;
+  readonly throughputEvidence: {
+    readonly source: "offline-estimate";
+    readonly unknownReason:
+      | "no-sourced-performance-profile"
+      | "not-evaluated-model-does-not-fit"
+      | null;
+  };
 }
 
 /** Injectable side effects, so the command can be driven with fakes in tests. */
@@ -104,7 +114,7 @@ export function buildCanRunResult(
   registry: BackendRegistry = createDefaultRegistry(),
 ): CanRunResult {
   const verdict = evaluateVerdict(model, hardware, perf, undefined, backend);
-  return {
+  return immutableSnapshot({
     modelId: model.id,
     runnable: verdict.runnable,
     throughput: verdict.throughput,
@@ -112,7 +122,17 @@ export function buildCanRunResult(
     reason: verdict.reason ?? null,
     backends: backendsForModel(model, registry, hardware).map((adapter) => adapter.name),
     throughputBackend: backend,
-  };
+    requiredBytes: verdict.requiredBytes,
+    usableBytes: verdict.usableBytes,
+    throughputEvidence: {
+      source: "offline-estimate",
+      unknownReason: verdict.throughput.known
+        ? null
+        : verdict.runnable === "no"
+          ? "not-evaluated-model-does-not-fit"
+          : "no-sourced-performance-profile",
+    },
+  });
 }
 
 /** Format the estimated throughput, honouring the honesty gate. */

@@ -82,6 +82,15 @@ function deps(over: Partial<CanRunDeps> = {}): { deps: CanRunDeps; writes: strin
 }
 
 describe("buildCanRunResult", () => {
+  it("returns a deeply immutable result snapshot", () => {
+    const result = buildCanRunResult(model("llama3.1:8b", "7B"), hw(), perf);
+
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(Object.isFrozen(result.throughput)).toBe(true);
+    expect(Object.isFrozen(result.backends)).toBe(true);
+    expect(Object.isFrozen(result.throughputEvidence)).toBe(true);
+  });
+
   it("reports `yes` with a throughput range when the model fits and is fast", () => {
     const result = buildCanRunResult(model("llama3.1:8b", "7B"), hw(), perf);
     expect(result.modelId).toBe("llama3.1:8b");
@@ -102,6 +111,11 @@ describe("buildCanRunResult", () => {
     expect(result.reason).toBe("vram-bound");
     expect(result.throughput.known).toBe(false);
     expect(result.quant).toBeNull();
+    expect(result.requiredBytes).not.toBeNull();
+    expect(result.requiredBytes).toBeGreaterThan(result.usableBytes);
+    expect(result.throughputEvidence.unknownReason).toBe(
+      "not-evaluated-model-does-not-fit",
+    );
   });
 
   it("reports `slow` with unknown throughput when hardware has no perf profile", () => {

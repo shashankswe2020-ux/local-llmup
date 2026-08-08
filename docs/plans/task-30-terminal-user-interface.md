@@ -2,7 +2,7 @@
 
 > Source spec: [docs/specs/terminal-user-interface.md](../specs/terminal-user-interface.md)
 > Related: [docs/specs/local-llmup.md](../specs/local-llmup.md), [docs/plans/task-plan-local-llmup.md](./task-plan-local-llmup.md)
-> Status: **Draft — U1b foundation complete; U0b CI matrix pending; later U1 decisions remain**
+> Status: **Draft — U1c foundation complete; U0b CI matrix pending; U1d remains**
 > Last updated: 2026-08-08
 
 ## Overview
@@ -233,16 +233,29 @@ dry-run, code review SHIP, and security review GO.
 
 ---
 
-#### Task U1c: Controller/driver contracts + command view-model adapters
+#### Task U1c: Controller/driver contracts + command view-model adapters ✅ DONE (2026-08-08)
 
 **Description:** Introduce typed UI driver/controller interfaces and pure
 view-model builders for read-only command results.
 
 **Acceptance criteria:**
 
-- [ ] UI driver cannot access backend/state/fs dependencies by type shape.
-- [ ] Existing result formatters remain plain/JSON source of truth.
-- [ ] `complete(screen, viewModel)` accepts only command-specific mapped view models.
+- [x] UI driver cannot access backend/state/fs dependencies by type shape.
+- [x] Existing result formatters remain plain/JSON source of truth.
+- [x] `complete(screen, viewModel)` accepts only command-specific mapped view models.
+
+**Evidence:** `src/tui/types.ts`, `src/tui/presenter.ts`,
+`src/tui/view-model-schema.ts`, and `src/tui/read-only-view-models.ts` provide a
+restricted controller-facing driver, strict command-specific completion DTOs,
+immutable sanitized projections, exact decision/progress validation, generation-
+isolated bounded progress, at-most-once execution, and exactly-once completion.
+Read-only command producers return immutable typed evidence for recommendation,
+can-run, doctor, catalog, and active runtime state without changing authoritative
+plain/JSON formatters. Canonical action values remain separate from bounded display
+text and command slots revalidate model IDs. Focused verification: 10 files / 151
+tests passed before final protocol hardening. Full verification: 70 files / 1,249
+tests, build, typecheck, lint, script-free pack dry-run, and `git diff --check`
+passed. Independent code review: SHIP. Independent security review: GO.
 
 **Verification command:**
 

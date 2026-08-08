@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { runCatalog, type CatalogDeps } from "../../src/commands/catalog.js";
 import type { Catalog, CatalogModel, HardwareProfile, Quantization } from "../../src/types.js";
 import type { RawRegistryModel } from "../../src/catalog/enrich.js";
+import { createDefaultRegistry } from "../../src/backend/registry.js";
+import { requiredMemoryBytes } from "../../src/hardware/memory-math.js";
 import {
   expectNoninteractiveGolden,
   plainGoldenName,
@@ -74,6 +76,7 @@ function baseDeps(overrides: Partial<CatalogDeps> = {}): { deps: CatalogDeps; st
       diff: { added: [], updated: [], removed: [], skipped: [], capped: [] },
     })),
     now: () => new Date("2026-08-05T00:00:00.000Z"),
+    registry: createDefaultRegistry(),
     write: (text) => stdout.push(text),
     ...overrides,
   };
@@ -84,10 +87,20 @@ describe("runCatalog", () => {
   it("shows only fitting models by default", async () => {
     const { deps, stdout } = baseDeps();
 
-    await withGoldenEnvironment(() => runCatalog({}, deps));
+    const result = await withGoldenEnvironment(() => runCatalog({}, deps));
 
     const out = stdout.join("");
     expectNoninteractiveGolden(plainGoldenName("catalog"), out);
+    expect(result).toMatchObject({
+      filter: "fits",
+      total: 2,
+      refresh: null,
+      emptyReason: null,
+    });
+    expect(result.rows.map((row) => row.model.id)).toEqual(["llama3.1:8b"]);
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(Object.isFrozen(result.rows)).toBe(true);
+    expect(Object.isFrozen(result.rows[0]?.model)).toBe(true);
     expect(out).toContain("llama3.1:8b");
     expect(out).not.toContain("kimi-k2:instruct");
     expect(out).toContain("Filter: fits");
@@ -96,13 +109,48 @@ describe("runCatalog", () => {
   it("shows all models when --all is enabled", async () => {
     const { deps, stdout } = baseDeps();
 
-    await runCatalog({ all: true }, deps);
+    const result = await runCatalog({ all: true }, deps);
 
     const out = stdout.join("");
     expect(out).toContain("llama3.1:8b");
     expect(out).toContain("kimi-k2:instruct");
     expect(out).toContain("Filter: all");
     expect(out).toContain("ram-bound");
+    expect(result.rows.map((row) => row.fit)).toEqual(["fit", "ram-bound"]);
+  });
+
+  it("reports the evaluated memory requirement for a VRAM-bound row", async () => {
+    const discreteGpu: HardwareProfile = {
+      arch: "x64",
+      platform: "linux",
+      totalRamBytes: 128 * GiB,
+      freeRamBytes: 100 * GiB,
+      gpu: [{ vendor: "nvidia", vramBytes: 8 * GiB }],
+      freeDiskBytes: 500 * GiB,
+    };
+    const gpuQuant: Quantization = {
+      name: "Q4_K_M",
+      diskBytes: 5 * GiB,
+      minRamBytes: 6 * GiB,
+      minVramBytes: 12 * GiB,
+    };
+    const gpuModel = model("gpu:model", "20B", [gpuQuant]);
+    const gpuCatalog: Catalog = {
+      schemaVersion: 2,
+      generatedAt: "2026-08-04T00:00:00.000Z",
+      models: [gpuModel],
+    };
+    const { deps } = baseDeps({
+      loadCatalog: () => gpuCatalog,
+      detectHardware: async () => discreteGpu,
+    });
+
+    const result = await runCatalog({ all: true }, deps);
+
+    expect(result.rows[0]).toMatchObject({
+      fit: "vram-bound",
+      requiredBytes: requiredMemoryBytes(gpuModel, gpuQuant),
+    });
   });
 
   it("renders a stable header and deterministic row order (release desc, id asc tie-break)", async () => {

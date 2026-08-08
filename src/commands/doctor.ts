@@ -19,6 +19,7 @@ import { createDefaultRegistry, type BackendRegistry } from "../backend/registry
 import { autoDetectPriority } from "../backend/select.js";
 import { readState, type RuntimeState } from "../state/state.js";
 import type { Bottleneck, Catalog, HardwareProfile, HardwareScore } from "../types.js";
+import { immutableSnapshot } from "../immutable.js";
 
 /** Least usable memory (RAM or VRAM) that can load even the smallest model. */
 const MIN_USABLE_MEMORY_BYTES = 1024 ** 3; // 1 GiB
@@ -353,7 +354,7 @@ export async function runDoctor(
   const ok = checks.every((c) => c.status !== "fail");
   const hardwareScore = detection.ok ? computeHardwareScore(detection.profile) : null;
   const backends = await probeBackends(deps.registry, detection);
-  const report: DoctorReport = { checks, ok, hardwareScore, backends };
+  const report: DoctorReport = immutableSnapshot({ checks, ok, hardwareScore, backends });
 
   if (options.json === true) {
     deps.write(`${JSON.stringify(report, null, 2)}\n`);

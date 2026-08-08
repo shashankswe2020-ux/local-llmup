@@ -27,6 +27,8 @@ export interface FitOk {
 export interface FitFail {
   readonly fits: false;
   readonly reason: FitReason;
+  readonly usableBytes: number;
+  readonly requiredBytes: number | null;
 }
 
 export type FitResult = FitOk | FitFail;
@@ -61,7 +63,12 @@ export function evaluateFitAtContext(
   tokens: number,
 ): FitResult {
   if (tokens > model.contextLength) {
-    return { fits: false, reason: "context-bound" };
+    return {
+      fits: false,
+      reason: "context-bound",
+      usableBytes: usableMemoryBytes(hw),
+      requiredBytes: null,
+    };
   }
   if (model.kvBytesPerToken === undefined) {
     return evaluateFit(model, hw);
@@ -125,5 +132,5 @@ function evaluateFitWith(
   // when the most-forgiving quant fails both.
   const reason: FitReason =
     mostForgiving === undefined || !mostForgiving.memoryFits ? memoryReason : "disk-bound";
-  return { fits: false, reason };
+  return { fits: false, reason, usableBytes, requiredBytes: mostForgiving?.requiredBytes ?? null };
 }

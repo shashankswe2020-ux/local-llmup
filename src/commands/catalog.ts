@@ -13,10 +13,14 @@ import {
   type RawRegistryModel,
 } from "../catalog/enrich.js";
 import { loadCatalog } from "../catalog/load.js";
+import { backendsForModel } from "../catalog/backends.js";
 import { REGISTRY_SNAPSHOT } from "../catalog/registry-snapshot.js";
+import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import { detectHardware } from "../hardware/detect.js";
+import { requiredMemoryBytes } from "../hardware/memory-math.js";
 import { renderTable, type Column } from "../output.js";
-import { evaluateFit } from "../ranking/fit.js";
+import { evaluateFit, type FitReason } from "../ranking/fit.js";
+import { immutableSnapshot } from "../immutable.js";
 import type { Catalog, CatalogModel, HardwareProfile, Quantization } from "../types.js";
 
 /** Inputs for the `catalog` command. */
@@ -37,8 +41,26 @@ export interface CatalogDeps {
     readonly diff: EnrichDiff;
   };
   readonly now: () => Date;
+  readonly registry: BackendRegistry;
   /** Command result data → stdout. */
   readonly write: (text: string) => void;
+}
+
+export interface CatalogRow {
+  readonly model: CatalogModel;
+  readonly quant: Quantization;
+  readonly requiredBytes: number;
+  readonly fit: "fit" | FitReason;
+  readonly supportedBackends: readonly string[];
+}
+
+export interface CatalogResult {
+  readonly filter: "fits" | "all";
+  readonly total: number;
+  readonly hardware: HardwareProfile;
+  readonly rows: readonly CatalogRow[];
+  readonly refresh: EnrichDiff | null;
+  readonly emptyReason: "catalog-empty" | "no-models-fit" | null;
 }
 
 const createDefaultDeps = (): CatalogDeps => ({
@@ -47,6 +69,7 @@ const createDefaultDeps = (): CatalogDeps => ({
   loadCandidates: () => REGISTRY_SNAPSHOT,
   enrichCatalog: (options) => enrichCatalog(options),
   now: () => new Date(),
+  registry: createDefaultRegistry(),
   write: (text) => process.stdout.write(text),
 });
 
@@ -77,11 +100,13 @@ function smallestQuant(model: CatalogModel): Quantization {
   }
   let smallest = first;
   for (const quant of model.quantizations.slice(1)) {
-    if (quant.minRamBytes < smallest.minRamBytes) {
+    const required = requiredMemoryBytes(model, quant);
+    const smallestRequired = requiredMemoryBytes(model, smallest);
+    if (required < smallestRequired) {
       smallest = quant;
       continue;
     }
-    if (quant.minRamBytes === smallest.minRamBytes && quant.name < smallest.name) {
+    if (required === smallestRequired && quant.name < smallest.name) {
       smallest = quant;
     }
   }
@@ -115,8 +140,9 @@ function renderRefresh(diff: EnrichDiff): string {
 export async function runCatalog(
   options: CatalogOptions,
   deps: CatalogDeps = createDefaultDeps(),
-): Promise<void> {
+): Promise<CatalogResult> {
   let catalog = deps.loadCatalog();
+  let refreshDiff: EnrichDiff | null = null;
 
   if (options.refresh === true) {
     const refreshed = deps.enrichCatalog({
@@ -126,48 +152,67 @@ export async function runCatalog(
       now: deps.now(),
     });
     catalog = refreshed.catalog;
+    refreshDiff = refreshed.diff;
     deps.write(renderRefresh(refreshed.diff));
   }
 
   const hw = await deps.detectHardware();
   const showAll = options.all === true;
   const sorted = [...catalog.models].sort(byRecencyThenId);
-  const rows: string[][] = [];
+  const resultRows: CatalogRow[] = [];
 
   for (const model of sorted) {
     const fit = evaluateFit(model, hw);
     if (!showAll && !fit.fits) continue;
 
     if (fit.fits) {
-      rows.push([
-        model.id,
-        model.params,
-        model.architecture,
-        fit.quant.name,
-        formatGiB(fit.requiredBytes),
-        "fit",
-        model.releaseDate,
-      ]);
+      resultRows.push({
+        model,
+        quant: fit.quant,
+        requiredBytes: fit.requiredBytes,
+        fit: "fit",
+        supportedBackends: backendsForModel(model, deps.registry, hw).map(
+          (adapter) => adapter.name,
+        ),
+      });
       continue;
     }
 
     const quant = smallestQuant(model);
-    rows.push([
-      model.id,
-      model.params,
-      model.architecture,
-      quant.name,
-      formatGiB(quant.minRamBytes),
-      fit.reason,
-      model.releaseDate,
-    ]);
+    resultRows.push({
+      model,
+      quant,
+      requiredBytes: fit.requiredBytes ?? requiredMemoryBytes(model, quant),
+      fit: fit.reason,
+      supportedBackends: backendsForModel(model, deps.registry, hw).map(
+        (adapter) => adapter.name,
+      ),
+    });
   }
 
-  const header = `Catalog (Filter: ${showAll ? "all" : "fits"}, shown: ${String(rows.length)}/${String(sorted.length)})`;
+  const result: CatalogResult = immutableSnapshot({
+    filter: showAll ? "all" : "fits",
+    total: sorted.length,
+    hardware: hw,
+    rows: resultRows,
+    refresh: refreshDiff,
+    emptyReason: resultRows.length > 0 ? null : sorted.length === 0 ? "catalog-empty" : "no-models-fit",
+  });
+  const rows = result.rows.map((row) => [
+    row.model.id,
+    row.model.params,
+    row.model.architecture,
+    row.quant.name,
+    formatGiB(row.requiredBytes),
+    row.fit,
+    row.model.releaseDate,
+  ]);
+  const header = `Catalog (Filter: ${result.filter}, shown: ${String(rows.length)}/${String(result.total)})`;
   deps.write(`${header}\n`);
   if (rows.length === 0) {
     deps.write("No models fit this hardware. Re-run with --all to see the full catalog.\n");
-    return;
+    return result;
   }
   deps.write(`${renderTable(TABLE_COLUMNS, rows)}\n`);
+  return result;
 }

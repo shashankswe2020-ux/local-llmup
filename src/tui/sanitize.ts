@@ -2,6 +2,8 @@ import stringWidth from "string-width";
 import { ValidationError } from "../errors.js";
 
 export type TerminalTextContext = "action_identifier" | "single_line" | "multiline";
+declare const TERMINAL_TEXT_BRAND: unique symbol;
+export type TerminalText = string & { readonly [TERMINAL_TEXT_BRAND]: true };
 
 export const TERMINAL_TEXT_LIMITS = {
   cellBytes: 256,
@@ -26,8 +28,8 @@ export interface TerminalMessageBuffer {
 }
 
 export type SanitizedActionIdentifier =
-  | { readonly actionable: true; readonly canonical: string; readonly display: string }
-  | { readonly actionable: false; readonly display: string };
+  | { readonly actionable: true; readonly canonical: string; readonly display: TerminalText }
+  | { readonly actionable: false; readonly display: TerminalText };
 
 export interface TerminalFrameBuilder {
   append(value: string): void;
@@ -234,7 +236,7 @@ export function sanitizeTerminalText(
   value: string,
   context: TerminalTextContext,
   options: TerminalTextOptions = {},
-): string {
+): TerminalText {
   if (options.profile === "chat_visible" && context !== "multiline") {
     throw new ValidationError("chat_visible profile requires multiline context");
   }
@@ -271,7 +273,12 @@ export function sanitizeTerminalText(
     context === "action_identifier"
       ? escapeActionIdentifier(value, bufferLimit)
       : escapeProse(value, context === "multiline", bufferLimit);
-  return truncateTerminalText(escaped.value, maxBytes, maxColumns, escaped.truncated);
+  return truncateTerminalText(
+    escaped.value,
+    maxBytes,
+    maxColumns,
+    escaped.truncated,
+  ) as TerminalText;
 }
 
 export function sanitizeActionIdentifier(
@@ -294,7 +301,7 @@ export function sanitizeActionIdentifier(
     TERMINAL_TEXT_LIMITS.cellBytes,
     10_000,
     escaped.truncated,
-  );
+  ) as TerminalText;
   return actionable ? { actionable: true, canonical, display } : { actionable: false, display };
 }
 

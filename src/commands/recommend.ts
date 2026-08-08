@@ -20,10 +20,16 @@ import { DEFAULT_THROUGHPUT_BACKEND } from "../advisor/throughput.js";
 import { backendsForModel } from "../catalog/backends.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import { renderJson, renderTable, type Column } from "../output.js";
-import { rankModels, type RankOptions, type WontFitModel } from "../ranking/rank.js";
+import {
+  rankModels,
+  type RankOptions,
+  type RankScores,
+  type WontFitModel,
+} from "../ranking/rank.js";
 import { HEADROOM } from "../ranking/weights.js";
 import { stripControl } from "../sanitize.js";
 import { ValidationError } from "../errors.js";
+import { immutableSnapshot } from "../immutable.js";
 import { z } from "zod";
 import { BACKEND_NAMES } from "../types.js";
 import type {
@@ -131,16 +137,25 @@ export interface RecommendationEntry {
   readonly quant: Quantization;
   readonly requiredBytes: number;
   readonly score: number;
+  readonly scores: RankScores;
+  readonly usableBytes: number;
   /** Runnability on this hardware — `yes` or `slow` (fitting models never `no`). */
   readonly verdict: Runnable;
   /** Estimated decode throughput; `known:false` when the hardware has no profile. */
   readonly throughput: ThroughputEstimate;
+  readonly throughputEvidence: ThroughputEvidence;
   /** Registered backends that can serve this model, in registration order (may be empty). */
   readonly backends: readonly string[];
   /** Present in `--context` mode: weights + KV footprint at the requested context. */
   readonly contextSizing?: ContextSizing;
   /** Present in `--max-context` mode: the largest holdable context. */
   readonly maxContext?: MaxContextInfo;
+}
+
+export interface ThroughputEvidence {
+  readonly backend: BackendName;
+  readonly source: "offline-estimate";
+  readonly unknownReason: "no-sourced-performance-profile" | null;
 }
 
 /** The full recommendation: what fits, what does not, and the top-pick command. */
@@ -228,8 +243,15 @@ export function buildRecommendation(
       quant: ranked.quant,
       requiredBytes: ranked.requiredBytes,
       score: ranked.score,
+      scores: ranked.scores,
+      usableBytes: ranked.usableBytes,
       verdict: verdict.runnable,
       throughput: verdict.throughput,
+      throughputEvidence: {
+        backend: throughputBackend,
+        source: "offline-estimate",
+        unknownReason: verdict.throughput.known ? null : "no-sourced-performance-profile",
+      },
       backends: backendsForModel(ranked.model, registry, hardware).map((adapter) => adapter.name),
       ...(contextSizing !== undefined ? { contextSizing } : {}),
       ...(maxContext !== undefined ? { maxContext } : {}),
@@ -253,7 +275,7 @@ export function buildRecommendation(
   }
 
   const top = entries[0];
-  return {
+  return immutableSnapshot({
     hardware,
     usableBytes,
     memoryKind: usableMemoryKind(hardware),
@@ -263,7 +285,7 @@ export function buildRecommendation(
     throughputBackend,
     ...(options.context !== undefined ? { context: options.context } : {}),
     maxContextMode: options.maxContext === true,
-  };
+  });
 }
 
 function formatGiB(bytes: number): string {
@@ -486,7 +508,7 @@ const defaultDeps: RecommendDeps = {
 export async function runRecommend(
   options: RecommendOptions = {},
   deps: RecommendDeps = defaultDeps,
-): Promise<void> {
+): Promise<RecommendationResult> {
   const catalog = deps.loadCatalog();
   const hardware = await deps.detectHardware();
   const perf = deps.loadPerf();
@@ -506,4 +528,5 @@ export async function runRecommend(
   );
   const report = options.json ? formatRecommendationJson(result) : formatRecommendationText(result);
   deps.write(`${report}\n`);
+  return result;
 }
