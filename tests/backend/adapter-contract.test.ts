@@ -10,6 +10,7 @@ import {
 import type { BackendAdapter, PullOptions, ServeOptions } from "../../src/backend/adapter.js";
 import { LlamaCppAdapter } from "../../src/backend/llamacpp.js";
 import { MlxAdapter } from "../../src/backend/mlx.js";
+import { LmStudioAdapter, type LmsCommandFn } from "../../src/backend/lmstudio.js";
 import { createDefaultRegistry } from "../../src/backend/registry.js";
 import {
   OllamaAdapter,
@@ -142,6 +143,7 @@ interface IntegrityCase {
 interface AdapterContract {
   readonly name: BackendName;
   readonly supportsTrustedAttach: boolean;
+  readonly attachOnly?: boolean;
   createServe(listener?: Partial<FakeListener>, startsListener?: boolean): ServeContractInstance;
   readonly integrityCases: readonly IntegrityCase[];
 }
@@ -292,6 +294,34 @@ function mlxIntegrityCase(name: string, message: string): IntegrityCase {
       expect(requests).toEqual([{ backend: "mlx", ...repository }]);
     },
   };
+}
+
+function lmStudioFetch(listener: FakeListener): FetchFn {
+  const lmResponse = (ok: boolean, status: number, body: unknown): FetchResponseLike => ({
+    ok,
+    status,
+    body: new Response(JSON.stringify(body), { status }).body,
+  });
+  return vi.fn<FetchFn>((url) => {
+    if (!listener.listening) return Promise.reject(new Error("ECONNREFUSED"));
+    const path = new URL(url).pathname;
+    if (path === "/lmstudio-greeting") {
+      return Promise.resolve(
+        listener.identity === "trusted"
+          ? lmResponse(true, 200, { lmstudio: true })
+          : lmResponse(true, 200, { lmstudio: false }),
+      );
+    }
+    if (path === "/v1/models") {
+      return Promise.resolve(
+        lmResponse(true, 200, {
+          object: "list",
+          data: listener.ready ? [{ id: "qwen3:14b" }] : [],
+        }),
+      );
+    }
+    return Promise.resolve(response(false, 404));
+  });
 }
 
 const CONTRACTS: readonly AdapterContract[] = [
@@ -487,6 +517,80 @@ const CONTRACTS: readonly AdapterContract[] = [
       mlxIntegrityCase("fails closed on incomplete repository manifest", "missing artifact"),
     ],
   },
+  {
+    name: "lmstudio",
+    supportsTrustedAttach: true,
+    attachOnly: true,
+    createServe(overrides = {}): ServeContractInstance {
+      const listener: FakeListener = {
+        listening: true,
+        identity: "trusted",
+        ready: true,
+        ...overrides,
+      };
+      const spawn = makeSpawnHarness(listener, false);
+      const runCommand = vi.fn<LmsCommandFn>((args) =>
+        Promise.resolve({
+          code: 0,
+          stdout:
+            args[0] === "server"
+              ? JSON.stringify({ running: true, port: 1234 })
+              : args[0] === "ps"
+                ? JSON.stringify([
+                    { identifier: "qwen3:14b", path: "Qwen/model.gguf" },
+                  ])
+                : "[]",
+          stderr: "",
+        }),
+      );
+      return {
+        adapter: new LmStudioAdapter({
+          platform: "darwin",
+          spawn: spawn.spawn,
+          runCommand,
+          fetch: lmStudioFetch(listener),
+          sleep: noSleep,
+          listenerProbe: async () => (listener.listening ? {
+            pid: 4242,
+            process: "LM Studio",
+            executable: "/Applications/LM Studio.app/Contents/MacOS/LM Studio",
+            started: "2026-08-08T00:00:00Z",
+            localAddress: "127.0.0.1",
+          } : null),
+        }),
+        listener,
+        spawn,
+        options: {
+          host: "127.0.0.1",
+          port: 1234,
+          modelId: "qwen3:14b",
+          modelPath: "Qwen/model.gguf",
+        },
+        assertExplicitLoopback(): void {},
+      };
+    },
+    integrityCases: [
+      {
+        name: "fails closed when delegated weights are absent",
+        async run(): Promise<void> {
+          const adapter = new LmStudioAdapter({
+            runCommand: () => Promise.resolve({ code: 0, stdout: "[]", stderr: "" }),
+          });
+          await expect(
+            adapter.pull({
+              modelId: "qwen3:14b",
+              source: {
+                repo: "Qwen/Qwen3-14B-GGUF",
+                revision: "a".repeat(40),
+                file: "model.gguf",
+                sha256: "b".repeat(64),
+              },
+            }),
+          ).rejects.toBeInstanceOf(BackendError);
+        },
+      },
+    ],
+  },
 ];
 
 describe("BackendAdapter contract registration", () => {
@@ -504,6 +608,13 @@ describe.each(CONTRACTS)("BackendAdapter contract — $name", (contract) => {
     const instance = contract.createServe();
 
     const handle = await instance.adapter.serve(instance.options);
+
+    if (contract.attachOnly === true) {
+      expect(handle.ownedByUs).toBe(false);
+      expect(handle.endpoint).toContain("127.0.0.1");
+      expect(instance.spawn.records).toHaveLength(0);
+      return;
+    }
 
     expect(handle.ownedByUs).toBe(true);
     expect(handle.endpoint).toContain("127.0.0.1");
@@ -525,7 +636,7 @@ describe.each(CONTRACTS)("BackendAdapter contract — $name", (contract) => {
     ).rejects.toBeInstanceOf(ValidationError);
 
     expect(instance.spawn.records).toHaveLength(0);
-    expect(instance.listener.listening).toBe(false);
+    expect(instance.listener.listening).toBe(contract.attachOnly === true);
   });
 
   it("refuses a foreign listener during port-ownership preflight", async () => {
@@ -553,6 +664,12 @@ describe.each(CONTRACTS)("BackendAdapter contract — $name", (contract) => {
     const instance = contract.createServe({ ready: false }, false);
 
     await expect(instance.adapter.serve(instance.options)).rejects.toBeInstanceOf(BackendError);
+
+    if (contract.attachOnly === true) {
+      expect(instance.spawn.records).toHaveLength(0);
+      expect(instance.spawn.killed).toEqual([]);
+      return;
+    }
 
     expect(instance.spawn.records).toHaveLength(1);
     expect(instance.spawn.killed).toEqual(["SIGTERM"]);

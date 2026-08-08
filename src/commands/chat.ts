@@ -199,7 +199,8 @@ export async function runChat(
       ...(active.ownedByUs && active.authToken !== undefined
         ? { authToken: active.authToken }
         : {}),
-      ...(active.ownedByUs &&
+      ...(active.modelPath !== undefined ? { expectedModelPath: active.modelPath } : {}),
+      ...(active.pid !== undefined &&
       active.processExecutable !== undefined &&
       active.processStartedAt !== undefined
         ? {

@@ -73,6 +73,11 @@ export async function runSwitch(
   const adapter = (
     await select({ intent: "attach", registry: deps.registry, activeBackend: current.backend })
   ).adapter;
+  if (!adapter.capabilities.canPull) {
+    throw new ValidationError(
+      `${adapter.name} models are runtime-managed; run \`local-llmup up ${target.id} --backend ${adapter.name}\` to attach the target`,
+    );
+  }
   if (
     adapter.capabilities.formats.includes("gguf") ||
     adapter.capabilities.formats.includes("mlx")

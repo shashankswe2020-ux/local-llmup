@@ -43,6 +43,7 @@ const ServerStateCommonSchema = z
       { message: "endpoint must be loopback HTTP" },
     ),
     port: z.number().int().min(1).max(65535),
+    modelPath: z.string().min(1).optional(),
   })
   .strict();
 
@@ -58,6 +59,9 @@ const OwnedServerStateSchema = ServerStateCommonSchema.extend({
 /** A daemon we attached to and do not own (no trusted pid available). */
 const AttachedServerStateSchema = ServerStateCommonSchema.extend({
   ownedByUs: z.literal(false),
+  pid: z.number().int().positive().optional(),
+  processExecutable: z.string().min(1).optional(),
+  processStartedAt: z.string().min(1).optional(),
 }).strict();
 
 /** A running inference server that this CLI knows about. */
@@ -93,11 +97,47 @@ const RuntimeStateSchema = z
           }
         }
       }
+    } else if (state.active.backend === "lmstudio") {
+      if (state.active.ownedByUs) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["active", "ownedByUs"],
+          message: "LM Studio state must describe an attached server",
+        });
+      } else {
+        for (const field of [
+          "pid",
+          "processExecutable",
+          "processStartedAt",
+          "modelPath",
+        ] as const) {
+          if (state.active[field] === undefined) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["active", field],
+              message: `attached LM Studio state requires ${field}`,
+            });
+          }
+        }
+      }
+    } else if (!state.active.ownedByUs && state.active.pid !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["active", "pid"],
+        message: "attached PID is only valid for LM Studio state",
+      });
     } else if (state.active.ownedByUs && state.active.authToken !== undefined) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["active", "authToken"],
         message: "session token is only valid for MLX state",
+      });
+    }
+    if (state.active.backend !== "lmstudio" && state.active.modelPath !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["active", "modelPath"],
+        message: "delegated model path is only valid for LM Studio state",
       });
     }
     const url = new URL(state.active.endpoint);

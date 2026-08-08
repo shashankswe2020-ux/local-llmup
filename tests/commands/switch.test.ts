@@ -53,8 +53,9 @@ interface FakeAdapter extends BackendAdapter {
 }
 
 function fakeAdapter(options: {
-  name?: "ollama" | "llamacpp" | "mlx";
+  name?: "ollama" | "llamacpp" | "mlx" | "lmstudio";
   formats?: readonly ("ollama" | "gguf" | "mlx")[];
+  canPull?: boolean;
 } = {}): FakeAdapter {
   const pullArgs: PullOptions[] = [];
   const readyArgs: ReadinessOptions[] = [];
@@ -63,7 +64,7 @@ function fakeAdapter(options: {
     readyArgs,
     name: options.name ?? "ollama",
     capabilities: {
-      canPull: true,
+      canPull: options.canPull ?? true,
       canEmbed: true,
       openAiCompatible: true,
       formats: options.formats ?? ["ollama"],
@@ -250,6 +251,33 @@ describe("runSwitch", () => {
 
     expect(adapter.pullArgs).toHaveLength(0);
     expect(readState(config).active).toMatchObject({ modelId: "llama3.1:8b" });
+  });
+
+  it("rejects switch for runtime-managed LM Studio models", async () => {
+    writeState(config, {
+      schemaVersion: STATE_SCHEMA_VERSION,
+      active: {
+        backend: "lmstudio",
+        modelId: "llama3.1:8b",
+        endpoint: "http://127.0.0.1:1234",
+        port: 1234,
+        ownedByUs: false,
+        pid: 7001,
+        processExecutable: "/Applications/LM Studio.app/Contents/MacOS/LM Studio",
+        processStartedAt: "2026-08-08T00:00:00Z",
+        modelPath: "Qwen/model.gguf",
+      },
+    });
+    const adapter = fakeAdapter({
+      name: "lmstudio",
+      formats: ["gguf", "mlx"],
+      canPull: false,
+    });
+
+    await expect(runSwitch({ model: "qwen2.5:7b" }, deps(adapter))).rejects.toThrow(
+      /runtime-managed|local-llmup up/i,
+    );
+    expect(adapter.pullArgs).toHaveLength(0);
   });
 
   it("aborts commit when the active server changes during preparation", async () => {

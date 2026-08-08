@@ -216,6 +216,7 @@ describe("select — auto-detect priority", () => {
     await expect(
       select({ intent: "create", registry, platform: "linux", arch: "x64" }),
     ).rejects.toBeInstanceOf(BackendError);
+    expect(lmstudio.isInstalled).not.toHaveBeenCalled();
   });
 
   it("throws BackendError listing install hints when nothing is installed", async () => {

@@ -1,4 +1,4 @@
-import type { Arch, BackendName, Platform } from "../types.js";
+import type { Arch, BackendName, ModelFormat, Platform } from "../types.js";
 
 /** Deterministic target facts used to gate platform-specific runtimes offline. */
 export interface BackendPlatformTarget {
@@ -16,4 +16,17 @@ export function backendSupportsPlatform(
   target: BackendPlatformTarget,
 ): boolean {
   return backend !== "mlx" || (target.platform === "darwin" && target.arch === "arm64");
+}
+
+/** Whether one backend format is runnable on the target platform. */
+export function backendSupportsFormatOnPlatform(
+  backend: BackendName,
+  format: ModelFormat,
+  target: BackendPlatformTarget,
+): boolean {
+  if (!backendSupportsPlatform(backend, target)) return false;
+  if (backend === "lmstudio" && format === "mlx") {
+    return target.platform === "darwin" && target.arch === "arm64";
+  }
+  return true;
 }

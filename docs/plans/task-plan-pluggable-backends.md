@@ -2,7 +2,7 @@
 
 > Source spec: [docs/specs/pluggable-inference-backends.md](../specs/pluggable-inference-backends.md) (Draft v0.5)
 > Related: [docs/specs/local-llmup.md](../specs/local-llmup.md), [docs/specs/hardware-advisor.md](../specs/hardware-advisor.md)
-> Status: **In progress — Phase 3 complete**
+> Status: **Complete — Checkpoint E shippable**
 > Last updated: 2026-08-08
 
 ## Overview
@@ -52,7 +52,7 @@ Phase 0/1. Proposed defaults given.
 | D1 | Which catalog models get `gguf` sources + where digests come from | B15 | 3–5 popular models (e.g. Qwen3, Llama-3.1, Mistral) from official HF GGUF repos; `sha256` cross-checked against HF LFS pointer at ingest |
 | D2 | `(class, llamacpp)` efficiency rows: reuse existing class scalar (shared with ollama) vs re-derive per §12.2b | B15 | Reuse existing class scalar (spec §2.7 — `ollama`/`llamacpp` share); no NVIDIA re-derivation in this effort |
 | D3 | `(class, mlx)` efficiency: ship `unknown` vs seed a cited low-confidence value | B18 | Ship **`unknown`** (spec §12.2c — no reproducible primary source) |
-| D4 | Minimum `llama-server` / `mlx_lm` / `lms` versions the adapters target | B14a, B16, B17, B19 | MLX permits audited `mlx-lm==0.31.3` only (latest non-yanked stable verified 2026-08-08); others recorded at implementation |
+| D4 | Minimum `llama-server` / `mlx_lm` / `lms` versions the adapters target | B14a, B16, B17, B19 | MLX permits audited `mlx-lm==0.31.3`; LM Studio targets the 0.4.20+1 / `lms` CLI commit `71bd99c` JSON contract verified 2026-08-08; llama.cpp recorded at implementation |
 
 ## Architecture decisions
 
@@ -159,9 +159,9 @@ a `ModelFormat` union to `types.ts`; give `OllamaAdapter` its descriptor
 (`canPull:true`, `canEmbed:true`, `openAiCompatible:true`, `formats:["ollama"]`,
 `defaultPort:11434`). No behavior change.
 **Acceptance:**
-- [ ] `BackendCapabilities` + `ModelFormat` (`"gguf"|"mlx"|"ollama"|"safetensors"`) exported from `types.ts`.
-- [ ] `BackendAdapter` gains readonly `capabilities`; `OllamaAdapter` implements it.
-- [ ] Existing Ollama tests pass unchanged.
+- [x] `BackendCapabilities` + `ModelFormat` (`"gguf"|"mlx"|"ollama"|"safetensors"`) exported from `types.ts`.
+- [x] `BackendAdapter` gains readonly `capabilities`; `OllamaAdapter` implements it.
+- [x] Existing Ollama tests pass unchanged.
 **Verify:** `npm run typecheck && npm test tests/backend/adapter tests/backend/ollama-lifecycle`
 **Deps:** — **Files:** `src/types.ts`, `src/backend/adapter.ts`, `src/backend/ollama.ts`, `tests/backend/adapter.test.ts` **Scope:** XS
 
@@ -170,8 +170,8 @@ a `ModelFormat` union to `types.ts`; give `OllamaAdapter` its descriptor
 `get(name)`→`ValidationError` on unknown, `available()` probing `isInstalled()`).
 Phase 0 registers Ollama only.
 **Acceptance:**
-- [ ] `get("ollama")` returns the adapter; `get("bogus")` throws `ValidationError`.
-- [ ] `all()` returns a stable-ordered readonly array; `available()` filters by `isInstalled()` (mocked).
+- [x] `get("ollama")` returns the adapter; `get("bogus")` throws `ValidationError`.
+- [x] `all()` returns a stable-ordered readonly array; `available()` filters by `isInstalled()` (mocked).
 **Verify:** `npm test tests/backend/registry`
 **Deps:** B1 **Files:** `src/backend/registry.ts`, `tests/backend/registry.test.ts` **Scope:** S
 
@@ -180,9 +180,9 @@ Phase 0 registers Ollama only.
 `{ schemaVersion: z.literal(1), defaultBackend: z.enum([...names]) }.strict()`,
 byte-capped, owner-only. Fails **closed** on invalid/corrupt/symlink/world-writable.
 **Acceptance:**
-- [ ] Valid config parses; unknown keys/oversized/wrong-version → `ValidationError`.
-- [ ] Symlink or group/other-writable file rejected (mirrors 0600/0700 posture).
-- [ ] Absent/blank → `undefined` (no preference). Loader is **not** called on the advice path.
+- [x] Valid config parses; unknown keys/oversized/wrong-version → `ValidationError`.
+- [x] Symlink or group/other-writable file rejected (mirrors 0600/0700 posture).
+- [x] Absent/blank → `undefined` (no preference). Loader is **not** called on the advice path.
 **Verify:** `npm test tests/config`
 **Deps:** B1 **Files:** `src/config.ts`, `tests/config.test.ts` **Scope:** S
 
@@ -193,9 +193,9 @@ schema, preserving the `ownedByUs` union and owned `pid`. Normalize v1 in memory
 on next mutation. **Moved into Phase 0** because attach-intent `select()` (B5)
 must type-read `state.active.backend` (review finding C1).
 **Acceptance:**
-- [ ] v1 file (`schemaVersion:1`, no `backend`) loads as v2 with `backend:"ollama"`, `pid` preserved on owned.
-- [ ] Attached (`ownedByUs:false`) v1 round-trips to v2 (no `pid`).
-- [ ] Migration is in-memory before validation; file rewritten v2 on next mutation.
+- [x] v1 file (`schemaVersion:1`, no `backend`) loads as v2 with `backend:"ollama"`, `pid` preserved on owned.
+- [x] Attached (`ownedByUs:false`) v1 round-trips to v2 (no `pid`).
+- [x] Migration is in-memory before validation; file rewritten v2 on next mutation.
 **Verify:** `npm test tests/state`
 **Deps:** B1 **Files:** `src/state/state.ts`, `tests/state/state.test.ts` **Scope:** M
 
@@ -206,11 +206,11 @@ attach-intent (`state.active.backend` dominates; conflicting flag/env →
 (`mlx→ollama→llamacpp` on Apple Silicon; else `ollama→llamacpp`). Unknown-serve →
 `BackendError` with `installHint()`s.
 **Acceptance:**
-- [ ] Create-intent precedence order verified (flag > env > config > auto).
-- [ ] Attach-intent: `active.backend` (from B4 v2 state) wins; conflicting `--backend`/env throws `ValidationError`.
-- [ ] Auto-detect only ranks **installed** backends; platform order honored (mocked OS/arch).
-- [ ] "No installed backend can serve" → `BackendError` listing servable backends + hints.
-- [ ] Advice path never reaches the `isInstalled()` branch (asserted).
+- [x] Create-intent precedence order verified (flag > env > config > auto).
+- [x] Attach-intent: `active.backend` (from B4 v2 state) wins; conflicting `--backend`/env throws `ValidationError`.
+- [x] Auto-detect only ranks **installed** backends; platform order honored (mocked OS/arch).
+- [x] "No installed backend can serve" → `BackendError` listing servable backends + hints.
+- [x] Advice path never reaches the `isInstalled()` branch (asserted).
 **Verify:** `npm test tests/backend/select`
 **Deps:** B2, B3, B4 **Files:** `src/backend/select.ts`, `tests/backend/select.test.ts` **Scope:** M
 
@@ -455,9 +455,17 @@ own manager — likely `false`). When `canPull:false`, `up` **attaches + verifie
 presence**; where the resolved GGUF is locatable, verify its digest, else surface
 `digestVerified:false` + a delegated-integrity warning (M1).
 **Acceptance:**
-- [ ] Attach-and-serve path (mocked `lms`); graceful message when model absent in LM Studio.
-- [ ] `canPull:false` path records the delegated-integrity trust boundary (no silent pass).
-- [ ] Contract suite (B16) green for `lmstudio`.
+- [x] Attach-and-serve path (mocked `lms`); graceful message when model absent in LM Studio.
+- [x] `canPull:false` path records the delegated-integrity trust boundary (no silent pass).
+- [x] Contract suite (B16) green for `lmstudio`.
+**Production smoke (2026-08-08):** LM Studio `0.4.20+1` with `lms` CLI commit
+`71bd99c` served on `127.0.0.1:18123`. The production adapter independently
+verified Qwen3 0.6B Q8 weights against the immutable HF SHA-256, attached to the
+exact canonical executable/PID/start/model path without ownership, passed
+process/path-bound readiness and exact marker chat (`LMSTUDIO_RUNTIME_OK`), and
+returned two finite 768-dimensional Nomic embedding vectors. Cleanup unloaded
+the smoke models, released the custom port, and preserved pre-existing
+local-llmup state.
 **Verify:** `npm test tests/backend/lmstudio tests/backend/adapter-contract`
 **Deps:** B5, B16 **Files:** `src/backend/lmstudio.ts`, `src/backend/registry.ts`, `tests/backend/lmstudio.test.ts` **Scope:** L
 
@@ -468,17 +476,17 @@ presence**; where the resolved GGUF is locatable, verify its digest, else surfac
 
 ## Rollup acceptance (mirrors spec §11)
 
-- [ ] No `new OllamaAdapter()` in `src/commands/` — all six sites routed (B6).
-- [ ] `state.json` records `backend`; v1→v2 migration preserves `pid` (B4).
-- [ ] `ModelSourceSchema` accepts `gguf`/`mlx`, rejects globs/unknown keys/floating tags (B7).
+- [x] No `new OllamaAdapter()` in `src/commands/` — all six sites routed (B6).
+- [x] `state.json` records `backend`; v1→v2 migration preserves `pid` (B4).
+- [x] `ModelSourceSchema` accepts `gguf`/`mlx`, rejects globs/unknown keys/floating tags (B7).
 - [x] `recommend`/`can-run` identical with/without backends installed; `throughputBackend` pinned `ollama`; `ollama`/`llamacpp` share scalars; absent pair → `unknown` (B9, B12).
-- [ ] `up --backend <name>` per adapter pulls→verifies→serves→ready, fail-closed on digest/revision/exact-file mismatch (B14c, B17, B19).
-- [ ] Every adapter binds loopback explicitly (arg or env), refuses non-loopback; spawns are arg arrays (with `--` where positional args exist); port-ownership preflight enforced (B16).
-- [ ] `down`/`switch`/`chat`/`migrate` route via `active.backend`; cross-backend `switch` → `ValidationError`; `canEmbed:false` capture is vector-less + `meta.json`-flagged (B6, B10).
+- [x] `up --backend <name>` per adapter pulls→verifies→serves→ready, fail-closed on digest/revision/exact-file mismatch (B14c, B17, B19).
+- [x] Every adapter binds loopback explicitly (arg or env), refuses non-loopback; spawns are arg arrays (with `--` where positional args exist); port-ownership preflight enforced (B16).
+- [x] `down`/`switch`/`chat`/`migrate` route via `active.backend`; cross-backend `switch` → `ValidationError`; `canEmbed:false` capture is vector-less + `meta.json`-flagged (B6, B10).
 - [x] Self-managed downloads pass `assertSafeFetchUrl`, verify-before-activate via atomic rename, never promote a partial (B13).
-- [ ] Invalid/symlink/world-writable/unknown-key config fails closed (B3).
+- [x] Invalid/symlink/world-writable/unknown-key config fails closed (B3).
 - [x] `doctor` lists installed backends + default offline, `stripControl`-clean (B11).
-- [ ] `npm test && npm run typecheck && npm run lint && npm run build` pass at every checkpoint.
+- [x] `npm test && npm run typecheck && npm run lint && npm run build` pass at every checkpoint.
 
 ## Risks & mitigations (plan-level)
 

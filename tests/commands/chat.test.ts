@@ -134,7 +134,7 @@ function harness(options: {
   state?: RuntimeState;
   cat?: Catalog;
   canEmbed?: boolean;
-  backendName?: "ollama" | "llamacpp" | "mlx";
+  backendName?: "ollama" | "llamacpp" | "mlx" | "lmstudio";
   formats?: readonly ("ollama" | "gguf" | "mlx")[];
 }): Harness {
   const { adapter: chatCapable, chat } = chatAdapter(options.replies);
@@ -358,6 +358,7 @@ describe("runChat", () => {
       port: 18082,
       processExecutable: "/usr/bin/python3",
       processStartedAt: "2026-08-08T00:00:00Z",
+      modelPath: "Qwen/model.gguf",
       authToken: "a".repeat(64),
     });
     const { deps, chat } = harness({
@@ -377,6 +378,40 @@ describe("runChat", () => {
         expectedProcess: {
           pid: 9001,
           executable: "/usr/bin/python3",
+          started: "2026-08-08T00:00:00Z",
+        },
+        expectedModelPath: "Qwen/model.gguf",
+      }),
+    );
+  });
+
+  it("routes chat through an attached LM Studio server", async () => {
+    const state = activeState("llama3.1:8b", {
+      backend: "lmstudio",
+      endpoint: "http://127.0.0.1:1234",
+      port: 1234,
+      ownedByUs: false,
+      pid: 7001,
+      processExecutable: "/Applications/LM Studio.app/Contents/MacOS/LM Studio",
+      processStartedAt: "2026-08-08T00:00:00Z",
+    });
+    const { deps, chat } = harness({
+      turns: ["hi"],
+      replies: ["hello"],
+      state,
+      backendName: "lmstudio",
+      formats: ["gguf"],
+    });
+
+    await runChat({}, deps);
+
+    expect(chat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: "http://127.0.0.1:1234",
+        model: "llama3.1:8b",
+        expectedProcess: {
+          pid: 7001,
+          executable: "/Applications/LM Studio.app/Contents/MacOS/LM Studio",
           started: "2026-08-08T00:00:00Z",
         },
       }),

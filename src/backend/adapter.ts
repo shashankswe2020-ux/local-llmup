@@ -87,6 +87,11 @@ export interface PullRepositorySource {
   readonly files: readonly PullRepositoryFile[];
 }
 
+/** One model source candidate managed by an attach-only delegated runtime. */
+export type PullDelegatedSource =
+  | { readonly format: "gguf"; readonly source: PullWeightSource }
+  | { readonly format: "mlx"; readonly repository: PullRepositorySource };
+
 /** Inputs for pulling (downloading) a model quantization. */
 export interface PullOptions {
   readonly modelId: string;
@@ -107,6 +112,8 @@ export interface PullOptions {
   readonly source?: PullWeightSource | undefined;
   /** Complete multi-file repository manifest for MLX-style runtimes. */
   readonly repository?: PullRepositorySource | undefined;
+  /** All catalog candidates an attach-only runtime may already manage. */
+  readonly delegatedSources?: readonly PullDelegatedSource[] | undefined;
   readonly onProgress?: ((event: PullProgress) => void) | undefined;
   readonly signal?: AbortSignal | undefined;
 }
@@ -158,6 +165,8 @@ export interface ServeHandle {
   readonly processStartedAt?: string | undefined;
   /** Per-session bearer secret required by guarded self-managed runtimes. */
   readonly authToken?: string | undefined;
+  /** Exact runtime-managed model path required to revalidate delegated attachment. */
+  readonly modelPath?: string | undefined;
 }
 
 /** Inputs for the readiness probe. */
@@ -171,6 +180,9 @@ export interface ReadinessOptions {
    */
   readonly requireOpenAiCompatibility?: boolean | undefined;
   readonly authToken?: string | undefined;
+  readonly expectedProcess?: ExpectedProcessIdentity | undefined;
+  readonly modelId?: string | undefined;
+  readonly expectedModelPath?: string | undefined;
   readonly signal?: AbortSignal | undefined;
 }
 
@@ -198,6 +210,7 @@ export interface ChatRequest {
   readonly expectedProcess?: ExpectedProcessIdentity | undefined;
   /** Active server bearer secret; required by guarded MLX inference. */
   readonly authToken?: string | undefined;
+  readonly expectedModelPath?: string | undefined;
 }
 
 /** Result of a chat completion. */
@@ -212,6 +225,9 @@ export interface EmbedRequest {
   readonly model: string;
   readonly input: readonly string[];
   readonly signal?: AbortSignal | undefined;
+  /** Persisted attached/owned process expected to own the inference endpoint. */
+  readonly expectedProcess?: ExpectedProcessIdentity | undefined;
+  readonly expectedModelPath?: string | undefined;
 }
 
 /** Result of an embedding request. */

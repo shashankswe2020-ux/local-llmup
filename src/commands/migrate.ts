@@ -99,6 +99,7 @@ function buildSummarizer(
   endpoint: string,
   expectedProcess?: ExpectedProcessIdentity,
   authToken?: string,
+  expectedModelPath?: string,
 ): Summarizer {
   return async (turns: readonly ConversationTurn[]): Promise<string> => {
     const history: ChatMessage[] = turns.map((turn) => ({
@@ -126,6 +127,7 @@ function buildSummarizer(
       messages,
       ...(expectedProcess !== undefined ? { expectedProcess } : {}),
       ...(authToken !== undefined ? { authToken } : {}),
+      ...(expectedModelPath !== undefined ? { expectedModelPath } : {}),
     });
     return result.content;
   };
@@ -179,7 +181,7 @@ export async function runMigrate(
         : toId;
       if (backendModelId !== undefined) {
         const expectedProcess =
-          active.ownedByUs &&
+          active.pid !== undefined &&
           active.processExecutable !== undefined &&
           active.processStartedAt !== undefined
             ? {
@@ -194,6 +196,7 @@ export async function runMigrate(
           active.endpoint,
           expectedProcess,
           active.ownedByUs ? active.authToken : undefined,
+          active.modelPath,
         );
       }
     }

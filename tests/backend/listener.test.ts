@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   findListenerIdentity,
   parseLsofTextExecutable,
+  parsePsStartTime,
 } from "../../src/backend/listener.js";
 
 describe("parseLsofTextExecutable", () => {
@@ -21,6 +22,19 @@ describe("parseLsofTextExecutable", () => {
 
   it("returns null when no txt executable mapping is present", () => {
     expect(parseLsofTextExecutable("p1\nfmem\nn/tmp/file")).toBeNull();
+  });
+});
+
+describe("parsePsStartTime", () => {
+  it("normalizes one stable ps lstart row", () => {
+    expect(parsePsStartTime("Sat Aug  8 11:22:39 2026\n")).toBe(
+      "2026-08-08 11:22:39",
+    );
+  });
+
+  it("rejects blank or multiline output", () => {
+    expect(parsePsStartTime("  \n")).toBeNull();
+    expect(parsePsStartTime("one\ntwo\n")).toBeNull();
   });
 });
 

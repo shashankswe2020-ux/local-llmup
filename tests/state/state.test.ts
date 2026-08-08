@@ -111,6 +111,22 @@ describe("readState", () => {
     ).toThrow(StateError);
   });
 
+  it("rejects owned state for attach-only LM Studio", () => {
+    expect(() =>
+      writeState(config, {
+        schemaVersion: STATE_SCHEMA_VERSION,
+        active: {
+          backend: "lmstudio",
+          modelId: "qwen3:14b",
+          endpoint: "http://127.0.0.1:1234",
+          pid: 42,
+          port: 1234,
+          ownedByUs: true,
+        },
+      }),
+    ).toThrow(StateError);
+  });
+
   it("round-trips an attached server with an unknown pid", () => {
     const attached: RuntimeState = {
       schemaVersion: STATE_SCHEMA_VERSION,

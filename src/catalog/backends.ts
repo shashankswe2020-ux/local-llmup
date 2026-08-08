@@ -10,7 +10,11 @@
  */
 import type { BackendAdapter } from "../backend/adapter.js";
 import type { BackendRegistry } from "../backend/registry.js";
-import { backendSupportsPlatform, type BackendPlatformTarget } from "../backend/platform.js";
+import {
+  backendSupportsFormatOnPlatform,
+  backendSupportsPlatform,
+  type BackendPlatformTarget,
+} from "../backend/platform.js";
 import type { CatalogModel, ModelFormat, ModelSource } from "../types.js";
 
 /**
@@ -55,6 +59,10 @@ export function backendsForModel(
     .all()
     .filter((adapter) => backendSupportsPlatform(adapter.name, target))
     .filter((adapter) =>
-      adapter.capabilities.formats.some((format) => formats.includes(format)),
+      adapter.capabilities.formats.some(
+        (format) =>
+          formats.includes(format) &&
+          backendSupportsFormatOnPlatform(adapter.name, format, target),
+      ),
     );
 }

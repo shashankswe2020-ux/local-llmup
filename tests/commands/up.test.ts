@@ -129,6 +129,7 @@ interface FakeAdapterOptions {
   readonly pullModelPath?: string;
   readonly pullDigestVerified?: boolean;
   readonly stopBehavior?: "resolve" | "reject";
+  readonly canPull?: boolean;
 }
 
 interface FakeAdapter extends BackendAdapter {
@@ -147,7 +148,12 @@ function fakeAdapter(options: FakeAdapterOptions = {}): FakeAdapter {
   const stopped: ServeHandle[] = [];
   const backendName: BackendName = options.name ?? "ollama";
   const formats = options.formats ?? (["ollama"] as const);
-  const defaultPort = backendName === "llamacpp" || backendName === "mlx" ? 8080 : 11434;
+  const defaultPort =
+    backendName === "lmstudio"
+      ? 1234
+      : backendName === "llamacpp" || backendName === "mlx"
+        ? 8080
+        : 11434;
   const handle: ServeHandle = options.handle ?? {
     endpoint: `http://127.0.0.1:${defaultPort}`,
     pid: 9001,
@@ -163,7 +169,7 @@ function fakeAdapter(options: FakeAdapterOptions = {}): FakeAdapter {
     stopped,
     name: backendName,
     capabilities: {
-      canPull: true,
+      canPull: options.canPull ?? true,
       canEmbed: backendName !== "llamacpp" && backendName !== "mlx",
       openAiCompatible: true,
       formats: [...formats],
@@ -367,6 +373,66 @@ describe("runUp", () => {
       authToken: "a".repeat(64),
     });
     expect(adapter.readyArgs[0]?.authToken).toBe("a".repeat(64));
+  });
+
+  it("up --backend lmstudio delegates integrity and records an attached server", async () => {
+    const adapter = fakeAdapter({
+      name: "lmstudio",
+      formats: ["gguf", "mlx"],
+      canPull: false,
+      pullModelPath: "Qwen/Qwen3-14B-GGUF/qwen3-14b-q4.gguf",
+      pullDigestVerified: false,
+      handle: {
+        endpoint: "http://127.0.0.1:1234",
+        pid: 7003,
+        port: 1234,
+        ownedByUs: false,
+        processExecutable: "/Applications/LM Studio.app/Contents/MacOS/LM Studio",
+        processStartedAt: "2026-08-08T00:00:00Z",
+        modelPath: "Qwen/Qwen3-14B-GGUF/qwen3-14b-q4.gguf",
+      },
+    });
+    const cat = catalog([ggufModel("qwen3:14b", [quant("Q4_K_M", 9 * GIB)])]);
+
+    await runUp(
+      { model: "qwen3:14b-Q4_K_M", backend: "lmstudio" },
+      deps(adapter, cat, hardware({ freeDiskBytes: 1 })),
+    );
+
+    expect(adapter.pullArgs).toHaveLength(1);
+    expect(adapter.serveArgs[0]).toMatchObject({
+      host: "127.0.0.1",
+      port: 1234,
+      modelId: "qwen3:14b",
+      modelPath: "Qwen/Qwen3-14B-GGUF/qwen3-14b-q4.gguf",
+    });
+    expect(stderr.join("")).toContain("delegated to lmstudio");
+    expect(readState(config).active).toEqual({
+      backend: "lmstudio",
+      modelId: "qwen3:14b",
+      endpoint: "http://127.0.0.1:1234",
+      port: 1234,
+      ownedByUs: false,
+      pid: 7003,
+      processExecutable: "/Applications/LM Studio.app/Contents/MacOS/LM Studio",
+      processStartedAt: "2026-08-08T00:00:00Z",
+      modelPath: "Qwen/Qwen3-14B-GGUF/qwen3-14b-q4.gguf",
+    });
+  });
+
+  it("rejects LM Studio MLX sources off Apple Silicon before delegated lookup", async () => {
+    const adapter = fakeAdapter({
+      name: "lmstudio",
+      formats: ["gguf", "mlx"],
+      canPull: false,
+    });
+    const cat = catalog([mlxModel("qwen3:14b", [quant("4bit", 9 * GIB)])]);
+    const linux = hardware({ platform: "linux", arch: "x64", gpu: [] });
+
+    await expect(
+      runUp({ model: "qwen3:14b", backend: "lmstudio" }, deps(adapter, cat, linux)),
+    ).rejects.toThrow(/not supported.*linux\/x64/i);
+    expect(adapter.pullArgs).toHaveLength(0);
   });
 
   it("does not pull when an explicitly selected backend is unavailable", async () => {

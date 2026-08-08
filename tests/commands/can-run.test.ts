@@ -157,7 +157,7 @@ describe("backend surfacing (B12)", () => {
     expect(["yes", "slow"]).toContain(result.runnable);
   });
 
-  it("surfaces MLX only on Apple Silicon while keeping throughput unknown", () => {
+  it("surfaces the native MLX adapter only on Apple Silicon while keeping throughput unknown", () => {
     const mlxModel: CatalogModel = {
       ...model("smollm2:360m", "360M", [quant("6bit", 1_300)]),
       source: {
@@ -179,7 +179,7 @@ describe("backend surfacing (B12)", () => {
     });
 
     const supported = buildCanRunResult(mlxModel, apple, perf, "mlx");
-    expect(supported.backends).toEqual(["mlx"]);
+    expect(supported.backends).toEqual(["mlx", "lmstudio"]);
     expect(supported.throughput.known).toBe(false);
 
     const unsupported = buildCanRunResult(mlxModel, hw(), perf, "mlx");

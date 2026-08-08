@@ -26,7 +26,8 @@ import {
 } from "../backend/adapter.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import { select } from "../backend/select.js";
-import { backendsForModel } from "../catalog/backends.js";
+import { backendsForModel, formatsForModel } from "../catalog/backends.js";
+import { backendSupportsFormatOnPlatform } from "../backend/platform.js";
 import {
   STATE_SCHEMA_VERSION,
   readState,
@@ -163,12 +164,9 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
   const resolved = resolveModel(catalog, options.model);
   const model = resolved.model;
 
-  // 2. Disk preflight against the selected quant, using the injectable probe.
+  // 2. Detect hardware and select the requested/default quant.
   const hardware = await deps.detectHardware();
   const quant = chooseQuant(model, resolved.quant, hardware);
-  if (quant.diskBytes > hardware.freeDiskBytes) {
-    throw new ValidationError(insufficientDiskMessage(model, quant, hardware.freeDiskBytes));
-  }
   if (resolved.quant !== undefined) {
     const fit = evaluateRequestedQuantFit(model, quant, hardware);
     if (!fit.fits) {
@@ -195,10 +193,28 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
     ...(deps.configBackend !== undefined ? { configBackend: deps.configBackend } : {}),
   });
   const adapter = selection.adapter;
+  const modelFormats = formatsForModel(model);
+  if (!adapter.capabilities.formats.some((format) => modelFormats.includes(format))) {
+    throw new ValidationError(
+      `model ${model.id} has no source that backend ${adapter.name} can serve`,
+    );
+  }
+  if (
+    !backendsForModel(model, deps.registry, hardware).some(
+      (candidate) => candidate.name === adapter.name,
+    )
+  ) {
+    throw new ValidationError(
+      `model ${model.id} is not supported by backend ${adapter.name} on ${hardware.platform}/${hardware.arch}`,
+    );
+  }
   if (selection.source !== "auto" && !(await adapter.isInstalled())) {
     throw new BackendError(
       `backend ${adapter.name} is unavailable; install it with: ${adapter.installHint()}`,
     );
+  }
+  if (adapter.capabilities.canPull && quant.diskBytes > hardware.freeDiskBytes) {
+    throw new ValidationError(insufficientDiskMessage(model, quant, hardware.freeDiskBytes));
   }
 
   // 4. Pull and verify the weights. Source resolution is format-aware: daemon
@@ -214,7 +230,39 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
     ? model.source.mlx
     : undefined;
   let pullResult: PullResult;
-  if (ollamaId !== undefined) {
+  if (!adapter.capabilities.canPull) {
+    const delegatedSources = [
+      ...(ggufSource !== undefined &&
+      backendSupportsFormatOnPlatform(adapter.name, "gguf", hardware)
+        ? [{ format: "gguf" as const, source: { ...ggufSource } }]
+        : []),
+      ...(mlxSource !== undefined &&
+      backendSupportsFormatOnPlatform(adapter.name, "mlx", hardware)
+        ? [
+            {
+              format: "mlx" as const,
+              repository: {
+                repo: mlxSource.repo,
+                revision: mlxSource.revision,
+                files: mlxSource.files.map((entry) => ({ ...entry })),
+              },
+            },
+          ]
+        : []),
+    ];
+    if (delegatedSources.length === 0) {
+      throw new ValidationError(
+        `model ${model.id} has no source that backend ${adapter.name} can serve`,
+      );
+    }
+    deps.log(`Checking ${stripControl(model.id)} in ${adapter.name}...\n`);
+    pullResult = await adapter.pull({
+      modelId: model.id,
+      delegatedSources,
+      expectedSizeBytes: quant.diskBytes,
+      onProgress: (event) => deps.log(`  ${stripControl(event.status)}\n`),
+    });
+  } else if (ollamaId !== undefined) {
     deps.log(`Pulling ${stripControl(ollamaId)} (${quant.name})...\n`);
     pullResult = await adapter.pull({
       modelId: ollamaId,
@@ -264,7 +312,11 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
     );
   }
 
-  if ((ggufSource !== undefined || mlxSource !== undefined) && !pullResult.digestVerified) {
+  if (
+    adapter.capabilities.canPull &&
+    (ggufSource !== undefined || mlxSource !== undefined) &&
+    !pullResult.digestVerified
+  ) {
     throw new BackendError(
       `refusing to serve ${model.id}: self-managed weights failed digest verification`,
     );
@@ -273,9 +325,15 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
   // Daemon-managed stores may use the catalog size floor when no digest is
   // available. Surface that weaker integrity result rather than hiding it.
   if (!pullResult.digestVerified) {
-    deps.log(
-      `up: warning — ${stripControl(model.id)} weights could not be digest-verified (no catalog SHA-256); serving on a weaker integrity check\n`,
-    );
+    if (!adapter.capabilities.canPull) {
+      deps.log(
+        `up: warning — weight integrity for ${stripControl(model.id)} is delegated to ${adapter.name}; local-llmup did not download these weights\n`,
+      );
+    } else {
+      deps.log(
+        `up: warning — ${stripControl(model.id)} weights could not be digest-verified (no catalog SHA-256); serving on a weaker integrity check\n`,
+      );
+    }
   }
 
   // 5-7. Spawn/attach, health-check, and persist under one lock.
@@ -317,6 +375,17 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
         endpoint: handle.endpoint,
         requireOpenAiCompatibility: true,
         ...(handle.authToken !== undefined ? { authToken: handle.authToken } : {}),
+        ...(handle.processExecutable !== undefined && handle.processStartedAt !== undefined
+          ? {
+              expectedProcess: {
+                pid: handle.pid,
+                executable: handle.processExecutable,
+                started: handle.processStartedAt,
+              },
+            }
+          : {}),
+        modelId: model.id,
+        ...(handle.modelPath !== undefined ? { expectedModelPath: handle.modelPath } : {}),
       });
       const backend = adapter.name;
       const active: ServerState = handle.ownedByUs
@@ -341,6 +410,14 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
             endpoint: handle.endpoint,
             port: handle.port,
             ownedByUs: false,
+            ...(backend === "lmstudio" && handle.pid > 0 ? { pid: handle.pid } : {}),
+            ...(handle.processExecutable !== undefined
+              ? { processExecutable: handle.processExecutable }
+              : {}),
+            ...(handle.processStartedAt !== undefined
+              ? { processStartedAt: handle.processStartedAt }
+              : {}),
+            ...(handle.modelPath !== undefined ? { modelPath: handle.modelPath } : {}),
           };
       deps.writeState(deps.config, { schemaVersion: STATE_SCHEMA_VERSION, active });
       endpoint = handle.endpoint;

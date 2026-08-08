@@ -253,6 +253,19 @@ async function checkState(deps: DoctorDeps): Promise<DoctorCheck> {
       endpoint: active.endpoint,
       timeoutMs: REACHABILITY_TIMEOUT_MS,
       retries: 0,
+      modelId: active.modelId,
+      ...(active.modelPath !== undefined ? { expectedModelPath: active.modelPath } : {}),
+      ...(active.pid !== undefined &&
+      active.processExecutable !== undefined &&
+      active.processStartedAt !== undefined
+        ? {
+            expectedProcess: {
+              pid: active.pid,
+              executable: active.processExecutable,
+              started: active.processStartedAt,
+            },
+          }
+        : {}),
     });
     return { name: "state", status: "ok", detail: `serving ${label} at ${endpoint}` };
   } catch (error) {

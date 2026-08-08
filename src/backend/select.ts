@@ -169,12 +169,14 @@ async function autoSelect(
   candidates: readonly BackendName[] | undefined,
 ): Promise<SelectResult> {
   const allowed = candidates === undefined ? undefined : new Set(candidates);
-  const installed = await registry.available();
   for (const name of autoDetectPriority(platform, arch)) {
     if (allowed !== undefined && !allowed.has(name)) continue;
-    const match = installed.find((adapter) => adapter.name === name);
-    if (match !== undefined) {
-      return { adapter: match, source: "auto" };
+    if (!isRegistered(registry, name)) continue;
+    const adapter = registry.get(name);
+    try {
+      if (await adapter.isInstalled()) return { adapter, source: "auto" };
+    } catch {
+      // A broken installation probe is equivalent to an unavailable backend.
     }
   }
   throw new BackendError(noServableBackendMessage(registry, platform, arch, allowed));

@@ -30,6 +30,14 @@ Phase 2 llama.cpp production hardening after real-process smoke testing.
   Silicon, is omitted from non-Apple `recommend`/`can-run` servability output,
   and remains honesty-gated to unknown throughput because no cited MLX
   efficiency scalar is shipped.
+- Added the attach-only LM Studio backend for GGUF and Apple-Silicon MLX models.
+  It discovers downloaded models through bounded, schema-validated `lms` JSON,
+  verifies locatable GGUFs against catalog SHA-256, names any unavoidable
+  delegated-integrity boundary, and never auto-selects or owns the LM Studio
+  process. Attach/readiness/chat/embedding are bound to the exact trusted
+  executable, PID, process start, model identifier, and delegated model path.
+  Real LM Studio 0.4.20+1 smoke passed exact marker chat and 768-dimensional
+  embeddings on a custom loopback port.
 
 ## 0.4.1 - 2026-08-07
 

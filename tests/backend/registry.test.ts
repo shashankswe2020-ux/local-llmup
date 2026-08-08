@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ValidationError } from "../../src/errors.js";
 import { OllamaAdapter } from "../../src/backend/ollama.js";
 import { MlxAdapter } from "../../src/backend/mlx.js";
+import { LmStudioAdapter } from "../../src/backend/lmstudio.js";
 import type {
   BackendAdapter,
   ChatRequest,
@@ -57,9 +58,16 @@ describe("createDefaultRegistry", () => {
     const registry = createDefaultRegistry();
     const ollama = registry.get("ollama");
     const mlx = registry.get("mlx");
+    const lmstudio = registry.get("lmstudio");
     expect(ollama).toBeInstanceOf(OllamaAdapter);
     expect(mlx).toBeInstanceOf(MlxAdapter);
-    expect(registry.all().map((a) => a.name)).toEqual(["ollama", "llamacpp", "mlx"]);
+    expect(lmstudio).toBeInstanceOf(LmStudioAdapter);
+    expect(registry.all().map((a) => a.name)).toEqual([
+      "ollama",
+      "llamacpp",
+      "mlx",
+      "lmstudio",
+    ]);
   });
 });
 
