@@ -2,7 +2,7 @@
 
 > Source spec: [docs/specs/terminal-user-interface.md](../specs/terminal-user-interface.md)
 > Related: [docs/specs/local-llmup.md](../specs/local-llmup.md), [docs/plans/task-plan-local-llmup.md](./task-plan-local-llmup.md)
-> Status: **Draft — U1a selector complete; U0b CI matrix pending; later U1 decisions remain**
+> Status: **Draft — U1b foundation complete; U0b CI matrix pending; later U1 decisions remain**
 > Last updated: 2026-08-08
 
 ## Overview
@@ -196,16 +196,25 @@ and lazy-import contracts remain unchanged until U1c/U1d supply a functional dri
 
 ---
 
-#### Task U1b: TUI session lifecycle and sanitizer primitives
+#### Task U1b: TUI session lifecycle and sanitizer primitives ✅ DONE (2026-08-08)
 
 **Description:** Build `TuiSession` lifecycle (mount/unmount, cursor/raw/listeners,
 resize debounce) and terminal-safe sanitizer with bounded limits.
 
 **Acceptance criteria:**
 
-- [ ] Restoration is idempotent and runs once on success/error/signal/renderer fault.
-- [ ] Sanitizer passes adversarial fixture corpus (ANSI/OSC/CR/bidi/NUL/surrogates).
-- [ ] Bounds enforced: cell/detail/chat/frame/message caps from spec §7.4.
+- [x] Restoration is idempotent and fail-safe across close, partial startup, signal cleanup/timeout, repeated signals, resize fallback, callback failures, and listener-removal failures; accessible mode never owns raw mode/cursor/stdin.
+- [x] Context-aware sanitizer visibly escapes ANSI/OSC/C0/C1/CR/bidi/default-ignorables/invalid surrogates before NFC, prevents row spoofing, and separates identifier display from actionability.
+- [x] Bounds are enforced incrementally: 1 MiB input, 256 B cell, 8 KiB detail, 64 KiB visible chat, 256 KiB frame, and 200 messages/50 KiB retained history, with grapheme/cell-safe and escape-token-safe truncation.
+
+**Evidence:** `src/tui/sanitize.ts`, `src/tui/session.ts`, and `src/tui/keys.ts`
+with mirrored focused suites. The stateful key decoder suppresses fragmented or
+coalesced bracketed paste, 7/8-bit OSC/DCS/SOS/PM/APC strings, CSI/SS3 sequences,
+and pasted cancellation input while retaining documented keyboard actions. Signal
+restoration is gated by cleanup completion or a bounded 30-second default timeout;
+repeated signals cannot bypass cleanup. Focused verification: 74 tests. Full
+verification: 68 files / 1,203 tests, build, typecheck, lint, script-free pack
+dry-run, code review SHIP, and security review GO.
 
 **Verification command:**
 
