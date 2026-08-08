@@ -10,12 +10,12 @@
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 0 |
-| Medium | 0 |
-| Low | 3 |
-| Info | 4 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 0     |
+| Low      | 3     |
+| Info     | 4     |
 
 ---
 
@@ -113,17 +113,18 @@ The ordered equality between `CONTRACTS` names and `createDefaultRegistry().all(
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | Low | Shared llama.cpp integrity cases are tautological and unverified weights remain servable | Require GGUF digests / reject `digestVerified:false`; exercise real failure causes and exact request forwarding |
-| 2 | Low | llama.cpp attach identity is not bound to the requested model path | Compare canonical `/props.model_path` with the requested path and test mismatch refusal |
-| 3 | Low | Future adapters can provide incomplete hand-authored contract entries | Use capability/pull-strategy-discriminated, non-empty contract requirements and cover pull execution plus stop ownership |
+| #   | Severity | Finding                                                                                  | Recommendation                                                                                                           |
+| --- | -------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Low      | Shared llama.cpp integrity cases are tautological and unverified weights remain servable | Require GGUF digests / reject `digestVerified:false`; exercise real failure causes and exact request forwarding          |
+| 2   | Low      | llama.cpp attach identity is not bound to the requested model path                       | Compare canonical `/props.model_path` with the requested path and test mismatch refusal                                  |
+| 3   | Low      | Future adapters can provide incomplete hand-authored contract entries                    | Use capability/pull-strategy-discriminated, non-empty contract requirements and cover pull execution plus stop ownership |
 
 ---
 
 ## Note on Requested Constraints
 
 Per request:
+
 - No source or test files were modified.
 - No GitHub issues were created.
 - The only workspace change made by this audit is this report.

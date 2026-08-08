@@ -42,13 +42,12 @@ describe("endpoint helpers", () => {
     expect(assertLoopbackEndpoint("http://[::1]:8080")).toBe("http://[::1]:8080");
   });
 
-  it.each([
-    "https://127.0.0.1:8080",
-    "http://example.com:8080",
-    "http://user:pass@127.0.0.1:8080",
-  ])("rejects unsafe backend endpoint %s", (endpoint) => {
-    expect(() => assertLoopbackEndpoint(endpoint)).toThrow(ValidationError);
-  });
+  it.each(["https://127.0.0.1:8080", "http://example.com:8080", "http://user:pass@127.0.0.1:8080"])(
+    "rejects unsafe backend endpoint %s",
+    (endpoint) => {
+      expect(() => assertLoopbackEndpoint(endpoint)).toThrow(ValidationError);
+    },
+  );
 });
 
 /**

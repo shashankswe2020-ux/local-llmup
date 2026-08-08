@@ -6,6 +6,7 @@
 > `up --backend llamacpp <model>` end-to-end wiring. Uncommitted working-tree
 > changes vs `git HEAD 1319dfc`.
 > Files audited:
+>
 > - `src/backend/adapter.ts` (MODIFIED — `PullWeightSource`, `PullOptions.source`, `PullResult.modelPath`)
 > - `src/backend/llamacpp.ts` (MODIFIED — `pull`/`chat`/`embed`)
 > - `src/backend/acquire.ts` (REVIEWED — shared fail-closed downloader the `pull` delegates to)
@@ -13,11 +14,11 @@
 > - `src/commands/up.ts` (MODIFIED — backend selection + format-aware source resolution)
 > - `src/cli.ts` (MODIFIED — `--backend` parse via `parseBackendName`)
 > - `src/catalog/schema.ts` (REVIEWED — `GgufSourceSchema` validation)
-> **Dependencies:** `npm audit` reports 6 advisories (2 critical, 1 high, 3
-> moderate), **all in the dev toolchain** (`vitest` → `vite-node` → `vite`/
-> `esbuild`). Runtime deps (`cac`, `zod`, `systeminformation`) remain clean.
-> Consistent with prior audits, the dev-only advisories are out of scope for this
-> slice.
+>   **Dependencies:** `npm audit` reports 6 advisories (2 critical, 1 high, 3
+>   moderate), **all in the dev toolchain** (`vitest` → `vite-node` → `vite`/
+>   `esbuild`). Runtime deps (`cac`, `zod`, `systeminformation`) remain clean.
+>   Consistent with prior audits, the dev-only advisories are out of scope for this
+>   slice.
 
 ---
 
@@ -59,12 +60,12 @@ same-user-local process.
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 0 |
-| Medium | 0 |
-| Low | 2 |
-| Info | 3 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 0     |
+| Low      | 2     |
+| Info     | 3     |
 
 ---
 
@@ -111,7 +112,7 @@ same-user-local process.
 
 - **Location:** [src/backend/llamacpp.ts](../../src/backend/llamacpp.ts#L743-L758)
 - **Description:** `chat` always targets `buildEndpoint(DEFAULT_BIND_HOST,
-  LLAMACPP_DEFAULT_PORT)` (`127.0.0.1:8080`), ignoring the port a server was
+LLAMACPP_DEFAULT_PORT)` (`127.0.0.1:8080`), ignoring the port a server was
   actually started on. `serve` performs a `/props` identity check before
   attaching to a foreign listener, but `chat` re-derives the endpoint from a
   constant and performs **no** identity check. When a model is served on a
@@ -192,11 +193,11 @@ audits. No action required for this slice; track the vitest upgrade separately.
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | Low | `up` serves self-managed weights without a digest/size gate ([up.ts:203](../../src/commands/up.ts#L203)) | Refuse (or loudly warn) when `pullResult.digestVerified` is false for self-managed backends, and/or make `sha256` required on `GgufSourceSchema` |
-| 2 | Low | `chat` hardcodes `127.0.0.1:8080` with no identity check ([llamacpp.ts:743](../../src/backend/llamacpp.ts#L743)) | Thread the real endpoint from state into `chat`; optionally reuse the `/props` identity check |
-| 3 | Info | Redirects not re-validated against the allow-list ([acquire.ts:95](../../src/backend/acquire.ts#L95)) | Acceptable given HTTPS + content verification; addressed by requiring `sha256` (item 1) |
+| #   | Severity | Finding                                                                                                          | Recommendation                                                                                                                                   |
+| --- | -------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Low      | `up` serves self-managed weights without a digest/size gate ([up.ts:203](../../src/commands/up.ts#L203))         | Refuse (or loudly warn) when `pullResult.digestVerified` is false for self-managed backends, and/or make `sha256` required on `GgufSourceSchema` |
+| 2   | Low      | `chat` hardcodes `127.0.0.1:8080` with no identity check ([llamacpp.ts:743](../../src/backend/llamacpp.ts#L743)) | Thread the real endpoint from state into `chat`; optionally reuse the `/props` identity check                                                    |
+| 3   | Info     | Redirects not re-validated against the allow-list ([acquire.ts:95](../../src/backend/acquire.ts#L95))            | Acceptable given HTTPS + content verification; addressed by requiring `sha256` (item 1)                                                          |
 
 ---
 

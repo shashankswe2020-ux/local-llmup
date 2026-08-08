@@ -23,14 +23,7 @@ export const MODEL_ARCHITECTURES = ["dense", "moe"] as const;
 export type ModelArchitecture = (typeof MODEL_ARCHITECTURES)[number];
 
 /** Capabilities a model advertises; used by the ranker's capability dimension. */
-export const CAPABILITIES = [
-  "chat",
-  "code",
-  "vision",
-  "reasoning",
-  "tools",
-  "embedding",
-] as const;
+export const CAPABILITIES = ["chat", "code", "vision", "reasoning", "tools", "embedding"] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
 /**

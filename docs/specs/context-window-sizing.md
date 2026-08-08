@@ -67,7 +67,7 @@ raises the bar above the throughput estimate.
    `hardware/memory-math.ts`; no command re-implements memory math. The
    context-aware footprint and the legacy footprint share one module.
 3. **Determinism.** Output is a pure function of `(HardwareProfile, Catalog,
-   PerfDataset, context input)`. Same inputs → identical output.
+PerfDataset, context input)`. Same inputs → identical output.
 4. **Backward compatibility.** With no context flag, `recommend`/`can-run` behave
    **byte-for-byte as today** (D7). The context path is strictly additive in v1.
 5. **Graceful degradation.** If KV geometry is missing for a model, that model
@@ -92,7 +92,7 @@ requiredAtContext(model, quant, tokens) = weightBytes(model, quant)
 
 A model can now leave the "fits" set for a **new** reason: it fit at the default
 context but the requested KV cache pushes it over budget. The won't-fit `reason`
-stays `ram-bound` / `vram-bound` (it *is* a memory shortfall), so no new failure
+stays `ram-bound` / `vram-bound` (it _is_ a memory shortfall), so no new failure
 taxonomy is needed for the memory case. A **separate** reason covers the case
 where the requested context exceeds what the model itself supports (D8).
 
@@ -197,14 +197,14 @@ truth (mirrors how `minRamBytes` is precomputed):
 
 - **`head_dim` must be read explicitly when the model config publishes it.**
   Modern models (Llama 3.2, Gemma 2/3, several Qwen3) set `head_dim`
-  *independently* of `hidden_size / num_attention_heads`. Deriving
+  _independently_ of `hidden_size / num_attention_heads`. Deriving
   `hidden_size/nHeads` when an explicit `head_dim` exists can **under-count** KV
   → false "fits" (review S2). Fall back to `hidden_size/nHeads` only when no
   explicit `head_dim` is published.
 - **MLA and other non-standard attention are NOT backfilled with the generic
   formula.** DeepSeek-V2/V3 use Multi-head Latent Attention: KV is a compressed
   latent, so `2 × layers × kvHeads × headDim × 2` over-estimates by ~5–10× — a
-  *sourced-but-wrong* number that violates the honesty principle (review S1).
+  _sourced-but-wrong_ number that violates the honesty principle (review S1).
   Until a correct per-model MLA figure is curated, such models carry **no**
   `kvBytesPerToken` and fall to the honesty gate (`unknown`). The generic
   formula applies **only** to standard MHA/GQA models.
@@ -215,9 +215,9 @@ regardless of MoE vs dense; MoE models are not special-cased here.
 
 ### 4.3 Avoiding double-counting AND the inversion footgun (D7)
 
-The current footprint adds a flat 15 % overhead that *implicitly* included some
+The current footprint adds a flat 15 % overhead that _implicitly_ included some
 KV. When the KV cache is modeled **explicitly**, that 15 % must not double-count
-it — but naively using a *smaller* overhead on the context path creates a worse
+it — but naively using a _smaller_ overhead on the context path creates a worse
 bug (review B2): at a **small** `--context`, `weights + smallKV + smallSlack`
 could be **less** than the legacy footprint, flipping a legacy won't-fit model to
 "fits" (unsafe) and shrinking every model's "Est. Mem" when a small context is
@@ -240,10 +240,10 @@ Properties this guarantees:
 - **No double-count:** at long context the explicit KV dominates and the `max`
   selects `explicit`; the legacy 15 % is not added on top.
 - **Backward-compat (Principle 4):** the no-flag path calls the **legacy**
-  `requiredMemoryBytes` unchanged — `requiredMemoryAtContext` is invoked *only*
+  `requiredMemoryBytes` unchanged — `requiredMemoryAtContext` is invoked _only_
   when a context flag is present. The `max()` floor makes the two consistent
   without re-baselining any existing fixture.
-- The floor only binds at *small* context; at the `--max-context` maximum the KV
+- The floor only binds at _small_ context; at the `--max-context` maximum the KV
   term dominates, so the closed-form inverse (§3.2) remains exact there
   (AC-CW3).
 
@@ -259,14 +259,14 @@ Continues the advisor decision register (D1–D5 in the base plan). All six
 decisions below are **accepted with the proposed defaults**; implementation may
 proceed against them.
 
-| # | Decision | Blocks | Accepted default | Status |
-|---|---|---|---|---|
-| D6 | KV-per-token data source | T-CW1 | **Option A**: per-model `kvBytesPerToken` (fp16) in catalog, honesty-gated; params-heuristic rejected. | ✅ Accepted |
-| D7 | No-flag default + `ACTIVATION_OVERHEAD_FRACTION` + inversion floor | T-CW1, T-CW2 | Keep legacy flat-15 % footprint on the no-flag path **unchanged**; context path = `max(legacyFootprint, weights + KV(tokens) + 5 % weights)` so it is never more optimistic than legacy (§4.3). Full unification deferred. | ✅ Accepted |
-| D8 | New `FitReason` for `--context > model.contextLength` | T-CW3 | Add `context-bound` to the `FitReason` union (distinct from memory shortfall). | ✅ Accepted |
-| D9 | `--max-context` reporting | T-CW4 | Report `min(memoryMaxTokens, model.contextLength)` against the **headroom-adjusted** budget; clamp to 0 when weights exceed budget; size with the ranker-selected quant; enumerated binding label `model` / `hardware` / `unknown`; raw floored token count (illustrative tables may round for readability). | ✅ Accepted |
-| D10 | KV precision in v1 | T-CW1 | **fp16 only**; `--kv-cache q8_0/q4_0` deferred (halve/quarter the per-token bytes) with its own honesty note. | ✅ Accepted |
-| D11 | Backfill formula scope (attention family) | T-CW2 | Generic `2×L×kvHeads×headDim×2` applies **only** to MHA/GQA; read explicit `head_dim` when published; MLA (DeepSeek) and other non-standard attention → no `kvBytesPerToken` (honesty gate) until a correct figure is curated. | ✅ Accepted |
+| #   | Decision                                                           | Blocks       | Accepted default                                                                                                                                                                                                                                                                                             | Status      |
+| --- | ------------------------------------------------------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
+| D6  | KV-per-token data source                                           | T-CW1        | **Option A**: per-model `kvBytesPerToken` (fp16) in catalog, honesty-gated; params-heuristic rejected.                                                                                                                                                                                                       | ✅ Accepted |
+| D7  | No-flag default + `ACTIVATION_OVERHEAD_FRACTION` + inversion floor | T-CW1, T-CW2 | Keep legacy flat-15 % footprint on the no-flag path **unchanged**; context path = `max(legacyFootprint, weights + KV(tokens) + 5 % weights)` so it is never more optimistic than legacy (§4.3). Full unification deferred.                                                                                   | ✅ Accepted |
+| D8  | New `FitReason` for `--context > model.contextLength`              | T-CW3        | Add `context-bound` to the `FitReason` union (distinct from memory shortfall).                                                                                                                                                                                                                               | ✅ Accepted |
+| D9  | `--max-context` reporting                                          | T-CW4        | Report `min(memoryMaxTokens, model.contextLength)` against the **headroom-adjusted** budget; clamp to 0 when weights exceed budget; size with the ranker-selected quant; enumerated binding label `model` / `hardware` / `unknown`; raw floored token count (illustrative tables may round for readability). | ✅ Accepted |
+| D10 | KV precision in v1                                                 | T-CW1        | **fp16 only**; `--kv-cache q8_0/q4_0` deferred (halve/quarter the per-token bytes) with its own honesty note.                                                                                                                                                                                                | ✅ Accepted |
+| D11 | Backfill formula scope (attention family)                          | T-CW2        | Generic `2×L×kvHeads×headDim×2` applies **only** to MHA/GQA; read explicit `head_dim` when published; MLA (DeepSeek) and other non-standard attention → no `kvBytesPerToken` (honesty gate) until a correct figure is curated.                                                                               | ✅ Accepted |
 
 ---
 
@@ -321,10 +321,10 @@ Catalog Zod schema: `kvBytesPerToken` optional, **positive integer** when presen
 
 ## 8. CLI surface & input validation
 
-| Flag | Type | Validation | Behavior |
-|---|---|---|---|
+| Flag                 | Type    | Validation                                                                                                                                                                                                                                                                                                                                                                                                                        | Behavior                                     |
+| -------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
 | `--context <tokens>` | integer | Positive integer; Zod-coerced at boundary; reject `0`, negatives, non-numeric, non-integer, and overflow-unsafe magnitudes with a clear non-zero-exit error. The ceiling is set **at or above the largest advertised `contextLength` in the catalog** (e.g. 100,000,000) so legitimate 10M-window models (Llama 4 Scout) are accepted; the per-model semantic cap is carried by `context-bound`, not the input guard (review N4). | Size KV at `<tokens>`; re-rank + re-verdict. |
-| `--max-context` | boolean | May not be combined with `--context` (clear error, non-zero exit). | Report per-model max context. |
+| `--max-context`      | boolean | May not be combined with `--context` (clear error, non-zero exit).                                                                                                                                                                                                                                                                                                                                                                | Report per-model max context.                |
 
 - Both remain compatible with `--json` and `--task` (consistent with existing
   `recommend`).
@@ -381,7 +381,7 @@ priority — each guards a way the tool could falsely claim a model fits.
   doubling `tokens` doubles KV bytes; **plus** one formula-anchored exact case
   (known geometry → exact byte count, not just self-consistency). (unit test)
 - **AC-CW2:** `requiredMemoryAtContext(m, q, t) = max(legacyFootprint(m, q),
-  weights + kvCacheBytes(t) + ceil(weights × ACTIVATION_OVERHEAD_FRACTION))` with
+weights + kvCacheBytes(t) + ceil(weights × ACTIVATION_OVERHEAD_FRACTION))` with
   `ACTIVATION_OVERHEAD_FRACTION` a named constant. A spy proves the **no-flag**
   path calls the legacy `requiredMemoryBytes` and **never** calls
   `requiredMemoryAtContext`/`kvCacheBytes`. (unit test + codepath spy)
@@ -395,7 +395,7 @@ priority — each guards a way the tool could falsely claim a model fits.
   real-valued inverse is fractional, `size(maxContextTokens) ≤ B` strictly.
   (unit test)
 - **AC-CW14:** Inversion guard — `requiredMemoryAtContext(m, q, t) ≥
-  legacyFootprint(m, q)` for all `t ≥ 0`; a legacy won't-fit model never becomes
+legacyFootprint(m, q)` for all `t ≥ 0`; a legacy won't-fit model never becomes
   "fits" under any `--context` (tested at the smallest nonzero `t`). (unit test)
 - **AC-CW15:** `maxContextTokens` uses the headroom-adjusted budget; a profile
   where raw vs adjusted differ enough to change the answer proves the adjusted
@@ -410,7 +410,7 @@ priority — each guards a way the tool could falsely claim a model fits.
 - **AC-CW4:** A model with known `kvBytesPerToken` that fits at the default
   context but whose KV at `--context 131072` exceeds budget → won't-fit with a
   `ram-bound`/`vram-bound` reason, asserted **not** `context-bound`. (fit test)
-- **AC-CW5:** `--context` exceeding a model's advertised `contextLength` → 
+- **AC-CW5:** `--context` exceeding a model's advertised `contextLength` →
   `context-bound`. (fit test)
 - **AC-CW12:** Context cap is inclusive: `--context === model.contextLength`
   **fits** (memory permitting); `contextLength + 1` → `context-bound`. (fit test)
@@ -431,7 +431,7 @@ priority — each guards a way the tool could falsely claim a model fits.
   and the `--json` array order matches the table order. (command test)
 - **AC-CW18:** JSON is additive-only — no-flag JSON contains **none** of the new
   fields; `--context`/`--max-context` add fields (including `"kvPrecision":
-  "fp16"`) and change nothing else. Asserted by key-set diff, not just values.
+"fp16"`) and change nothing else. Asserted by key-set diff, not just values.
   (command test)
 - **AC-CW8:** `--context` + `--max-context` together → clear error, non-zero exit;
   each invalid `--context` (`0`, negative, non-numeric, non-integer, above the
@@ -447,7 +447,7 @@ priority — each guards a way the tool could falsely claim a model fits.
   identical key set; (c) **codepath**: the legacy footprint fn is called and the
   context fns are not (spy); (d) the existing suite passes untouched. (regression)
 - **AC-CW10:** Deterministic — identical `(hardware, catalog, perf, context
-  input)` → identical **text and JSON**; no `Date.now()`/`Math.random` leak
+input)` → identical **text and JSON**; no `Date.now()`/`Math.random` leak
   (stable across a mocked clock boundary). (determinism test)
 
 > **Throughput honesty note (review N2):** tok/s in v1 is context-independent
@@ -464,7 +464,7 @@ priority — each guards a way the tool could falsely claim a model fits.
   non-zero exit. No value is interpolated into shells, paths, or the network.
 - **No network, no telemetry:** all sizing is local and pure; the catalog ships
   in-package. Consistent with base-spec boundaries.
-- **Memory-safety framing:** the honesty gate here is a *safety* control — an
+- **Memory-safety framing:** the honesty gate here is a _safety_ control — an
   absent/invalid `kvBytesPerToken` must degrade to `unknown`, never to an
   optimistic default that could tell a user a model fits when it will OOM.
 

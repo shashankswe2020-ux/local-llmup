@@ -24,11 +24,13 @@ None.
 ## Suggestions
 
 ### 1. `all()` returns the live internal `order` reference (compile-time-only immutability)
+
 - **File:** `src/backend/registry.ts:43-45`
 - `order` is typed `readonly BackendAdapter[]`, but `readonly` is erased at runtime; `all()` (and the array `available()` derives from) hands back the same underlying array instance on every call. A caller who casts away `readonly` (`as BackendAdapter[]`) could mutate the registry's internal order. This is defensively guarded on the **input** side (the constructor spreads `[...adapters]`, so mutating the caller's original array is harmless), just not on the **output** side.
 - For an internal, S-sized module consumed only by first-party command code — and with the `readonly` type actively discouraging mutation — this is acceptable as-is. If you want belt-and-suspenders immutability at zero ongoing cost, `Object.freeze` the copy once in `createRegistry` (`const order = Object.freeze([...adapters])`), which upgrades the readonly contract to a runtime guarantee without a per-call allocation. Optional; not blocking.
 
 ### 2. Doc comment forward-references `select()` before it exists
+
 - **File:** `src/backend/registry.ts:3-4`, `21` (interface `BackendRegistry` header refers to resolving "via `select()`")
 - `select()` lands in B5. The forward reference is a helpful roadmap and is clearly a future-tense description, so it reads fine — just confirm it stays accurate when B5 lands (and that `select()` is what commands ultimately call rather than `get()` directly). No change needed now.
 
@@ -43,16 +45,16 @@ None.
 
 ## Verification Story
 
-| Check | Status | Notes |
-|-------|--------|-------|
-| Tests reviewed | ✅ | 7 tests cover default registration, get by name, unknown→ValidationError, duplicate→ValidationError, `all()` order, `available()` filter+order, throwing-probe isolation. |
-| Build verified | ✅ | `npm run typecheck` clean; user-reported `npm run build` clean; full suite 646 passing (+7). |
-| Security checked | ✅ | No new external input, no network/FS/child-process at this layer, no secrets. `available()` swallows probe errors by design (resilience), not masking a security-relevant failure. |
-| Coverage | ✅ | Both error branches and the probe-failure branch are exercised; order stability asserted. |
+| Check            | Status | Notes                                                                                                                                                                              |
+| ---------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tests reviewed   | ✅     | 7 tests cover default registration, get by name, unknown→ValidationError, duplicate→ValidationError, `all()` order, `available()` filter+order, throwing-probe isolation.          |
+| Build verified   | ✅     | `npm run typecheck` clean; user-reported `npm run build` clean; full suite 646 passing (+7).                                                                                       |
+| Security checked | ✅     | No new external input, no network/FS/child-process at this layer, no secrets. `available()` swallows probe errors by design (resilience), not masking a security-relevant failure. |
+| Coverage         | ✅     | Both error branches and the probe-failure branch are exercised; order stability asserted.                                                                                          |
 
 ## Action Items
 
-| # | Priority | Issue | Target |
-|---|----------|-------|--------|
-| 1 | Suggestion | `Object.freeze` the internal `order` copy to make `all()` immutability a runtime guarantee | backlog (optional) |
-| 2 | Suggestion | Re-verify the `select()` doc forward-reference stays accurate when B5 lands | task B5 |
+| #   | Priority   | Issue                                                                                      | Target             |
+| --- | ---------- | ------------------------------------------------------------------------------------------ | ------------------ |
+| 1   | Suggestion | `Object.freeze` the internal `order` copy to make `all()` immutability a runtime guarantee | backlog (optional) |
+| 2   | Suggestion | Re-verify the `select()` doc forward-reference stays accurate when B5 lands                | task B5            |

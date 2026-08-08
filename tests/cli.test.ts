@@ -3,7 +3,9 @@ import { afterEach, describe, it, expect, vi } from "vitest";
 const hoisted = vi.hoisted(() => ({
   runUpMock: vi.fn<(options: { model: string; port?: number | undefined }) => Promise<void>>(),
   runCanRunMock:
-    vi.fn<(options: { model: string; json?: boolean }) => Promise<{ runnable: "yes" | "slow" | "no" }>>(),
+    vi.fn<
+      (options: { model: string; json?: boolean }) => Promise<{ runnable: "yes" | "slow" | "no" }>
+    >(),
   runRecommendMock:
     vi.fn<
       (options: {
@@ -109,10 +111,12 @@ describe("buildCli", () => {
 
   it("rejects out-of-range up --port values at the CLI boundary", async () => {
     const writes: string[] = [];
-    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
-      writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
-      return true;
-    });
+    const stderr = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation((chunk: string | Uint8Array) => {
+        writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+        return true;
+      });
 
     try {
       const cli = buildCli();
@@ -174,10 +178,12 @@ describe("buildCli", () => {
 
   it("rejects an invalid --backend at the CLI boundary without running", async () => {
     const writes: string[] = [];
-    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
-      writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
-      return true;
-    });
+    const stderr = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation((chunk: string | Uint8Array) => {
+        writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+        return true;
+      });
     try {
       await buildCli().parse(["node", "local-llmup", "recommend", "--backend", "bogus"]);
     } finally {
@@ -190,10 +196,12 @@ describe("buildCli", () => {
 
   it("rejects an invalid --context at the CLI boundary without running (CW8)", async () => {
     const writes: string[] = [];
-    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
-      writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
-      return true;
-    });
+    const stderr = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation((chunk: string | Uint8Array) => {
+        writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+        return true;
+      });
     try {
       const cli = buildCli();
       for (const bad of ["0", "abc", "1.5"]) {
@@ -210,10 +218,12 @@ describe("buildCli", () => {
 
   it("rejects --context together with --max-context (mutual exclusion, CW8)", async () => {
     const writes: string[] = [];
-    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
-      writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
-      return true;
-    });
+    const stderr = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation((chunk: string | Uint8Array) => {
+        writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+        return true;
+      });
     try {
       await buildCli().parse([
         "node",
@@ -257,7 +267,17 @@ describe("can-run exit contract", () => {
 
   it("forwards --backend to runCanRun", async () => {
     hoisted.runCanRunMock.mockResolvedValueOnce({ runnable: "yes" });
-    await buildCli().parse(["node", "local-llmup", "can-run", "llama3.1:8b", "--backend", "llamacpp"]);
-    expect(hoisted.runCanRunMock).toHaveBeenCalledWith({ model: "llama3.1:8b", backend: "llamacpp" });
+    await buildCli().parse([
+      "node",
+      "local-llmup",
+      "can-run",
+      "llama3.1:8b",
+      "--backend",
+      "llamacpp",
+    ]);
+    expect(hoisted.runCanRunMock).toHaveBeenCalledWith({
+      model: "llama3.1:8b",
+      backend: "llamacpp",
+    });
   });
 });

@@ -64,7 +64,7 @@ x1y2z3a Add task feature, fix sidebar, update deps, refactor utils
 
 ### 3. Descriptive Messages
 
-Commit messages explain the *why*, not just the *what*:
+Commit messages explain the _why_, not just the _what_:
 
 ```
 # Good: Explains intent
@@ -79,6 +79,7 @@ update auth.ts
 ```
 
 **Format:**
+
 ```
 <type>: <short description>
 
@@ -86,6 +87,7 @@ update auth.ts
 ```
 
 **Types:**
+
 - `feat` — New feature
 - `fix` — Bug fix
 - `refactor` — Code change that neither fixes a bug nor adds a feature
@@ -165,6 +167,7 @@ git worktree remove ../project-feature-a
 ```
 
 Benefits:
+
 - Multiple agents can work on different features simultaneously
 - No branch switching needed (each directory has its own branch)
 - If one experiment fails, delete the worktree — nothing is lost
@@ -269,14 +272,14 @@ git log --grep="validation" --oneline
 
 ## Common Rationalizations
 
-| Rationalization | Reality |
-|---|---|
-| "I'll commit when the feature is done" | One giant commit is impossible to review, debug, or revert. Commit each slice. |
-| "The message doesn't matter" | Messages are documentation. Future you (and future agents) will need to understand what changed and why. |
-| "I'll squash it all later" | Squashing destroys the development narrative. Prefer clean incremental commits from the start. |
-| "Branches add overhead" | Short-lived branches are free and prevent conflicting work from colliding. Long-lived branches are the problem — merge within 1-3 days. |
-| "I'll split this change later" | Large changes are harder to review, riskier to deploy, and harder to revert. Split before submitting, not after. |
-| "I don't need a .gitignore" | Until `.env` with production secrets gets committed. Set it up immediately. |
+| Rationalization                        | Reality                                                                                                                                 |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| "I'll commit when the feature is done" | One giant commit is impossible to review, debug, or revert. Commit each slice.                                                          |
+| "The message doesn't matter"           | Messages are documentation. Future you (and future agents) will need to understand what changed and why.                                |
+| "I'll squash it all later"             | Squashing destroys the development narrative. Prefer clean incremental commits from the start.                                          |
+| "Branches add overhead"                | Short-lived branches are free and prevent conflicting work from colliding. Long-lived branches are the problem — merge within 1-3 days. |
+| "I'll split this change later"         | Large changes are harder to review, riskier to deploy, and harder to revert. Split before submitting, not after.                        |
+| "I don't need a .gitignore"            | Until `.env` with production secrets gets committed. Set it up immediately.                                                             |
 
 ## Red Flags
 

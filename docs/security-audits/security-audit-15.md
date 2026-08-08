@@ -14,12 +14,12 @@
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 0 |
-| Medium | 1 |
-| Low | 3 |
-| Info | 3 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 1     |
+| Low      | 3     |
+| Info     | 3     |
 
 **Verdict: B13 is SAFE TO SHIP.** The module is fail-closed on integrity, correctly
 applies the anti-SSRF guard to the constructed URL, blocks path traversal and
@@ -36,7 +36,7 @@ digest verification; it does not block ship but should be scheduled.
 ### [MEDIUM-1] Redirect targets bypass the anti-SSRF policy (`redirect: "follow"` re-validated only on the initial URL)
 
 - **Location:** `src/backend/acquire.ts:99` (`createAcquireFetch` → `fetch(url, { redirect: "follow" })`); guard applied at `src/backend/acquire.ts:200`.
-- **Description:** The SSRF guard (`assertSafeFetchUrl`) validates only the *initial*
+- **Description:** The SSRF guard (`assertSafeFetchUrl`) validates only the _initial_
   resolve URL. The production fetch then follows 3xx redirects with `redirect: "follow"`,
   and Node's `fetch` will follow a `Location` to **any** host — including `http://`,
   a private/loopback address, or a non-allow-listed host — without re-applying the
@@ -49,7 +49,7 @@ digest verification; it does not block ship but should be scheduled.
   leak, and the response body is streamed to a local file (not returned to a remote
   attacker), so this is SSRF-to-local-disk rather than data exfiltration. When a
   digest is supplied, substituted bytes fail closed at verification. Residual risk:
-  a request is still *issued* to the attacker-chosen host before any content check,
+  a request is still _issued_ to the attacker-chosen host before any content check,
   and — with no digest and no `X-Repo-Commit` header (see LOW-1) — unverified bytes
   from that host would be promoted (reported honestly as `digestVerified: false`).
 - **Proof of concept:** Not directly reproducible against real HF (the first hop is
@@ -70,7 +70,9 @@ digest verification; it does not block ship but should be scheduled.
         const location = res.headers.get("location");
         if (location === null) return adapt(res);
         // Resolve relative Location against current, then re-apply the SSRF policy.
-        current = assertSafeFetchUrl(new URL(location, current).toString(), { allowedHosts }).toString();
+        current = assertSafeFetchUrl(new URL(location, current).toString(), {
+          allowedHosts,
+        }).toString();
       }
       throw new BackendError("too many redirects while acquiring weight");
     };
@@ -86,7 +88,7 @@ digest verification; it does not block ship but should be scheduled.
 - **Description:** The pinned-commit confirmation only fires when the header is
   present. An upstream (or redirect target) that simply omits `X-Repo-Commit`
   bypasses this secondary control. The URL still pins the commit (`/resolve/<sha>/`),
-  so this is a *secondary* check, but combined with a missing expected digest there
+  so this is a _secondary_ check, but combined with a missing expected digest there
   is no post-fetch verification that the bytes correspond to the pinned commit.
 - **Impact:** With no digest **and** no header, arbitrary bytes served for the URL are
   promoted. This is surfaced honestly as `digestVerified: false` (the honesty gate is
@@ -161,7 +163,7 @@ digest verification; it does not block ship but should be scheduled.
 ## Positive Observations
 
 - **Fail-closed integrity is airtight on the download path:** a digest mismatch, a
-  wrong `X-Repo-Commit`, a non-`ok` response, or a missing body all throw *before* the
+  wrong `X-Repo-Commit`, a non-`ok` response, or a missing body all throw _before_ the
   `renameSync`, the partial is `discard()`-ed, and the artifact is never promoted.
 - **`digestVerified` is never fabricated:** it is `true` only after an actual SHA-256
   match (download or cache-hit); a missing expected digest yields `false`, honouring
@@ -193,10 +195,10 @@ digest verification; it does not block ship but should be scheduled.
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | Medium | Redirects not re-validated against SSRF policy | Use `redirect: "manual"`, re-run `assertSafeFetchUrl` on each `Location`, bound hop count; add real HF CDN host(s) to the allow-list |
-| 2 | Low | Commit check skipped when `X-Repo-Commit` absent | Refuse promotion (or ensure caller never serves) when neither digest nor header confirms the commit |
-| 3 | Low | No size cap / fetch timeout | Enforce a max byte bound from catalog size + margin; attach an `AbortSignal` timeout |
-| 4 | Low | Stale `.part` files on crash | Best-effort sweep of stale dotfile partials on next acquisition or in a cache-clean step |
-| 5 | Info | `baseUrl` test seam | Keep `baseUrl`/`allowedHosts` test-only; never source from catalog/CLI when wiring callers |
+| #   | Severity | Finding                                          | Recommendation                                                                                                                       |
+| --- | -------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Medium   | Redirects not re-validated against SSRF policy   | Use `redirect: "manual"`, re-run `assertSafeFetchUrl` on each `Location`, bound hop count; add real HF CDN host(s) to the allow-list |
+| 2   | Low      | Commit check skipped when `X-Repo-Commit` absent | Refuse promotion (or ensure caller never serves) when neither digest nor header confirms the commit                                  |
+| 3   | Low      | No size cap / fetch timeout                      | Enforce a max byte bound from catalog size + margin; attach an `AbortSignal` timeout                                                 |
+| 4   | Low      | Stale `.part` files on crash                     | Best-effort sweep of stale dotfile partials on next acquisition or in a cache-clean step                                             |
+| 5   | Info     | `baseUrl` test seam                              | Keep `baseUrl`/`allowedHosts` test-only; never source from catalog/CLI when wiring callers                                           |

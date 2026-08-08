@@ -49,11 +49,11 @@ Store these discovered values and pass them to every sub-agent dispatch.
 
 ## Available Sub-Agents
 
-| Agent              | Dispatch when…                                                        |
-| ------------------ | --------------------------------------------------------------------- |
-| `code-reviewer`    | Code-quality issues (refactors, type improvements, missing validation)|
-| `security-auditor` | Security vulnerabilities (injection, XSS, binding, token handling)    |
-| `test-engineer`    | Missing tests, flaky tests, coverage gaps, test infrastructure        |
+| Agent              | Dispatch when…                                                         |
+| ------------------ | ---------------------------------------------------------------------- |
+| `code-reviewer`    | Code-quality issues (refactors, type improvements, missing validation) |
+| `security-auditor` | Security vulnerabilities (injection, XSS, binding, token handling)     |
+| `test-engineer`    | Missing tests, flaky tests, coverage gaps, test infrastructure         |
 
 ---
 
@@ -61,15 +61,15 @@ Store these discovered values and pass them to every sub-agent dispatch.
 
 Use these skills (invoke with the `skill` tool) to assist your workflow:
 
-| Skill                          | Use when…                                                  |
-| ------------------------------ | ---------------------------------------------------------- |
-| `planning-and-task-breakdown`  | Breaking a complex issue into ordered sub-tasks            |
-| `debugging-and-error-recovery` | Diagnosing root cause of bugs before dispatching a fix     |
-| `security-and-hardening`       | Evaluating severity and attack surface of security issues  |
-| `incremental-implementation`   | Ensuring changes are delivered in small verifiable steps   |
-| `test-driven-development`      | Planning test-first approach for bug fixes                 |
-| `code-review-and-quality`      | Reviewing sub-agent output before marking issue as done    |
-| `code-simplification`          | Refactoring or deduplication issues                        |
+| Skill                          | Use when…                                                 |
+| ------------------------------ | --------------------------------------------------------- |
+| `planning-and-task-breakdown`  | Breaking a complex issue into ordered sub-tasks           |
+| `debugging-and-error-recovery` | Diagnosing root cause of bugs before dispatching a fix    |
+| `security-and-hardening`       | Evaluating severity and attack surface of security issues |
+| `incremental-implementation`   | Ensuring changes are delivered in small verifiable steps  |
+| `test-driven-development`      | Planning test-first approach for bug fixes                |
+| `code-review-and-quality`      | Reviewing sub-agent output before marking issue as done   |
+| `code-simplification`          | Refactoring or deduplication issues                       |
 
 ---
 

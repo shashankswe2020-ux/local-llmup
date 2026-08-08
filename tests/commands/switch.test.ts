@@ -52,11 +52,13 @@ interface FakeAdapter extends BackendAdapter {
   readyError?: Error;
 }
 
-function fakeAdapter(options: {
-  name?: "ollama" | "llamacpp" | "mlx" | "lmstudio";
-  formats?: readonly ("ollama" | "gguf" | "mlx")[];
-  canPull?: boolean;
-} = {}): FakeAdapter {
+function fakeAdapter(
+  options: {
+    name?: "ollama" | "llamacpp" | "mlx" | "lmstudio";
+    formats?: readonly ("ollama" | "gguf" | "mlx")[];
+    canPull?: boolean;
+  } = {},
+): FakeAdapter {
   const pullArgs: PullOptions[] = [];
   const readyArgs: ReadinessOptions[] = [];
   const adapter: FakeAdapter = {
@@ -106,7 +108,10 @@ afterEach(() => {
   rmSync(home, { recursive: true, force: true });
 });
 
-const CAT = catalog([model("llama3.1:8b"), model("qwen2.5:7b", [quant("Q4_K_M", { sha256: "b".repeat(64) })])]);
+const CAT = catalog([
+  model("llama3.1:8b"),
+  model("qwen2.5:7b", [quant("Q4_K_M", { sha256: "b".repeat(64) })]),
+]);
 
 function deps(adapter: FakeAdapter, cat: Catalog = CAT): SwitchDeps {
   return {

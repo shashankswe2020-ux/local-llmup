@@ -11,14 +11,14 @@
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 0 |
-| Medium | 0 |
-| Low | 3 |
-| Info | 3 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 0     |
+| Low      | 3     |
+| Info     | 3     |
 
-**Verdict:** The B3 loader is well-designed and fails closed. The core question posed — *is the fd-bound TOCTOU defense airtight?* — is **yes for the final path component on POSIX**: binding `fstat`/`read` to the descriptor returned by `openSync(..., O_NOFOLLOW)` eliminates the classic stat→open swap. The residual items are defense-in-depth gaps that are only reachable by a same-UID actor (no privilege boundary) and are therefore Low/Info under this threat model. No Critical or High findings, so **no GitHub issues are created** (per the "Critical/High only" instruction for this audit).
+**Verdict:** The B3 loader is well-designed and fails closed. The core question posed — _is the fd-bound TOCTOU defense airtight?_ — is **yes for the final path component on POSIX**: binding `fstat`/`read` to the descriptor returned by `openSync(..., O_NOFOLLOW)` eliminates the classic stat→open swap. The residual items are defense-in-depth gaps that are only reachable by a same-UID actor (no privilege boundary) and are therefore Low/Info under this threat model. No Critical or High findings, so **no GitHub issues are created** (per the "Critical/High only" instruction for this audit).
 
 ---
 
@@ -27,7 +27,7 @@
 ### [LOW-1] Size cap is enforced on a pre-read `fstat`, not on the bytes actually read
 
 - **Location:** [src/config.ts](../../src/config.ts) — `loadUserConfig`, the `stats.size > MAX_USER_CONFIG_BYTES` check followed by `readFileSync(fd, "utf8")`.
-- **Description:** The size guard reads `stats.size` from `fstatSync(fd)` and rejects `> 4096` bytes. `readFileSync(fd)` then reads to EOF. For a **regular file** (already enforced via `!stats.isFile()`) Node sizes its buffer from the descriptor but continues reading in a loop until EOF, so if the file **grows** between our `fstat` and `readFileSync`'s internal read, the number of bytes actually loaded into memory can exceed `MAX_USER_CONFIG_BYTES`. The 4096-byte cap is therefore advisory against the *observed* size, not a hard bound on the *read* size.
+- **Description:** The size guard reads `stats.size` from `fstatSync(fd)` and rejects `> 4096` bytes. `readFileSync(fd)` then reads to EOF. For a **regular file** (already enforced via `!stats.isFile()`) Node sizes its buffer from the descriptor but continues reading in a loop until EOF, so if the file **grows** between our `fstat` and `readFileSync`'s internal read, the number of bytes actually loaded into memory can exceed `MAX_USER_CONFIG_BYTES`. The 4096-byte cap is therefore advisory against the _observed_ size, not a hard bound on the _read_ size.
 - **Impact:** Bounded local memory over-read. Only a process running as the **same user** can append to a file that must be non-group/other-writable inside a `0700` home, so there is no privilege escalation — the user can only inflate their own memory usage. This is a robustness/defense-in-depth gap, not an exploitable DoS across a trust boundary.
 - **Proof of concept:** None with cross-user impact. Locally: start growing `~/.local-llmup/config.json` in a tight loop while repeatedly invoking the loader; a race window exists where more than 4096 bytes are read before `JSON.parse`.
 - **Recommendation:** Bound the read itself rather than trusting the prior `fstat`. Read at most `MAX_USER_CONFIG_BYTES + 1` bytes from the descriptor and reject if the read fills the buffer, e.g.:
@@ -35,7 +35,9 @@
   const buf = Buffer.allocUnsafe(MAX_USER_CONFIG_BYTES + 1);
   const n = readSync(fd, buf, 0, buf.length, 0);
   if (n > MAX_USER_CONFIG_BYTES) {
-    throw new ValidationError(`config file ${path} is too large (> ${MAX_USER_CONFIG_BYTES} bytes)`);
+    throw new ValidationError(
+      `config file ${path} is too large (> ${MAX_USER_CONFIG_BYTES} bytes)`,
+    );
   }
   const raw = buf.toString("utf8", 0, n);
   ```
@@ -45,9 +47,9 @@
 
 - **Location:** [src/config.ts](../../src/config.ts) — `openSync(path, constants.O_RDONLY | O_NOFOLLOW_FLAG)`, where `O_NOFOLLOW_FLAG = 0` when `constants.O_NOFOLLOW` is undefined (Windows).
 - **Description:** Two gaps, both same-UID-only:
-  1. **Intermediate directories.** `O_NOFOLLOW` rejects a symlink at the *final* path component (`config.json`) but does **not** stop traversal through a symlinked *parent* — e.g. if `~/.local-llmup` itself is a symlink, `open` follows it. `src/memory/store.ts` defends the whole chain with `realpathSync` + an `isWithin(root, real)` containment check (`assertWithinRoot`); the config loader has no equivalent.
+  1. **Intermediate directories.** `O_NOFOLLOW` rejects a symlink at the _final_ path component (`config.json`) but does **not** stop traversal through a symlinked _parent_ — e.g. if `~/.local-llmup` itself is a symlink, `open` follows it. `src/memory/store.ts` defends the whole chain with `realpathSync` + an `isWithin(root, real)` containment check (`assertWithinRoot`); the config loader has no equivalent.
   2. **Windows.** On Windows `O_NOFOLLOW_FLAG` collapses to `0`, so a junction/symlink planted at `config.json` is silently followed. (Creating one typically needs Developer Mode or elevation, and it is the user's own machine.)
-- **Impact:** A same-user actor who can plant a symlink at or above `~/.local-llmup` could redirect the read to an arbitrary file the user can already read. Because the content is then still forced through `.strict()` Zod validation (only `schemaVersion: 1` + `defaultBackend` enum survive), the worst outcome is that the loader either throws `ValidationError` or, in the vanishingly rare case the redirected file *is* a valid config, honors a `defaultBackend` the user did not intend. No secret is disclosed (the loader emits nothing but the enum value) and no code executes. This is a low-value target under a single-UID model.
+- **Impact:** A same-user actor who can plant a symlink at or above `~/.local-llmup` could redirect the read to an arbitrary file the user can already read. Because the content is then still forced through `.strict()` Zod validation (only `schemaVersion: 1` + `defaultBackend` enum survive), the worst outcome is that the loader either throws `ValidationError` or, in the vanishingly rare case the redirected file _is_ a valid config, honors a `defaultBackend` the user did not intend. No secret is disclosed (the loader emits nothing but the enum value) and no code executes. This is a low-value target under a single-UID model.
 - **Recommendation:** For parity with `store.ts`, after `openSync` optionally assert containment: compare `realpathSync(path)` against `realpathSync(config.homeDir)` with the existing `isWithin` helper and reject on escape. This closes the intermediate-symlink gap on all platforms and restores a real symlink defense on Windows where `O_NOFOLLOW` is a no-op. Given the threat model this is a hardening nicety, not a required fix — document the accepted residual if you choose not to add it.
 
 ### [LOW-3] Dev-dependency advisories (esbuild / vite / vite-node / vitest) — not shipped, out of B3 scope
@@ -74,11 +76,11 @@
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | Low | [LOW-1] Size cap on pre-read `fstat`, not on bytes read | Read ≤ `MAX+1` bytes from the fd with `readSync` and reject on overflow, instead of trusting `stats.size`. |
-| 2 | Low | [LOW-2] `O_NOFOLLOW` misses intermediate symlinks; no-op on Windows | Optional `realpath` + `isWithin(homeDir, real)` containment check for parity with `store.ts`; or document the accepted residual. |
-| 3 | Low | [LOW-3] Dev-only `vite`/`esbuild`/`vitest` advisories | Track a `vitest@4` upgrade as separate maintenance; not shipped, do not block B3. |
+| #   | Severity | Finding                                                             | Recommendation                                                                                                                   |
+| --- | -------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Low      | [LOW-1] Size cap on pre-read `fstat`, not on bytes read             | Read ≤ `MAX+1` bytes from the fd with `readSync` and reject on overflow, instead of trusting `stats.size`.                       |
+| 2   | Low      | [LOW-2] `O_NOFOLLOW` misses intermediate symlinks; no-op on Windows | Optional `realpath` + `isWithin(homeDir, real)` containment check for parity with `store.ts`; or document the accepted residual. |
+| 3   | Low      | [LOW-3] Dev-only `vite`/`esbuild`/`vitest` advisories               | Track a `vitest@4` upgrade as separate maintenance; not shipped, do not block B3.                                                |
 
 ---
 

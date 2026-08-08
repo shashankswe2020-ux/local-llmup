@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- No entries yet.
+
+## 0.5.0 - 2026-08-08
+
 Phase 2 llama.cpp production hardening after real-process smoke testing.
 
 - Replaced invalid GGUF catalog coordinates with verified Hugging Face commit,

@@ -68,27 +68,27 @@ describe("decideEmbeddingStrategy", () => {
   });
 
   it("reuses when model and dimension both match", () => {
-    expect(decideEmbeddingStrategy({ model: "a", dimension: 3 }, { model: "a", dimension: 3 })).toBe(
-      "reuse",
-    );
+    expect(
+      decideEmbeddingStrategy({ model: "a", dimension: 3 }, { model: "a", dimension: 3 }),
+    ).toBe("reuse");
   });
 
   it("re-embeds when only the dimension differs", () => {
-    expect(decideEmbeddingStrategy({ model: "a", dimension: 3 }, { model: "a", dimension: 4 })).toBe(
-      "reembed",
-    );
+    expect(
+      decideEmbeddingStrategy({ model: "a", dimension: 3 }, { model: "a", dimension: 4 }),
+    ).toBe("reembed");
   });
 
   it("re-embeds when only the model differs", () => {
-    expect(decideEmbeddingStrategy({ model: "a", dimension: 3 }, { model: "b", dimension: 3 })).toBe(
-      "reembed",
-    );
+    expect(
+      decideEmbeddingStrategy({ model: "a", dimension: 3 }, { model: "b", dimension: 3 }),
+    ).toBe("reembed");
   });
 
   it("re-embeds when both model and dimension differ", () => {
-    expect(decideEmbeddingStrategy({ model: "a", dimension: 3 }, { model: "b", dimension: 4 })).toBe(
-      "reembed",
-    );
+    expect(
+      decideEmbeddingStrategy({ model: "a", dimension: 3 }, { model: "b", dimension: 4 }),
+    ).toBe("reembed");
   });
 });
 

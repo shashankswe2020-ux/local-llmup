@@ -223,12 +223,8 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
   const ollamaId = adapter.capabilities.formats.includes("ollama")
     ? model.source.ollama
     : undefined;
-  const ggufSource = adapter.capabilities.formats.includes("gguf")
-    ? model.source.gguf
-    : undefined;
-  const mlxSource = adapter.capabilities.formats.includes("mlx")
-    ? model.source.mlx
-    : undefined;
+  const ggufSource = adapter.capabilities.formats.includes("gguf") ? model.source.gguf : undefined;
+  const mlxSource = adapter.capabilities.formats.includes("mlx") ? model.source.mlx : undefined;
   let pullResult: PullResult;
   if (!adapter.capabilities.canPull) {
     const delegatedSources = [
@@ -236,8 +232,7 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
       backendSupportsFormatOnPlatform(adapter.name, "gguf", hardware)
         ? [{ format: "gguf" as const, source: { ...ggufSource } }]
         : []),
-      ...(mlxSource !== undefined &&
-      backendSupportsFormatOnPlatform(adapter.name, "mlx", hardware)
+      ...(mlxSource !== undefined && backendSupportsFormatOnPlatform(adapter.name, "mlx", hardware)
         ? [
             {
               format: "mlx" as const,
@@ -354,7 +349,9 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
         ...(prior.processExecutable !== undefined
           ? { processExecutable: prior.processExecutable }
           : {}),
-        ...(prior.processStartedAt !== undefined ? { processStartedAt: prior.processStartedAt } : {}),
+        ...(prior.processStartedAt !== undefined
+          ? { processStartedAt: prior.processStartedAt }
+          : {}),
       });
       // Do not retain a stale owned PID if replacement startup fails.
       deps.writeState(deps.config, { schemaVersion: STATE_SCHEMA_VERSION, active: null });

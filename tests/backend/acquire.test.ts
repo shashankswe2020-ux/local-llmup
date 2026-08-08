@@ -1,5 +1,15 @@
 import { createHash } from "node:crypto";
-import { chmodSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
@@ -85,8 +95,8 @@ describe("createAcquireFetch — redirect policy", () => {
             },
           }),
           {
-          status: 302,
-          headers: { location: "https://169.254.169.254/weights.gguf" },
+            status: 302,
+            headers: { location: "https://169.254.169.254/weights.gguf" },
           },
         ),
       ),
@@ -112,9 +122,7 @@ describe("createAcquireFetch — redirect policy", () => {
       .mockResolvedValueOnce(new Response(WEIGHTS, { status: 200 }));
     vi.stubGlobal("fetch", fetchFn);
 
-    const result = await createAcquireFetch()(
-      `https://huggingface.co/o/r/resolve/${REV}/x.gguf`,
-    );
+    const result = await createAcquireFetch()(`https://huggingface.co/o/r/resolve/${REV}/x.gguf`);
 
     expect(result.ok).toBe(true);
     expect(fetchFn).toHaveBeenCalledTimes(2);
@@ -123,7 +131,9 @@ describe("createAcquireFetch — redirect policy", () => {
 
 describe("assertExactFileMatch", () => {
   it("returns the single exact match", () => {
-    expect(assertExactFileMatch(["a.gguf", "model-q4.gguf"], "model-q4.gguf")).toBe("model-q4.gguf");
+    expect(assertExactFileMatch(["a.gguf", "model-q4.gguf"], "model-q4.gguf")).toBe(
+      "model-q4.gguf",
+    );
   });
 
   it("throws on zero match", () => {
@@ -140,7 +150,14 @@ describe("acquireWeight — happy path", () => {
     const d = deps(okResponse(WEIGHTS));
     const result = await acquireWeight(request, d);
 
-    const expectedPath = join(home, "cache", "llamacpp", "owner", `Repo-Name@${REV}`, "model-q4.gguf");
+    const expectedPath = join(
+      home,
+      "cache",
+      "llamacpp",
+      "owner",
+      `Repo-Name@${REV}`,
+      "model-q4.gguf",
+    );
     expect(result.path).toBe(expectedPath);
     expect(result.bytes).toBe(WEIGHTS.length);
     expect(result.digestVerified).toBe(true);
@@ -317,7 +334,10 @@ describe("acquireWeight — fail closed", () => {
 
   it("emits bounded byte progress while streaming", async () => {
     const progress = vi.fn();
-    const result = await acquireWeight(request, deps(okResponse(WEIGHTS), { onProgress: progress }));
+    const result = await acquireWeight(
+      request,
+      deps(okResponse(WEIGHTS), { onProgress: progress }),
+    );
     expect(result.bytes).toBe(WEIGHTS.length);
     expect(progress).toHaveBeenLastCalledWith(WEIGHTS.length);
   });
@@ -360,9 +380,7 @@ describe("acquireWeight — fail closed", () => {
     mkdirSync(home, { recursive: true });
     symlinkSync(external, join(home, "cache"));
     try {
-      await expect(acquireWeight(request, deps(okResponse(WEIGHTS)))).rejects.toThrow(
-        BackendError,
-      );
+      await expect(acquireWeight(request, deps(okResponse(WEIGHTS)))).rejects.toThrow(BackendError);
     } finally {
       rmSync(external, { recursive: true, force: true });
     }

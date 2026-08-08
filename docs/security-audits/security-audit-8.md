@@ -25,12 +25,12 @@
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 0 |
-| Medium | 0 |
-| Low | 1 |
-| Info | 3 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 0     |
+| Low      | 1     |
+| Info     | 3     |
 
 **Verdict:** B5 is clean and safe to commit. The one Low finding is a
 defense-in-depth improvement (a masked attach-intent env conflict); it is **not**
@@ -54,7 +54,7 @@ the commit.
   and env"; the individual cases are covered by tests, but the combined case is
   not.
 - **Impact:** None to server integrity. This is a **fail-closed** outcome by
-  construction: the attach path *always* resolves `registry.get(activeBackend)`
+  construction: the attach path _always_ resolves `registry.get(activeBackend)`
   (line 118) and has no code path that returns a flag/env-derived adapter, so a
   running server can never be retargeted. The only effect is that a genuinely
   conflicting `LOCAL_LLMUP_BACKEND` is ignored silently instead of surfacing an
@@ -124,7 +124,7 @@ dedicated test. Verified correct.
   keys, immune to `__proto__`/`constructor` tricks), and membership checks use
   array iteration (`.some()`, `.find()`) rather than indexed access.
 - **Fail-closed is structural, not incidental.** Attach-intent resolves the
-  adapter *only* via `registry.get(activeBackend)`; there is no branch that can
+  adapter _only_ via `registry.get(activeBackend)`; there is no branch that can
   substitute a flag/env-derived backend, so silent retargeting of a running
   server is impossible by construction (the strongest form of the requirement).
 - **Explicit-intent inputs fail hard; stored preferences fail soft.** Flag and
@@ -149,6 +149,6 @@ dedicated test. Verified correct.
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | Low | [LOW-1] Masked attach env conflict when flag matches active | Compare flag and env independently against `activeBackend`; add the combined-case test |
+| #   | Severity | Finding                                                     | Recommendation                                                                         |
+| --- | -------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 1   | Low      | [LOW-1] Masked attach env conflict when flag matches active | Compare flag and env independently against `activeBackend`; add the combined-case test |

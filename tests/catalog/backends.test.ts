@@ -16,7 +16,10 @@ import { backendsForModel, formatsForModel } from "../../src/catalog/backends.js
 import type { CatalogModel, ModelFormat, ModelSource } from "../../src/types.js";
 import { denseModel } from "./fixtures.js";
 
-function fakeAdapter(name: BackendAdapter["name"], formats: readonly ModelFormat[]): BackendAdapter {
+function fakeAdapter(
+  name: BackendAdapter["name"],
+  formats: readonly ModelFormat[],
+): BackendAdapter {
   return {
     name,
     capabilities: {
@@ -92,9 +95,10 @@ describe("formatsForModel", () => {
   });
 
   it("collects multiple source formats in canonical order", () => {
-    expect(
-      formatsForModel(modelWithSource({ gguf: validGguf, ollama: "llama3.1:8b" })),
-    ).toEqual(["ollama", "gguf"]);
+    expect(formatsForModel(modelWithSource({ gguf: validGguf, ollama: "llama3.1:8b" }))).toEqual([
+      "ollama",
+      "gguf",
+    ]);
   });
 
   it("ignores hf when other servable sources are present", () => {
@@ -145,16 +149,12 @@ describe("backendsForModel", () => {
     const registry = createRegistry([ollamaAdapter, mlxAdapter]);
     const model = modelWithSource({ mlx: validMlx });
 
-    expect(
-      backendsForModel(model, registry, LINUX_TARGET).map(
-        (adapter) => adapter.name,
-      ),
-    ).toEqual([]);
-    expect(
-      backendsForModel(model, registry, APPLE_TARGET).map(
-        (adapter) => adapter.name,
-      ),
-    ).toEqual(["mlx"]);
+    expect(backendsForModel(model, registry, LINUX_TARGET).map((adapter) => adapter.name)).toEqual(
+      [],
+    );
+    expect(backendsForModel(model, registry, APPLE_TARGET).map((adapter) => adapter.name)).toEqual([
+      "mlx",
+    ]);
   });
 
   it("omits a gguf backend that is not registered", () => {

@@ -134,7 +134,9 @@ export async function probeProcessIdentity(pid: number): Promise<ProcessIdentity
 export function matchesExpectedExecutable(identity: ListenerIdentity, binary: string): boolean {
   const expected = resolveExecutable(binary);
   if (expected !== null) return identity.executable === expected;
-  return basename(identity.executable) === basename(binary) && identity.process === basename(binary);
+  return (
+    basename(identity.executable) === basename(binary) && identity.process === basename(binary)
+  );
 }
 
 export function sameListenerProcess(a: ListenerIdentity, b: ListenerIdentity): boolean {
@@ -169,11 +171,7 @@ function canonicalPath(path: string): string | null {
   }
 }
 
-async function processExecutable(
-  pid: number,
-  path: string,
-  name: string,
-): Promise<string | null> {
+async function processExecutable(pid: number, path: string, name: string): Promise<string | null> {
   if (process.platform === "linux") {
     const procPath = canonicalPath(`/proc/${pid}/exe`);
     if (procPath !== null) return procPath;
@@ -203,11 +201,11 @@ async function processExecutable(
 async function processStartedAt(pid: number, fallback: string): Promise<string | null> {
   if (process.platform !== "darwin") return fallback;
   try {
-    const { stdout } = await execFileAsync(
-      "/bin/ps",
-      ["-p", String(pid), "-o", "lstart="],
-      { timeout: 2_000, maxBuffer: 4 * 1024, encoding: "utf8" },
-    );
+    const { stdout } = await execFileAsync("/bin/ps", ["-p", String(pid), "-o", "lstart="], {
+      timeout: 2_000,
+      maxBuffer: 4 * 1024,
+      encoding: "utf8",
+    });
     return parsePsStartTime(stdout);
   } catch {
     return null;
@@ -236,7 +234,20 @@ export function parsePsStartTime(output: string): string | null {
     /^(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{1,2}) (\d{2}:\d{2}:\d{2}) (\d{4})$/,
   );
   if (match === null || match === undefined) return null;
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const monthIndex = months.indexOf(match[1] ?? "");
   const day = Number(match[2]);
   if (monthIndex < 0 || !Number.isInteger(day) || day < 1 || day > 31) return null;

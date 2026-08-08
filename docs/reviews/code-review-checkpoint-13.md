@@ -20,6 +20,7 @@ None.
 ## Important Issues
 
 ### 1. Stale, type-incorrect `RuntimeState` fixtures in out-of-scope command tests
+
 - **Files:**
   - `tests/commands/migrate.test.ts:49` (`emptyState(): RuntimeState` returns `{ schemaVersion: 1, active: null }`)
   - `tests/commands/migrate.test.ts:228` (`readState: () => ({ schemaVersion: 1, active: { ... no backend } })`)
@@ -40,14 +41,17 @@ None.
 ## Suggestions
 
 ### 1. Redundant default-first spread under the `undefined` guard
+
 - **File:** `src/state/state.ts:83`
 - The block only runs when `activeRecord["backend"] === undefined`, so in `{ backend: V1_DEFAULT_BACKEND, ...activeRecord }` the trailing spread can never override the default — the guard already guarantees absence. This is correct but belt-and-suspenders. Either drop the guard (letting an existing `backend` win via `{ backend: V1_DEFAULT_BACKEND, ...activeRecord }`) or keep the guard and write the clearer `{ ...activeRecord, backend: V1_DEFAULT_BACKEND }`. Pick one intent to avoid a reader wondering which mechanism is authoritative.
 
 ### 2. Bare numeric literal for the legacy version
+
 - **File:** `src/state/state.ts:78`
 - `candidate["schemaVersion"] === 1` uses a bare `1` while the target uses the named `STATE_SCHEMA_VERSION`. A short comment or a `const V1 = 1` (mirroring `V1_DEFAULT_BACKEND`) would make the migration's "from/to" symmetry self-documenting.
 
 ### 3. Duplicated `backend: "ollama"` across both `up` branches
+
 - **File:** `src/commands/up.ts:214`
 - The owned/attached `ServerState` construction repeats `backend: "ollama"`. Minor duplication; the inline `// Phase 0 is Ollama-only; B6 will source this from select().` comment adequately signals intent, so this is optional cleanup for B6 rather than now.
 
@@ -61,22 +65,22 @@ None.
 
 ## Verification Story
 
-| Check | Status | Notes |
-|-------|--------|-------|
-| Tests reviewed | ✅ | Migration matrix reviewed first; asserts each acceptance criterion incl. composed pid:0 and rewrite-on-mutation |
-| Tests run | ✅ | 665 passing (47 files) |
-| Typecheck | ✅ | `tsc --noEmit` clean (note: `tests/` excluded — see Important #1) |
-| Build verified | ✅ | `tsc` clean |
-| Lint | ✅ | Changed files exit 0 (pre-existing `site/main.js` errors out of scope) |
-| Security checked | ✅ | No new external-input surface; migration is pre-validation reshape, final Zod validation fail-closed; no injection/secret risk |
-| Performance | ✅ | Trivial in-memory transforms, no new I/O |
-| Coverage | ⚠️ | state.ts fully covered; doctor/chat/migrate readState mocks remain at stale v1 shape (Important #1) |
+| Check            | Status | Notes                                                                                                                          |
+| ---------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| Tests reviewed   | ✅     | Migration matrix reviewed first; asserts each acceptance criterion incl. composed pid:0 and rewrite-on-mutation                |
+| Tests run        | ✅     | 665 passing (47 files)                                                                                                         |
+| Typecheck        | ✅     | `tsc --noEmit` clean (note: `tests/` excluded — see Important #1)                                                              |
+| Build verified   | ✅     | `tsc` clean                                                                                                                    |
+| Lint             | ✅     | Changed files exit 0 (pre-existing `site/main.js` errors out of scope)                                                         |
+| Security checked | ✅     | No new external-input surface; migration is pre-validation reshape, final Zod validation fail-closed; no injection/secret risk |
+| Performance      | ✅     | Trivial in-memory transforms, no new I/O                                                                                       |
+| Coverage         | ⚠️     | state.ts fully covered; doctor/chat/migrate readState mocks remain at stale v1 shape (Important #1)                            |
 
 ## Action Items
 
-| # | Priority | Issue | Target |
-|---|----------|-------|--------|
-| 1 | Important | Update stale v1 `RuntimeState` fixtures in `doctor`/`chat`/`migrate` tests to v2 shape (add `schemaVersion: STATE_SCHEMA_VERSION` + `backend`) | B6/B10 |
-| 2 | Suggestion | Resolve redundant default-first spread under the `undefined` guard in `normalizeLegacyRuntimeState` | backlog |
-| 3 | Suggestion | Name/annotate the legacy `=== 1` version literal for from/to symmetry | backlog |
-| 4 | Suggestion | Consider hoisting duplicated `backend: "ollama"` in `up` once `select()` lands | B6 |
+| #   | Priority   | Issue                                                                                                                                          | Target  |
+| --- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 1   | Important  | Update stale v1 `RuntimeState` fixtures in `doctor`/`chat`/`migrate` tests to v2 shape (add `schemaVersion: STATE_SCHEMA_VERSION` + `backend`) | B6/B10  |
+| 2   | Suggestion | Resolve redundant default-first spread under the `undefined` guard in `normalizeLegacyRuntimeState`                                            | backlog |
+| 3   | Suggestion | Name/annotate the legacy `=== 1` version literal for from/to symmetry                                                                          | backlog |
+| 4   | Suggestion | Consider hoisting duplicated `backend: "ollama"` in `up` once `select()` lands                                                                 | B6      |

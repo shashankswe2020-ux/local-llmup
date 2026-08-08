@@ -36,18 +36,18 @@ when the spec is approved:
 7. v1 measures single-request interactive performance. Concurrent throughput,
    parameter sweeps, and automatic launch-profile selection are follow-up phases.
 8. P1 ships both Ollama and llama.cpp support. `ephemeral` is the default,
-  measured runs default to 5 after 1 warmup, and verified process-tree memory is
-  sampled for estimated output and early cancellation; admission-time reserve
-  budgeting and platform hard containment bound the benchmark tree.
+   measured runs default to 5 after 1 warmup, and verified process-tree memory is
+   sampled for estimated output and early cancellation; admission-time reserve
+   budgeting and platform hard containment bound the benchmark tree.
 9. Exit code 2 is reserved for a conclusive comparable regression. P1 does not
    expose baseline flags or exit 2; P2 adds them without changing success/error
    exit codes.
 10. Benchmark evidence is emitted to stdout; users retain it via explicit shell
-  redirection. v1 creates no default benchmark-data directory and never writes
-  repository datasets.
+    redirection. v1 creates no default benchmark-data directory and never writes
+    repository datasets.
 11. Ollama P1 requires an additive catalog-schema expansion for curated immutable
-  manifest and complete blob-set digest/size evidence. Approving this spec
-  approves that schema work; catalog execution remains read-only.
+    manifest and complete blob-set digest/size evidence. Approving this spec
+    approves that schema work; catalog execution remains read-only.
 
 ---
 
@@ -183,19 +183,19 @@ Measure real local runtime load, TTFT, prefill, decode, and memory for <model>.
 
 ### 3.2 Options
 
-| Option | Default | Contract |
-| --- | --- | --- |
-| `--backend <name>` | create-selection precedence | Validated `BackendName`; selects runtime in ephemeral mode |
-| `--mode <ephemeral\|active>` | `ephemeral` | Ephemeral starts/stops an isolated process; active requires matching active model/backend |
-| `--iterations <n>` | `5` | Integer `3..20`; measured runs |
-| `--warmup <n>` | `1` | Integer `0..5`; excluded from aggregates |
-| `--output-tokens <n>` | `128` | Integer `16..2048`; maximum requested generation |
-| `--fixture <short\|medium\|long>` | `short` | Versioned built-in prompt fixture |
-| `--port <port>` | free high port | Integer `1024..65535`; ephemeral only; must be loopback and free |
-| `--allow-pull` | false | Permit verified acquisition when weights are not already cached |
-| `--baseline <file>` | none | **P2:** descriptor-safe, byte-capped, Zod-validated prior result |
-| `--regression-threshold <percent>` | `10` | **P2:** number `1..100`; relative component of comparison threshold |
-| `--json` | false | Emit canonical JSON only |
+| Option                             | Default                     | Contract                                                                                  |
+| ---------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------- |
+| `--backend <name>`                 | create-selection precedence | Validated `BackendName`; selects runtime in ephemeral mode                                |
+| `--mode <ephemeral\|active>`       | `ephemeral`                 | Ephemeral starts/stops an isolated process; active requires matching active model/backend |
+| `--iterations <n>`                 | `5`                         | Integer `3..20`; measured runs                                                            |
+| `--warmup <n>`                     | `1`                         | Integer `0..5`; excluded from aggregates                                                  |
+| `--output-tokens <n>`              | `128`                       | Integer `16..2048`; maximum requested generation                                          |
+| `--fixture <short\|medium\|long>`  | `short`                     | Versioned built-in prompt fixture                                                         |
+| `--port <port>`                    | free high port              | Integer `1024..65535`; ephemeral only; must be loopback and free                          |
+| `--allow-pull`                     | false                       | Permit verified acquisition when weights are not already cached                           |
+| `--baseline <file>`                | none                        | **P2:** descriptor-safe, byte-capped, Zod-validated prior result                          |
+| `--regression-threshold <percent>` | `10`                        | **P2:** number `1..100`; relative component of comparison threshold                       |
+| `--json`                           | false                       | Emit canonical JSON only                                                                  |
 
 ### 3.3 Mode behavior
 
@@ -203,33 +203,35 @@ Measure real local runtime load, TTFT, prefill, decode, and memory for <model>.
 
 1. Resolve model and quantization from the offline catalog.
 2. Filter installed adapters by exact model source/format and mandatory benchmark
-  support, then apply create-selection precedence. An explicit incompatible
-  backend fails; it never falls through to another backend.
+   support, then apply create-selection precedence. An explicit incompatible
+   backend fails; it never falls through to another backend.
 3. Determine the adapter's artifact family. For a self-managed adapter only,
-  call offline `inspectArtifact()`; it performs no network request, process spawn,
-  daemon request, or cache mutation. A daemon-managed adapter performs no cache
-  inspection before its private daemon/store exists.
+   call offline `inspectArtifact()`; it performs no network request, process spawn,
+   daemon request, or cache mutation. A daemon-managed adapter performs no cache
+   inspection before its private daemon/store exists.
 4. For self-managed artifacts, refuse missing/unverified evidence unless
-  `--allow-pull` is present. Daemon-managed refusal/acquisition is deferred to
-  step 6 and is scoped exclusively to the private store.
+   `--allow-pull` is present. Daemon-managed refusal/acquisition is deferred to
+   step 6 and is scoped exclusively to the private store.
 5. Select a candidate loopback port. OS-assigned port 0/socket activation is
-  preferred where the runtime supports it. Otherwise the port probe is advisory
-  and post-bind PID/listener ownership validation is authoritative.
+   preferred where the runtime supports it. Otherwise the port probe is advisory
+   and post-bind PID/listener ownership validation is authoritative.
 6. Follow one normative backend flow:
-  - **Self-managed (llama.cpp/MLX):** inspect → optionally acquire with immutable
-    source/digest → obtain verified artifact lease → `BenchmarkLeaseManager.serve()` with
-    `existingListener:"reject"` and lease id → verify listener/runtime/artifact.
-  - **Daemon-managed (Ollama):** acquire a benchmark-private store lease, then
-    call `BenchmarkLeaseManager.serve()` with `existingListener:"reject"`, its exact private-
-    store lease, containment plan, and no artifact lease → inspect that store → optionally pull only through that
-    owned endpoint → obtain/verify a daemon-store artifact lease →
-    `loadBenchmarkModel()` through the same endpoint → verify served manifest/
-    blob identity. Never use an unrelated active/default daemon or store.
+
+- **Self-managed (llama.cpp/MLX):** inspect → optionally acquire with immutable
+  source/digest → obtain verified artifact lease → `BenchmarkLeaseManager.serve()` with
+  `existingListener:"reject"` and lease id → verify listener/runtime/artifact.
+- **Daemon-managed (Ollama):** acquire a benchmark-private store lease, then
+  call `BenchmarkLeaseManager.serve()` with `existingListener:"reject"`, its exact private-
+  store lease, containment plan, and no artifact lease → inspect that store → optionally pull only through that
+  owned endpoint → obtain/verify a daemon-store artifact lease →
+  `loadBenchmarkModel()` through the same endpoint → verify served manifest/
+  blob identity. Never use an unrelated active/default daemon or store.
+
 7. Attached handles are invalid in ephemeral mode and cause failure before
-  fixture transmission.
+   fixture transmission.
 8. Measure API readiness, one excluded first request (cold/model-loading in
-  ephemeral mode; priming-only in active mode), warmups, and measured inference
-  as separate phases.
+   ephemeral mode; priming-only in active mode), warmups, and measured inference
+   as separate phases.
 9. Stop the complete verified process tree owned by this benchmark.
 10. Verify all owned process instances and listeners are gone.
 
@@ -251,7 +253,7 @@ acquisition path.
 3. If `--backend` is supplied, require it to equal `active.backend`.
 4. Verify endpoint/process/model identity through the active adapter.
 5. Skip acquisition and load timing; report both as `not_applicable`. Execute an
-  excluded first priming request, but do not label it cold or model-loading.
+   excluded first priming request, but do not label it cold or model-loading.
 6. Never stop or mutate the active server.
 
 Snapshot active state at start. Re-read and compare backend, model, endpoint,
@@ -274,11 +276,11 @@ records `requestBinding:"leased"`.
 
 ### 3.4 Exit-code contract
 
-| Exit | Meaning |
-| --- | --- |
-| `0` | Benchmark completed; no comparable metric exceeded threshold |
-| `1` | Validation, acquisition, runtime, identity, inference, or cleanup failure |
-| `2` | **P2 only:** benchmark completed and a conclusive comparable regression exceeded threshold |
+| Exit | Meaning                                                                                    |
+| ---- | ------------------------------------------------------------------------------------------ |
+| `0`  | Benchmark completed; no comparable metric exceeded threshold                               |
+| `1`  | Validation, acquisition, runtime, identity, inference, or cleanup failure                  |
+| `2`  | **P2 only:** benchmark completed and a conclusive comparable regression exceeded threshold |
 
 A missing/unknown metric is not itself a regression. It is reported as unknown
 and excluded from baseline comparison.
@@ -320,11 +322,11 @@ For each run:
 
 1. Confirm process identity and model identity.
 2. Start the runner-owned monotonic end-to-end timer immediately before handing
-  the complete request bytes to the adapter.
+   the complete request bytes to the adapter.
 3. Submit non-streaming or streaming benchmark request through adapter benchmark
    support.
 4. Stop the runner-owned timer after the adapter has consumed the terminal
-  response event. Adapter samples do not contain a second end-to-end duration.
+   response event. Adapter samples do not contain a second end-to-end duration.
 5. Reject malformed counters (negative, non-finite, inconsistent counts).
 6. Between runs, ensure the prior request has completed; no overlapping work in
    v1.
@@ -368,11 +370,7 @@ partial success result.
 ### 4.3 Metrics
 
 ```ts
-export type MetricSource =
-  | "wall_clock"
-  | "runtime_reported"
-  | "sampled_process"
-  | "unavailable";
+export type MetricSource = "wall_clock" | "runtime_reported" | "sampled_process" | "unavailable";
 
 export interface MeasuredMetric {
   readonly known: boolean;
@@ -512,10 +510,7 @@ Benchmark orchestration requires an offline artifact inspection boundary:
 
 ```ts
 export type ArtifactIntegrity =
-  | "digest_verified"
-  | "size_floor_verified"
-  | "unverified"
-  | "not_applicable";
+  "digest_verified" | "size_floor_verified" | "unverified" | "not_applicable";
 
 export interface ArtifactStatus {
   readonly present: boolean;
@@ -867,11 +862,11 @@ benchmark result; the CLI never describes sampled polling as enforcement.
 
 P1 support is explicit:
 
-| Platform | Ephemeral P1 | Active P1 | Required primitive |
-| --- | --- | --- | --- |
-| Linux | Supported when available | Supported | systemd user transient scope backed by cgroup v2, `MemoryMax`, and `MemorySwapMax=0` |
-| macOS | Unsupported | Supported | no qualifying unprivileged aggregate process-tree primitive is specified for P1 |
-| Windows | Unsupported | Supported | Windows Job Object support is deferred |
+| Platform | Ephemeral P1             | Active P1 | Required primitive                                                                   |
+| -------- | ------------------------ | --------- | ------------------------------------------------------------------------------------ |
+| Linux    | Supported when available | Supported | systemd user transient scope backed by cgroup v2, `MemoryMax`, and `MemorySwapMax=0` |
+| macOS    | Unsupported              | Supported | no qualifying unprivileged aggregate process-tree primitive is specified for P1      |
+| Windows  | Unsupported              | Supported | Windows Job Object support is deferred                                               |
 
 Linux containment launches through a uniquely named systemd user transient scope
 using canonical, version-checked `systemd-run`/`systemctl` executables with
@@ -1108,10 +1103,7 @@ export interface ComparisonFingerprintV1 {
     readonly probeName: string;
     readonly probeVersion: string;
     readonly intervalMs: number | null;
-    readonly memorySource:
-      | "cgroup_memory_current"
-      | "summed_process_rss_estimate"
-      | "unavailable";
+    readonly memorySource: "cgroup_memory_current" | "summed_process_rss_estimate" | "unavailable";
   };
   readonly containment:
     | {
@@ -1212,9 +1204,7 @@ export interface BenchmarkResultV1 {
         readonly probeName: string;
         readonly probeVersion: string;
         readonly memoryStatus: "measured";
-        readonly memorySource:
-          | "cgroup_memory_current"
-          | "summed_process_rss_estimate";
+        readonly memorySource: "cgroup_memory_current" | "summed_process_rss_estimate";
         readonly intervalMs: number;
         readonly retainedSampleCount: number;
         readonly maxRetainedSamples: number;
@@ -1599,13 +1589,13 @@ One parent cancellation signal covers all phases and is propagated to artifact
 inspection/acquisition, spawn, readiness, inference, and sampling.
 P1 uses fixed constants; changing or exposing them requires a follow-up spec:
 
-| Budget | P1 value |
-| --- | ---: |
-| acquisition | 30 min |
-| process/API readiness | 5 min |
-| first/warm/measured request | 2 min each |
-| graceful shutdown | 10 s |
-| total command excluding acquisition | 20 min |
+| Budget                              |   P1 value |
+| ----------------------------------- | ---------: |
+| acquisition                         |     30 min |
+| process/API readiness               |      5 min |
+| first/warm/measured request         | 2 min each |
+| graceful shutdown                   |       10 s |
+| total command excluding acquisition |     20 min |
 
 Before pull, require known artifact bytes, free disk for final artifact + full
 temporary copy + 10% safety margin, and existing hardware fit with a documented

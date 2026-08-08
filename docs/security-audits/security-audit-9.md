@@ -19,12 +19,12 @@
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High     | 0 |
-| Medium   | 0 |
-| Low      | 2 |
-| Info     | 2 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 0     |
+| Low      | 2     |
+| Info     | 2     |
 
 **Verdict:** B6 is a clean, behavior-preserving refactor. All five non-negotiable
 domain security principles are intact. No Critical or Important (High/Medium)
@@ -181,9 +181,9 @@ that B6 leaves unreachable in Phase 0.
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | Low | LOW-1: attach override silently ignored | Thread flag/env into attach `select()` so the conflict `ValidationError` fires; add a guard test |
-| 2 | Low | LOW-2: create flag/env/config skip install probe | Probe `isInstalled()` on explicitly-selected adapters before `serve()` when `up` forwards overrides |
-| — | Info | Dev-chain `npm audit` (vitest/vite/esbuild) | Track; not shipped in runtime package — no action required for B6 |
-| — | Info | `doctor` picks `registry.all()[0]` for the generic backend check | Cosmetic only in Phase 0 (single backend); revisit when multiple backends register |
+| #   | Severity | Finding                                                          | Recommendation                                                                                      |
+| --- | -------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 1   | Low      | LOW-1: attach override silently ignored                          | Thread flag/env into attach `select()` so the conflict `ValidationError` fires; add a guard test    |
+| 2   | Low      | LOW-2: create flag/env/config skip install probe                 | Probe `isInstalled()` on explicitly-selected adapters before `serve()` when `up` forwards overrides |
+| —   | Info     | Dev-chain `npm audit` (vitest/vite/esbuild)                      | Track; not shipped in runtime package — no action required for B6                                   |
+| —   | Info     | `doctor` picks `registry.all()[0]` for the generic backend check | Cosmetic only in Phase 0 (single backend); revisit when multiple backends register                  |

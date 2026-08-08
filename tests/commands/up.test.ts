@@ -46,7 +46,11 @@ function deferred<T>(): Deferred<T> {
   };
 }
 
-function quant(name: string, diskBytes: number, overrides: Partial<Quantization> = {}): Quantization {
+function quant(
+  name: string,
+  diskBytes: number,
+  overrides: Partial<Quantization> = {},
+): Quantization {
   return {
     name,
     diskBytes,
@@ -235,11 +239,7 @@ afterEach(() => {
   rmSync(home, { recursive: true, force: true });
 });
 
-function deps(
-  adapter: FakeAdapter,
-  cat: Catalog,
-  hw: HardwareProfile = hardware(),
-): UpDeps {
+function deps(adapter: FakeAdapter, cat: Catalog, hw: HardwareProfile = hardware()): UpDeps {
   return {
     config,
     loadCatalog: () => cat,
@@ -263,7 +263,9 @@ function deps(
 describe("runUp", () => {
   it("resolves, preflights disk, ensures backend, pulls, serves, health-checks, then writes state in order", async () => {
     const adapter = fakeAdapter();
-    const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB, { sha256: "a".repeat(64) })])]);
+    const cat = catalog([
+      model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB, { sha256: "a".repeat(64) })]),
+    ]);
 
     await runUp({ model: "llama3.1:8b" }, deps(adapter, cat));
 
@@ -310,7 +312,9 @@ describe("runUp", () => {
         ownedByUs: true,
       },
     });
-    const cat = catalog([ggufModel("qwen3:14b", [quant("Q4_K_M", 9 * GIB, { sha256: "b".repeat(64) })])]);
+    const cat = catalog([
+      ggufModel("qwen3:14b", [quant("Q4_K_M", 9 * GIB, { sha256: "b".repeat(64) })]),
+    ]);
 
     await runUp({ model: "qwen3:14b", backend: "llamacpp" }, deps(adapter, cat));
 
@@ -439,7 +443,9 @@ describe("runUp", () => {
     const adapter = fakeAdapter({ name: "mlx", formats: ["mlx"], installed: false });
     const cat = catalog([mlxModel("qwen3:14b", [quant("4bit", 9 * GIB)])]);
 
-    await expect(runUp({ model: "qwen3:14b", backend: "mlx" }, deps(adapter, cat))).rejects.toBeInstanceOf(BackendError);
+    await expect(
+      runUp({ model: "qwen3:14b", backend: "mlx" }, deps(adapter, cat)),
+    ).rejects.toBeInstanceOf(BackendError);
     expect(adapter.pullArgs).toHaveLength(0);
   });
 
@@ -547,9 +553,9 @@ describe("runUp", () => {
     // Ollama-only source, but llamacpp only serves gguf → no servable source.
     const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
 
-    await expect(runUp({ model: "llama3.1:8b", backend: "llamacpp" }, deps(adapter, cat))).rejects.toThrow(
-      "has no source that backend llamacpp can serve",
-    );
+    await expect(
+      runUp({ model: "llama3.1:8b", backend: "llamacpp" }, deps(adapter, cat)),
+    ).rejects.toThrow("has no source that backend llamacpp can serve");
   });
 
   it("aborts before pull/serve when free disk is insufficient", async () => {
@@ -566,21 +572,21 @@ describe("runUp", () => {
     expect(readState(config).active).toBeNull();
   });
 
-    it("auto-selects an installed backend that can serve the model instead of MLX-first blindly", async () => {
-      const ollama = fakeAdapter({ name: "ollama", formats: ["ollama"] });
-      const mlx = fakeAdapter({ name: "mlx", formats: ["mlx"] });
-      const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
-      const d: UpDeps = {
-        ...deps(ollama, cat),
-        registry: createRegistry([ollama, mlx]),
-      };
+  it("auto-selects an installed backend that can serve the model instead of MLX-first blindly", async () => {
+    const ollama = fakeAdapter({ name: "ollama", formats: ["ollama"] });
+    const mlx = fakeAdapter({ name: "mlx", formats: ["mlx"] });
+    const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
+    const d: UpDeps = {
+      ...deps(ollama, cat),
+      registry: createRegistry([ollama, mlx]),
+    };
 
-      await runUp({ model: "llama3.1:8b" }, d);
+    await runUp({ model: "llama3.1:8b" }, d);
 
-      expect(ollama.pullArgs).toHaveLength(1);
-      expect(mlx.pullArgs).toHaveLength(0);
-      expect(readState(config).active?.backend).toBe("ollama");
-    });
+    expect(ollama.pullArgs).toHaveLength(1);
+    expect(mlx.pullArgs).toHaveLength(0);
+    expect(readState(config).active?.backend).toBe("ollama");
+  });
 
   it("auto-selects MLX only on Apple Silicon for an MLX-source model", async () => {
     const mlx = fakeAdapter({
@@ -621,7 +627,10 @@ describe("runUp", () => {
       () => new Error("expected runUp to fail"),
       (error: unknown) => error,
     );
-    const explicitError = await runUp({ model: "llama3.1:8b-Q4_K_M" }, deps(explicitAdapter, cat, hw)).then(
+    const explicitError = await runUp(
+      { model: "llama3.1:8b-Q4_K_M" },
+      deps(explicitAdapter, cat, hw),
+    ).then(
       () => new Error("expected runUp to fail"),
       (error: unknown) => error,
     );

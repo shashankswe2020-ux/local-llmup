@@ -10,12 +10,12 @@
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 1 |
-| Medium | 3 |
-| Low | 3 |
-| Info | 2 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 1     |
+| Medium   | 3     |
+| Low      | 3     |
+| Info     | 2     |
 
 **Overall:** The slug function correctly forecloses classic `../` traversal (no `.`/`..`/`/` can survive the charset filter + leading/trailing-dot strip), `isWithin` uses a correct `root + sep` prefix check, and corrupt-store handling fails closed with typed errors and no clobber. The residual risks are (1) a **concurrent-create data-integrity race** in the current temp+rename create path that permits silent cross-contamination between two ids under load, (2) **umask/permission-hardening gaps** on recursively-created intermediate directories and the create-time window, (3) a **directory-component TOCTOU** because the write targets the pre-realpath `dir`, and (4) **missing post-write `fs.stat` verification** required by the acceptance bar. The planned `wx` change is a real improvement but does **not by itself** close the torn-read window or the directory-swap TOCTOU (see [LOW-3], [MEDIUM-2] and the Q&A).
 
@@ -26,20 +26,24 @@
 ### [HIGH-1] Concurrent create race → silent cross-contamination (last-writer-wins rename)
 
 - **Location:** `src/memory/store.ts` — `openMemoryStore` create path (temp-in-staging + `renameSync` over target).
-- **Description:** On a fresh slug, the create path writes meta to a staging temp and `renameSync`es it over `<dir>/meta.json`. `rename(2)` unconditionally overwrites the destination, so two concurrent `openMemoryStore` calls that resolve to the **same slug** (either the same `modelId` twice, or two *distinct* ids that slug alike — e.g. `llama3:8b` and `llama3/8b` both → `llama3-8b`) both observe `ENOENT`, both create meta, and the second rename clobbers the first. The winning process holds an in-memory `meta` (with its own `modelId`) that no longer matches the `meta.json` now on disk. The collision check (`meta.modelId !== modelId`) ran at creation and passed for both, so **neither** process detects the swap.
+- **Description:** On a fresh slug, the create path writes meta to a staging temp and `renameSync`es it over `<dir>/meta.json`. `rename(2)` unconditionally overwrites the destination, so two concurrent `openMemoryStore` calls that resolve to the **same slug** (either the same `modelId` twice, or two _distinct_ ids that slug alike — e.g. `llama3:8b` and `llama3/8b` both → `llama3-8b`) both observe `ENOENT`, both create meta, and the second rename clobbers the first. The winning process holds an in-memory `meta` (with its own `modelId`) that no longer matches the `meta.json` now on disk. The collision check (`meta.modelId !== modelId`) ran at creation and passed for both, so **neither** process detects the swap.
 - **Impact:** Violates the acceptance bar ("slug-collision must NOT silently overwrite; two distinct model ids that slug alike must not cross-contaminate"). Under concurrency the durable `meta.json` and any subsequently appended chat/facts can be attributed to the wrong `modelId`, silently mixing two models' memory.
 - **Proof of concept:** Run two processes racing `openMemoryStore(cfg, "llama3:8b")` and `openMemoryStore(cfg, "llama3/8b")` against an empty store. Both slug to `llama3-8b`, both take the `ENOENT` branch, both write meta, `rename` last-writer-wins. The loser proceeds believing its `meta.modelId` is authoritative while disk says otherwise.
-- **Recommendation:** Adopt **first-writer-wins atomic create**. `wx` (`O_CREAT|O_EXCL`) is the right primitive but must be paired with atomic *content*: write the temp fully, `fsyncSync` it, then `linkSync(temp, target)` — `link(2)` fails with `EEXIST` when the target already exists **and** publishes complete content atomically (unlike a partially-written direct `wx` write). On `EEXIST`, re-read + Zod-validate + collision-check the existing meta and reconcile (first-writer-wins). Do **not** rely on plain `renameSync` for a create-once file.
+- **Recommendation:** Adopt **first-writer-wins atomic create**. `wx` (`O_CREAT|O_EXCL`) is the right primitive but must be paired with atomic _content_: write the temp fully, `fsyncSync` it, then `linkSync(temp, target)` — `link(2)` fails with `EEXIST` when the target already exists **and** publishes complete content atomically (unlike a partially-written direct `wx` write). On `EEXIST`, re-read + Zod-validate + collision-check the existing meta and reconcile (first-writer-wins). Do **not** rely on plain `renameSync` for a create-once file.
 
   ```ts
   // temp written + fsync'd, then:
   try {
-    linkSync(temp, target);            // atomic, fails if target exists
+    linkSync(temp, target); // atomic, fails if target exists
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
     // first-writer-wins: re-read, validate, collision-check the winner
   } finally {
-    try { unlinkSync(temp); } catch { /* best effort */ }
+    try {
+      unlinkSync(temp);
+    } catch {
+      /* best effort */
+    }
   }
   ```
 
@@ -55,7 +59,7 @@
 - **Location:** `src/memory/store.ts` — `resolveStoreDir` returns `dir` (the `join(memoryDir, slug)` symbolic path) after validating `dirReal`; the subsequent meta write uses `join(dir, META_FILE)`.
 - **Description:** Containment is checked against `realpathSync(dir)` at time T1, but the write happens at T2 against the **symbolic** `dir`. Between T1 and T2 the `slug` component (or an ancestor) can be swapped for a symlink pointing outside `memoryDir`, and the write follows it. This is the intentional "validate `dirReal`, return `dir`" divergence noted in repo memory, but it remains a genuine residual.
 - **Impact:** Write of `meta.json` (and later chat/fact files) outside the memory root, or over an attacker-chosen target, via symlink race. Practically bounded by the fact that `memoryDir` is `0o700` owner-only — an attacker who can plant symlinks inside it is already the same UID (or root); the exposure is same-user compromised-process / root, not remote.
-- **Recommendation:** For the meta file specifically, exclusive-create (`wx` = `O_CREAT|O_EXCL`) **does not follow a final symlink** — `open(2)` with `O_EXCL|O_CREAT` errors on a symlinked final component — so the planned change hardens the *file* leg for free. For the **directory** component, either (a) re-run `realpathSync(dir)` + `isWithin` immediately before the write and operate on that resolved path, or (b) open a descriptor to the realpath'd directory once and write relative to it (closest Node gets to `openat`). Document the residual and its dependence on `0o700` ownership.
+- **Recommendation:** For the meta file specifically, exclusive-create (`wx` = `O_CREAT|O_EXCL`) **does not follow a final symlink** — `open(2)` with `O_EXCL|O_CREAT` errors on a symlinked final component — so the planned change hardens the _file_ leg for free. For the **directory** component, either (a) re-run `realpathSync(dir)` + `isWithin` immediately before the write and operate on that resolved path, or (b) open a descriptor to the realpath'd directory once and write relative to it (closest Node gets to `openat`). Document the residual and its dependence on `0o700` ownership.
 
 ### [MEDIUM-3] No post-write `fs.stat` verification of 0700/0600 (fails open under a hostile umask)
 
@@ -66,8 +70,10 @@
 
   ```ts
   const st = statSync(path);
-  if ((st.mode & 0o777 & 0o077) !== 0) throw new MemoryError(`insecure permissions on ${stripControl(path)}`);
-  if (st.uid !== process.getuid?.()) throw new MemoryError(`unexpected owner on ${stripControl(path)}`);
+  if ((st.mode & 0o777 & 0o077) !== 0)
+    throw new MemoryError(`insecure permissions on ${stripControl(path)}`);
+  if (st.uid !== process.getuid?.())
+    throw new MemoryError(`unexpected owner on ${stripControl(path)}`);
   ```
 
 ### [LOW-1] No slug length cap → `ENAMETOOLONG` surfaces as an untyped raw error
@@ -87,7 +93,7 @@
 ### [LOW-3] Torn-read window on a directly-written `meta.json` (planned `wx` alone is not atomic content)
 
 - **Location:** Planned hardening — `writeFileSync(target, json, { flag: "wx", mode: FILE_MODE })`.
-- **Description:** `O_EXCL` guarantees a single creator, but `writeFileSync` may perform multiple `write(2)` calls; a concurrent reader that took the `EEXIST` branch can observe a **partially written** `meta.json` (torn read) → `JSON.parse` throws → transient `MemoryError`, or in the worst case a truncated-but-parseable object. `wx` fixes *who creates* but not *when content is complete*.
+- **Description:** `O_EXCL` guarantees a single creator, but `writeFileSync` may perform multiple `write(2)` calls; a concurrent reader that took the `EEXIST` branch can observe a **partially written** `meta.json` (torn read) → `JSON.parse` throws → transient `MemoryError`, or in the worst case a truncated-but-parseable object. `wx` fixes _who creates_ but not _when content is complete_.
 - **Impact:** Spurious `MemoryError`s / flaky reads under concurrency; not a clobber, but a reliability + integrity smell.
 - **Recommendation:** Combine exclusivity with atomic content publication: write temp → `fsync` → `linkSync(temp, target)` (see [HIGH-1]). `link` publishes fully-written content atomically and preserves first-writer-wins. If sticking with direct `wx`, have `EEXIST` readers retry `JSON.parse` with a tiny bounded backoff before erroring.
 
@@ -108,10 +114,10 @@
 ## Answers to the Posed Questions
 
 1. **Does `wx` fully close the silent-overwrite window, or is a lock still needed? Partial-read window?**
-   `wx` closes the *creator* race (only one process creates; others get `EEXIST` and reconcile via re-read + collision-check → first-writer-wins) **without** an explicit lock for this create-once file. However, plain `wx` + `writeFileSync` leaves a **torn-read window** ([LOW-3]): a concurrent `EEXIST` reader may see a partially written file. Close it by publishing content atomically — temp → `fsync` → `linkSync` — which gives you *both* first-writer-wins *and* all-or-nothing content, no lock required. A lock only becomes necessary if the file later becomes mutable (append/rewrite of chat/facts); for create-once meta it is not.
+   `wx` closes the _creator_ race (only one process creates; others get `EEXIST` and reconcile via re-read + collision-check → first-writer-wins) **without** an explicit lock for this create-once file. However, plain `wx` + `writeFileSync` leaves a **torn-read window** ([LOW-3]): a concurrent `EEXIST` reader may see a partially written file. Close it by publishing content atomically — temp → `fsync` → `linkSync` — which gives you _both_ first-writer-wins _and_ all-or-nothing content, no lock required. A lock only becomes necessary if the file later becomes mutable (append/rewrite of chat/facts); for create-once meta it is not.
 
 2. **Residual symlink/TOCTOU between the containment check and the write; practical risk under 0700?**
-   Yes, residual. The check validates `dirReal` but the write uses the symbolic `dir` ([MEDIUM-2]), so the `slug` directory (or an ancestor) can be swapped for an out-of-root symlink between T1 and T2. The *file* leg is largely neutralized by `wx` (`O_EXCL|O_CREAT` refuses a symlinked final component); the *directory* leg is not. Given `memoryDir` is `0o700` owner-only, the attacker must already share the UID (or be root), so the practical blast radius is a compromised same-user process, not a remote or cross-user attacker. Recommend a re-`realpath` + `isWithin` immediately before the write (or an fd to the realpath'd dir) and explicitly documenting the residual.
+   Yes, residual. The check validates `dirReal` but the write uses the symbolic `dir` ([MEDIUM-2]), so the `slug` directory (or an ancestor) can be swapped for an out-of-root symlink between T1 and T2. The _file_ leg is largely neutralized by `wx` (`O_EXCL|O_CREAT` refuses a symlinked final component); the _directory_ leg is not. Given `memoryDir` is `0o700` owner-only, the attacker must already share the UID (or be root), so the practical blast radius is a compromised same-user process, not a remote or cross-user attacker. Recommend a re-`realpath` + `isWithin` immediately before the write (or an fd to the realpath'd dir) and explicitly documenting the residual.
 
 3. **Can a crafted `modelId` still escape the root or produce a dangerous slug?**
    Escape: **No** — `.`/`..`/`/`/`\\` cannot survive the `[^a-z0-9._-]` filter plus leading/trailing-dot strip, so no traversal segment is producible; and `isWithin(rootReal, dirReal)` backstops. Dangerous slugs that remain: **very long ids** → `ENAMETOOLONG` untyped error ([LOW-1]); **Windows reserved names** `CON`/`NUL`/`COM1`/… and trailing dot/space ([LOW-2]); **Unicode normalization** collisions ([INFO-2]). None escape the root; they degrade gracefully-vs-ungracefully and inflate collisions.
@@ -128,23 +134,23 @@
 - **Fails closed on corruption:** unparseable / schema-invalid / `modelId`-mismatched meta all raise typed `MemoryError` and never clobber the existing store; `z.object(...).strict()` blocks unexpected keys and any prototype-pollution style merge.
 - **Terminal-injection hygiene:** `modelId` is `stripControl`'d in every error message, consistent with the codebase-wide ANSI/escape defense noted in audits #2–#3.
 - **Atomic-write intent + same-fs staging:** staging on the same filesystem as home makes `rename` atomic (the durability instinct is right — it just needs first-writer-wins semantics per [HIGH-1]).
-- **Explicit `chmod` after create:** the code doesn't *rely* on umask for the leaf; it actively tightens (the gap is intermediates + verification, not intent).
+- **Explicit `chmod` after create:** the code doesn't _rely_ on umask for the leaf; it actively tightens (the gap is intermediates + verification, not intent).
 
 ---
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | High | Concurrent create last-writer-wins clobber (HIGH-1) | temp → fsync → `linkSync` for first-writer-wins atomic create; `EEXIST` → re-read + validate + collision-check |
-| 2 | Medium | Umask leaks on recursive intermediate dirs (MEDIUM-1) | `process.umask(0o077)` at startup; chmod every created level, not just the leaf |
-| 3 | Medium | Directory-component TOCTOU (write uses `dir` not `dirReal`) (MEDIUM-2) | Re-`realpath`+`isWithin` immediately before write (or fd to realpath'd dir); `wx` covers the file leg |
-| 4 | Medium | No post-write 0700/0600 verification (MEDIUM-3) | `statSync` assert `(mode & 0o077)===0` and owner==uid; fail closed with `MemoryError` |
-| 5 | Low | No slug length cap → untyped `ENAMETOOLONG` (LOW-1) | Cap slug (~128) + append hash of full `modelId` (also cuts collisions) |
-| 6 | Low | Windows reserved names / trailing dot-space (LOW-2) | Platform-gate: reject/prefix `CON`/`NUL`/`COM*`/`LPT*` and trailing `.`/space on win32 |
-| 7 | Low | Torn read of directly-written `wx` meta.json (LOW-3) | Publish content atomically via temp+fsync+`link` (or bounded parse-retry on `EEXIST`) |
-| — | Info | No `readFileSync` size cap (INFO-1) | Reject oversized `meta.json` before read |
-| — | Info | No Unicode normalization before slug (INFO-2) | `normalize("NFKC")` for determinism; uniqueness via LOW-1 hash |
+| #   | Severity | Finding                                                                | Recommendation                                                                                                 |
+| --- | -------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 1   | High     | Concurrent create last-writer-wins clobber (HIGH-1)                    | temp → fsync → `linkSync` for first-writer-wins atomic create; `EEXIST` → re-read + validate + collision-check |
+| 2   | Medium   | Umask leaks on recursive intermediate dirs (MEDIUM-1)                  | `process.umask(0o077)` at startup; chmod every created level, not just the leaf                                |
+| 3   | Medium   | Directory-component TOCTOU (write uses `dir` not `dirReal`) (MEDIUM-2) | Re-`realpath`+`isWithin` immediately before write (or fd to realpath'd dir); `wx` covers the file leg          |
+| 4   | Medium   | No post-write 0700/0600 verification (MEDIUM-3)                        | `statSync` assert `(mode & 0o077)===0` and owner==uid; fail closed with `MemoryError`                          |
+| 5   | Low      | No slug length cap → untyped `ENAMETOOLONG` (LOW-1)                    | Cap slug (~128) + append hash of full `modelId` (also cuts collisions)                                         |
+| 6   | Low      | Windows reserved names / trailing dot-space (LOW-2)                    | Platform-gate: reject/prefix `CON`/`NUL`/`COM*`/`LPT*` and trailing `.`/space on win32                         |
+| 7   | Low      | Torn read of directly-written `wx` meta.json (LOW-3)                   | Publish content atomically via temp+fsync+`link` (or bounded parse-retry on `EEXIST`)                          |
+| —   | Info     | No `readFileSync` size cap (INFO-1)                                    | Reject oversized `meta.json` before read                                                                       |
+| —   | Info     | No Unicode normalization before slug (INFO-2)                          | `normalize("NFKC")` for determinism; uniqueness via LOW-1 hash                                                 |
 
 ---
 

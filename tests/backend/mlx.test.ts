@@ -9,12 +9,7 @@ import type {
   AcquireRepositoryResult,
 } from "../../src/backend/acquire.js";
 import type { SpawnFn, SpawnedProcess } from "../../src/backend/ollama.js";
-import type {
-  FetchFn,
-  FetchResponseLike,
-  KillFn,
-  SleepFn,
-} from "../../src/backend/ollama.js";
+import type { FetchFn, FetchResponseLike, KillFn, SleepFn } from "../../src/backend/ollama.js";
 import type { ListenerIdentity, ProcessIdentity } from "../../src/backend/listener.js";
 
 interface SpawnRecord {
@@ -24,7 +19,10 @@ interface SpawnRecord {
   readonly env?: NodeJS.ProcessEnv | undefined;
 }
 
-function successfulSpawn(output = "0.31.3\n"): { readonly spawn: SpawnFn; readonly records: SpawnRecord[] } {
+function successfulSpawn(output = "0.31.3\n"): {
+  readonly spawn: SpawnFn;
+  readonly records: SpawnRecord[];
+} {
   const records: SpawnRecord[] = [];
   const spawn: SpawnFn = (command, args, options) => {
     records.push({ command, args: [...args], shell: options.shell, env: options.env });
@@ -108,9 +106,15 @@ describe("MlxAdapter — descriptor and installation", () => {
         let close: ((code: number | null) => void) | undefined;
         const child: SpawnedProcess = {
           pid: 1234,
-          stdout: { onData: (listener) => { output = listener; } },
+          stdout: {
+            onData: (listener) => {
+              output = listener;
+            },
+          },
           stderr: { onData: () => {} },
-          onClose: (listener) => { close = listener; },
+          onClose: (listener) => {
+            close = listener;
+          },
           onError: () => {},
           kill: () => {},
         };
@@ -130,7 +134,7 @@ describe("MlxAdapter — descriptor and installation", () => {
     }
   });
 
-  it.each(["0.31.2\n", "0.31.4\n", "not-a-version\n", ""]) (
+  it.each(["0.31.2\n", "0.31.4\n", "not-a-version\n", ""])(
     "rejects an unaudited or malformed mlx-lm version %j",
     async (output) => {
       const { spawn } = successfulSpawn(output);
@@ -205,9 +209,9 @@ describe("MlxAdapter — pull", () => {
           cached: false,
         }),
     });
-    await expect(
-      adapter.pull({ modelId: "qwen3:0.6b", repository }),
-    ).rejects.toBeInstanceOf(BackendError);
+    await expect(adapter.pull({ modelId: "qwen3:0.6b", repository })).rejects.toBeInstanceOf(
+      BackendError,
+    );
   });
 });
 
@@ -229,17 +233,17 @@ describe("assertSafeMlxModelDirectory", () => {
     }
   });
 
-  it.each([
-    { model_file: "model.py" },
-    { auto_map: { AutoModel: "model.CustomModel" } },
-  ])("rejects custom-code loader configuration", (config) => {
-    const root = modelDirectory(config);
-    try {
-      expect(() => assertSafeMlxModelDirectory(root)).toThrow(BackendError);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
+  it.each([{ model_file: "model.py" }, { auto_map: { AutoModel: "model.CustomModel" } }])(
+    "rejects custom-code loader configuration",
+    (config) => {
+      const root = modelDirectory(config);
+      try {
+        expect(() => assertSafeMlxModelDirectory(root)).toThrow(BackendError);
+      } finally {
+        rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
 
   it("rejects executable files even if the caller bypassed catalog validation", () => {
     const root = modelDirectory();
@@ -380,13 +384,18 @@ describe("MlxAdapter — lifecycle", () => {
     expect(records[0]?.args.slice(0, 2)).toEqual(["-I", "-c"]);
     expect(records[0]?.args[2]).toContain("GuardedHandler");
     expect(records[0]?.args.slice(3)).toEqual([
-        "mlx_lm.server",
-        "--model", "/cache/mlx/model",
-        "--host", "127.0.0.1",
-        "--port", "18081",
-        "--allowed-origins", "",
-        "--log-level", "ERROR",
-      ]);
+      "mlx_lm.server",
+      "--model",
+      "/cache/mlx/model",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "18081",
+      "--allowed-origins",
+      "",
+      "--log-level",
+      "ERROR",
+    ]);
     expect(records[0]?.env).toEqual({
       PATH: "/runtime/bin",
       HOME: "/Users/tester",
@@ -429,9 +438,9 @@ describe("MlxAdapter — lifecycle", () => {
       authTokenFactory: () => "a".repeat(64),
     });
 
-    await expect(
-      adapter.serve({ modelPath: "/cache/mlx/model", port: 18081 }),
-    ).rejects.toThrow(/exited before readiness/);
+    await expect(adapter.serve({ modelPath: "/cache/mlx/model", port: 18081 })).rejects.toThrow(
+      /exited before readiness/,
+    );
   });
 
   it("refuses non-loopback bind before spawning", async () => {
@@ -460,66 +469,58 @@ describe("MlxAdapter — lifecycle", () => {
     expect(records).toEqual([]);
   });
 
-  it(
-    "actively aborts a hung readiness request at the command deadline",
-    async () => {
-      const fetch: FetchFn = (_url, init) =>
-        new Promise((_resolve, reject) => {
+  it("actively aborts a hung readiness request at the command deadline", async () => {
+    const fetch: FetchFn = (_url, init) =>
+      new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener(
+          "abort",
+          () => reject(Object.assign(new Error("aborted"), { name: "AbortError" })),
+          { once: true },
+        );
+      });
+    const adapter = new MlxAdapter({
+      fetch,
+      sleep: noSleep,
+      platform: "darwin",
+      arch: "arm64",
+    });
+    await expect(
+      adapter.waitUntilReady({
+        endpoint: "http://127.0.0.1:18081",
+        timeoutMs: 10,
+        retries: 1,
+      }),
+    ).rejects.toBeInstanceOf(BackendError);
+  }, 500);
+
+  it("keeps the readiness deadline active while the response body is streaming", async () => {
+    const fetch: FetchFn = (_url, init) => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('{"status":'));
           init?.signal?.addEventListener(
             "abort",
-            () => reject(Object.assign(new Error("aborted"), { name: "AbortError" })),
+            () => controller.error(Object.assign(new Error("aborted"), { name: "AbortError" })),
             { once: true },
           );
-        });
-      const adapter = new MlxAdapter({
-        fetch,
-        sleep: noSleep,
-        platform: "darwin",
-        arch: "arm64",
+        },
       });
-      await expect(
-        adapter.waitUntilReady({
-          endpoint: "http://127.0.0.1:18081",
-          timeoutMs: 10,
-          retries: 1,
-        }),
-      ).rejects.toBeInstanceOf(BackendError);
-    },
-    500,
-  );
-
-  it(
-    "keeps the readiness deadline active while the response body is streaming",
-    async () => {
-      const fetch: FetchFn = (_url, init) => {
-        const body = new ReadableStream<Uint8Array>({
-          start(controller) {
-            controller.enqueue(new TextEncoder().encode('{"status":'));
-            init?.signal?.addEventListener(
-              "abort",
-              () => controller.error(Object.assign(new Error("aborted"), { name: "AbortError" })),
-              { once: true },
-            );
-          },
-        });
-        return Promise.resolve({ ok: true, status: 200, body });
-      };
-      const adapter = new MlxAdapter({
-        fetch,
-        sleep: noSleep,
-        platform: "darwin",
-        arch: "arm64",
-      });
-      await expect(
-        adapter.waitUntilReady({
-          endpoint: "http://127.0.0.1:18081",
-          timeoutMs: 10,
-          retries: 1,
-        }),
-      ).rejects.toBeInstanceOf(BackendError);
-    },
-    500,
-  );
+      return Promise.resolve({ ok: true, status: 200, body });
+    };
+    const adapter = new MlxAdapter({
+      fetch,
+      sleep: noSleep,
+      platform: "darwin",
+      arch: "arm64",
+    });
+    await expect(
+      adapter.waitUntilReady({
+        endpoint: "http://127.0.0.1:18081",
+        timeoutMs: 10,
+        retries: 1,
+      }),
+    ).rejects.toBeInstanceOf(BackendError);
+  }, 500);
 
   it("stops an owned MLX process only after listener identity revalidation", async () => {
     const server: FakeServer = { listening: true, ready: true, modelPath: "/cache/mlx/model" };
@@ -527,7 +528,8 @@ describe("MlxAdapter — lifecycle", () => {
     const kill: KillFn = (_pid, signal) => {
       signals.push(signal);
       if (signal === "SIGTERM") server.listening = false;
-      if (signal === 0 && !server.listening) throw Object.assign(new Error("gone"), { code: "ESRCH" });
+      if (signal === 0 && !server.listening)
+        throw Object.assign(new Error("gone"), { code: "ESRCH" });
     };
     const adapter = new MlxAdapter({
       fetch: mlxFetch(server),
@@ -765,7 +767,8 @@ describe("MlxAdapter — chat and embeddings", () => {
     const fetch = vi.fn<FetchFn>();
     const adapter = new MlxAdapter({
       fetch,
-      listenerProbe: () => Promise.resolve(listener({ listening: true, ready: true, modelPath: "/cache/m" })),
+      listenerProbe: () =>
+        Promise.resolve(listener({ listening: true, ready: true, modelPath: "/cache/m" })),
       platform: "darwin",
       arch: "arm64",
     });

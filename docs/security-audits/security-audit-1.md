@@ -9,13 +9,13 @@
 
 ## Summary
 
-| Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High (Important) | 2 |
-| Medium | 0 |
-| Low (Minor) | 3 |
-| Info | 0 |
+| Severity         | Count |
+| ---------------- | ----- |
+| Critical         | 0     |
+| High (Important) | 2     |
+| Medium           | 0     |
+| Low (Minor)      | 3     |
+| Info             | 0     |
 
 ---
 
@@ -67,13 +67,13 @@
 
 - **Location:** `src/backend/ollama.ts:506` (`serve` cleanup: no-pid and readiness-failure paths call `child.kill()`), `src/backend/ollama.ts:639` (`stop`)
 - **Description:** Termination sends a single `SIGTERM` with no escalation and without awaiting exit. A daemon that ignores or is slow to handle `SIGTERM` lingers as an orphan while the caller believes cleanup succeeded.
-- **Impact:** Occasional orphaned `ollama serve` holding the port/GPU. (Note: `child.kill()` on the `ChildProcess` handle is *not* pid-reuse prone — it targets the tracked child and no-ops after exit; the reuse risk is confined to the raw-pid `stop` path in HIGH-1.)
+- **Impact:** Occasional orphaned `ollama serve` holding the port/GPU. (Note: `child.kill()` on the `ChildProcess` handle is _not_ pid-reuse prone — it targets the tracked child and no-ops after exit; the reuse risk is confined to the raw-pid `stop` path in HIGH-1.)
 - **Recommendation:** After a grace period, escalate to `SIGKILL` if the process has not exited, and await the close event where a handle is available.
 
 ### [LOW-2] Full parent-environment inheritance into the spawned daemon
 
 - **Location:** `src/backend/ollama.ts:506` (`env: { ...process.env, OLLAMA_HOST: ... }`)
-- **Description:** The daemon inherits the entire parent environment. Security-relevant Ollama variables present in the ambient environment are silently honoured — notably `OLLAMA_ORIGINS` (a `*` value opens CORS, enabling browser / DNS-rebinding access to the loopback daemon) and `OLLAMA_MODELS` (redirects the model store). Constructing `env` as a structured object correctly prevents any env-var *injection* via the `host` string (there is no string concatenation to break out of), so the risk is inheritance semantics, not injection.
+- **Description:** The daemon inherits the entire parent environment. Security-relevant Ollama variables present in the ambient environment are silently honoured — notably `OLLAMA_ORIGINS` (a `*` value opens CORS, enabling browser / DNS-rebinding access to the loopback daemon) and `OLLAMA_MODELS` (redirects the model store). Constructing `env` as a structured object correctly prevents any env-var _injection_ via the `host` string (there is no string concatenation to break out of), so the risk is inheritance semantics, not injection.
 - **Impact:** The daemon's security posture is dictated by whatever is already in the environment rather than by explicit, safe defaults.
 - **Recommendation:** Set safe defaults for security-relevant variables explicitly (e.g. force a restrictive `OLLAMA_ORIGINS` unless the user opts in) instead of passively inheriting them, or pass a curated allow-list of environment variables to the child.
 
@@ -98,10 +98,10 @@
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | High | Non-positive/reused pid reaches `process.kill` in `stop` | Reject `pid <= 0` at the kill boundary; never mint an owned handle without a real pid; fingerprint to resist reuse |
-| 2 | High | `serve` binds any host with no opt-in | Enforce loopback allow-list; require explicit `allowNonLoopback`/`--host` opt-in; validate host charset |
-| 3 | Low | No SIGKILL escalation, kill not awaited | Escalate to SIGKILL after a grace period; await exit |
-| 4 | Low | Full env inheritance into daemon | Set safe defaults for `OLLAMA_ORIGINS`/`OLLAMA_MODELS` or pass a curated env allow-list |
-| 5 | Low | Attach trusts any port listener | Verify daemon identity before attaching |
+| #   | Severity | Finding                                                  | Recommendation                                                                                                     |
+| --- | -------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 1   | High     | Non-positive/reused pid reaches `process.kill` in `stop` | Reject `pid <= 0` at the kill boundary; never mint an owned handle without a real pid; fingerprint to resist reuse |
+| 2   | High     | `serve` binds any host with no opt-in                    | Enforce loopback allow-list; require explicit `allowNonLoopback`/`--host` opt-in; validate host charset            |
+| 3   | Low      | No SIGKILL escalation, kill not awaited                  | Escalate to SIGKILL after a grace period; await exit                                                               |
+| 4   | Low      | Full env inheritance into daemon                         | Set safe defaults for `OLLAMA_ORIGINS`/`OLLAMA_MODELS` or pass a curated env allow-list                            |
+| 5   | Low      | Attach trusts any port listener                          | Verify daemon identity before attaching                                                                            |

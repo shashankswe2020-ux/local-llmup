@@ -80,10 +80,7 @@ export async function fetchRegistryJson(
 
   let currentUrl = rawUrl;
   for (let hop = 0; hop <= maxRedirects; hop += 1) {
-    const url = assertSafeFetchUrl(
-      currentUrl,
-      allowedHosts !== undefined ? { allowedHosts } : {},
-    );
+    const url = assertSafeFetchUrl(currentUrl, allowedHosts !== undefined ? { allowedHosts } : {});
 
     let response: FetchResponseLike;
     try {
@@ -98,7 +95,9 @@ export async function fetchRegistryJson(
     if (REDIRECT_STATUS.has(response.status)) {
       const location = response.headers.get("location");
       if (location === null || location === "") {
-        throw new CatalogError(`registry redirect without a Location from ${stripControl(url.hostname)}`);
+        throw new CatalogError(
+          `registry redirect without a Location from ${stripControl(url.hostname)}`,
+        );
       }
       // Resolve relative redirects against the current URL; the next loop pass
       // re-runs the full SSRF policy on the resolved target before following it.
@@ -322,7 +321,10 @@ function buildModel(raw: RawRegistryModel, prior: CatalogModel | undefined): Cat
 
 /** Newest release date across the existing catalog ("" when empty). */
 function newestReleaseDate(catalog: Catalog): string {
-  return catalog.models.reduce((max, model) => (model.releaseDate > max ? model.releaseDate : max), "");
+  return catalog.models.reduce(
+    (max, model) => (model.releaseDate > max ? model.releaseDate : max),
+    "",
+  );
 }
 
 /** Stable order: newest release first, ties broken by ascending id. */
@@ -429,8 +431,7 @@ export function enrichCatalog(options: EnrichOptions): EnrichResult {
   }
   const cappedSet = new Set(capped);
 
-  const changed =
-    added.length > 0 || updated.length > 0 || removed.length > 0 || capped.length > 0;
+  const changed = added.length > 0 || updated.length > 0 || removed.length > 0 || capped.length > 0;
   const catalog: Catalog = {
     schemaVersion: 2,
     // Preserve the prior timestamp on a fully no-op run so the persisted file is

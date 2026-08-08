@@ -1,6 +1,6 @@
 ---
 name: runtime-production-smoke-test
-description: 'Runs production-level smoke tests against real local inference runtimes and real lightweight model weights. Use when: validating an Ollama, llama.cpp, MLX, or future BackendAdapter integration; running a live runtime smoke test; verifying pull→digest→serve→ready→chat/embed→stop; testing custom ports, process ownership, cache safety, or release readiness with actual binaries instead of mocks.'
+description: "Runs production-level smoke tests against real local inference runtimes and real lightweight model weights. Use when: validating an Ollama, llama.cpp, MLX, or future BackendAdapter integration; running a live runtime smoke test; verifying pull→digest→serve→ready→chat/embed→stop; testing custom ports, process ownership, cache safety, or release readiness with actual binaries instead of mocks."
 argument-hint: 'Runtime name and optional scope, e.g. "llamacpp exhaustive" or "mlx pre-release"'
 user-invocable: true
 disable-model-invocation: false
@@ -70,16 +70,16 @@ Do **not** use it for deterministic advice-only changes that never touch a runti
 
 Before running commands, derive a profile from code and the machine:
 
-| Field | Source |
-|---|---|
-| adapter name/capabilities | `createDefaultRegistry().get(name)` |
-| binary/install hint/default port | adapter implementation |
-| model formats | `adapter.capabilities.formats` |
-| pull source | validated catalog (`ollama`, `gguf`, `mlx`) |
-| readiness/identity paths | adapter implementation and tests |
-| chat/embed behavior | `BackendAdapter` capability flags |
-| active state | `readState(loadConfig())` |
-| expected process executable | installed binary / adapter spawn shape |
+| Field                            | Source                                      |
+| -------------------------------- | ------------------------------------------- |
+| adapter name/capabilities        | `createDefaultRegistry().get(name)`         |
+| binary/install hint/default port | adapter implementation                      |
+| model formats                    | `adapter.capabilities.formats`              |
+| pull source                      | validated catalog (`ollama`, `gguf`, `mlx`) |
+| readiness/identity paths         | adapter implementation and tests            |
+| chat/embed behavior              | `BackendAdapter` capability flags           |
+| active state                     | `readState(loadConfig())`                   |
+| expected process executable      | installed binary / adapter spawn shape      |
 
 Known runtime characteristics (verify against current code; do not blindly assume):
 
@@ -274,43 +274,51 @@ Otherwise report **PARTIAL** or **FAIL** and list exactly what was not proven.
 # Runtime Production Smoke — <runtime>
 
 ## Result
+
 PASS | PARTIAL | FAIL
 
 ## Environment
+
 - HEAD / package version:
 - OS / arch / RAM / free disk:
 - runtime binary / version:
 - selected port and baseline listener:
 
 ## Artifact
+
 - model / format / quant:
 - repo / immutable revision / exact file:
 - published size / SHA-256:
 - cache path / mode / cache-hit status:
 
 ## Runtime
+
 - endpoint / PID / canonical executable / start identity:
 - listener bind address:
 - readiness and identity endpoints:
 - model path / alias:
 
 ## Inference
+
 - chat marker and response:
 - token/timing evidence:
 - embedding behavior:
 
 ## Cleanup
+
 - stop result:
 - port/PID released:
 - unrelated listeners unchanged:
 - partials/locks/state:
 
 ## Automated Gates
+
 - focused tests:
 - full tests:
 - typecheck / lint / build / coverage:
 
 ## Defects or Unproven Areas
+
 - severity, reproduction, affected files, next action
 ```
 

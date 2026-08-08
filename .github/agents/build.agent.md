@@ -8,7 +8,20 @@ user-invocable: true
 argument-hint: >
   Say "next" to pick the next pending task from the implementation plan, or
   describe a specific task to implement.
-tools: [vscode, execute, read, agent, edit, search, web, browser, vscode.mermaid-chat-features/renderMermaidDiagram, ms-azuretools.vscode-containers/containerToolsConfig, todo]
+tools:
+  [
+    vscode,
+    execute,
+    read,
+    agent,
+    edit,
+    search,
+    web,
+    browser,
+    vscode.mermaid-chat-features/renderMermaidDiagram,
+    ms-azuretools.vscode-containers/containerToolsConfig,
+    todo,
+  ]
 agents:
   - code-reviewer
   - security-auditor
@@ -27,22 +40,22 @@ in a working state.
 
 Use these skills (invoke with the `skill` tool) during your workflow:
 
-| Skill                          | Use when…                                                    |
-| ------------------------------ | ------------------------------------------------------------ |
-| `incremental-implementation`   | Structuring work into thin vertical slices                   |
-| `test-driven-development`      | Writing failing tests before code (RED → GREEN → REFACTOR)   |
-| `debugging-and-error-recovery` | Any step fails — tests, build, typecheck, or lint            |
+| Skill                           | Use when…                                                     |
+| ------------------------------- | ------------------------------------------------------------- |
+| `incremental-implementation`    | Structuring work into thin vertical slices                    |
+| `test-driven-development`       | Writing failing tests before code (RED → GREEN → REFACTOR)    |
+| `debugging-and-error-recovery`  | Any step fails — tests, build, typecheck, or lint             |
 | `runtime-production-smoke-test` | Real-process validation after backend/runtime tests are green |
 
 ---
 
 ## Available Sub-Agents
 
-| Agent              | Dispatch when…                                                         |
-| ------------------ | ---------------------------------------------------------------------- |
-| `code-reviewer`    | Implementation is complete — review before committing                  |
+| Agent              | Dispatch when…                                                                   |
+| ------------------ | -------------------------------------------------------------------------------- |
+| `code-reviewer`    | Implementation is complete — review before committing                            |
 | `security-auditor` | Changes touch the backend, networking, integrity verification, or input handling |
-| `test-engineer`    | Need help designing test strategy or analyzing coverage gaps           |
+| `test-engineer`    | Need help designing test strategy or analyzing coverage gaps                     |
 
 ---
 
@@ -89,6 +102,7 @@ npm run lint
 ```
 
 If any step fails, invoke the `debugging-and-error-recovery` skill:
+
 - Read the error message carefully
 - Check if it's a type error, test failure, or build error
 - Fix the root cause, not the symptom
@@ -101,15 +115,15 @@ serve/readiness/chat/embed/stop behavior, process ownership, endpoint routing,
 or runtime state:
 
 1. Invoke the `runtime-production-smoke-test` skill after all mocked tests and
-  quality gates pass
+   quality gates pass
 2. Use the production build (`dist/`) and the lightest verified real artifact
 3. Bind loopback on a free port; never disturb a pre-existing listener/server
 4. Prove pull/cache integrity, real process identity/readiness, real inference,
-  capability behavior, and ownership-safe cleanup
+   capability behavior, and ownership-safe cleanup
 5. Convert every discovered code defect into a failing automated regression test
-  before fixing it, then repeat the real failing step
+   before fixing it, then repeat the real failing step
 6. Do not declare the runtime task complete if the smoke result is `PARTIAL` or
-  `FAIL`; document genuine environment blockers explicitly
+   `FAIL`; document genuine environment blockers explicitly
 
 Real processes and external model downloads are permitted **only in this smoke
 step**, never inside Vitest/unit/contract tests.
@@ -151,5 +165,5 @@ Update implementation status if a task is complete.
 6. Never remove or skip existing tests
 7. One task at a time — finish and verify before starting the next
 8. Runtime/backend changes require a passing `runtime-production-smoke-test`
-  before final review and commit, unless a genuine environment blocker is
-  documented and the task remains incomplete
+   before final review and commit, unless a genuine environment blocker is
+   documented and the task remains incomplete

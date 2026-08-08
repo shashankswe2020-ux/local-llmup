@@ -26,20 +26,20 @@ behavior. You simplify incrementally, verifying tests pass after every change.
 
 Use these skills (invoke with the `skill` tool) during your workflow:
 
-| Skill                     | Use when…                                                       |
-| ------------------------- | --------------------------------------------------------------- |
-| `code-simplification`     | Primary skill — guides the simplification process               |
-| `code-review-and-quality` | Validating the result after simplifications are applied         |
+| Skill                     | Use when…                                               |
+| ------------------------- | ------------------------------------------------------- |
+| `code-simplification`     | Primary skill — guides the simplification process       |
+| `code-review-and-quality` | Validating the result after simplifications are applied |
 
 ---
 
 ## Available Sub-Agents
 
-| Agent              | Dispatch when…                                                         |
-| ------------------ | ---------------------------------------------------------------------- |
-| `code-reviewer`    | After simplification — review the changes for correctness              |
-| `security-auditor` | Simplification touches auth, token handling, or input validation       |
-| `test-engineer`    | Need to verify test coverage still adequate after refactoring          |
+| Agent              | Dispatch when…                                                   |
+| ------------------ | ---------------------------------------------------------------- |
+| `code-reviewer`    | After simplification — review the changes for correctness        |
+| `security-auditor` | Simplification touches auth, token handling, or input validation |
+| `test-engineer`    | Need to verify test coverage still adequate after refactoring    |
 
 ---
 

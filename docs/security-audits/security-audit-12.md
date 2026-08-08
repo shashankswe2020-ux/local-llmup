@@ -18,12 +18,12 @@
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 0 |
-| Medium | 0 |
-| Low | 2 |
-| Info | 2 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 0     |
+| Low      | 2     |
+| Info     | 2     |
 
 The B10 change is small, well-bounded, and inherits the memory store's existing
 defenses (slug traversal guard, symlink re-check before write, `0700/0600`
@@ -54,6 +54,7 @@ defects, not remotely exploitable.
   which sets `embeddingUnsupported: true`). The resulting `meta.json` then claims
   both "this store has a `nomic-embed-text`/768 index" **and** "vectors are
   intentionally absent."
+
 - **Impact:** Honesty-gate contradiction. A future retrieval/search consumer that
   trusts `embedding` would query a **real but stale/partial** index (recent
   vector-less turns are missing) while `embeddingUnsupported` signals the
@@ -73,7 +74,7 @@ defects, not remotely exploitable.
 
   ```ts
   const MemoryMetaSchema = z
-    .object({ /* ...existing fields... */ })
+    .object({/* ...existing fields... */})
     .strict()
     .superRefine((m, ctx) => {
       if (m.embedding !== undefined && m.embeddingUnsupported === true) {
@@ -95,8 +96,8 @@ defects, not remotely exploitable.
 - **Location:** `src/commands/migrate.ts:152-163`.
 - **Description:** The guard that gates `select({ intent: "attach", ... })` was
   loosened from `summarizer === undefined && active !== null && active.modelId
-  === toId && targetOllamaId !== undefined` to `active !== null && active.modelId
-  === toId`. `select()` is now invoked whenever the active model is the migration
+=== toId && targetOllamaId !== undefined` to `active !== null && active.modelId
+=== toId`. `select()` is now invoked whenever the active model is the migration
   target — even when a summarizer was already supplied and even when
   `targetOllamaId` is `undefined`.
 - **Impact:** Availability/robustness only. `select()` for a state-recorded
@@ -161,11 +162,13 @@ defects, not remotely exploitable.
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | Low | LOW-1: `meta.json` can assert both `embedding` and `embeddingUnsupported` | Make the two mutually exclusive at the write boundary and/or add a `superRefine` guard so the contradiction cannot persist |
-| 2 | Low | LOW-2: `migrate` resolves active adapter more broadly | Degrade gracefully when `active.backend` is unresolvable; add a registry-miss test |
-| 3 | Info | Dev-only `npm audit` findings (vitest/vite-node) | Track; not shipped — confirm `--omit=dev` stays clean before publish |
-| 4 | Info | Broader `select()` invocation on migrate is network-free (`attach` intent) | No action; documented for future reviewers |
+| #   | Severity | Finding                                                                    | Recommendation                                                                                                             |
+| --- | -------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Low      | LOW-1: `meta.json` can assert both `embedding` and `embeddingUnsupported`  | Make the two mutually exclusive at the write boundary and/or add a `superRefine` guard so the contradiction cannot persist |
+| 2   | Low      | LOW-2: `migrate` resolves active adapter more broadly                      | Degrade gracefully when `active.backend` is unresolvable; add a registry-miss test                                         |
+| 3   | Info     | Dev-only `npm audit` findings (vitest/vite-node)                           | Track; not shipped — confirm `--omit=dev` stays clean before publish                                                       |
+| 4   | Info     | Broader `select()` invocation on migrate is network-free (`attach` intent) | No action; documented for future reviewers                                                                                 |
+
 ```
 
+```

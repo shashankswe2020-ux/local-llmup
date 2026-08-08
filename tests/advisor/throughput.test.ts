@@ -148,7 +148,10 @@ const CALIBRATION: readonly CalibrationCase[] = JSON.parse(
 ) as CalibrationCase[];
 
 describe("estimateTokPerSec — per-backend efficiency resolution (B9)", () => {
-  const nvidiaHw = hw({ gpu: [{ vendor: "nvidia", vramBytes: 24 * GIB }], totalRamBytes: 64 * GIB });
+  const nvidiaHw = hw({
+    gpu: [{ vendor: "nvidia", vramBytes: 24 * GIB }],
+    totalRamBytes: 64 * GIB,
+  });
 
   function datasetWith(efficiencyByBackend?: Record<string, number>): ReturnType<typeof loadPerf> {
     const cls: Record<string, unknown> = {
@@ -251,7 +254,9 @@ describe("estimateTokPerSec — calibration (AC6)", () => {
         c.publishedTokPerSec >= est.lowTokPerSec &&
         c.publishedTokPerSec <= est.highTokPerSec;
       if (!contained) {
-        misses.push(`${c.label}: published ${c.publishedTokPerSec}, got [${est.lowTokPerSec}, ${est.highTokPerSec}]`);
+        misses.push(
+          `${c.label}: published ${c.publishedTokPerSec}, got [${est.lowTokPerSec}, ${est.highTokPerSec}]`,
+        );
       }
     }
     const ratio = (CALIBRATION.length - misses.length) / CALIBRATION.length;

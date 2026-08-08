@@ -21,11 +21,7 @@ import { loadConfig, type Config } from "../config.js";
 import { ValidationError } from "../errors.js";
 import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
-import type {
-  BackendAdapter,
-  ChatMessage,
-  ExpectedProcessIdentity,
-} from "../backend/adapter.js";
+import type { BackendAdapter, ChatMessage, ExpectedProcessIdentity } from "../backend/adapter.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import { select } from "../backend/select.js";
 import {

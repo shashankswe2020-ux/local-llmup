@@ -79,8 +79,7 @@ export function evaluateVerdict(
   // Unknown throughput can never earn a `yes`; the midpoint of the known range
   // is the central estimate compared against the comfort floor.
   const midpoint = (throughput.lowTokPerSec + throughput.highTokPerSec) / 2;
-  const runnable: Runnable =
-    throughput.known && midpoint >= COMFORT_FLOOR ? "yes" : "slow";
+  const runnable: Runnable = throughput.known && midpoint >= COMFORT_FLOOR ? "yes" : "slow";
 
   return { runnable, throughput, quant: fit.quant };
 }

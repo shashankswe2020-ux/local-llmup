@@ -11,12 +11,12 @@ and to switch models — carrying their memory across — in one more line.
 
 It solves four problems:
 
-1. **Discovery** — "Which local LLM should I run on *this* machine?" The tool
+1. **Discovery** — "Which local LLM should I run on _this_ machine?" The tool
    inspects the hardware and prints a **ranked** list of open-weight models that
    will actually run well, each with a copy-pasteable install command.
 2. **Install + serve** — One command downloads a model and spins up a local,
    OpenAI-compatible server.
-3. **Memory portability** — One command migrates *all* memory (conversation
+3. **Memory portability** — One command migrates _all_ memory (conversation
    history, system prompt, saved facts, embeddings) from one model to another.
 4. **Freshness** — A weekly GitHub Actions pipeline enriches the model catalog
    with newly released open-weight models so recommendations never go stale.
@@ -69,17 +69,17 @@ It solves four problems:
 All commands runnable via `npx local-llmup <command>` or, once installed
 globally, `llmup <command>`.
 
-| Command | One-liner | Purpose |
-|---|---|---|
-| `recommend` | `npx local-llmup` (default) or `npx local-llmup recommend` | Detect hardware, print ranked models + install commands. |
-| `up` | `npx local-llmup up <model>` | Install (if needed) + start local server for `<model>`. |
-| `chat` | `npx local-llmup chat [-m <model>]` | Interactive/piped chat that **records memory** (see §3.5). |
-| `down` | `npx local-llmup down [model]` | Stop the local server owned by local-llmup. |
-| `switch` | `npx local-llmup switch <model>` | Make `<model>` the active served model (no memory move). |
-| `migrate` | `npx local-llmup migrate --from <a> --to <b>` | Move all memory from model `<a>` to `<b>`. |
-| `ls` | `npx local-llmup ls` | List installed models + which is active (from state). |
-| `catalog` | `npx local-llmup catalog [--refresh]` | Show/refresh the model catalog. |
-| `doctor` | `npx local-llmup doctor` | Diagnose hardware, backend, disk, ports, state. |
+| Command     | One-liner                                                  | Purpose                                                    |
+| ----------- | ---------------------------------------------------------- | ---------------------------------------------------------- |
+| `recommend` | `npx local-llmup` (default) or `npx local-llmup recommend` | Detect hardware, print ranked models + install commands.   |
+| `up`        | `npx local-llmup up <model>`                               | Install (if needed) + start local server for `<model>`.    |
+| `chat`      | `npx local-llmup chat [-m <model>]`                        | Interactive/piped chat that **records memory** (see §3.5). |
+| `down`      | `npx local-llmup down [model]`                             | Stop the local server owned by local-llmup.                |
+| `switch`    | `npx local-llmup switch <model>`                           | Make `<model>` the active served model (no memory move).   |
+| `migrate`   | `npx local-llmup migrate --from <a> --to <b>`              | Move all memory from model `<a>` to `<b>`.                 |
+| `ls`        | `npx local-llmup ls`                                       | List installed models + which is active (from state).      |
+| `catalog`   | `npx local-llmup catalog [--refresh]`                      | Show/refresh the model catalog.                            |
+| `doctor`    | `npx local-llmup doctor`                                   | Diagnose hardware, backend, disk, ports, state.            |
 
 > **Runtime state.** Commands that reason about "what is running" read/write a
 > single state file `~/.local-llmup/state.json` (validated by Zod, written
@@ -214,7 +214,7 @@ score(model, hw)     = wQ * qualityScore        // param-class + benchmarkProxy,
 
 ### 3.5 `chat` (the memory-capture path)
 
-`migrate` is only meaningful if something *writes* the memory store. `chat` is
+`migrate` is only meaningful if something _writes_ the memory store. `chat` is
 that producer: local-llmup sits in the request path as a thin recorder.
 
 1. Resolve the active model/endpoint from `state.json` (or `-m <model>`).
@@ -258,7 +258,7 @@ every family below across its common param sizes and quantizations:
 
 - **Kimi (Moonshot AI)** — `kimi-k2` (K2-Instruct / K2-Base, MoE ~1T total /
   ~32B active, Modified-MIT), `kimi-k2-thinking`, `kimi-vl` / `kimi-vl-a3b`
-  (vision MoE), `kimi-dev-72b`, `kimi-linear`. *(Explicitly required.)*
+  (vision MoE), `kimi-dev-72b`, `kimi-linear`. _(Explicitly required.)_
 - **Llama** (Meta) — 3.1 / 3.2 / 3.3, 1B–70B.
 - **Qwen** (Alibaba) — Qwen2.5 / Qwen3 dense + MoE, 0.5B–72B, incl. Coder.
 - **DeepSeek** — V2/V3 (MoE), R1 + distills.
@@ -280,24 +280,30 @@ Only **open-weight** licenses are admitted (see the license gate). Non-open
       "id": "llama3.1:8b",
       "family": "llama3.1",
       "params": "8B",
-      "architecture": "dense",                // "dense" | "moe"
-      "license": "llama-3.1-community",       // must be open-weight allow-listed
+      "architecture": "dense", // "dense" | "moe"
+      "license": "llama-3.1-community", // must be open-weight allow-listed
       "openWeight": true,
       "contextLength": 131072,
       "capabilities": ["chat", "code"],
       "releaseDate": "2024-07-23",
       "source": { "ollama": "llama3.1:8b", "hf": "meta-llama/Llama-3.1-8B" },
       "quantizations": [
-        { "name": "Q4_K_M", "diskBytes": 4900000000, "minRamBytes": 6500000000, "minVramBytes": 6000000000, "sha256": "<hex>" }
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 4900000000,
+          "minRamBytes": 6500000000,
+          "minVramBytes": 6000000000,
+          "sha256": "<hex>",
+        },
       ],
-      "benchmarkProxy": 0.71                    // 0..1 normalized quality proxy
+      "benchmarkProxy": 0.71, // 0..1 normalized quality proxy
     },
     {
       "id": "kimi-k2:instruct",
       "family": "kimi-k2",
-      "params": "1T",                          // total parameters
+      "params": "1T", // total parameters
       "architecture": "moe",
-      "activeParams": "32B",                   // MoE: params active per token (drives speed, not footprint)
+      "activeParams": "32B", // MoE: params active per token (drives speed, not footprint)
       "license": "modified-mit",
       "openWeight": true,
       "contextLength": 131072,
@@ -305,11 +311,17 @@ Only **open-weight** licenses are admitted (see the license gate). Non-open
       "releaseDate": "2025-07-11",
       "source": { "ollama": "kimi-k2", "hf": "moonshotai/Kimi-K2-Instruct" },
       "quantizations": [
-        { "name": "Q4_K_M", "diskBytes": 620000000000, "minRamBytes": 640000000000, "minVramBytes": 640000000000, "sha256": "<hex>" }
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 620000000000,
+          "minRamBytes": 640000000000,
+          "minVramBytes": 640000000000,
+          "sha256": "<hex>",
+        },
       ],
-      "benchmarkProxy": 0.93
-    }
-  ]
+      "benchmarkProxy": 0.93,
+    },
+  ],
 }
 ```
 
@@ -339,7 +351,7 @@ existing entries):
    min RAM/VRAM **via the shared `memory-math.ts` formula**, capabilities,
    context length, release date, SHA-256 digest.
 3. **License gate** — the open-weight allow-list is enforced **in the Zod schema
-   itself**, so both CI enrichment *and* the runtime catalog loader reject any
+   itself**, so both CI enrichment _and_ the runtime catalog loader reject any
    non-allow-listed license. A bad merge cannot smuggle a closed model past the
    runtime.
 4. **Merge reconciliation (merge-by-`id`)** — registry data updates only
@@ -422,7 +434,10 @@ export const HardwareProfileSchema = z.object({
   totalRamBytes: z.number().int().positive(),
   freeRamBytes: z.number().int().positive(),
   gpu: z
-    .object({ vendor: z.enum(["apple", "nvidia", "amd", "none"]), vramBytes: z.number().int().nonnegative() })
+    .object({
+      vendor: z.enum(["apple", "nvidia", "amd", "none"]),
+      vramBytes: z.number().int().nonnegative(),
+    })
     .array(),
   freeDiskBytes: z.number().int().nonnegative(),
 });
@@ -441,6 +456,7 @@ export function usableMemoryBytes(hw: HardwareProfile): number {
 ```
 
 Conventions:
+
 - Files `kebab-case.ts`; Types `PascalCase`; functions `camelCase`; constants
   `SCREAMING_SNAKE_CASE`; CLI subcommands `kebab-case`.
 - Named exports only (no default exports).
@@ -550,28 +566,28 @@ npm run dev         # tsx src/cli.ts
    Empty-catalog and all-models-too-big cases return cleanly (no throw). A large
    MoE model (e.g. `kimi-k2`, 1T total) is sized by **total** params and lands
    in "won't fit" as `ram-bound` on consumer hardware.
-   *(Verify: `npm test tests/ranking`)*
+   _(Verify: `npm test tests/ranking`)_
 2. `usableMemoryBytes` returns unified memory on Apple Silicon, largest VRAM on
    discrete-GPU, and **free** RAM on CPU-only/integrated-GPU profiles without
-   double-counting shared memory. *(Verify: `npm test tests/hardware`)*
+   double-counting shared memory. _(Verify: `npm test tests/hardware`)_
 3. `up <model>` with a mocked backend calls (disk-preflight →) pull → digest-
    verify → serve → health-check in order, binds `127.0.0.1`, and cleans up any
-   spawned process on serve/health failure. *(Verify: `npm test tests/commands/up`)*
+   spawned process on serve/health failure. _(Verify: `npm test tests/commands/up`)_
 4. `migrate --from a --to b` on a fixture store: carries `facts.json` unchanged,
    summarizes overflow turns when target context is smaller (asserting the
-   summarizer is *called with* overflow turns), re-embeds only when the embedding
+   summarizer is _called with_ overflow turns), re-embeds only when the embedding
    model/dimension differs, writes atomically, and on `--move` preserves the
-   source if the target write fails. *(Verify: `npm test tests/memory`)*
+   source if the target write fails. _(Verify: `npm test tests/memory`)_
 5. Model ids attempting path traversal (`../`, absolute, encoded) are rejected/
-   slugged and resolve inside `~/.local-llmup/memory/`. *(Verify: `npm test tests/memory`)*
+   slugged and resolve inside `~/.local-llmup/memory/`. _(Verify: `npm test tests/memory`)_
 6. Catalog Zod schema rejects a non-open-weight license, missing/negative quant
    bytes, and malformed entries; requires `activeParams` when
    `architecture: "moe"`; `enrich` merge is idempotent and preserves curated
-   fields. *(Verify: `npm test tests/catalog`)*
+   fields. _(Verify: `npm test tests/catalog`)_
 7. `catalog-refresh.yml` runs on the weekly cron with least-privilege
    `permissions:` and SHA-pinned actions, produces a validated catalog diff, and
-   opens a PR (never commits to `main`). *(Verify: workflow lint + a dry-run of
-   `enrich.ts` against recorded fixtures.)*
+   opens a PR (never commits to `main`). _(Verify: workflow lint + a dry-run of
+   `enrich.ts` against recorded fixtures.)_
 8. `npm run build`, `npm run typecheck`, `npm run lint`, `npm test` all pass.
 
 ---
@@ -614,7 +630,7 @@ benchmarking, model-assisted fact extraction, multi-GPU spanning.
 1. **Foundations:** scaffold, config/paths, errors, Zod catalog schema (with
    license gate) + loader, state module + lock, fixture `models.json`.
 2. **Hardware + ranking:** `detect.ts`, `memory-math.ts` (shared), `rank.ts`,
-   `weights.ts` + `recommend` command. *(Ships the headline feature first.)*
+   `weights.ts` + `recommend` command. _(Ships the headline feature first.)_
 3. **Backend + serve:** `BackendAdapter`, Ollama adapter (shell:false, digest
    verify, daemon attach/spawn), `up`/`down`/`switch`/`ls`/`doctor`.
 4. **Memory + migrate:** memory store (schemaVersion'd), `chat` capture path,

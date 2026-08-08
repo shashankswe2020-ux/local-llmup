@@ -1,10 +1,5 @@
 import { z } from "zod";
-import {
-  CAPABILITIES,
-  LICENSE_ALLOWLIST,
-  MODEL_ARCHITECTURES,
-  type Catalog,
-} from "../types.js";
+import { CAPABILITIES, LICENSE_ALLOWLIST, MODEL_ARCHITECTURES, type Catalog } from "../types.js";
 
 /** Compile-time drift guard: `T` must be assignable to `U`. */
 type AssertAssignable<T extends U, U> = T;
@@ -48,13 +43,9 @@ const GgufSourceSchema = z
   .object({
     repo: HfRepoIdSchema,
     revision: z.string().regex(REVISION_RE, { message: "revision must be a 40-hex commit SHA" }),
-    file: z
-      .string()
-      .min(1)
-      .max(255)
-      .refine(isSafeModelFile, {
-        message: "file must be a safe repo-relative path (no globs, `..`, or absolute paths)",
-      }),
+    file: z.string().min(1).max(255).refine(isSafeModelFile, {
+      message: "file must be a safe repo-relative path (no globs, `..`, or absolute paths)",
+    }),
     sha256: z.string().regex(SHA256_RE),
   })
   .strict();
@@ -72,7 +63,8 @@ const MlxSourceSchema = z
               .min(1)
               .max(512)
               .refine(isSafeModelFile, {
-                message: "file must be a safe repo-relative path (no globs, `..`, or absolute paths)",
+                message:
+                  "file must be a safe repo-relative path (no globs, `..`, or absolute paths)",
               })
               .refine((file) => !MLX_EXECUTABLE_FILE_RE.test(file), {
                 message: "MLX manifest must not contain executable Python or native-module files",
@@ -99,13 +91,25 @@ const MlxSourceSchema = z
       paths.add(entry.file);
     }
     if (!paths.has("config.json")) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["files"], message: "MLX manifest requires config.json" });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["files"],
+        message: "MLX manifest requires config.json",
+      });
     }
     if (!paths.has("tokenizer_config.json")) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["files"], message: "MLX manifest requires tokenizer_config.json" });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["files"],
+        message: "MLX manifest requires tokenizer_config.json",
+      });
     }
     if (![...paths].some((path) => path.endsWith(".safetensors"))) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["files"], message: "MLX manifest requires safetensors weights or index" });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["files"],
+        message: "MLX manifest requires safetensors weights or index",
+      });
     }
   });
 
@@ -130,10 +134,7 @@ const ModelSourceSchema = z
   .strict()
   .refine(
     (s) =>
-      s.ollama !== undefined ||
-      s.hf !== undefined ||
-      s.gguf !== undefined ||
-      s.mlx !== undefined,
+      s.ollama !== undefined || s.hf !== undefined || s.gguf !== undefined || s.mlx !== undefined,
     {
       message: "source must specify at least one of `ollama`, `hf`, `gguf`, or `mlx`",
     },

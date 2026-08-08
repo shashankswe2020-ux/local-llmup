@@ -17,9 +17,8 @@ describe("up module import behavior", () => {
 
     vi.resetModules();
     vi.doMock("../../src/config.js", async () => {
-      const actual = await vi.importActual<typeof import("../../src/config.js")>(
-        "../../src/config.js",
-      );
+      const actual =
+        await vi.importActual<typeof import("../../src/config.js")>("../../src/config.js");
       return {
         ...actual,
         loadConfig: loadConfigMock as typeof actual.loadConfig,

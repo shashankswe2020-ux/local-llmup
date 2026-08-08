@@ -24,12 +24,12 @@
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High     | 0 |
-| Medium   | 1 |
-| Low      | 2 |
-| Info     | 1 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 1     |
+| Low      | 2     |
+| Info     | 1     |
 
 **Verdict:** The B9 change is well-constructed and defensively coded. The
 reviewer's primary concern — that a nested provenance `url` might bypass the
@@ -37,11 +37,11 @@ reviewer's primary concern — that a nested provenance `url` might bypass the
 field is fully covered (see Positive Observations). `.strict()` is applied to
 the provenance object, the `z.record(z.enum(BACKEND_NAMES), …)` keys reject
 unknown backends, the new validators are ReDoS-free, and the honesty gate holds
-for the *runtime* resolution path (an absent `(class, backend)` scalar yields
+for the _runtime_ resolution path (an absent `(class, backend)` scalar yields
 `known:false`). **No Critical or High findings.**
 
 The one Medium item is an **integrity / honesty-gate structural gap**: the
-numeric scalar that actually drives the estimate is validated *independently* of
+numeric scalar that actually drives the estimate is validated _independently_ of
 its provenance object, so the schema will accept an **uncited** efficiency figure
 and produce a throughput number from it — contradicting spec §12 ("every
 efficiency figure must be cited"). The two Low items are defense-in-depth
@@ -66,16 +66,17 @@ hardening (URL scheme allowlist, string length bounds).
 
   ```jsonc
   {
-    "efficiencyByBackend": { "ollama": 0.99 },   // drives the DEFAULT advice path
-    "sources": { "bandwidth": "…", "efficiency": "…" }  // no efficiencyByBackend provenance
+    "efficiencyByBackend": { "ollama": 0.99 }, // drives the DEFAULT advice path
+    "sources": { "bandwidth": "…", "efficiency": "…" }, // no efficiencyByBackend provenance
   }
   ```
 
   and `estimateTokPerSec(..., { backend: "ollama" })` will emit a concrete
   `tok/s` range from the uncited `0.99`.
+
 - **Impact:** This is a **fail-open on the honesty gate**, a non-negotiable
   domain principle ("when a figure can't be sourced … output `unknown` — never
-  fabricate a number"). Because an explicit scalar *overrides* the shared-class
+  fabricate a number"). Because an explicit scalar _overrides_ the shared-class
   rule, an uncited scalar for `ollama`/`llamacpp` silently alters the default
   advice-path number, and an uncited scalar for `mlx`/`lmstudio` manufactures a
   figure that the resolution rule was specifically designed to withhold. The
@@ -192,7 +193,7 @@ hardening (URL scheme allowlist, string length bounds).
   numeric `efficiencyByBackend` nor in `{ollama, llamacpp}`, and
   `estimateTokPerSec` maps that to `UNKNOWN` — so `recommend --backend mlx` on a
   class with no `mlx` scalar correctly yields `known:false` rather than a guess.
-  (MEDIUM-1 concerns the orthogonal case where a scalar *is* present but uncited.)
+  (MEDIUM-1 concerns the orthogonal case where a scalar _is_ present but uncited.)
 - **Schema error messages are sanitized** before surfacing
   (`stripControl(result.error.message)`, [perf-data.ts:210](../../src/advisor/perf-data.ts#L210)),
   and the control-character rejection message does not echo attacker input.
@@ -204,11 +205,11 @@ hardening (URL scheme allowlist, string length bounds).
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | Medium | Numeric scalar decoupled from provenance; uncited figure still emits a number | Add `superRefine` requiring provenance for every scalar key and `value` agreement (MEDIUM-1) |
-| 2 | Low | `z.string().url()` accepts `javascript:`/`data:`/`file:`/credential URLs | Restrict to http(s), reject embedded credentials (LOW-1) |
-| 3 | Low | Unbounded provenance/citation string length | Add `.max()` bounds at the boundary (LOW-2) |
+| #   | Severity | Finding                                                                       | Recommendation                                                                               |
+| --- | -------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 1   | Medium   | Numeric scalar decoupled from provenance; uncited figure still emits a number | Add `superRefine` requiring provenance for every scalar key and `value` agreement (MEDIUM-1) |
+| 2   | Low      | `z.string().url()` accepts `javascript:`/`data:`/`file:`/credential URLs      | Restrict to http(s), reject embedded credentials (LOW-1)                                     |
+| 3   | Low      | Unbounded provenance/citation string length                                   | Add `.max()` bounds at the boundary (LOW-2)                                                  |
 
 ---
 

@@ -114,8 +114,7 @@ function assertNotPrivateHost(host: string): void {
 function isIpV4(host: string): boolean {
   const octets = host.split(".");
   return (
-    octets.length === 4 &&
-    octets.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)
+    octets.length === 4 && octets.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)
   );
 }
 

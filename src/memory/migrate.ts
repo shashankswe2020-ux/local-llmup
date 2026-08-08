@@ -400,13 +400,9 @@ const StoredTurnSchema = z
   })
   .strict();
 
-const StoredChunkSchema = z
-  .object({ id: z.string(), text: z.string(), ts: z.string() })
-  .strict();
+const StoredChunkSchema = z.object({ id: z.string(), text: z.string(), ts: z.string() }).strict();
 
-const StoredVectorSchema = z
-  .object({ id: z.string(), vector: z.array(z.number()) })
-  .strict();
+const StoredVectorSchema = z.object({ id: z.string(), vector: z.array(z.number()) }).strict();
 
 /** Read and validate newline-delimited JSON records, tolerating a missing file. */
 function readJsonlRecords<T>(path: string, schema: z.ZodType<T>, label: string): T[] {

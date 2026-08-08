@@ -120,7 +120,11 @@ describe("formatCanRunText", () => {
 
   it("names the reason and shows no fabricated number for a `no`", () => {
     const text = formatCanRunText(
-      buildCanRunResult(model("giant", "70B"), hw({ gpu: [{ vendor: "nvidia", vramBytes: 8 * GIB }] }), perf),
+      buildCanRunResult(
+        model("giant", "70B"),
+        hw({ gpu: [{ vendor: "nvidia", vramBytes: 8 * GIB }] }),
+        perf,
+      ),
     );
     expect(text).toContain("no");
     expect(text).toContain("vram-bound");
@@ -128,7 +132,11 @@ describe("formatCanRunText", () => {
 
   it("says throughput is unknown when there is no perf profile", () => {
     const text = formatCanRunText(
-      buildCanRunResult(model("llama3.1:8b", "7B"), hw({ gpu: [{ vendor: "amd", vramBytes: 16 * GIB }] }), perf),
+      buildCanRunResult(
+        model("llama3.1:8b", "7B"),
+        hw({ gpu: [{ vendor: "amd", vramBytes: 16 * GIB }] }),
+        perf,
+      ),
     );
     expect(text.toLowerCase()).toContain("unknown");
   });
@@ -138,7 +146,12 @@ describe("formatCanRunJson", () => {
   it("emits stable machine-readable fields", () => {
     const result = buildCanRunResult(model("llama3.1:8b", "7B"), hw(), perf);
     const parsed = JSON.parse(formatCanRunJson(result)) as Record<string, unknown>;
-    expect(parsed).toMatchObject({ model: "llama3.1:8b", verdict: "yes", quant: "Q4_K_M", reason: null });
+    expect(parsed).toMatchObject({
+      model: "llama3.1:8b",
+      verdict: "yes",
+      quant: "Q4_K_M",
+      reason: null,
+    });
     expect(parsed["throughput"]).toMatchObject({ known: true });
   });
 });

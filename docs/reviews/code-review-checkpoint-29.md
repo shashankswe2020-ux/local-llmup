@@ -38,15 +38,15 @@ None.
 
 ## Verification Story
 
-| Check | Status | Notes |
-|-------|--------|-------|
-| Tests reviewed | ✅ | Changed backend, advisor, command, catalog, and state tests reviewed first; 921/921 pass across 54 files. |
-| Build verified | ✅ | `npm run typecheck`, scoped ESLint, and `npm run build` pass. Repository-wide lint reaches only 2 unchanged `site/main.js` browser-global errors. |
-| Security checked | ✅ | Integrity, SSRF/redirect disposal and validation, symlink containment, artifact locking, loopback routing, and PID/executable/start-time ownership fail closed. |
-| Coverage | ✅ | Regressions cover redirect cancellation, scalar/provenance coupling, row/address listener validation, lifecycle identity stability, post-spawn ownership, state persistence, stop-before-serve, readiness normalization, dead-PID cleanup, and artifact locking. |
+| Check            | Status | Notes                                                                                                                                                                                                                                                            |
+| ---------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tests reviewed   | ✅     | Changed backend, advisor, command, catalog, and state tests reviewed first; 921/921 pass across 54 files.                                                                                                                                                        |
+| Build verified   | ✅     | `npm run typecheck`, scoped ESLint, and `npm run build` pass. Repository-wide lint reaches only 2 unchanged `site/main.js` browser-global errors.                                                                                                                |
+| Security checked | ✅     | Integrity, SSRF/redirect disposal and validation, symlink containment, artifact locking, loopback routing, and PID/executable/start-time ownership fail closed.                                                                                                  |
+| Coverage         | ✅     | Regressions cover redirect cancellation, scalar/provenance coupling, row/address listener validation, lifecycle identity stability, post-spawn ownership, state persistence, stop-before-serve, readiness normalization, dead-PID cleanup, and artifact locking. |
 
 ## Action Items
 
-| # | Priority | Issue | Target |
-|---|----------|-------|--------|
-| — | — | None | — |
+| #   | Priority | Issue | Target |
+| --- | -------- | ----- | ------ |
+| —   | —        | None  | —      |

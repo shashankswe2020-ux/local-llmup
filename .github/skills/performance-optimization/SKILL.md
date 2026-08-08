@@ -21,11 +21,11 @@ Measure before optimizing. Performance work without measurement is guessing — 
 
 ## Core Web Vitals Targets
 
-| Metric | Good | Needs Improvement | Poor |
-|--------|------|-------------------|------|
-| **LCP** (Largest Contentful Paint) | ≤ 2.5s | ≤ 4.0s | > 4.0s |
-| **INP** (Interaction to Next Paint) | ≤ 200ms | ≤ 500ms | > 500ms |
-| **CLS** (Cumulative Layout Shift) | ≤ 0.1 | ≤ 0.25 | > 0.25 |
+| Metric                              | Good    | Needs Improvement | Poor    |
+| ----------------------------------- | ------- | ----------------- | ------- |
+| **LCP** (Largest Contentful Paint)  | ≤ 2.5s  | ≤ 4.0s            | > 4.0s  |
+| **INP** (Interaction to Next Paint) | ≤ 200ms | ≤ 500ms           | > 500ms |
+| **CLS** (Cumulative Layout Shift)   | ≤ 0.1   | ≤ 0.25            | > 0.25  |
 
 ## The Optimization Workflow
 
@@ -45,6 +45,7 @@ Two complementary approaches — use both:
 - **RUM (web-vitals library, CrUX):** Real user data in real conditions. Required to validate that a fix actually improved user experience.
 
 **Frontend:**
+
 ```bash
 # Synthetic: Lighthouse in Chrome DevTools (or CI)
 # Chrome DevTools → Performance tab → Record
@@ -59,6 +60,7 @@ onCLS(console.log);
 ```
 
 **Backend:**
+
 ```bash
 # Response time logging
 # Application Performance Monitoring (APM)
@@ -102,21 +104,21 @@ Common bottlenecks by category:
 
 **Frontend:**
 
-| Symptom | Likely Cause | Investigation |
-|---------|-------------|---------------|
-| Slow LCP | Large images, render-blocking resources, slow server | Check network waterfall, image sizes |
-| High CLS | Images without dimensions, late-loading content, font shifts | Check layout shift attribution |
-| Poor INP | Heavy JavaScript on main thread, large DOM updates | Check long tasks in Performance trace |
-| Slow initial load | Large bundle, many network requests | Check bundle size, code splitting |
+| Symptom           | Likely Cause                                                 | Investigation                         |
+| ----------------- | ------------------------------------------------------------ | ------------------------------------- |
+| Slow LCP          | Large images, render-blocking resources, slow server         | Check network waterfall, image sizes  |
+| High CLS          | Images without dimensions, late-loading content, font shifts | Check layout shift attribution        |
+| Poor INP          | Heavy JavaScript on main thread, large DOM updates           | Check long tasks in Performance trace |
+| Slow initial load | Large bundle, many network requests                          | Check bundle size, code splitting     |
 
 **Backend:**
 
-| Symptom | Likely Cause | Investigation |
-|---------|-------------|---------------|
-| Slow API responses | N+1 queries, missing indexes, unoptimized queries | Check database query log |
-| Memory growth | Leaked references, unbounded caches, large payloads | Heap snapshot analysis |
-| CPU spikes | Synchronous heavy computation, regex backtracking | CPU profiling |
-| High latency | Missing caching, redundant computation, network hops | Trace requests through the stack |
+| Symptom            | Likely Cause                                         | Investigation                    |
+| ------------------ | ---------------------------------------------------- | -------------------------------- |
+| Slow API responses | N+1 queries, missing indexes, unoptimized queries    | Check database query log         |
+| Memory growth      | Leaked references, unbounded caches, large payloads  | Heap snapshot analysis           |
+| CPU spikes         | Synchronous heavy computation, regex backtracking    | CPU profiling                    |
+| High latency       | Missing caching, redundant computation, network hops | Trace requests through the stack |
 
 ### Step 3: Fix Common Anti-Patterns
 
@@ -145,7 +147,7 @@ const allTasks = await db.tasks.findMany();
 const tasks = await db.tasks.findMany({
   take: 20,
   skip: (page - 1) * 20,
-  orderBy: { createdAt: 'desc' },
+  orderBy: { createdAt: "desc" },
 });
 ```
 
@@ -219,11 +221,11 @@ const tasks = await db.tasks.findMany({
 ```tsx
 // BAD: Creates new object on every render, causing children to re-render
 function TaskList() {
-  return <TaskFilters options={{ sortBy: 'date', order: 'desc' }} />;
+  return <TaskFilters options={{ sortBy: "date", order: "desc" }} />;
 }
 
 // GOOD: Stable reference
-const DEFAULT_OPTIONS = { sortBy: 'date', order: 'desc' } as const;
+const DEFAULT_OPTIONS = { sortBy: "date", order: "desc" } as const;
 function TaskList() {
   return <TaskFilters options={DEFAULT_OPTIONS} />;
 }
@@ -236,7 +238,11 @@ const TaskItem = React.memo(function TaskItem({ task }: Props) {
 // Use useMemo for expensive computations
 function TaskStats({ tasks }: Props) {
   const stats = useMemo(() => calculateStats(tasks), [tasks]);
-  return <div>{stats.completed} / {stats.total}</div>;
+  return (
+    <div>
+      {stats.completed} / {stats.total}
+    </div>
+  );
 }
 ```
 
@@ -280,13 +286,16 @@ async function getAppConfig(): Promise<AppConfig> {
 }
 
 // HTTP caching headers for static assets
-app.use('/static', express.static('public', {
-  maxAge: '1y',           // Cache for 1 year
-  immutable: true,        // Never revalidate (use content hashing in filenames)
-}));
+app.use(
+  "/static",
+  express.static("public", {
+    maxAge: "1y", // Cache for 1 year
+    immutable: true, // Never revalidate (use content hashing in filenames)
+  }),
+);
 
 // Cache-Control for API responses
-res.set('Cache-Control', 'public, max-age=300'); // 5 minutes
+res.set("Cache-Control", "public, max-age=300"); // 5 minutes
 ```
 
 ## Performance Budget
@@ -304,6 +313,7 @@ Lighthouse Performance score: ≥ 90
 ```
 
 **Enforce in CI:**
+
 ```bash
 # Bundle size check
 npx bundlesize --config bundlesize.config.json
@@ -316,16 +326,15 @@ npx lhci autorun
 
 For detailed performance checklists, optimization commands, and anti-pattern reference, see `references/performance-checklist.md`.
 
-
 ## Common Rationalizations
 
-| Rationalization | Reality |
-|---|---|
-| "We'll optimize later" | Performance debt compounds. Fix obvious anti-patterns now, defer micro-optimizations. |
-| "It's fast on my machine" | Your machine isn't the user's. Profile on representative hardware and networks. |
-| "This optimization is obvious" | If you didn't measure, you don't know. Profile first. |
-| "Users won't notice 100ms" | Research shows 100ms delays impact conversion rates. Users notice more than you think. |
-| "The framework handles performance" | Frameworks prevent some issues but can't fix N+1 queries or oversized bundles. |
+| Rationalization                     | Reality                                                                                |
+| ----------------------------------- | -------------------------------------------------------------------------------------- |
+| "We'll optimize later"              | Performance debt compounds. Fix obvious anti-patterns now, defer micro-optimizations.  |
+| "It's fast on my machine"           | Your machine isn't the user's. Profile on representative hardware and networks.        |
+| "This optimization is obvious"      | If you didn't measure, you don't know. Profile first.                                  |
+| "Users won't notice 100ms"          | Research shows 100ms delays impact conversion rates. Users notice more than you think. |
+| "The framework handles performance" | Frameworks prevent some issues but can't fix N+1 queries or oversized bundles.         |
 
 ## Red Flags
 

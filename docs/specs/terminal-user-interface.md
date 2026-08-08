@@ -39,8 +39,8 @@ These assumptions become decisions only when this specification is approved:
    use the alternate screen, mouse-only controls, desktop notifications, or
    terminal hyperlinks by default.
 9. Terminal content is untrusted. Catalog, runtime, model, endpoint, error, and
-  progress strings pass context-aware escaping and bounds before entering any
-  frame.
+   progress strings pass context-aware escaping and bounds before entering any
+   frame.
 10. Benchmark and telemetry TUIs are specified for their approved command
     contracts but implemented only when those commands themselves exist.
 
@@ -114,18 +114,18 @@ The normative claim is a **ten-dimensional quality advantage target**: pass all
 ten independently verifiable dimensions below; failure in one cannot be averaged
 away:
 
-| Dimension | Required local-llmup advantage |
-| --- | --- |
-| Task focus | One purpose-built screen flow per command, not one global mode maze |
+| Dimension       | Required local-llmup advantage                                                                            |
+| --------------- | --------------------------------------------------------------------------------------------------------- |
+| Task focus      | One purpose-built screen flow per command, not one global mode maze                                       |
 | Discoverability | 100% of current actions visible in footer, contextual action bar, or `?`; no undocumented key-only action |
-| Time to value | Top recommendation detail <=1 key; compare <=3 keys; exact next command <=2 keys after results load |
-| Explainability | Every verdict/rank shows sourced fit, score, throughput, context, backend, and unknown-reason evidence |
-| Safety | Confirmation snapshot + locked revalidation for every destructive target; no one-key irreversible action |
-| Scriptability | Plain/JSON/piped golden output and exit behavior preserved |
-| Accessibility | Complete cooked-input accessible mode, no color/motion dependency, tested screen-reader transcript |
-| Resilience | Idempotent restoration and no duplicate domain execution across render/signal/resize failure |
-| Performance | Meets §9 cold-start, input, frame, memory, and package budgets |
-| Privacy/network | No automatic web server, remote dashboard, community fetch, UI telemetry, or non-loopback exposure |
+| Time to value   | Top recommendation detail <=1 key; compare <=3 keys; exact next command <=2 keys after results load       |
+| Explainability  | Every verdict/rank shows sourced fit, score, throughput, context, backend, and unknown-reason evidence    |
+| Safety          | Confirmation snapshot + locked revalidation for every destructive target; no one-key irreversible action  |
+| Scriptability   | Plain/JSON/piped golden output and exit behavior preserved                                                |
+| Accessibility   | Complete cooked-input accessible mode, no color/motion dependency, tested screen-reader transcript        |
+| Resilience      | Idempotent restoration and no duplicate domain execution across render/signal/resize failure              |
+| Performance     | Meets §9 cold-start, input, frame, memory, and package budgets                                            |
+| Privacy/network | No automatic web server, remote dashboard, community fetch, UI telemetry, or non-loopback exposure        |
 
 The model explorer additionally exceeds the reference with a persistent-on-screen
 contextual action bar (not persisted across runs), breadcrumbs instead of hidden
@@ -140,7 +140,7 @@ fixture-safe hardware/model data where supported:
 1. find the top runnable model and explain why it ranks first;
 2. filter by fit + backend + capability and inspect one result;
 3. compare three models and identify the best known value without treating unknown
-  as zero;
+   as zero;
 4. discover how to print/start the selected model's next command;
 5. cancel a destructive/runtime action and recover from terminal interruption.
 
@@ -198,13 +198,13 @@ debug mode is approved.
 
 Failure-state matrix:
 
-| Point | Behavior |
-| --- | --- |
-| lazy import/mount before picker | auto mode uses `renderer_init` fallback; explicit `--tui` fails pre-domain |
-| picker/review before acceptance | restore, execute nothing, write `local-llmup: interactive UI failed (renderer_pre_execution); no action was performed\n`, exit 1 |
-| accepted but before controller `execute()` | same pre-execution failure; do not infer consent in plain mode |
-| domain execution in flight, pre-commit | restore, emit `renderer_runtime`, switch to bounded plain stderr progress, continue/cancel only from the domain signal—not because rendering failed |
-| post-commit/final render | restore, emit `renderer_runtime`, write existing final/plain summary once, preserve product result |
+| Point                                      | Behavior                                                                                                                                            |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| lazy import/mount before picker            | auto mode uses `renderer_init` fallback; explicit `--tui` fails pre-domain                                                                          |
+| picker/review before acceptance            | restore, execute nothing, write `local-llmup: interactive UI failed (renderer_pre_execution); no action was performed\n`, exit 1                    |
+| accepted but before controller `execute()` | same pre-execution failure; do not infer consent in plain mode                                                                                      |
+| domain execution in flight, pre-commit     | restore, emit `renderer_runtime`, switch to bounded plain stderr progress, continue/cancel only from the domain signal—not because rendering failed |
+| post-commit/final render                   | restore, emit `renderer_runtime`, write existing final/plain summary once, preserve product result                                                  |
 
 Automatic fallback never re-prompts, reconstructs omitted intent, or executes a
 previously displayed choice after its renderer/session failed.
@@ -311,12 +311,12 @@ sections and prompts rather than this cursor-addressed layout.
 
 ### 3.1 Global flags
 
-| Flag | Contract |
-| --- | --- |
-| `--tui` | Request TUI; fail before domain work if incompatible rather than silently changing output mode |
-| `--no-tui` | Force existing plain output and noninteractive argument requirements |
-| `--accessible` | Linear, low-motion, no live-region rewrite; verbose labels and ASCII-safe status text |
-| `--no-color` | Disable color while retaining layout; `NO_COLOR` has the same effect |
+| Flag           | Contract                                                                                       |
+| -------------- | ---------------------------------------------------------------------------------------------- |
+| `--tui`        | Request TUI; fail before domain work if incompatible rather than silently changing output mode |
+| `--no-tui`     | Force existing plain output and noninteractive argument requirements                           |
+| `--accessible` | Linear, low-motion, no live-region rewrite; verbose labels and ASCII-safe status text          |
+| `--no-color`   | Disable color while retaining layout; `NO_COLOR` has the same effect                           |
 
 `--yes` is a shared **command option**, not global: only `down` and
 `migrate --move` register it. Every other command—including `migrate` without
@@ -337,18 +337,18 @@ change domain results.
 
 Normative mode table:
 
-| Inputs | Outcome |
-| --- | --- |
-| `--json` alone | JSON |
-| `--json` + `--tui` or `--accessible` | validation failure before domain work |
-| `--no-tui` alone | plain |
-| `--no-tui` + `--tui` or `--accessible` | validation failure |
-| `--accessible` (optionally with `--tui`) + full TTY + >=40x10 + non-CI/non-dumb | accessible interactive |
-| `--accessible` with pipe/redirect/CI/dumb/undersize | validation failure; use plain `--no-tui` instead |
-| `--tui` + full eligibility | TUI |
-| `--tui` + any incompatibility | validation failure with stable reason code |
-| no mode flag + full eligibility | TUI |
-| no mode flag + any incompatibility | plain, no fallback notice |
+| Inputs                                                                          | Outcome                                          |
+| ------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `--json` alone                                                                  | JSON                                             |
+| `--json` + `--tui` or `--accessible`                                            | validation failure before domain work            |
+| `--no-tui` alone                                                                | plain                                            |
+| `--no-tui` + `--tui` or `--accessible`                                          | validation failure                               |
+| `--accessible` (optionally with `--tui`) + full TTY + >=40x10 + non-CI/non-dumb | accessible interactive                           |
+| `--accessible` with pipe/redirect/CI/dumb/undersize                             | validation failure; use plain `--no-tui` instead |
+| `--tui` + full eligibility                                                      | TUI                                              |
+| `--tui` + any incompatibility                                                   | validation failure with stable reason code       |
+| no mode flag + full eligibility                                                 | TUI                                              |
+| no mode flag + any incompatibility                                              | plain, no fallback notice                        |
 
 `--no-color`/`NO_COLOR` modify TUI or accessible styling but not mode. Accessible
 interactive mode never enables raw mode, hides the cursor, or incrementally
@@ -419,19 +419,19 @@ local-llmup migrate [--from <model>] [--to <model>]
 
 ### 4.1 Keyboard map
 
-| Key | Meaning |
-| --- | --- |
-| `↑` / `k`, `↓` / `j` | Move selection |
-| `PageUp` / `PageDown` | Move one viewport |
-| `Home` / `End` | First/last item |
-| `/` | Focus search/filter |
-| `Enter` | Inspect/accept current non-destructive choice |
-| `Space` | Toggle a checkbox where documented |
-| `Tab` / `Shift+Tab` | Move between explicit controls/panes |
-| `Esc` | Back/close/cancel before work |
-| `?` | Toggle full key help |
-| `q` | Quit a read-only completed screen |
-| `Ctrl+C` | Request cancellation and terminal restoration |
+| Key                   | Meaning                                       |
+| --------------------- | --------------------------------------------- |
+| `↑` / `k`, `↓` / `j`  | Move selection                                |
+| `PageUp` / `PageDown` | Move one viewport                             |
+| `Home` / `End`        | First/last item                               |
+| `/`                   | Focus search/filter                           |
+| `Enter`               | Inspect/accept current non-destructive choice |
+| `Space`               | Toggle a checkbox where documented            |
+| `Tab` / `Shift+Tab`   | Move between explicit controls/panes          |
+| `Esc`                 | Back/close/cancel before work                 |
+| `?`                   | Toggle full key help                          |
+| `q`                   | Quit a read-only completed screen             |
+| `Ctrl+C`              | Request cancellation and terminal restoration |
 
 No single-letter shortcut performs an irreversible operation. Key handling is
 ignored while focus is in a text editor except documented editor commands.
@@ -458,10 +458,26 @@ Progress events use a strict discriminated union:
 ```ts
 export type UiProgressEvent =
   | { readonly type: "phase_started"; readonly phase: UiPhase; readonly label: string }
-  | { readonly type: "progress"; readonly phase: UiPhase; readonly completed: number; readonly total: number | null; readonly unit: "bytes" | "items" }
-  | { readonly type: "message"; readonly phase: UiPhase; readonly level: "info" | "warn"; readonly text: string }
+  | {
+      readonly type: "progress";
+      readonly phase: UiPhase;
+      readonly completed: number;
+      readonly total: number | null;
+      readonly unit: "bytes" | "items";
+    }
+  | {
+      readonly type: "message";
+      readonly phase: UiPhase;
+      readonly level: "info" | "warn";
+      readonly text: string;
+    }
   | { readonly type: "phase_completed"; readonly phase: UiPhase; readonly detail?: string }
-  | { readonly type: "phase_failed"; readonly phase: UiPhase; readonly code: UiErrorCode; readonly detail: string };
+  | {
+      readonly type: "phase_failed";
+      readonly phase: UiPhase;
+      readonly code: UiErrorCode;
+      readonly detail: string;
+    };
 ```
 
 All fields are bounded and sanitized at construction. Events are advisory
@@ -727,13 +743,10 @@ Normative contracts:
 export type UiMode = "plain" | "json" | "tui" | "accessible";
 
 export type UiDecision<T> =
-  | { readonly type: "accepted"; readonly value: T }
-  | { readonly type: "cancelled" };
+  { readonly type: "accepted"; readonly value: T } | { readonly type: "cancelled" };
 
 export type UiReviewDecision =
-  | { readonly type: "accepted" }
-  | { readonly type: "back" }
-  | { readonly type: "cancelled" };
+  { readonly type: "accepted" } | { readonly type: "back" } | { readonly type: "cancelled" };
 
 export interface UiChoiceRequest<T extends { readonly id: string }> {
   readonly title: string;
@@ -763,10 +776,15 @@ export interface CommandViewModelMap {
 
 export interface UiDriver {
   readonly mode: UiMode;
-  choose<T extends { readonly id: string }>(request: UiChoiceRequest<T>): Promise<UiDecision<{ readonly id: string }>>;
+  choose<T extends { readonly id: string }>(
+    request: UiChoiceRequest<T>,
+  ): Promise<UiDecision<{ readonly id: string }>>;
   review(request: UiReviewRequest): Promise<UiReviewDecision>;
   readonly emit: (event: UiProgressEvent) => void;
-  complete<K extends keyof CommandViewModelMap>(screen: K, viewModel: CommandViewModelMap[K]): Promise<void>;
+  complete<K extends keyof CommandViewModelMap>(
+    screen: K,
+    viewModel: CommandViewModelMap[K],
+  ): Promise<void>;
   fail(error: Error): Promise<void>;
 }
 
@@ -947,18 +965,18 @@ View-model builders:
 Controllers build these additive immutable application DTOs; screens never parse
 plain output or recompute domain facts:
 
-| Command | Preparation/result contract |
-| --- | --- |
-| recommend | Existing `RecommendationResult` plus per-entry score components, fit evidence, throughput provenance/unknown code, and context provenance sourced from advisor outputs |
-| can-run | Existing `CanRunResult` plus fit evidence and throughput provenance/unknown code |
-| doctor | Existing `DoctorReport` unchanged; remediation command is a sanitized explicit field, not parsed from detail text |
-| catalog | New `CatalogResult` containing refresh diff, hardware summary, ordered rows, fit evidence, and empty-state reason |
-| up | `UpPrepared` contains resolved model/quant/hardware fit/backend precedence/disk/port/prior-state snapshot; `UpResult` contains canonical model/backend/endpoint/ownership/integrity |
-| chat | `ChatPrepared` contains active canonical model/backend/endpoint identity; `ChatSessionResult` contains turn count and memory-warning count only |
-| ls | New `LsResult` discriminated as empty or active with existing state fields; no probe fields |
-| switch | `SwitchPrepared` contains current/target/server snapshot and backend restriction; `SwitchResult` contains target/endpoint/no-op |
-| down | `DownPrepared` contains confirmation snapshot and stop-vs-detach consequence; `DownResult` contains no-op/stopped/detached |
-| migrate | Pure `MigrationPreview` contains canonical stores, predicted counts/strategies, runtime-request disclosure, move/dry-run, source snapshot, target absent/present snapshot, and replacement disclosure; post-acceptance `MigrationPlan` contains actual summary/vector material; typed completion summary is the result |
+| Command   | Preparation/result contract                                                                                                                                                                                                                                                                                            |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| recommend | Existing `RecommendationResult` plus per-entry score components, fit evidence, throughput provenance/unknown code, and context provenance sourced from advisor outputs                                                                                                                                                 |
+| can-run   | Existing `CanRunResult` plus fit evidence and throughput provenance/unknown code                                                                                                                                                                                                                                       |
+| doctor    | Existing `DoctorReport` unchanged; remediation command is a sanitized explicit field, not parsed from detail text                                                                                                                                                                                                      |
+| catalog   | New `CatalogResult` containing refresh diff, hardware summary, ordered rows, fit evidence, and empty-state reason                                                                                                                                                                                                      |
+| up        | `UpPrepared` contains resolved model/quant/hardware fit/backend precedence/disk/port/prior-state snapshot; `UpResult` contains canonical model/backend/endpoint/ownership/integrity                                                                                                                                    |
+| chat      | `ChatPrepared` contains active canonical model/backend/endpoint identity; `ChatSessionResult` contains turn count and memory-warning count only                                                                                                                                                                        |
+| ls        | New `LsResult` discriminated as empty or active with existing state fields; no probe fields                                                                                                                                                                                                                            |
+| switch    | `SwitchPrepared` contains current/target/server snapshot and backend restriction; `SwitchResult` contains target/endpoint/no-op                                                                                                                                                                                        |
+| down      | `DownPrepared` contains confirmation snapshot and stop-vs-detach consequence; `DownResult` contains no-op/stopped/detached                                                                                                                                                                                             |
+| migrate   | Pure `MigrationPreview` contains canonical stores, predicted counts/strategies, runtime-request disclosure, move/dry-run, source snapshot, target absent/present snapshot, and replacement disclosure; post-acceptance `MigrationPlan` contains actual summary/vector material; typed completion summary is the result |
 
 If required provenance is absent today, the producing advisor/domain function is
 extended additively to return it. The UI may not reverse-engineer provenance from
@@ -1007,10 +1025,31 @@ export type CommandEffect =
   | "fully_completed";
 
 export type CommandTermination =
-  | { readonly type: "success"; readonly phase: UiPhase; readonly effect: "unchanged" | "state_committed" | "fully_completed" }
-  | { readonly type: "cancelled"; readonly phase: UiPhase; readonly effect: "unchanged" | "artifact_cached_state_unchanged" | "spawned_process_cleaned" }
-  | { readonly type: "partial"; readonly phase: UiPhase; readonly effect: "prior_server_stopped_replacement_not_started" | "state_rollback_attempted" | "target_committed_source_retained"; readonly remediation: string }
-  | { readonly type: "failed"; readonly phase: UiPhase; readonly effect: CommandEffect; readonly code: UiErrorCode };
+  | {
+      readonly type: "success";
+      readonly phase: UiPhase;
+      readonly effect: "unchanged" | "state_committed" | "fully_completed";
+    }
+  | {
+      readonly type: "cancelled";
+      readonly phase: UiPhase;
+      readonly effect: "unchanged" | "artifact_cached_state_unchanged" | "spawned_process_cleaned";
+    }
+  | {
+      readonly type: "partial";
+      readonly phase: UiPhase;
+      readonly effect:
+        | "prior_server_stopped_replacement_not_started"
+        | "state_rollback_attempted"
+        | "target_committed_source_retained";
+      readonly remediation: string;
+    }
+  | {
+      readonly type: "failed";
+      readonly phase: UiPhase;
+      readonly effect: CommandEffect;
+      readonly code: UiErrorCode;
+    };
 ```
 
 Rules:
@@ -1052,21 +1091,21 @@ raw error text.
 
 Side-effect/compensation matrix:
 
-| Command boundary | Cancellation/failure effect and exit |
-| --- | --- |
-| read-only or before mutation | `unchanged`; signal exit 129/130/143 after cleanup |
-| up during acquisition | verified cache artifact may remain: `artifact_cached_state_unchanged`; 129/130/143 |
-| up after new spawn but before state commit, no prior server stopped | stop verified new process: `spawned_process_cleaned`; 129/130/143 if cleanup passes |
-| up after prior owned server is stopped and replacement fails/cancels | `prior_server_stopped_replacement_not_started`; exit 1 with rerun-`up` remediation |
-| up after replacement state commit | `state_committed`; finish success summary even if signal arrived late |
-| switch before state commit | pulled artifact may remain, active state unchanged; 129/130/143 |
-| switch after state commit | `state_committed`; success summary |
-| down after state clear but stop failure | existing rollback is attempted and reported as `state_rollback_attempted`; exit 1, never claim unchanged process state |
-| down after verified stop/detach | `state_committed`; success summary |
-| migrate before target rename | staged output removed, source/target unchanged; 129/130/143 |
-| migrate after target rename but before `--move` source deletion | `target_committed_source_retained`; exit 129/130/143 with “target valid; source retained” summary |
-| migrate after source deletion | `fully_completed`; success summary |
-| chat after reply but before failed/cancelled capture | emit a nonterminal memory warning; session remains usable or exits 130 if the user cancels |
+| Command boundary                                                     | Cancellation/failure effect and exit                                                                                   |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| read-only or before mutation                                         | `unchanged`; signal exit 129/130/143 after cleanup                                                                     |
+| up during acquisition                                                | verified cache artifact may remain: `artifact_cached_state_unchanged`; 129/130/143                                     |
+| up after new spawn but before state commit, no prior server stopped  | stop verified new process: `spawned_process_cleaned`; 129/130/143 if cleanup passes                                    |
+| up after prior owned server is stopped and replacement fails/cancels | `prior_server_stopped_replacement_not_started`; exit 1 with rerun-`up` remediation                                     |
+| up after replacement state commit                                    | `state_committed`; finish success summary even if signal arrived late                                                  |
+| switch before state commit                                           | pulled artifact may remain, active state unchanged; 129/130/143                                                        |
+| switch after state commit                                            | `state_committed`; success summary                                                                                     |
+| down after state clear but stop failure                              | existing rollback is attempted and reported as `state_rollback_attempted`; exit 1, never claim unchanged process state |
+| down after verified stop/detach                                      | `state_committed`; success summary                                                                                     |
+| migrate before target rename                                         | staged output removed, source/target unchanged; 129/130/143                                                            |
+| migrate after target rename but before `--move` source deletion      | `target_committed_source_retained`; exit 129/130/143 with “target valid; source retained” summary                      |
+| migrate after source deletion                                        | `fully_completed`; success summary                                                                                     |
+| chat after reply but before failed/cancelled capture                 | emit a nonterminal memory warning; session remains usable or exits 130 if the user cancels                             |
 
 No compensation attempts to resurrect a stopped process or delete a valid target
 solely to make a cancellation look atomic. Cleanup/rollback failure still takes
@@ -1125,7 +1164,7 @@ exit semantics (129 for SIGHUP, 130 for SIGINT, 143 for SIGTERM) after product c
 ### 7.5 Resize and unsupported terminals
 
 - Recompute layout on resize with a 50 ms debounce.
-- >=100 columns: list + detail pane.
+- > =100 columns: list + detail pane.
 - 60–99 columns: single pane with detail overlay.
 - Below 60x16 before visual work: auto mode falls back to plain and explicit
   visual `--tui` errors. Accessible mode uses its separate 40x10 minimum.
@@ -1159,17 +1198,17 @@ exit semantics (129 for SIGHUP, 130 for SIGINT, 143 for SIGTERM) after product c
 
 Measured on supported Node versions with a fake domain command:
 
-| Budget | Requirement |
-| --- | --- |
-| Plain/JSON cold-start regression | <=10 ms median and <=20 ms p90 versus pre-TUI baseline |
-| Eligible TUI module load | <=150 ms p90 |
-| First frame after result available | <=100 ms p90 |
-| Key-to-frame latency | <=50 ms p90 with 1,000 list rows |
-| Frame rate | <=30 fps; no busy loop |
-| Retained UI memory | <=25 MiB above plain mode for 1,000 rows / 200 progress events |
-| Final frame bytes | <=256 KiB |
-| npm tarball increase | hard gate <=250 KiB |
-| production install increase | hard gate <=15 MiB |
+| Budget                             | Requirement                                                    |
+| ---------------------------------- | -------------------------------------------------------------- |
+| Plain/JSON cold-start regression   | <=10 ms median and <=20 ms p90 versus pre-TUI baseline         |
+| Eligible TUI module load           | <=150 ms p90                                                   |
+| First frame after result available | <=100 ms p90                                                   |
+| Key-to-frame latency               | <=50 ms p90 with 1,000 list rows                               |
+| Frame rate                         | <=30 fps; no busy loop                                         |
+| Retained UI memory                 | <=25 MiB above plain mode for 1,000 rows / 200 progress events |
+| Final frame bytes                  | <=256 KiB                                                      |
+| npm tarball increase               | hard gate <=250 KiB                                            |
+| production install increase        | hard gate <=15 MiB                                             |
 
 Performance tests use injected clocks/streams and fixed fixtures. A release smoke
 records real cold start and interaction traces. TUI rendering is paused during

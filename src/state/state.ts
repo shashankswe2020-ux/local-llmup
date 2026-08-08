@@ -31,17 +31,20 @@ const ServerStateCommonSchema = z
   .object({
     backend: z.enum(BACKEND_NAMES),
     modelId: z.string().min(1),
-    endpoint: z.string().url().refine(
-      (endpoint) => {
-        try {
-          assertLoopbackEndpoint(endpoint);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      { message: "endpoint must be loopback HTTP" },
-    ),
+    endpoint: z
+      .string()
+      .url()
+      .refine(
+        (endpoint) => {
+          try {
+            assertLoopbackEndpoint(endpoint);
+            return true;
+          } catch {
+            return false;
+          }
+        },
+        { message: "endpoint must be loopback HTTP" },
+      ),
     port: z.number().int().min(1).max(65535),
     modelPath: z.string().min(1).optional(),
   })
@@ -53,7 +56,10 @@ const OwnedServerStateSchema = ServerStateCommonSchema.extend({
   pid: z.number().int().positive(),
   processExecutable: z.string().min(1).optional(),
   processStartedAt: z.string().min(1).optional(),
-  authToken: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  authToken: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
 }).strict();
 
 /** A daemon we attached to and do not own (no trusted pid available). */

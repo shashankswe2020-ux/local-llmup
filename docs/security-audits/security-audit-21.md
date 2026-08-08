@@ -10,12 +10,12 @@
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 0 |
-| Medium | 0 |
-| Low | 0 |
-| Info | 0 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 0     |
+| Low      | 0     |
+| Info     | 0     |
 
 **Risk verdict: PASS — NO OPEN CRITICAL/HIGH/MEDIUM FINDINGS.** The final Phase 2 hardening closes the previously reported lifecycle, download, routing, SSRF, catalog-artifact, and provenance-coupling findings in the reviewed scope. No release-blocking security finding remains.
 

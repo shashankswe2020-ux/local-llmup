@@ -85,17 +85,15 @@ describe("acquireRepository", () => {
   it("acquires every pinned file and returns their shared revision directory", async () => {
     const requests: AcquireRequest[] = [];
     const progress: Array<{ completedBytes: number; totalBytes: number; file: string }> = [];
-    const acquire = vi.fn(
-      (request: AcquireRequest): Promise<AcquireResult> => {
-        requests.push(request);
-        return Promise.resolve({
-          path: join("/cache/mlx/o/r@" + REVISION, request.file),
-          bytes: manifest().find((entry) => entry.file === request.file)?.bytes ?? 0,
-          digestVerified: true,
-          cached: false,
-        });
-      },
-    );
+    const acquire = vi.fn((request: AcquireRequest): Promise<AcquireResult> => {
+      requests.push(request);
+      return Promise.resolve({
+        path: join("/cache/mlx/o/r@" + REVISION, request.file),
+        bytes: manifest().find((entry) => entry.file === request.file)?.bytes ?? 0,
+        digestVerified: true,
+        cached: false,
+      });
+    });
     const deps: AcquireRepositoryDeps = {
       acquire,
       listFiles: () => manifest().map((entry) => entry.file),
@@ -195,7 +193,10 @@ describe("acquireRepository", () => {
           acquire: (request) => {
             const entry = manifest().find((candidate) => candidate.file === request.file)!;
             return Promise.resolve({
-              path: join("/cache/root", request.file === "config.json" ? "unrelated.json" : request.file),
+              path: join(
+                "/cache/root",
+                request.file === "config.json" ? "unrelated.json" : request.file,
+              ),
               bytes: entry.bytes,
               digestVerified: true,
               cached: true,

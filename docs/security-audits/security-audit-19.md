@@ -3,25 +3,26 @@
 > **Auditor:** Security Auditor Agent (Security Engineer)
 > **Date:** 7 August 2026
 > **Scope:** B15 implementation review focused on catalog/perf seeded-data and loader hardening:
+>
 > - `data/models.json` GGUF source additions (`repo`/`revision`/`file`/`sha256`)
 > - `data/perf.json` `efficiencyByBackend` + provenance additions
 > - `src/catalog/load.ts` sanitizer changes preserving/sanitizing nested `gguf`/`mlx`
 > - `src/catalog/bootstrap.ts` curated GGUF source injection map
 > - Related tests (`tests/catalog/load.test.ts`, `tests/catalog/seed.test.ts`, `tests/catalog/bootstrap.test.ts`, `tests/advisor/perf-data.test.ts`)
 > - Integrity boundary cross-check: `src/catalog/schema.ts`, `src/advisor/perf-data.ts`, `src/advisor/throughput.ts`, `src/backend/acquire.ts`, `src/commands/up.ts`
-> **Dependencies:** 6 known vulnerabilities from `npm audit` (2 critical, 1 high, 3 moderate), all in dev-toolchain transitive chain (`vitest`/`vite`/`esbuild`), runtime dependencies unaffected.
+>   **Dependencies:** 6 known vulnerabilities from `npm audit` (2 critical, 1 high, 3 moderate), all in dev-toolchain transitive chain (`vitest`/`vite`/`esbuild`), runtime dependencies unaffected.
 
 ---
 
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 0 |
-| Medium | 1 |
-| Low | 2 |
-| Info | 4 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 1     |
+| Low      | 2     |
+| Info     | 4     |
 
 ---
 
@@ -36,7 +37,7 @@
 - **Recommendation:** Add `superRefine` in `PerfClassSchema` to require:
   1. every key in `efficiencyByBackend` has matching key in `sources.efficiencyByBackend`, and
   2. `provenance.value === efficiencyByBackend[key]`.
-  On mismatch, fail schema validation (fail-closed).
+     On mismatch, fail schema validation (fail-closed).
 
 ### [LOW-1] GGUF catalog digest remains optional at schema boundary; with warning-only serve path this can degrade to weaker integrity checks
 
@@ -91,16 +92,17 @@
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | Medium | Uncited per-backend efficiency scalar can still drive throughput output | Add schema cross-field `superRefine` binding `efficiencyByBackend` to provenance key/value parity |
-| 2 | Low | Optional GGUF digest + warning-only serve path permits weaker integrity mode | Require GGUF `sha256` or hard-fail on `digestVerified:false` in self-managed serve path |
-| 3 | Low | Static GGUF map drift/staleness risk | Add exact-key coverage tests and periodic pin freshness validation workflow |
+| #   | Severity | Finding                                                                      | Recommendation                                                                                    |
+| --- | -------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 1   | Medium   | Uncited per-backend efficiency scalar can still drive throughput output      | Add schema cross-field `superRefine` binding `efficiencyByBackend` to provenance key/value parity |
+| 2   | Low      | Optional GGUF digest + warning-only serve path permits weaker integrity mode | Require GGUF `sha256` or hard-fail on `digestVerified:false` in self-managed serve path           |
+| 3   | Low      | Static GGUF map drift/staleness risk                                         | Add exact-key coverage tests and periodic pin freshness validation workflow                       |
 
 ---
 
 ## Note on Requested Constraints
 
 Per request, this audit was run as a review-only pass:
+
 - **No source files were modified.**
 - **No GitHub issues were created.**

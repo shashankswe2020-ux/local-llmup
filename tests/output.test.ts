@@ -25,10 +25,13 @@ describe("renderTable", () => {
   });
 
   it("strips ANSI and control characters so they cannot break alignment", () => {
-    const out = renderTable([{ header: "Model" }, { header: "Note" }], [
-      ["\u001b[31mllama\u001b[0m", "ok\u0000"],
-      ["gemma\u200b", "fine"],
-    ]);
+    const out = renderTable(
+      [{ header: "Model" }, { header: "Note" }],
+      [
+        ["\u001b[31mllama\u001b[0m", "ok\u0000"],
+        ["gemma\u200b", "fine"],
+      ],
+    );
     expect(out.includes("\u001b")).toBe(false);
     expect(out.includes("\u0000")).toBe(false);
     expect(out.includes("\u200b")).toBe(false);

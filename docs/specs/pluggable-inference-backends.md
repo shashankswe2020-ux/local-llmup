@@ -149,8 +149,8 @@ per-call feature detection:
 
 ```ts
 export interface BackendCapabilities {
-  readonly canPull: boolean;        // false → user installs the model via the runtime's own UI/CLI
-  readonly canEmbed: boolean;       // false → embeddings must use a different backend
+  readonly canPull: boolean; // false → user installs the model via the runtime's own UI/CLI
+  readonly canEmbed: boolean; // false → embeddings must use a different backend
   readonly openAiCompatible: boolean;
   /** Weight formats this backend can serve. */
   readonly formats: readonly ModelFormat[]; // "gguf" | "mlx" | "ollama" | "safetensors"
@@ -191,17 +191,19 @@ revision + exact file + digest.
 
 ```ts
 export interface ModelSource {
-  readonly ollama?: string;                 // existing: ollama registry id
-  readonly hf?: string;                      // existing: generic HF repo id (advisory only)
-  readonly gguf?: {                          // llama.cpp / LM Studio
-    readonly repo: string;                   // HF repo id (owner/name)
-    readonly revision: string;               // full commit SHA — never a floating tag
-    readonly file: string;                   // EXACT filename, no wildcards
-    readonly sha256: string;                 // digest of that exact GGUF file
+  readonly ollama?: string; // existing: ollama registry id
+  readonly hf?: string; // existing: generic HF repo id (advisory only)
+  readonly gguf?: {
+    // llama.cpp / LM Studio
+    readonly repo: string; // HF repo id (owner/name)
+    readonly revision: string; // full commit SHA — never a floating tag
+    readonly file: string; // EXACT filename, no wildcards
+    readonly sha256: string; // digest of that exact GGUF file
   };
-  readonly mlx?: {                           // mlx-community
-    readonly repo: string;                   // HF repo id (owner/name)
-    readonly revision: string;               // full commit SHA — never `main`
+  readonly mlx?: {
+    // mlx-community
+    readonly repo: string; // HF repo id (owner/name)
+    readonly revision: string; // full commit SHA — never `main`
   };
 }
 ```
@@ -213,12 +215,12 @@ export interface ModelSource {
 - **Source-key → `ModelFormat` map** (review finding I6) drives
   `backendsForModel`:
 
-  | `source` key | `ModelFormat` | Servable by |
-  | --- | --- | --- |
-  | `ollama` | `ollama` | Ollama |
-  | `gguf` | `gguf` | llama.cpp, LM Studio |
-  | `mlx` | `mlx` | MLX |
-  | `hf` | — (advisory) | none directly — does **not** participate in backend matching |
+  | `source` key | `ModelFormat` | Servable by                                                  |
+  | ------------ | ------------- | ------------------------------------------------------------ |
+  | `ollama`     | `ollama`      | Ollama                                                       |
+  | `gguf`       | `gguf`        | llama.cpp, LM Studio                                         |
+  | `mlx`        | `mlx`         | MLX                                                          |
+  | `hf`         | — (advisory)  | none directly — does **not** participate in backend matching |
 
 - `backendsForModel(model, registry)` returns adapters whose
   `capabilities.formats` intersect the model's mapped source formats.
@@ -246,8 +248,8 @@ RuntimeStateSchema        = { schemaVersion: z.literal(2); active: … }
   `active.backend = "ollama"` (when `active` is non-null), then the file is
   rewritten as v2 on the next mutation. No user action required.
 - Round-trip example: `{schemaVersion:1, active:{ownedByUs:true, pid:42,
-  modelId:"llama3.1:8b", endpoint, port}}` → loads as `{schemaVersion:2,
-  active:{backend:"ollama", ownedByUs:true, pid:42, …}}`.
+modelId:"llama3.1:8b", endpoint, port}}` → loads as `{schemaVersion:2,
+active:{backend:"ollama", ownedByUs:true, pid:42, …}}`.
 - `down`/`switch`/`ls`/`chat` read `active.backend` and resolve that adapter
   from the registry instead of assuming Ollama.
 
@@ -260,7 +262,7 @@ RuntimeStateSchema        = { schemaVersion: z.literal(2); active: … }
 ```
 
 - Schema is `z.object({ schemaVersion: z.literal(1), defaultBackend:
-  z.enum([…registryNames]) }).strict()` with a small byte cap on the file. An
+z.enum([…registryNames]) }).strict()` with a small byte cap on the file. An
   **invalid/corrupt config fails closed** with a typed `ValidationError` — it is
   never silently coerced (review finding M3).
 - Defense-in-depth: reject the file if it is a symlink or group/other-writable
@@ -333,17 +335,22 @@ fine-grained class `id`, so per-memory-tier resolution is preserved):
   "id": "apple-silicon-max",
   "vendor": "apple",
   "memBandwidthGBps": 400,
-  "efficiency": 0.70,                 // unchanged; used by ollama + llamacpp
-  "efficiencyByBackend": {            // NEW, optional, absolute per-backend scalars
-    "ollama": 0.70,                   // may be omitted → falls back to `efficiency`
-    "llamacpp": 0.70                  // mlx/vllm ABSENT here → `unknown` on that backend
+  "efficiency": 0.7, // unchanged; used by ollama + llamacpp
+  "efficiencyByBackend": {
+    // NEW, optional, absolute per-backend scalars
+    "ollama": 0.7, // may be omitted → falls back to `efficiency`
+    "llamacpp": 0.7, // mlx/vllm ABSENT here → `unknown` on that backend
   },
   "sources": {
     "efficiencyByBackend": {
-      "llamacpp": { "value": 0.70, "trustTier": "session-verified",
-        "basisBytesPerToken": 4.4e9, "url": "https://github.com/ggml-org/llama.cpp/discussions/4167" }
-    }
-  }
+      "llamacpp": {
+        "value": 0.7,
+        "trustTier": "session-verified",
+        "basisBytesPerToken": 4.4e9,
+        "url": "https://github.com/ggml-org/llama.cpp/discussions/4167",
+      },
+    },
+  },
 }
 ```
 
@@ -456,7 +463,7 @@ All additions are backward compatible; existing invocations behave identically
   is an explicit opt-in filter).
 - Text output: add a `Backends` annotation per model (e.g. `ollama, llamacpp`).
 - `--json`: each model gains `backends: string[]` and `throughputBackend:
-  string | null`; `throughputBackend` is a **deterministic platform default**
+string | null`; `throughputBackend` is a **deterministic platform default**
   (never `isInstalled()`-derived; review finding C1), and throughput stays
   `known:false`→omitted number when unsourced.
 - Exit-code contract unchanged (`can-run` non-zero **only** for `no`).
@@ -677,15 +684,15 @@ if a concurrency/serving use-case justifies it.
 
 ## 9. Risks & mitigations
 
-| Risk | Mitigation |
-| --- | --- |
-| Fabricated cross-runtime speed numbers | Honesty gate: no cited `(class,backend)` efficiency ⇒ `unknown`. Every figure carries provenance in `data/perf.json`. |
+| Risk                                                              | Mitigation                                                                                                                                                                                                                                                                                              |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fabricated cross-runtime speed numbers                            | Honesty gate: no cited `(class,backend)` efficiency ⇒ `unknown`. Every figure carries provenance in `data/perf.json`.                                                                                                                                                                                   |
 | Stale / content-farm benchmark data leaking into `data/perf.json` | Trust-tiered ingest (§12): only `session-verified` or `spec-grade` figures encoded, each with a source URL and trust tier; `low-confidence` claims ship as `unknown`. All efficiencies derived on one declared weight-bytes/token basis (§2.7); `ollama`/`llamacpp` share a scalar (no invented delta). |
-| State-format break for existing users | Additive v2 with in-memory v1→v2 normalization; covered by migration tests. |
-| Backend-specific coupling leaking into commands | All backend logic behind `BackendAdapter`; commands branch only via registry/`select()`. A lint/grep check forbids `new *Adapter()` in `src/commands`. |
-| Integrity gaps in new pull paths | Shared adapter contract test asserts fail-closed on digest/size mismatch for every adapter. |
-| Non-loopback exposure regressions | Contract test asserts loopback bind and arg-array spawns for every adapter. |
-| Scope creep (weight conversion, multi-serve) | Explicit non-goals (§1); phases are independently shippable. |
+| State-format break for existing users                             | Additive v2 with in-memory v1→v2 normalization; covered by migration tests.                                                                                                                                                                                                                             |
+| Backend-specific coupling leaking into commands                   | All backend logic behind `BackendAdapter`; commands branch only via registry/`select()`. A lint/grep check forbids `new *Adapter()` in `src/commands`.                                                                                                                                                  |
+| Integrity gaps in new pull paths                                  | Shared adapter contract test asserts fail-closed on digest/size mismatch for every adapter.                                                                                                                                                                                                             |
+| Non-loopback exposure regressions                                 | Contract test asserts loopback bind and arg-array spawns for every adapter.                                                                                                                                                                                                                             |
+| Scope creep (weight conversion, multi-serve)                      | Explicit non-goals (§1); phases are independently shippable.                                                                                                                                                                                                                                            |
 
 ---
 
@@ -696,7 +703,7 @@ be reopened, but Phase 2 proceeds on these:
 
 1. **Runtime auto-detect priority — DECIDED.** Apple Silicon: `mlx` → `ollama` →
    `llamacpp`; everything else (incl. Linux+CUDA in v1): `ollama` → `llamacpp`.
-   Auto-detect only ever ranks **installed** backends, so this is a *preference*
+   Auto-detect only ever ranks **installed** backends, so this is a _preference_
    order, not a requirement. `mlx`-first is a UX/native-path default, **not** a
    throughput claim — its tok/s stays `unknown` (§2.7). vLLM is **not** in the v1
    auto-detect order (see Q4). Rationale (§12): on Linux+CUDA, llama.cpp and
@@ -773,19 +780,19 @@ reproducible primary source — must ship as `unknown`).
 
 ### 12.1 Runtime landscape (2025–2026)
 
-| Runtime | HW targets | Formats | OpenAI server / port | Self-pull | Strength |
-| --- | --- | --- | --- | --- | --- |
-| **Ollama** | Metal, CUDA, ROCm, CPU | GGUF (registry blobs; imports GGUF/safetensors) | Yes — **11434** | Yes | Easiest single-user UX; wraps llama.cpp |
-| **llama.cpp** (`llama-server`) | Metal, CUDA, ROCm, Vulkan, SYCL, CPU | **GGUF** | Yes — **8080** | Partial (`-hf`) | Broadest HW portability; batch-1 latency |
-| **MLX** (`mlx-lm`) | **Apple Silicon only** | MLX (safetensors-based) + on-the-fly convert | Yes (`mlx_lm.server`) — **8080** | Yes | Fastest decode on Apple Silicon (small/mid) |
-| **LM Studio** | Metal, CUDA, ROCm, CPU (bundles llama.cpp + MLX) | GGUF + MLX | Yes — **1234** | Yes (`lms`) | GUI + local server; strong desktop DX |
-| **vLLM** | **CUDA** (ROCm, exp. CPU) | safetensors, **AWQ, GPTQ, FP8**, GGUF (exp.) | Yes — **8000** | HF at load | Batched-throughput king (PagedAttention) |
-| SGLang | CUDA (+ROCm) | safetensors, AWQ/GPTQ/FP8 | Yes — **30000** | HF at load | High-throughput; RadixAttention |
-| TensorRT-LLM | NVIDIA only | Compiled engines | Triton / `trtllm-serve` | No | Max NVIDIA perf; heavy build |
-| ExLlamaV2/V3 | CUDA (+ROCm) | EXL2/EXL3, GPTQ | via TabbyAPI | No | Best quality-per-bit single-user GPU |
-| ktransformers | CUDA + **CPU/RAM offload** | GGUF/safetensors + expert offload | Yes | No | **DeepSeek-class MoE on 1 GPU + big RAM** |
-| llamafile | CPU/GPU cross-OS | GGUF (single binary) | Yes — **8080** | No | Zero-install portability |
-| Jan / Nexa | Metal/CUDA/CPU | GGUF (+MLX in Nexa) | Yes — Jan **1337** | Yes | Desktop app / multi-backend SDK |
+| Runtime                        | HW targets                                       | Formats                                         | OpenAI server / port             | Self-pull       | Strength                                    |
+| ------------------------------ | ------------------------------------------------ | ----------------------------------------------- | -------------------------------- | --------------- | ------------------------------------------- |
+| **Ollama**                     | Metal, CUDA, ROCm, CPU                           | GGUF (registry blobs; imports GGUF/safetensors) | Yes — **11434**                  | Yes             | Easiest single-user UX; wraps llama.cpp     |
+| **llama.cpp** (`llama-server`) | Metal, CUDA, ROCm, Vulkan, SYCL, CPU             | **GGUF**                                        | Yes — **8080**                   | Partial (`-hf`) | Broadest HW portability; batch-1 latency    |
+| **MLX** (`mlx-lm`)             | **Apple Silicon only**                           | MLX (safetensors-based) + on-the-fly convert    | Yes (`mlx_lm.server`) — **8080** | Yes             | Fastest decode on Apple Silicon (small/mid) |
+| **LM Studio**                  | Metal, CUDA, ROCm, CPU (bundles llama.cpp + MLX) | GGUF + MLX                                      | Yes — **1234**                   | Yes (`lms`)     | GUI + local server; strong desktop DX       |
+| **vLLM**                       | **CUDA** (ROCm, exp. CPU)                        | safetensors, **AWQ, GPTQ, FP8**, GGUF (exp.)    | Yes — **8000**                   | HF at load      | Batched-throughput king (PagedAttention)    |
+| SGLang                         | CUDA (+ROCm)                                     | safetensors, AWQ/GPTQ/FP8                       | Yes — **30000**                  | HF at load      | High-throughput; RadixAttention             |
+| TensorRT-LLM                   | NVIDIA only                                      | Compiled engines                                | Triton / `trtllm-serve`          | No              | Max NVIDIA perf; heavy build                |
+| ExLlamaV2/V3                   | CUDA (+ROCm)                                     | EXL2/EXL3, GPTQ                                 | via TabbyAPI                     | No              | Best quality-per-bit single-user GPU        |
+| ktransformers                  | CUDA + **CPU/RAM offload**                       | GGUF/safetensors + expert offload               | Yes                              | No              | **DeepSeek-class MoE on 1 GPU + big RAM**   |
+| llamafile                      | CPU/GPU cross-OS                                 | GGUF (single binary)                            | Yes — **8080**                   | No              | Zero-install portability                    |
+| Jan / Nexa                     | Metal/CUDA/CPU                                   | GGUF (+MLX in Nexa)                             | Yes — Jan **1337**               | Yes             | Desktop app / multi-backend SDK             |
 
 Primary sources: Ollama <https://github.com/ollama/ollama>
 (<https://github.com/ollama/ollama/blob/main/docs/openai.md>); llama.cpp server
@@ -844,7 +851,7 @@ point — and why the encoded scalar carries a source + trust tier.
 was back-computed from an assumed 147 t/s; this source measures RTX 4090 ≈ 127.7
 t/s (→ ≈ 0.59 on the same weights). Correcting the NVIDIA rows to this
 session-verified anchor is an **intentional, separately-cited data update** at
-ingest — it is *not* covered by the "byte-identical" guarantee, which applies
+ingest — it is _not_ covered by the "byte-identical" guarantee, which applies
 only to the mechanical Phase-0/1 re-keying (`ollama` reusing each class's
 current scalar). Any numeric correction lands as its own reviewed dataset change
 with provenance, never silently.
@@ -920,13 +927,13 @@ bandwidth cannot be sourced must be marked `unknown`, never guessed.
 
 ### 12.5 Adapter-design facts (`spec-grade`, verify at ingest)
 
-| Runtime | Port | Launch (loopback-forced) | Install |
-| --- | --- | --- | --- |
-| Ollama | 11434 | `ollama serve` + `ollama run <m>` | brew / installer |
-| llama.cpp | 8080 | `llama-server -m m.gguf --host 127.0.0.1 --port 8080` | brew / build / release |
-| mlx-lm | 8080 | `mlx_lm.server --model <repo> --host 127.0.0.1 --port 8080` | `pip install mlx-lm` (Apple Silicon) |
-| LM Studio | 1234 | `lms server start` + `lms load <m>` | app + `lms` CLI |
-| vLLM | 8000 | `vllm serve <m> --host 127.0.0.1 --port 8000` | `pip install vllm` (CUDA) |
+| Runtime   | Port  | Launch (loopback-forced)                                    | Install                              |
+| --------- | ----- | ----------------------------------------------------------- | ------------------------------------ |
+| Ollama    | 11434 | `ollama serve` + `ollama run <m>`                           | brew / installer                     |
+| llama.cpp | 8080  | `llama-server -m m.gguf --host 127.0.0.1 --port 8080`       | brew / build / release               |
+| mlx-lm    | 8080  | `mlx_lm.server --model <repo> --host 127.0.0.1 --port 8080` | `pip install mlx-lm` (Apple Silicon) |
+| LM Studio | 1234  | `lms server start` + `lms load <m>`                         | app + `lms` CLI                      |
+| vLLM      | 8000  | `vllm serve <m> --host 127.0.0.1 --port 8000`               | `pip install vllm` (CUDA)            |
 
 Two facts drive adapter code: (1) **port 8080 collision** across llama.cpp,
 mlx-lm, and llamafile → `up` must probe before claiming ownership (§2.3); (2)

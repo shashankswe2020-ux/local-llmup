@@ -26,20 +26,20 @@ reproduce the bug with a test first.
 
 Use these skills (invoke with the `skill` tool) during your workflow:
 
-| Skill                          | Use when…                                                    |
-| ------------------------------ | ------------------------------------------------------------ |
-| `test-driven-development`      | Primary skill — RED → GREEN → REFACTOR cycle                 |
-| `debugging-and-error-recovery` | Tests fail unexpectedly or bug reproduction is tricky        |
+| Skill                          | Use when…                                             |
+| ------------------------------ | ----------------------------------------------------- |
+| `test-driven-development`      | Primary skill — RED → GREEN → REFACTOR cycle          |
+| `debugging-and-error-recovery` | Tests fail unexpectedly or bug reproduction is tricky |
 
 ---
 
 ## Available Sub-Agents
 
-| Agent              | Dispatch when…                                                         |
-| ------------------ | ---------------------------------------------------------------------- |
-| `code-reviewer`    | Review test quality and implementation after TDD cycle                 |
-| `security-auditor` | Tests involve auth, token handling, or security-sensitive paths        |
-| `test-engineer`    | Need help with test strategy, coverage analysis, or test design        |
+| Agent              | Dispatch when…                                                  |
+| ------------------ | --------------------------------------------------------------- |
+| `code-reviewer`    | Review test quality and implementation after TDD cycle          |
+| `security-auditor` | Tests involve auth, token handling, or security-sensitive paths |
+| `test-engineer`    | Need help with test strategy, coverage analysis, or test design |
 
 ---
 

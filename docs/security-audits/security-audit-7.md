@@ -11,12 +11,12 @@
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 0 |
-| Medium | 0 |
-| Low | 0 |
-| Info | 3 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 0     |
+| Low      | 0     |
+| Info     | 3     |
 
 **Verdict — Overall risk: LOW (clean).** The three threat-focus questions all resolve **fail-closed**:
 
@@ -42,7 +42,7 @@ Why it holds: object spread cannot pollute the prototype, and any leftover own `
 
 ## Findings
 
-*(No Critical/High/Medium/Low findings. Informational observations only.)*
+_(No Critical/High/Medium/Low findings. Informational observations only.)_
 
 ### [INFO-1] v1→v2 transform stamps `schemaVersion: 2` before validation, but validation still gates acceptance
 
@@ -74,10 +74,10 @@ Why it holds: object spread cannot pollute the prototype, and any leftover own `
 
 ## Action Items (Priority Order)
 
-*No Critical/High/Medium/Low action items. B4 is safe to land as-is.*
+_No Critical/High/Medium/Low action items. B4 is safe to land as-is._
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | Info | [INFO-3] `endpoint` not loopback-constrained (pre-existing) | Optionally assert persisted `endpoint` is loopback at read time, for parity with the loopback-only principle. Track separately from B4. |
-| 2 | Info | [INFO-1] Unconditional v1 version stamp | None required; documented so the stamp is not mistaken for a validation bypass. |
-| 3 | Info | [INFO-2] Default-backend preservation of hostile value | None required; value is enum-gated downstream and safe. |
+| #   | Severity | Finding                                                     | Recommendation                                                                                                                          |
+| --- | -------- | ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Info     | [INFO-3] `endpoint` not loopback-constrained (pre-existing) | Optionally assert persisted `endpoint` is loopback at read time, for parity with the loopback-only principle. Track separately from B4. |
+| 2   | Info     | [INFO-1] Unconditional v1 version stamp                     | None required; documented so the stamp is not mistaken for a validation bypass.                                                         |
+| 3   | Info     | [INFO-2] Default-backend preservation of hostile value      | None required; value is enum-gated downstream and safe.                                                                                 |

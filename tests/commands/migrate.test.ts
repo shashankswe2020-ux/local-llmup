@@ -1,11 +1,4 @@
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -251,8 +244,7 @@ describe("runMigrate", () => {
     const embedder: MigrationEmbedder = {
       model: "mxbai-embed-large",
       dimension: 3,
-      embed: (inputs) =>
-        Promise.resolve({ vectors: inputs.map(() => [1, 2, 3]), dimension: 3 }),
+      embed: (inputs) => Promise.resolve({ vectors: inputs.map(() => [1, 2, 3]), dimension: 3 }),
     };
 
     await runMigrate({ from: "a", to: "b" }, makeDeps(cat, { embedder }));
@@ -332,7 +324,10 @@ describe("runMigrate", () => {
     seedSourceStore(config, "a", { turns: [{ role: "user", content: "hi", ts: "t" }] });
     const writeSpy = vi.fn();
 
-    await runMigrate({ from: "a", to: "b", dryRun: true }, makeDeps(cat, { writeMigration: writeSpy }));
+    await runMigrate(
+      { from: "a", to: "b", dryRun: true },
+      makeDeps(cat, { writeMigration: writeSpy }),
+    );
 
     expect(writeSpy).not.toHaveBeenCalled();
     // No target store was created, and no lock file was written.

@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  DEFAULT_PERF_PATH,
-  loadPerf,
-  matchPerf,
-  parsePerf,
-} from "../../src/advisor/perf-data.js";
+import { DEFAULT_PERF_PATH, loadPerf, matchPerf, parsePerf } from "../../src/advisor/perf-data.js";
 import { ValidationError } from "../../src/errors.js";
 import type { HardwareProfile } from "../../src/types.js";
 
@@ -260,7 +255,12 @@ describe("matchPerf — hardware → performance class", () => {
 
   it("matches Apple silicon by unified memory bracket", () => {
     const match = matchPerf(
-      hw({ arch: "arm64", platform: "darwin", gpu: [{ vendor: "apple", vramBytes: 0 }], totalRamBytes: 64 * GIB }),
+      hw({
+        arch: "arm64",
+        platform: "darwin",
+        gpu: [{ vendor: "apple", vramBytes: 0 }],
+        totalRamBytes: 64 * GIB,
+      }),
       dataset(),
     );
     expect(match?.id).toBe("apple-silicon-max");

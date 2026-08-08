@@ -26,21 +26,21 @@ quality axes, with project-specific checks for the local-llmup CLI.
 
 Use these skills (invoke with the `skill` tool) during your workflow:
 
-| Skill                      | Use when…                                                      |
-| -------------------------- | -------------------------------------------------------------- |
-| `code-review-and-quality`  | Primary skill — multi-axis code review process                 |
-| `security-and-hardening`   | Deep-diving into security aspects of the changes               |
-| `performance-optimization` | Investigating potential performance bottlenecks                 |
+| Skill                      | Use when…                                        |
+| -------------------------- | ------------------------------------------------ |
+| `code-review-and-quality`  | Primary skill — multi-axis code review process   |
+| `security-and-hardening`   | Deep-diving into security aspects of the changes |
+| `performance-optimization` | Investigating potential performance bottlenecks  |
 
 ---
 
 ## Available Sub-Agents
 
-| Agent              | Dispatch when…                                                         |
-| ------------------ | ---------------------------------------------------------------------- |
-| `code-reviewer`    | Delegate the automated five-axis review and issue creation             |
+| Agent              | Dispatch when…                                                                   |
+| ------------------ | -------------------------------------------------------------------------------- |
+| `code-reviewer`    | Delegate the automated five-axis review and issue creation                       |
 | `security-auditor` | Changes touch the backend, networking, integrity verification, or input handling |
-| `test-engineer`    | Coverage gaps found or test quality concerns identified                 |
+| `test-engineer`    | Coverage gaps found or test quality concerns identified                          |
 
 ---
 
@@ -67,6 +67,7 @@ When asked to review, follow these steps **in order**:
 Invoke the `code-review-and-quality` skill, then evaluate:
 
 #### 1. Correctness
+
 - Does the code match the spec (`docs/specs/`)? Are advisor formulas and memory math correct?
 - Honesty gate honored — `unknown` emitted (never a fabricated number) when bandwidth/geometry is missing?
 - Edge cases handled? Unknown hardware, missing catalog digest, unreachable Ollama, empty catalog?
@@ -74,11 +75,13 @@ Invoke the `code-review-and-quality` skill, then evaluate:
 - Do Zod schemas match the catalog JSON, config, and backend API response shapes?
 
 #### 2. Readability
+
 - Naming conventions followed? `kebab-case` files, `PascalCase` types, `camelCase` functions, `SCREAMING_SNAKE_CASE` constants?
 - Clear, straightforward logic? No unnecessary complexity?
 - Consistent with existing patterns in the codebase?
 
 #### 3. Architecture
+
 - One file per subcommand in `src/commands/`; backend logic behind the `BackendAdapter` interface (not in command code)?
 - Functional style — no classes?
 - Named exports only (no default exports)?
@@ -87,7 +90,9 @@ Invoke the `code-review-and-quality` skill, then evaluate:
 - Advice stays deterministic and offline (no network calls in `recommend`/`can-run`/`doctor`)?
 
 #### 4. Security
+
 Invoke the `security-and-hardening` skill for deep analysis:
+
 - `up`/`switch` verify pulled weights and fail closed on integrity mismatch?
 - Servers bind `127.0.0.1` — nothing exposed to the network?
 - No secrets in source code or version control?
@@ -95,7 +100,9 @@ Invoke the `security-and-hardening` skill for deep analysis:
 - Input validated with Zod before processing (CLI args, catalog JSON, API responses, config)?
 
 #### 5. Performance
+
 Invoke the `performance-optimization` skill if concerns arise:
+
 - Hardware detection has a timeout and safe-default fallback (no indefinite hang)?
 - No redundant catalog loads or re-detection within a single command run?
 - No unnecessary backend calls or blocking I/O on the advice path?
@@ -109,6 +116,7 @@ Invoke the `performance-optimization` skill if concerns arise:
 ### Step 4: Categorize and Report
 
 Categorize findings as **Critical**, **Important**, or **Suggestion** with:
+
 - Specific `file:line` references
 - Fix recommendations for each finding
 

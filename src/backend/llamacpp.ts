@@ -101,10 +101,7 @@ function adaptStream(stream: Readable | null): ProcessOutputStream | null {
 
 const defaultSpawn: SpawnFn = (command, args, options) => {
   const child = nodeSpawn(command, [...args], {
-    stdio:
-      options.stdio === "ignore"
-        ? ["ignore", "ignore", "ignore"]
-        : ["ignore", "pipe", "pipe"],
+    stdio: options.stdio === "ignore" ? ["ignore", "ignore", "ignore"] : ["ignore", "pipe", "pipe"],
     shell: false,
     signal: options.signal,
     ...(options.env ? { env: options.env } : {}),
@@ -257,9 +254,7 @@ const defaultAcquire: AcquireFn = (request, options = {}) =>
  * fields are ignored, so a richer server response still parses.
  */
 const OpenAiChatResponseSchema = z.object({
-  choices: z
-    .array(z.object({ message: z.object({ content: z.string() }) }))
-    .min(1),
+  choices: z.array(z.object({ message: z.object({ content: z.string() }) })).min(1),
 });
 
 /**
@@ -349,8 +344,7 @@ function llamaServerIdentity(payload: unknown): LlamaServerIdentity | null {
 
 /** Outcome of one readiness attempt across all probe paths. */
 type ReadinessResult =
-  | { readonly ready: true }
-  | { readonly ready: false; readonly lastError: unknown };
+  { readonly ready: true } | { readonly ready: false; readonly lastError: unknown };
 
 /** Outcome of a single path probe: 2xx, a non-2xx HTTP status, or a transport error. */
 type PathProbe =
@@ -371,8 +365,7 @@ export interface LlamaCppAdapterOptions {
   readonly kill?: KillFn | undefined;
   readonly acquire?: AcquireFn | undefined;
   readonly listenerProbe?:
-    | ((port: number, host: string) => Promise<ListenerIdentity | null>)
-    | undefined;
+    ((port: number, host: string) => Promise<ListenerIdentity | null>) | undefined;
 }
 
 /** Stateless adapter over the llama.cpp `llama-server` backend. */
@@ -397,10 +390,7 @@ export class LlamaCppAdapter implements BackendAdapter {
   private readonly sleep: SleepFn;
   private readonly kill: KillFn;
   private readonly acquire: AcquireFn;
-  private readonly listenerProbe: (
-    port: number,
-    host: string,
-  ) => Promise<ListenerIdentity | null>;
+  private readonly listenerProbe: (port: number, host: string) => Promise<ListenerIdentity | null>;
 
   constructor(options: LlamaCppAdapterOptions = {}) {
     this.spawn = options.spawn ?? defaultSpawn;
@@ -504,7 +494,9 @@ export class LlamaCppAdapter implements BackendAdapter {
     };
     const maxBytes =
       options.expectedSizeBytes !== undefined
-        ? Math.ceil(Math.max(options.expectedSizeBytes * 1.5, options.expectedSizeBytes + 64 * 1024 * 1024))
+        ? Math.ceil(
+            Math.max(options.expectedSizeBytes * 1.5, options.expectedSizeBytes + 64 * 1024 * 1024),
+          )
         : undefined;
     const result = await this.acquire(request, {
       signal: options.signal,
@@ -597,9 +589,7 @@ export class LlamaCppAdapter implements BackendAdapter {
       );
     }
     if (listenerBefore !== null) {
-      throw new BackendError(
-        `refusing to spawn at ${endpoint}: port has an unresponsive listener`,
-      );
+      throw new BackendError(`refusing to spawn at ${endpoint}: port has an unresponsive listener`);
     }
 
     // The probe masks an abort as "unreachable", so re-check before spawning.
@@ -650,9 +640,7 @@ export class LlamaCppAdapter implements BackendAdapter {
     const earlyFailure = new Promise<never>((_resolve, reject) => {
       child.onError((error) => reject(wrapSpawnError(this.binary, error)));
       child.onClose((code) =>
-        reject(
-          new BackendError(`llama-server exited before ${endpoint} was ready (code ${code})`),
-        ),
+        reject(new BackendError(`llama-server exited before ${endpoint} was ready (code ${code})`)),
       );
     });
     earlyFailure.catch(() => {});
@@ -690,9 +678,7 @@ export class LlamaCppAdapter implements BackendAdapter {
           modelId,
         ))
       ) {
-        throw new BackendError(
-          `llama-server readiness did not belong to spawned pid ${pid}`,
-        );
+        throw new BackendError(`llama-server readiness did not belong to spawned pid ${pid}`);
       }
       spawnedIdentity = listener;
     } catch (error) {
@@ -988,10 +974,7 @@ export class LlamaCppAdapter implements BackendAdapter {
   }
 
   /** One quick readiness attempt used to decide attach-vs-spawn / liveness. */
-  private async isReachable(
-    endpoint: string,
-    signal: AbortSignal | undefined,
-  ): Promise<boolean> {
+  private async isReachable(endpoint: string, signal: AbortSignal | undefined): Promise<boolean> {
     const result = await this.probeReady(endpoint, signal, READINESS_REQUEST_TIMEOUT_MS, false);
     return result.ready;
   }

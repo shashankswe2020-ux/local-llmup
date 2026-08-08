@@ -25,11 +25,7 @@ import { z } from "zod";
 import { DIR_MODE, FILE_MODE, type Config } from "../config.js";
 import { MemoryError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
-import {
-  readMemoryMeta,
-  writeMemoryMeta,
-  type MemoryStore,
-} from "./store.js";
+import { readMemoryMeta, writeMemoryMeta, type MemoryStore } from "./store.js";
 
 /** Bumped when the `facts.json` layout changes incompatibly. */
 export const FACTS_SCHEMA_VERSION = 1 as const;
@@ -275,7 +271,8 @@ export async function captureExchange(
 
   appendJsonl(join(store.dir, CONVERSATION_FILE), turns);
   const factsExtracted = mergeFacts(config, store, user, ts);
-  const vectorsEmbedded = embedding === undefined ? 0 : writeEmbedding(config, store, embedding, ts);
+  const vectorsEmbedded =
+    embedding === undefined ? 0 : writeEmbedding(config, store, embedding, ts);
   if (embeddingUnsupported) {
     markEmbeddingUnsupported(config, store);
   }
@@ -358,7 +355,10 @@ async function prepareEmbedding(
   // dimension would silently corrupt similarity search, so reject up front.
   const meta = readMemoryMeta(store.dir, store.modelId);
   const current = meta.embedding;
-  if (current !== undefined && (current.model !== embedder.model || current.dimension !== result.dimension)) {
+  if (
+    current !== undefined &&
+    (current.model !== embedder.model || current.dimension !== result.dimension)
+  ) {
     throw new MemoryError(
       `embedding mismatch: store uses ${stripControl(current.model)}/${current.dimension}, ` +
         `refusing to write ${stripControl(embedder.model)}/${result.dimension}`,

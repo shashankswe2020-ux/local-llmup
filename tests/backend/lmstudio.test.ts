@@ -10,7 +10,12 @@ import {
   type LmsCommandResult,
 } from "../../src/backend/lmstudio.js";
 import type { ListenerIdentity } from "../../src/backend/listener.js";
-import type { FetchFn, FetchResponseLike, SpawnFn, SpawnedProcess } from "../../src/backend/ollama.js";
+import type {
+  FetchFn,
+  FetchResponseLike,
+  SpawnFn,
+  SpawnedProcess,
+} from "../../src/backend/ollama.js";
 
 function probeSpawn(code: number, stdout = "CLI commit: abc123\n"): SpawnFn {
   return vi.fn<SpawnFn>(() => {
@@ -112,10 +117,7 @@ describe("LmStudioAdapter — delegated pull", () => {
       digestVerified: false,
       modelPath: "Qwen/Qwen3-14B-GGUF/Qwen3-14B-Q4_K_M.gguf",
     });
-    expect(runCommand).toHaveBeenCalledWith(
-      ["ls", "--json", "--llm", "--quiet"],
-      undefined,
-    );
+    expect(runCommand).toHaveBeenCalledWith(["ls", "--json", "--llm", "--quiet"], undefined);
   });
 
   it("verifies an exact absolute GGUF path when LM Studio exposes one", async () => {
@@ -240,9 +242,7 @@ describe("LmStudioAdapter — delegated pull", () => {
       runCommand: () =>
         commandResult(JSON.stringify([{ path: "mlx-community/model-4bit", type: "llm" }])),
     });
-    await expect(
-      mlxOnly.pull({ modelId: "model:4b", delegatedSources }),
-    ).resolves.toEqual({
+    await expect(mlxOnly.pull({ modelId: "model:4b", delegatedSources })).resolves.toEqual({
       modelId: "model:4b",
       digestVerified: false,
       modelPath: "mlx-community/model-4bit",
@@ -257,9 +257,7 @@ describe("LmStudioAdapter — delegated pull", () => {
           ]),
         ),
     });
-    await expect(both.pull({ modelId: "model:4b", delegatedSources })).rejects.toThrow(
-      /multiple/i,
-    );
+    await expect(both.pull({ modelId: "model:4b", delegatedSources })).rejects.toThrow(/multiple/i);
   });
 
   it("fails closed on malformed listings, digest mismatch, and symlinked weights", async () => {
@@ -354,9 +352,12 @@ describe("LmStudioAdapter — attach-only lifecycle", () => {
     );
     const fetch = vi.fn<FetchFn>((url) => {
       const path = new URL(url).pathname;
-      if (path === "/lmstudio-greeting") return Promise.resolve(jsonResponse(true, 200, { lmstudio: true }));
+      if (path === "/lmstudio-greeting")
+        return Promise.resolve(jsonResponse(true, 200, { lmstudio: true }));
       if (path === "/v1/models") {
-        return Promise.resolve(jsonResponse(true, 200, { object: "list", data: [{ id: "qwen3:14b" }] }));
+        return Promise.resolve(
+          jsonResponse(true, 200, { object: "list", data: [{ id: "qwen3:14b" }] }),
+        );
       }
       return Promise.resolve(jsonResponse(false, 404, {}));
     });
@@ -383,14 +384,8 @@ describe("LmStudioAdapter — attach-only lifecycle", () => {
       processStartedAt: listener.started,
       modelPath: "Qwen/model.gguf",
     });
-    expect(runCommand).toHaveBeenCalledWith(
-      ["server", "status", "--json", "--quiet"],
-      undefined,
-    );
-    expect(runCommand).toHaveBeenCalledWith(
-      ["ps", "--json", "--quiet"],
-      expect.any(AbortSignal),
-    );
+    expect(runCommand).toHaveBeenCalledWith(["server", "status", "--json", "--quiet"], undefined);
+    expect(runCommand).toHaveBeenCalledWith(["ps", "--json", "--quiet"], expect.any(AbortSignal));
   });
 
   it("refuses attachment until the user loads the exact runtime-managed model", async () => {
@@ -401,11 +396,10 @@ describe("LmStudioAdapter — attach-only lifecycle", () => {
     });
     const fetch: FetchFn = (url) => {
       const path = new URL(url).pathname;
-      if (path === "/lmstudio-greeting") return Promise.resolve(jsonResponse(true, 200, { lmstudio: true }));
+      if (path === "/lmstudio-greeting")
+        return Promise.resolve(jsonResponse(true, 200, { lmstudio: true }));
       if (path === "/v1/models") {
-        return Promise.resolve(
-          jsonResponse(true, 200, { object: "list", data: [] }),
-        );
+        return Promise.resolve(jsonResponse(true, 200, { object: "list", data: [] }));
       }
       return Promise.resolve(jsonResponse(false, 404, {}));
     };
@@ -516,8 +510,7 @@ describe("LmStudioAdapter — attach-only lifecycle", () => {
   it("trusts the canonical Windows per-user executable case-insensitively", async () => {
     const windowsListener: ListenerIdentity = {
       ...listener,
-      executable:
-        "c:\\users\\me\\appdata\\local\\programs\\lm studio\\lm studio.exe",
+      executable: "c:\\users\\me\\appdata\\local\\programs\\lm studio\\lm studio.exe",
     };
     const fetch: FetchFn = (url) =>
       Promise.resolve(
@@ -546,9 +539,7 @@ describe("LmStudioAdapter — attach-only lifecycle", () => {
 
 describe("LmStudioAdapter — OpenAI-compatible inference", () => {
   const loadedCommand: LmsCommandFn = () =>
-    commandResult(
-      JSON.stringify([{ identifier: "qwen3:14b", path: "Qwen/model.gguf" }]),
-    );
+    commandResult(JSON.stringify([{ identifier: "qwen3:14b", path: "Qwen/model.gguf" }]));
   it("rejects a malformed LM Studio API token at construction", () => {
     expect(() => new LmStudioAdapter({ env: { LM_API_TOKEN: "bad\nvalue" } })).toThrow(
       ValidationError,
@@ -559,13 +550,18 @@ describe("LmStudioAdapter — OpenAI-compatible inference", () => {
     const fetch: FetchFn = (url, init) => {
       expect(init?.headers).toMatchObject({ authorization: "Bearer test-token" });
       const path = new URL(url).pathname;
-      if (path === "/lmstudio-greeting") return Promise.resolve(jsonResponse(true, 200, { lmstudio: true }));
+      if (path === "/lmstudio-greeting")
+        return Promise.resolve(jsonResponse(true, 200, { lmstudio: true }));
       if (path === "/v1/models") {
-        return Promise.resolve(jsonResponse(true, 200, { object: "list", data: [{ id: "qwen3:14b" }] }));
+        return Promise.resolve(
+          jsonResponse(true, 200, { object: "list", data: [{ id: "qwen3:14b" }] }),
+        );
       }
       if (path === "/v1/chat/completions") {
         expect(JSON.parse(init?.body ?? "{}")).toMatchObject({ model: "qwen3:14b", stream: false });
-        return Promise.resolve(jsonResponse(true, 200, { choices: [{ message: { content: "hello" } }] }));
+        return Promise.resolve(
+          jsonResponse(true, 200, { choices: [{ message: { content: "hello" } }] }),
+        );
       }
       if (path === "/v1/embeddings") {
         return Promise.resolve(
@@ -612,7 +608,13 @@ describe("LmStudioAdapter — OpenAI-compatible inference", () => {
         },
         expectedModelPath: "Qwen/model.gguf",
       }),
-    ).resolves.toEqual({ vectors: [[0.1, 0.2], [0.3, 0.4]], dimension: 2 });
+    ).resolves.toEqual({
+      vectors: [
+        [0.1, 0.2],
+        [0.3, 0.4],
+      ],
+      dimension: 2,
+    });
   });
 
   it("cancels an oversized streaming response", async () => {

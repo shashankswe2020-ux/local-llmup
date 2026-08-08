@@ -61,8 +61,7 @@ export function backendsForModel(
     .filter((adapter) =>
       adapter.capabilities.formats.some(
         (format) =>
-          formats.includes(format) &&
-          backendSupportsFormatOnPlatform(adapter.name, format, target),
+          formats.includes(format) && backendSupportsFormatOnPlatform(adapter.name, format, target),
       ),
     );
 }

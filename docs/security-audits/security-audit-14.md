@@ -24,12 +24,12 @@
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 0 |
-| Medium | 0 |
-| Low | 2 |
-| Info | 2 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 0     |
+| Low      | 2     |
+| Info     | 2     |
 
 **Verdict:** The B12 change is correct and defensively coded against every risk
 called out in the brief. `--backend` is validated by a Zod enum before it can
@@ -90,7 +90,7 @@ defects.
 
 - **Location:** [src/advisor/throughput.ts](../../src/advisor/throughput.ts#L37), [src/commands/recommend.ts](../../src/commands/recommend.ts), [src/commands/can-run.ts](../../src/commands/can-run.ts)
 - **Description:** The advice-path baseline `const DEFAULT_THROUGHPUT_BACKEND:
-  BackendName = "ollama"` is declared independently in three modules. The
+BackendName = "ollama"` is declared independently in three modules. The
   determinism invariant ("default advice never varies with installed backends")
   depends on all three staying identical and staying a fixed literal — never an
   `isInstalled()`-derived value.
@@ -150,12 +150,12 @@ defects.
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | Low | `parseBackendName` echoes raw selector unsanitized (LOW-1) | `stripControl` + length-bound the echoed value at the source |
-| 2 | Low | `DEFAULT_THROUGHPUT_BACKEND` triplicated (LOW-2) | Export once from `throughput.ts`; import in both commands |
-| 3 | Info | `--available-backends` with nothing installed yields an empty set (INFO-1) | Emit an explicit "no installed backend" note instead of silent-empty output |
-| 4 | Info | Dev-only `npm audit` vulnerabilities (INFO-2) | Track dev-toolchain CVEs; no runtime exposure |
+| #   | Severity | Finding                                                                    | Recommendation                                                              |
+| --- | -------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| 1   | Low      | `parseBackendName` echoes raw selector unsanitized (LOW-1)                 | `stripControl` + length-bound the echoed value at the source                |
+| 2   | Low      | `DEFAULT_THROUGHPUT_BACKEND` triplicated (LOW-2)                           | Export once from `throughput.ts`; import in both commands                   |
+| 3   | Info     | `--available-backends` with nothing installed yields an empty set (INFO-1) | Emit an explicit "no installed backend" note instead of silent-empty output |
+| 4   | Info     | Dev-only `npm audit` vulnerabilities (INFO-2)                              | Track dev-toolchain CVEs; no runtime exposure                               |
 
 ---
 
@@ -165,7 +165,7 @@ defects.
 
 When `--available-backends` is passed on a machine with no installed backend,
 the filter drops every model and the command emits an empty recommendation set.
-This is *honest* (nothing is installed, so nothing is servable) and is opt-in, so
+This is _honest_ (nothing is installed, so nothing is servable) and is opt-in, so
 it is not a security defect. It is a UX sharp edge: an explicit line such as
 "no installed backend detected — run `local-llmup doctor`" would distinguish
 "nothing installed" from "nothing fits" and avoid a confusing blank result.

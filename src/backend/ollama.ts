@@ -99,7 +99,6 @@ export type SpawnFn = (
 /** Send a signal to a process by pid (used to stop an owned daemon); injected in tests. */
 export type KillFn = (pid: number, signal?: NodeJS.Signals | 0) => void;
 
-
 /** Integrity facts about a freshly pulled model, as observed on disk. */
 export interface PullVerification {
   /** Lowercase hex SHA-256 of the weights, or undefined if unobtainable. */
@@ -130,10 +129,7 @@ export interface FetchInitLike {
 }
 
 /** Perform an HTTP GET; injected in tests. */
-export type FetchFn = (
-  url: string,
-  init?: FetchInitLike,
-) => Promise<FetchResponseLike>;
+export type FetchFn = (url: string, init?: FetchInitLike) => Promise<FetchResponseLike>;
 
 /** Sleep for `ms`, rejecting if `signal` aborts; injected in tests. */
 export type SleepFn = (ms: number, signal?: AbortSignal | undefined) => Promise<void>;
@@ -238,7 +234,8 @@ const defaultSleep: SleepFn = (ms, signal) =>
   });
 
 /** Outcome of one readiness attempt across all probe paths. */
-type ProbeResult = { readonly ready: true } | { readonly ready: false; readonly lastError: unknown };
+type ProbeResult =
+  { readonly ready: true } | { readonly ready: false; readonly lastError: unknown };
 
 /** Attach probe classification used by `serve` attach-vs-spawn decision. */
 type AttachProbeResult = "trusted" | "untrusted" | "unreachable";
@@ -262,10 +259,7 @@ function adaptStream(stream: Readable | null): ProcessOutputStream | null {
 
 const defaultSpawn: SpawnFn = (command, args, options) => {
   const child = nodeSpawn(command, [...args], {
-    stdio:
-      options.stdio === "ignore"
-        ? ["ignore", "ignore", "ignore"]
-        : ["ignore", "pipe", "pipe"],
+    stdio: options.stdio === "ignore" ? ["ignore", "ignore", "ignore"] : ["ignore", "pipe", "pipe"],
     shell: false,
     signal: options.signal,
     ...(options.env ? { env: options.env } : {}),
@@ -346,7 +340,6 @@ async function stopSpawnedChild(child: SpawnedProcess): Promise<void> {
 
   await waitForChildClose(child, SHUTDOWN_GRACE_MS);
 }
-
 
 /** Turn a raw output line into a progress event. */
 function toProgress(line: string): PullProgress {
@@ -524,7 +517,8 @@ export function createDefaultDigestProbe(options: DefaultDigestProbeOptions = {}
     options.modelsDir ?? process.env["OLLAMA_MODELS"] ?? join(homedir(), ".ollama", "models");
   const readFile = options.readFile ?? ((path: string) => fsReadFile(path, "utf8"));
   const hashFile = options.hashFile ?? sha256File;
-  const statFile = options.statFile ?? (async (path: string) => ({ size: (await fsStat(path)).size }));
+  const statFile =
+    options.statFile ?? (async (path: string) => ({ size: (await fsStat(path)).size }));
 
   return async (modelId: string): Promise<PullVerification> => {
     const manifestPath = resolveManifestPath(modelsDir, modelId);
@@ -580,8 +574,7 @@ export interface OllamaAdapterOptions {
   readonly sleep?: SleepFn | undefined;
   readonly kill?: KillFn | undefined;
   readonly listenerProbe?:
-    | ((port: number, host: string) => Promise<ListenerIdentity | null>)
-    | undefined;
+    ((port: number, host: string) => Promise<ListenerIdentity | null>) | undefined;
 }
 
 /** Stateless adapter over the Ollama backend. */
@@ -601,10 +594,7 @@ export class OllamaAdapter implements BackendAdapter {
   private readonly fetch: FetchFn;
   private readonly sleep: SleepFn;
   private readonly kill: KillFn;
-  private readonly listenerProbe: (
-    port: number,
-    host: string,
-  ) => Promise<ListenerIdentity | null>;
+  private readonly listenerProbe: (port: number, host: string) => Promise<ListenerIdentity | null>;
 
   constructor(options: OllamaAdapterOptions = {}) {
     this.spawn = options.spawn ?? defaultSpawn;
@@ -791,9 +781,7 @@ export class OllamaAdapter implements BackendAdapter {
       );
     }
     if (listenerBefore !== null) {
-      throw new BackendError(
-        `refusing to spawn at ${endpoint}: port has an unresponsive listener`,
-      );
+      throw new BackendError(`refusing to spawn at ${endpoint}: port has an unresponsive listener`);
     }
 
     // The probe masks an abort as "not reachable", so re-check before spawning.
@@ -847,9 +835,7 @@ export class OllamaAdapter implements BackendAdapter {
         !matchesExpectedExecutable(listener, this.binary) ||
         !(await this.isLikelyOllamaDaemon(endpoint, signal, READINESS_REQUEST_TIMEOUT_MS))
       ) {
-        throw new BackendError(
-          `ollama serve readiness did not belong to spawned pid ${pid}`,
-        );
+        throw new BackendError(`ollama serve readiness did not belong to spawned pid ${pid}`);
       }
       spawnedIdentity = listener;
     } catch (error) {
@@ -874,10 +860,7 @@ export class OllamaAdapter implements BackendAdapter {
   }
 
   /** One quick readiness attempt used to decide attach-vs-spawn. */
-  private async isReachable(
-    endpoint: string,
-    signal: AbortSignal | undefined,
-  ): Promise<boolean> {
+  private async isReachable(endpoint: string, signal: AbortSignal | undefined): Promise<boolean> {
     const result = await this.probeReady(endpoint, signal, READINESS_REQUEST_TIMEOUT_MS);
     return result.ready;
   }
@@ -963,7 +946,10 @@ export class OllamaAdapter implements BackendAdapter {
         );
       }
       if (Date.now() >= deadline) {
-        throw new BackendError(`${options.endpoint} readiness timed out after ${timeoutMs}ms`, cause);
+        throw new BackendError(
+          `${options.endpoint} readiness timed out after ${timeoutMs}ms`,
+          cause,
+        );
       }
 
       const remaining = Math.max(deadline - Date.now(), 0);
@@ -1066,13 +1052,7 @@ export class OllamaAdapter implements BackendAdapter {
         `refusing to stop ollama daemon (pid ${handle.pid}): ${endpoint} is not reachable and pid may have been reused`,
       );
     }
-    if (
-      !(await this.isLikelyOllamaDaemon(
-        endpoint,
-        undefined,
-        READINESS_REQUEST_TIMEOUT_MS,
-      ))
-    ) {
+    if (!(await this.isLikelyOllamaDaemon(endpoint, undefined, READINESS_REQUEST_TIMEOUT_MS))) {
       throw new BackendError(
         `refusing to stop ollama daemon (pid ${handle.pid}): endpoint failed identity check`,
       );
@@ -1318,7 +1298,9 @@ async function readBoundedJson(response: FetchResponseLike): Promise<unknown> {
     } finally {
       reader.releaseLock();
     }
-    return JSON.parse(Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))).toString("utf8")) as unknown;
+    return JSON.parse(
+      Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))).toString("utf8"),
+    ) as unknown;
   }
   // Test seams may provide parsed JSON directly; native fetch responses always
   // expose a body and therefore use the byte-capped production path above.

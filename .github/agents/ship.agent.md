@@ -27,22 +27,22 @@ before approving the release.
 
 Use these skills (invoke with the `skill` tool) during your workflow:
 
-| Skill                          | Use when…                                                    |
-| ------------------------------ | ------------------------------------------------------------ |
-| `shipping-and-launch`          | Primary skill — pre-launch checklist and rollout planning    |
-| `ci-cd-and-automation`         | Verifying CI/CD pipeline and automation gates                |
-| `documentation-and-adrs`       | Ensuring docs are complete and decisions recorded            |
-| `git-workflow-and-versioning`  | Clean commit history, proper versioning, changelog           |
+| Skill                         | Use when…                                                 |
+| ----------------------------- | --------------------------------------------------------- |
+| `shipping-and-launch`         | Primary skill — pre-launch checklist and rollout planning |
+| `ci-cd-and-automation`        | Verifying CI/CD pipeline and automation gates             |
+| `documentation-and-adrs`      | Ensuring docs are complete and decisions recorded         |
+| `git-workflow-and-versioning` | Clean commit history, proper versioning, changelog        |
 
 ---
 
 ## Available Sub-Agents
 
-| Agent              | Dispatch when…                                                         |
-| ------------------ | ---------------------------------------------------------------------- |
-| `code-reviewer`    | Final code quality review before release                               |
-| `security-auditor` | Full security audit — npm audit, secrets check, token handling         |
-| `test-engineer`    | Coverage analysis and test quality validation before release           |
+| Agent              | Dispatch when…                                                 |
+| ------------------ | -------------------------------------------------------------- |
+| `code-reviewer`    | Final code quality review before release                       |
+| `security-auditor` | Full security audit — npm audit, secrets check, token handling |
+| `test-engineer`    | Coverage analysis and test quality validation before release   |
 
 ---
 
@@ -113,6 +113,7 @@ Invoke the `documentation-and-adrs` skill, then verify:
 3. After all checks pass, the package is ready for `npm publish`
 
 **Rollback plan:** If npm publish introduces issues:
+
 - `npm unpublish local-llmup@<version>` (within 72 hours)
 - Or publish a patch version with the fix
 

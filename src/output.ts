@@ -20,7 +20,10 @@ const COLUMN_GAP = "  ";
  * width is measured, so escape sequences can neither reach the terminal nor
  * inflate a column. Missing cells render empty; trailing spaces are trimmed.
  */
-export function renderTable(columns: readonly Column[], rows: readonly (readonly string[])[]): string {
+export function renderTable(
+  columns: readonly Column[],
+  rows: readonly (readonly string[])[],
+): string {
   const headers = columns.map((column) => stripControl(column.header));
   const cells = rows.map((row) => columns.map((_, index) => stripControl(row[index] ?? "")));
 

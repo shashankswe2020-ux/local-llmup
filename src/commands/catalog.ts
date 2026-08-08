@@ -6,7 +6,12 @@
  * - `--refresh` runs incremental enrichment as a dry-run and reports the diff
  *   without mutating `data/models.json`.
  */
-import { enrichCatalog, type EnrichDiff, type EnrichOptions, type RawRegistryModel } from "../catalog/enrich.js";
+import {
+  enrichCatalog,
+  type EnrichDiff,
+  type EnrichOptions,
+  type RawRegistryModel,
+} from "../catalog/enrich.js";
 import { loadCatalog } from "../catalog/load.js";
 import { REGISTRY_SNAPSHOT } from "../catalog/registry-snapshot.js";
 import { detectHardware } from "../hardware/detect.js";
@@ -27,7 +32,10 @@ export interface CatalogDeps {
   readonly loadCatalog: () => Catalog;
   readonly detectHardware: () => Promise<HardwareProfile>;
   readonly loadCandidates: () => readonly RawRegistryModel[];
-  readonly enrichCatalog: (options: EnrichOptions) => { readonly catalog: Catalog; readonly diff: EnrichDiff };
+  readonly enrichCatalog: (options: EnrichOptions) => {
+    readonly catalog: Catalog;
+    readonly diff: EnrichDiff;
+  };
   readonly now: () => Date;
   /** Command result data → stdout. */
   readonly write: (text: string) => void;

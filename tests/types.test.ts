@@ -51,7 +51,12 @@ describe("domain type shapes (compile-time)", () => {
       releaseDate: "2024-07-23",
       source: { ollama: "llama3.1:8b", hf: "meta-llama/Llama-3.1-8B" },
       quantizations: [
-        { name: "Q4_K_M", diskBytes: 4_900_000_000, minRamBytes: 6_500_000_000, minVramBytes: 6_000_000_000 },
+        {
+          name: "Q4_K_M",
+          diskBytes: 4_900_000_000,
+          minRamBytes: 6_500_000_000,
+          minVramBytes: 6_000_000_000,
+        },
       ],
       benchmarkProxy: 0.71,
     };
@@ -68,7 +73,13 @@ describe("domain type shapes (compile-time)", () => {
       releaseDate: "2025-07-11",
       source: { ollama: "kimi-k2:instruct" },
       quantizations: [
-        { name: "Q4_K_M", diskBytes: 600_000_000_000, minRamBytes: 620_000_000_000, minVramBytes: 600_000_000_000, sha256: "abc123" },
+        {
+          name: "Q4_K_M",
+          diskBytes: 600_000_000_000,
+          minRamBytes: 620_000_000_000,
+          minVramBytes: 600_000_000_000,
+          sha256: "abc123",
+        },
       ],
     };
     const catalog: Catalog = {

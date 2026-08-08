@@ -34,7 +34,13 @@ describe("OllamaAdapter.embed", () => {
       Promise.resolve({
         ok: true,
         status: 200,
-        json: () => Promise.resolve({ embeddings: [[0.1, 0.2], [0.3, 0.4]] }),
+        json: () =>
+          Promise.resolve({
+            embeddings: [
+              [0.1, 0.2],
+              [0.3, 0.4],
+            ],
+          }),
       }),
     );
 
@@ -44,7 +50,13 @@ describe("OllamaAdapter.embed", () => {
       input: ["alpha", "beta"],
     });
 
-    expect(result).toEqual({ vectors: [[0.1, 0.2], [0.3, 0.4]], dimension: 2 });
+    expect(result).toEqual({
+      vectors: [
+        [0.1, 0.2],
+        [0.3, 0.4],
+      ],
+      dimension: 2,
+    });
     const embedCall = fetch.mock.calls.find(([url]) => url.endsWith("/api/embed"));
     expect(embedCall?.[0]).toBe("http://127.0.0.1:18134/api/embed");
     expect(embedCall?.[1]?.signal).toBeInstanceOf(AbortSignal);
@@ -89,11 +101,12 @@ describe("OllamaAdapter.embed", () => {
       () => Promise.reject(new Error("ECONNRESET")),
       () => Promise.resolve({ ok: false, status: 500 }),
       () => Promise.resolve({ ok: true, status: 200 }),
-      () => Promise.resolve({
-        ok: true,
-        status: 200,
-        text: () => Promise.resolve("not json"),
-      }),
+      () =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          text: () => Promise.resolve("not json"),
+        }),
     ];
     for (const handler of handlers) {
       const { adapter } = trustedAdapter(handler);
@@ -146,13 +159,11 @@ describe("OllamaAdapter.embed", () => {
         cancelled = true;
       },
     });
-    const { adapter } = trustedAdapter(() =>
-      Promise.resolve({ ok: true, status: 200, body }),
-    );
+    const { adapter } = trustedAdapter(() => Promise.resolve({ ok: true, status: 200, body }));
 
-    await expect(
-      adapter.embed({ model: "nomic-embed-text", input: ["x"] }),
-    ).rejects.toBeInstanceOf(BackendError);
+    await expect(adapter.embed({ model: "nomic-embed-text", input: ["x"] })).rejects.toBeInstanceOf(
+      BackendError,
+    );
     expect(cancelled).toBe(true);
   });
 
@@ -164,9 +175,9 @@ describe("OllamaAdapter.embed", () => {
     expect(empty.fetch).not.toHaveBeenCalled();
 
     const unsafe = trustedAdapter(vi.fn<FetchFn>());
-    await expect(
-      unsafe.adapter.embed({ model: "-bad", input: ["x"] }),
-    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(unsafe.adapter.embed({ model: "-bad", input: ["x"] })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
     expect(unsafe.fetch).not.toHaveBeenCalled();
   });
 

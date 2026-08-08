@@ -121,15 +121,15 @@ export type AcquireRepositoryFile = (
 /** Injectable boundaries for {@link acquireRepository}. */
 export interface AcquireRepositoryDeps {
   readonly acquire: AcquireRepositoryFile;
-  readonly lockRepository?:
-    | ((request: AcquireRepositoryRequest) => () => void)
-    | undefined;
+  readonly lockRepository?: ((request: AcquireRepositoryRequest) => () => void) | undefined;
   readonly signal?: AbortSignal | undefined;
-  readonly onProgress?: ((event: {
-    readonly completedBytes: number;
-    readonly totalBytes: number;
-    readonly file: string;
-  }) => void) | undefined;
+  readonly onProgress?:
+    | ((event: {
+        readonly completedBytes: number;
+        readonly totalBytes: number;
+        readonly file: string;
+      }) => void)
+    | undefined;
   readonly listFiles?: ((root: string) => readonly string[]) | undefined;
 }
 
@@ -229,9 +229,7 @@ export function assertExactFileMatch(available: readonly string[], requested: st
     throw new BackendError(`weight file not found in repo listing: ${requested}`);
   }
   if (matches.length > 1) {
-    throw new BackendError(
-      `ambiguous weight file: ${matches.length} entries match ${requested}`,
-    );
+    throw new BackendError(`ambiguous weight file: ${matches.length} entries match ${requested}`);
   }
   return matches[0] as string;
 }
@@ -268,134 +266,146 @@ export async function acquireWeight(
   removeAbandonedPartials(parentDir);
   const releaseLock = acquireArtifactLock(finalPath);
   try {
-
-  // A pre-existing symlink at the target is a promotion/traversal vector.
-  const existing = lstatSafe(finalPath);
-  if (existing?.isSymbolicLink()) {
-    throw new BackendError(`refusing to use symlinked cache entry: ${finalPath}`);
-  }
-  if (existing?.isFile()) {
-    const hit = await tryCacheHit(finalPath, request.sha256);
-    if (hit !== null) {
-      return hit;
+    // A pre-existing symlink at the target is a promotion/traversal vector.
+    const existing = lstatSafe(finalPath);
+    if (existing?.isSymbolicLink()) {
+      throw new BackendError(`refusing to use symlinked cache entry: ${finalPath}`);
     }
-    discard(finalPath); // corrupt/mismatched cache entry — re-download (race-safe)
-  }
+    if (existing?.isFile()) {
+      const hit = await tryCacheHit(finalPath, request.sha256);
+      if (hit !== null) {
+        return hit;
+      }
+      discard(finalPath); // corrupt/mismatched cache entry — re-download (race-safe)
+    }
 
-  const url = assertSafeFetchUrl(
-    buildHfResolveUrl(deps.baseUrl ?? DEFAULT_HF_BASE_URL, request.repo, request.revision, request.file),
-    { allowedHosts: ["huggingface.co"] },
-  ).toString();
+    const url = assertSafeFetchUrl(
+      buildHfResolveUrl(
+        deps.baseUrl ?? DEFAULT_HF_BASE_URL,
+        request.repo,
+        request.revision,
+        request.file,
+      ),
+      { allowedHosts: ["huggingface.co"] },
+    ).toString();
 
-  const controller = new AbortController();
-  const onCallerAbort = (): void => controller.abort();
-  deps.signal?.addEventListener("abort", onCallerAbort, { once: true });
-  const timer = setTimeout(() => controller.abort(), deps.timeoutMs ?? DEFAULT_DOWNLOAD_TIMEOUT_MS);
-  let response: FetchResponseLike;
-  try {
-    response = await deps.fetch(url, controller.signal);
-  } catch (cause) {
-    clearTimeout(timer);
-    deps.signal?.removeEventListener("abort", onCallerAbort);
-    throw new BackendError(`weight download failed for ${request.file}`, { cause });
-  }
-  if (!response.ok) {
-    response.body?.destroy();
-    clearTimeout(timer);
-    deps.signal?.removeEventListener("abort", onCallerAbort);
-    throw new BackendError(`weight download failed (HTTP ${response.status}) for ${request.file}`);
-  }
-  // The resolve URL already pins the exact 40-hex commit, so Hugging Face serves
-  // that commit or 404s. `X-Repo-Commit` is a belt-and-braces confirmation: when
-  // present it MUST equal the pinned revision; when absent (a mirror/proxy that
-  // strips it) the pinned URL remains the anchor and the digest is the ultimate
-  // integrity gate.
-  const resolvedCommit = response.headers.get("x-repo-commit");
-  if (resolvedCommit !== null && resolvedCommit.toLowerCase() !== request.revision.toLowerCase()) {
-    response.body?.destroy();
-    clearTimeout(timer);
-    deps.signal?.removeEventListener("abort", onCallerAbort);
-    throw new BackendError(
-      `resolved commit ${resolvedCommit} does not match pinned revision ${request.revision}`,
+    const controller = new AbortController();
+    const onCallerAbort = (): void => controller.abort();
+    deps.signal?.addEventListener("abort", onCallerAbort, { once: true });
+    const timer = setTimeout(
+      () => controller.abort(),
+      deps.timeoutMs ?? DEFAULT_DOWNLOAD_TIMEOUT_MS,
     );
-  }
-  if (response.body === null) {
-    clearTimeout(timer);
-    deps.signal?.removeEventListener("abort", onCallerAbort);
-    throw new BackendError(`weight download returned no body for ${request.file}`);
-  }
-  const declaredBytes = Number(response.headers.get("content-length"));
-  if (
-    deps.maxBytes !== undefined &&
-    Number.isFinite(declaredBytes) &&
-    declaredBytes > deps.maxBytes
-  ) {
-    response.body?.destroy();
-    clearTimeout(timer);
-    deps.signal?.removeEventListener("abort", onCallerAbort);
-    throw new BackendError(
-      `weight download exceeds ${deps.maxBytes} byte limit for ${request.file}`,
-    );
-  }
-
-  const tempPath = join(parentDir, `.${name}.${process.pid}.${randomUUID()}.part`);
-  let bytes = 0;
-  let lastProgress = 0;
-  try {
-    const hash = createHash("sha256");
-    const hasher = new Transform({
-      transform(chunk: Buffer, _enc, callback) {
-        hash.update(chunk);
-        bytes += chunk.length;
-        if (deps.maxBytes !== undefined && bytes > deps.maxBytes) {
-          callback(
-            new BackendError(
-              `weight download exceeds ${deps.maxBytes} byte limit for ${request.file}`,
-            ),
-          );
-          return;
-        }
-        if (bytes - lastProgress >= PROGRESS_INTERVAL_BYTES) {
-          lastProgress = bytes;
-          deps.onProgress?.(bytes);
-        }
-        callback(null, chunk);
-      },
-    });
-    await pipeline(
-      response.body,
-      hasher,
-      createWriteStream(tempPath, { mode: FILE_MODE, flags: "wx" }),
-      { signal: controller.signal },
-    );
-    if (bytes !== lastProgress) deps.onProgress?.(bytes);
-    chmodSync(tempPath, FILE_MODE);
-
-    const digest = hash.digest("hex");
-    if (digest !== request.sha256.toLowerCase()) {
+    let response: FetchResponseLike;
+    try {
+      response = await deps.fetch(url, controller.signal);
+    } catch (cause) {
+      clearTimeout(timer);
+      deps.signal?.removeEventListener("abort", onCallerAbort);
+      throw new BackendError(`weight download failed for ${request.file}`, { cause });
+    }
+    if (!response.ok) {
+      response.body?.destroy();
+      clearTimeout(timer);
+      deps.signal?.removeEventListener("abort", onCallerAbort);
       throw new BackendError(
-        `digest mismatch for ${request.file}: expected ${request.sha256}, got ${digest}`,
+        `weight download failed (HTTP ${response.status}) for ${request.file}`,
+      );
+    }
+    // The resolve URL already pins the exact 40-hex commit, so Hugging Face serves
+    // that commit or 404s. `X-Repo-Commit` is a belt-and-braces confirmation: when
+    // present it MUST equal the pinned revision; when absent (a mirror/proxy that
+    // strips it) the pinned URL remains the anchor and the digest is the ultimate
+    // integrity gate.
+    const resolvedCommit = response.headers.get("x-repo-commit");
+    if (
+      resolvedCommit !== null &&
+      resolvedCommit.toLowerCase() !== request.revision.toLowerCase()
+    ) {
+      response.body?.destroy();
+      clearTimeout(timer);
+      deps.signal?.removeEventListener("abort", onCallerAbort);
+      throw new BackendError(
+        `resolved commit ${resolvedCommit} does not match pinned revision ${request.revision}`,
+      );
+    }
+    if (response.body === null) {
+      clearTimeout(timer);
+      deps.signal?.removeEventListener("abort", onCallerAbort);
+      throw new BackendError(`weight download returned no body for ${request.file}`);
+    }
+    const declaredBytes = Number(response.headers.get("content-length"));
+    if (
+      deps.maxBytes !== undefined &&
+      Number.isFinite(declaredBytes) &&
+      declaredBytes > deps.maxBytes
+    ) {
+      response.body?.destroy();
+      clearTimeout(timer);
+      deps.signal?.removeEventListener("abort", onCallerAbort);
+      throw new BackendError(
+        `weight download exceeds ${deps.maxBytes} byte limit for ${request.file}`,
       );
     }
 
-    // A same-directory rename is atomic on POSIX; the temp file already lives
-    // in the destination directory, so no cross-device copy can occur.
-    renameSync(tempPath, finalPath);
-    return { path: finalPath, bytes, digestVerified: true, cached: false };
-  } catch (error) {
-    discard(tempPath);
-    if (error instanceof BackendError || error instanceof ValidationError) {
-      throw error;
+    const tempPath = join(parentDir, `.${name}.${process.pid}.${randomUUID()}.part`);
+    let bytes = 0;
+    let lastProgress = 0;
+    try {
+      const hash = createHash("sha256");
+      const hasher = new Transform({
+        transform(chunk: Buffer, _enc, callback) {
+          hash.update(chunk);
+          bytes += chunk.length;
+          if (deps.maxBytes !== undefined && bytes > deps.maxBytes) {
+            callback(
+              new BackendError(
+                `weight download exceeds ${deps.maxBytes} byte limit for ${request.file}`,
+              ),
+            );
+            return;
+          }
+          if (bytes - lastProgress >= PROGRESS_INTERVAL_BYTES) {
+            lastProgress = bytes;
+            deps.onProgress?.(bytes);
+          }
+          callback(null, chunk);
+        },
+      });
+      await pipeline(
+        response.body,
+        hasher,
+        createWriteStream(tempPath, { mode: FILE_MODE, flags: "wx" }),
+        { signal: controller.signal },
+      );
+      if (bytes !== lastProgress) deps.onProgress?.(bytes);
+      chmodSync(tempPath, FILE_MODE);
+
+      const digest = hash.digest("hex");
+      if (digest !== request.sha256.toLowerCase()) {
+        throw new BackendError(
+          `digest mismatch for ${request.file}: expected ${request.sha256}, got ${digest}`,
+        );
+      }
+
+      // A same-directory rename is atomic on POSIX; the temp file already lives
+      // in the destination directory, so no cross-device copy can occur.
+      renameSync(tempPath, finalPath);
+      return { path: finalPath, bytes, digestVerified: true, cached: false };
+    } catch (error) {
+      discard(tempPath);
+      if (error instanceof BackendError || error instanceof ValidationError) {
+        throw error;
+      }
+      const winner = lstatSafe(finalPath)?.isFile()
+        ? await tryCacheHit(finalPath, request.sha256)
+        : null;
+      if (winner !== null) return winner;
+      throw new BackendError(`failed to acquire ${request.file}`, { cause: error });
+    } finally {
+      clearTimeout(timer);
+      deps.signal?.removeEventListener("abort", onCallerAbort);
     }
-    const winner = lstatSafe(finalPath)?.isFile()
-      ? await tryCacheHit(finalPath, request.sha256)
-      : null;
-    if (winner !== null) return winner;
-    throw new BackendError(`failed to acquire ${request.file}`, { cause: error });
-  } finally {
-    clearTimeout(timer);
-    deps.signal?.removeEventListener("abort", onCallerAbort);
-  }
   } finally {
     releaseLock();
   }
@@ -444,45 +454,45 @@ export async function acquireRepository(
     let allCached = true;
     let root: string | undefined;
     for (const artifact of request.files) {
-    if (deps.signal?.aborted) {
-      throw new BackendError(`repository acquisition aborted for ${request.repo}`);
-    }
-    const before = completedBytes;
-    const result = await deps.acquire(
-      {
-        backend: request.backend,
-        repo: request.repo,
-        revision: request.revision,
-        file: artifact.file,
-        sha256: artifact.sha256,
-      },
-      {
-        signal: deps.signal,
-        maxBytes: artifact.bytes,
-        onProgress: (fileBytes) =>
-          deps.onProgress?.({
-            completedBytes: before + Math.min(fileBytes, artifact.bytes),
-            totalBytes,
-            file: artifact.file,
-          }),
-      },
-    );
-    if (!result.digestVerified) {
-      throw new BackendError(`repository file was not digest-verified: ${artifact.file}`);
-    }
-    if (result.bytes !== artifact.bytes) {
-      throw new BackendError(
-        `repository file size mismatch for ${artifact.file}: expected ${artifact.bytes}, got ${result.bytes}`,
+      if (deps.signal?.aborted) {
+        throw new BackendError(`repository acquisition aborted for ${request.repo}`);
+      }
+      const before = completedBytes;
+      const result = await deps.acquire(
+        {
+          backend: request.backend,
+          repo: request.repo,
+          revision: request.revision,
+          file: artifact.file,
+          sha256: artifact.sha256,
+        },
+        {
+          signal: deps.signal,
+          maxBytes: artifact.bytes,
+          onProgress: (fileBytes) =>
+            deps.onProgress?.({
+              completedBytes: before + Math.min(fileBytes, artifact.bytes),
+              totalBytes,
+              file: artifact.file,
+            }),
+        },
       );
-    }
-    const candidateRoot = repositoryRoot(result.path, artifact.file);
-    if (root !== undefined && root !== candidateRoot) {
-      throw new BackendError(`repository files resolved to different cache roots`);
-    }
-    root = candidateRoot;
-    completedBytes += result.bytes;
-    allCached = allCached && result.cached;
-    deps.onProgress?.({ completedBytes, totalBytes, file: artifact.file });
+      if (!result.digestVerified) {
+        throw new BackendError(`repository file was not digest-verified: ${artifact.file}`);
+      }
+      if (result.bytes !== artifact.bytes) {
+        throw new BackendError(
+          `repository file size mismatch for ${artifact.file}: expected ${artifact.bytes}, got ${result.bytes}`,
+        );
+      }
+      const candidateRoot = repositoryRoot(result.path, artifact.file);
+      if (root !== undefined && root !== candidateRoot) {
+        throw new BackendError(`repository files resolved to different cache roots`);
+      }
+      root = candidateRoot;
+      completedBytes += result.bytes;
+      allCached = allCached && result.cached;
+      deps.onProgress?.({ completedBytes, totalBytes, file: artifact.file });
     }
 
     if (root === undefined) {
@@ -494,7 +504,9 @@ export async function acquireRepository(
       actualFiles.length !== expectedFiles.length ||
       actualFiles.some((file, index) => file !== expectedFiles[index])
     ) {
-      throw new BackendError(`repository contents do not match the pinned manifest for ${request.repo}`);
+      throw new BackendError(
+        `repository contents do not match the pinned manifest for ${request.repo}`,
+      );
     }
 
     return {
@@ -634,10 +646,7 @@ function pathComponents(root: string, candidate: string): string[] {
 }
 
 /** Return a cache-hit result when `finalPath` matches the expected digest. */
-async function tryCacheHit(
-  finalPath: string,
-  expectedSha: string,
-): Promise<AcquireResult | null> {
+async function tryCacheHit(finalPath: string, expectedSha: string): Promise<AcquireResult | null> {
   const bytes = statSync(finalPath).size;
   const digest = await sha256File(finalPath);
   if (digest !== expectedSha.toLowerCase()) {

@@ -24,11 +24,13 @@ None.
 ## Suggestions
 
 ### 1. Remove duplicate test execution in CI to reduce runtime
+
 - **File:** `.github/workflows/ci.yml:37`
 - CI currently runs `npm test` and then `npm run test:cov`, where the latter already executes the full test suite. This doubles test runtime without adding signal.
 - **Recommendation:** Keep `npm run test:cov` as the single test step (it enforces thresholds and executes tests), or split fast/slow jobs intentionally if duplication is desired for a reason.
 
 ### 2. Add policy coverage for CI workflow permissions drift
+
 - **File:** `tests/workflows/workflow-policy.test.ts:78`
 - The workflow-policy test enforces strict permissions for `catalog-refresh.yml`, but does not assert the same minimal permission contract for `ci.yml`.
 - **Recommendation:** Add a test assertion that top-level `permissions` in `ci.yml` stays `{ contents: "read" }` to prevent future privilege creep.
@@ -42,16 +44,16 @@ None.
 
 ## Verification Story
 
-| Check | Status | Notes |
-|-------|--------|-------|
-| Tests reviewed | ✅ | Reviewed `tests/workflows/workflow-policy.test.ts` and related CLI/catalog tests touching prior open items. |
-| Build verified | ✅ | `npm run build` passes locally. |
-| Security checked | ✅ | Minimal permissions + SHA-pinned actions + no push command in refresh workflow verified. |
-| Coverage | ✅ | `vitest.config.ts` thresholds match T30 policy and CI invokes `npm run test:cov`. |
+| Check            | Status | Notes                                                                                                       |
+| ---------------- | ------ | ----------------------------------------------------------------------------------------------------------- |
+| Tests reviewed   | ✅     | Reviewed `tests/workflows/workflow-policy.test.ts` and related CLI/catalog tests touching prior open items. |
+| Build verified   | ✅     | `npm run build` passes locally.                                                                             |
+| Security checked | ✅     | Minimal permissions + SHA-pinned actions + no push command in refresh workflow verified.                    |
+| Coverage         | ✅     | `vitest.config.ts` thresholds match T30 policy and CI invokes `npm run test:cov`.                           |
 
 ## Action Items
 
-| # | Priority | Issue | Target |
-|---|----------|-------|--------|
-| 1 | Suggestion | Eliminate redundant `npm test` + `npm run test:cov` duplication in CI | backlog |
-| 2 | Suggestion | Extend workflow-policy tests to lock `ci.yml` top-level permissions | backlog |
+| #   | Priority   | Issue                                                                 | Target  |
+| --- | ---------- | --------------------------------------------------------------------- | ------- |
+| 1   | Suggestion | Eliminate redundant `npm test` + `npm run test:cov` duplication in CI | backlog |
+| 2   | Suggestion | Extend workflow-policy tests to lock `ci.yml` top-level permissions   | backlog |

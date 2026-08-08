@@ -252,7 +252,9 @@ function mlxFetch(listener: FakeListener): FetchFn {
     const path = new URL(url).pathname;
     if (path === "/health") return Promise.resolve(response(true, 200, { status: "ok" }));
     if (path === "/v1/models") {
-      return Promise.resolve(response(true, 200, { object: "list", data: [{ id: "/cache/model" }] }));
+      return Promise.resolve(
+        response(true, 200, { object: "list", data: [{ id: "/cache/model" }] }),
+      );
     }
     if (path === "/v1/chat/completions") {
       const body = JSON.parse(init?.body ?? "{}") as { max_tokens?: number };
@@ -432,7 +434,9 @@ const CONTRACTS: readonly AdapterContract[] = [
       }),
       llamaCppIntegrityCase("fails closed on zero exact-file matches", (request) => {
         expect(() => assertExactFileMatch([], request.file)).toThrow(BackendError);
-        return Promise.reject(new BackendError(`weight download failed (HTTP 404) for ${request.file}`));
+        return Promise.reject(
+          new BackendError(`weight download failed (HTTP 404) for ${request.file}`),
+        );
       }),
       llamaCppIntegrityCase("fails closed on multiple exact-file matches", (request) => {
         expect(() => assertExactFileMatch([request.file, request.file], request.file)).toThrow(
@@ -536,9 +540,7 @@ const CONTRACTS: readonly AdapterContract[] = [
             args[0] === "server"
               ? JSON.stringify({ running: true, port: 1234 })
               : args[0] === "ps"
-                ? JSON.stringify([
-                    { identifier: "qwen3:14b", path: "Qwen/model.gguf" },
-                  ])
+                ? JSON.stringify([{ identifier: "qwen3:14b", path: "Qwen/model.gguf" }])
                 : "[]",
           stderr: "",
         }),
@@ -550,13 +552,16 @@ const CONTRACTS: readonly AdapterContract[] = [
           runCommand,
           fetch: lmStudioFetch(listener),
           sleep: noSleep,
-          listenerProbe: async () => (listener.listening ? {
-            pid: 4242,
-            process: "LM Studio",
-            executable: "/Applications/LM Studio.app/Contents/MacOS/LM Studio",
-            started: "2026-08-08T00:00:00Z",
-            localAddress: "127.0.0.1",
-          } : null),
+          listenerProbe: async () =>
+            listener.listening
+              ? {
+                  pid: 4242,
+                  process: "LM Studio",
+                  executable: "/Applications/LM Studio.app/Contents/MacOS/LM Studio",
+                  started: "2026-08-08T00:00:00Z",
+                  localAddress: "127.0.0.1",
+                }
+              : null,
         }),
         listener,
         spawn,

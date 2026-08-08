@@ -125,7 +125,11 @@ function selectAttach(
 }
 
 /** Build the fail-closed error for an override that conflicts with the active backend. */
-function attachConflict(activeBackend: BackendName, via: string, requested: string): ValidationError {
+function attachConflict(
+  activeBackend: BackendName,
+  via: string,
+  requested: string,
+): ValidationError {
   return new ValidationError(
     `active server uses backend "${activeBackend}"; ${via} "${requested}" cannot change it — stop it first`,
   );

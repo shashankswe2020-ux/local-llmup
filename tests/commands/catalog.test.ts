@@ -64,7 +64,10 @@ function baseDeps(overrides: Partial<CatalogDeps> = {}): { deps: CatalogDeps; st
     loadCatalog: () => CATALOG,
     detectHardware: async () => hardware(32),
     loadCandidates: () => [] as readonly RawRegistryModel[],
-    enrichCatalog: vi.fn(() => ({ catalog: CATALOG, diff: { added: [], updated: [], removed: [], skipped: [], capped: [] } })),
+    enrichCatalog: vi.fn(() => ({
+      catalog: CATALOG,
+      diff: { added: [], updated: [], removed: [], skipped: [], capped: [] },
+    })),
     now: () => new Date("2026-08-05T00:00:00.000Z"),
     write: (text) => stdout.push(text),
     ...overrides,
@@ -118,9 +121,7 @@ describe("runCatalog", () => {
       .filter((line) => line.length > 0);
     const rows = lines.filter(
       (line) =>
-        line.startsWith("alpha:8b") ||
-        line.startsWith("zeta:8b") ||
-        line.startsWith("mid:8b"),
+        line.startsWith("alpha:8b") || line.startsWith("zeta:8b") || line.startsWith("mid:8b"),
     );
     expect(rows).toEqual([
       expect.stringMatching(/^alpha:8b\s+/u),
@@ -163,7 +164,10 @@ describe("runCatalog", () => {
       },
     ];
 
-    const { deps, stdout } = baseDeps({ loadCandidates: () => candidates, enrichCatalog: enrichSpy });
+    const { deps, stdout } = baseDeps({
+      loadCandidates: () => candidates,
+      enrichCatalog: enrichSpy,
+    });
 
     await runCatalog({ refresh: true, all: true }, deps);
 

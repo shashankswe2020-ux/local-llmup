@@ -2,9 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { BackendError, ValidationError } from "../../src/errors.js";
 import { OllamaAdapter, type FetchFn, type FetchResponseLike } from "../../src/backend/ollama.js";
 
-function trustedAdapter(
-  request: FetchFn,
-) {
+function trustedAdapter(request: FetchFn) {
   const fetch = vi.fn<FetchFn>((url, init) =>
     url.endsWith("/api/version")
       ? Promise.resolve({

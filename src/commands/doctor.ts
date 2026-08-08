@@ -96,7 +96,11 @@ function formatGiB(bytes: number): string {
 async function checkBackend(adapter: BackendAdapter): Promise<DoctorCheck> {
   try {
     if (await adapter.isInstalled()) {
-      return { name: "backend", status: "ok", detail: `${stripControl(adapter.name)} is installed` };
+      return {
+        name: "backend",
+        status: "ok",
+        detail: `${stripControl(adapter.name)} is installed`,
+      };
     }
     return {
       name: "backend",
@@ -152,7 +156,9 @@ async function probeBackends(
   );
 
   const installedNames = new Set(probed.filter((p) => p.installed).map((p) => p.adapter.name));
-  const defaultBackend = autoDetectPriority(platform, arch).find((name) => installedNames.has(name));
+  const defaultBackend = autoDetectPriority(platform, arch).find((name) =>
+    installedNames.has(name),
+  );
 
   return probed.map((p) => ({
     name: p.adapter.name,
@@ -164,7 +170,9 @@ async function probeBackends(
 }
 
 /** Outcome of the single hardware probe, shared by the check and the score. */
-type Detection = { readonly ok: true; readonly profile: HardwareProfile } | { readonly ok: false; readonly error: unknown };
+type Detection =
+  | { readonly ok: true; readonly profile: HardwareProfile }
+  | { readonly ok: false; readonly error: unknown };
 
 /** Probe hardware exactly once so the check and the score agree on one reading. */
 async function detectSafely(detect: () => Promise<HardwareProfile>): Promise<Detection> {
@@ -177,7 +185,11 @@ async function detectSafely(detect: () => Promise<HardwareProfile>): Promise<Det
 
 function checkHardware(detection: Detection): DoctorCheck {
   if (!detection.ok) {
-    return { name: "hardware", status: "fail", detail: `hardware detection failed: ${messageOf(detection.error)}` };
+    return {
+      name: "hardware",
+      status: "fail",
+      detail: `hardware detection failed: ${messageOf(detection.error)}`,
+    };
   }
   const hw = detection.profile;
   const usable = usableMemoryBytes(hw);
@@ -228,7 +240,11 @@ async function checkState(deps: DoctorDeps): Promise<DoctorCheck> {
   try {
     active = deps.readState(deps.config).active;
   } catch (error) {
-    return { name: "state", status: "fail", detail: `runtime state is unreadable: ${messageOf(error)}` };
+    return {
+      name: "state",
+      status: "fail",
+      detail: `runtime state is unreadable: ${messageOf(error)}`,
+    };
   }
 
   if (active === null) {

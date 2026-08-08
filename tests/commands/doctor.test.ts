@@ -73,7 +73,12 @@ function fakeAdapter(overrides: Partial<BackendAdapter> = {}): BackendAdapter {
     isInstalled: async () => true,
     installHint: () => "brew install ollama",
     pull: async () => ({ modelId: "x", digestVerified: true }),
-    serve: async () => ({ endpoint: "http://127.0.0.1:11434", pid: 1, port: 11434, ownedByUs: true }),
+    serve: async () => ({
+      endpoint: "http://127.0.0.1:11434",
+      pid: 1,
+      port: 11434,
+      ownedByUs: true,
+    }),
     waitUntilReady: async () => undefined,
     stop: async () => undefined,
     chat: async () => ({ content: "" }),
@@ -351,7 +356,11 @@ describe("runDoctor — backends section (B11)", () => {
   it("reports a best-effort version for an installed backend", async () => {
     const { deps, stdout } = baseDeps({
       registry: createRegistry([
-        fakeAdapter({ name: "ollama", isInstalled: async () => true, version: async () => "0.3.14" }),
+        fakeAdapter({
+          name: "ollama",
+          isInstalled: async () => true,
+          version: async () => "0.3.14",
+        }),
       ]),
     });
 
@@ -440,9 +449,7 @@ describe("runDoctor — backends section (B11)", () => {
 
   it("selects no default when no backend is installed", async () => {
     const { deps } = baseDeps({
-      registry: createRegistry([
-        fakeAdapter({ name: "ollama", isInstalled: async () => false }),
-      ]),
+      registry: createRegistry([fakeAdapter({ name: "ollama", isInstalled: async () => false })]),
     });
 
     const report = await runDoctor(deps);
@@ -472,18 +479,26 @@ describe("runDoctor — backends section (B11)", () => {
   it("includes the backends array in --json output", async () => {
     const { deps, stdout } = baseDeps({
       registry: createRegistry([
-        fakeAdapter({ name: "ollama", isInstalled: async () => true, version: async () => "0.3.14" }),
+        fakeAdapter({
+          name: "ollama",
+          isInstalled: async () => true,
+          version: async () => "0.3.14",
+        }),
       ]),
     });
 
     await runDoctor(deps, { json: true });
 
     const parsed = JSON.parse(stdout.join("")) as {
-      backends: ReadonlyArray<{ name: string; installed: boolean; version: string | null; isDefault: boolean }>;
+      backends: ReadonlyArray<{
+        name: string;
+        installed: boolean;
+        version: string | null;
+        isDefault: boolean;
+      }>;
     };
     expect(parsed.backends[0]?.name).toBe("ollama");
     expect(parsed.backends[0]?.installed).toBe(true);
     expect(parsed.backends[0]?.version).toBe("0.3.14");
   });
 });
-

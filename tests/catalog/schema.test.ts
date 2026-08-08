@@ -24,7 +24,9 @@ describe("CatalogModelSchema", () => {
     });
 
     it("accepts an allow-listed license", () => {
-      expect(() => CatalogModelSchema.parse({ ...denseModel, license: "apache-2.0" })).not.toThrow();
+      expect(() =>
+        CatalogModelSchema.parse({ ...denseModel, license: "apache-2.0" }),
+      ).not.toThrow();
     });
   });
 
@@ -52,18 +54,27 @@ describe("CatalogModelSchema", () => {
 
   describe("releaseDate", () => {
     it("rejects an impossible calendar date", () => {
-      expect(() => CatalogModelSchema.parse({ ...denseModel, releaseDate: "2024-02-30" })).toThrow();
-      expect(() => CatalogModelSchema.parse({ ...denseModel, releaseDate: "2024-13-01" })).toThrow();
+      expect(() =>
+        CatalogModelSchema.parse({ ...denseModel, releaseDate: "2024-02-30" }),
+      ).toThrow();
+      expect(() =>
+        CatalogModelSchema.parse({ ...denseModel, releaseDate: "2024-13-01" }),
+      ).toThrow();
     });
 
     it("accepts a real date", () => {
-      expect(() => CatalogModelSchema.parse({ ...denseModel, releaseDate: "2024-02-29" })).not.toThrow();
+      expect(() =>
+        CatalogModelSchema.parse({ ...denseModel, releaseDate: "2024-02-29" }),
+      ).not.toThrow();
     });
   });
 
   describe("quantization bytes", () => {
     it("rejects negative disk bytes", () => {
-      const bad = { ...denseModel, quantizations: [{ ...denseModel.quantizations[0]!, diskBytes: -1 }] };
+      const bad = {
+        ...denseModel,
+        quantizations: [{ ...denseModel.quantizations[0]!, diskBytes: -1 }],
+      };
       expect(() => CatalogModelSchema.parse(bad)).toThrow();
     });
 
@@ -74,7 +85,10 @@ describe("CatalogModelSchema", () => {
     });
 
     it("rejects a malformed sha256", () => {
-      const bad = { ...denseModel, quantizations: [{ ...denseModel.quantizations[0]!, sha256: "xyz" }] };
+      const bad = {
+        ...denseModel,
+        quantizations: [{ ...denseModel.quantizations[0]!, sha256: "xyz" }],
+      };
       expect(() => CatalogModelSchema.parse(bad)).toThrow();
     });
 
@@ -219,7 +233,9 @@ describe("CatalogModelSchema", () => {
         validMlx.files.filter((entry) => entry.file !== "tokenizer_config.json"),
         validMlx.files.filter((entry) => !entry.file.endsWith(".safetensors")),
       ]) {
-        expect(() => CatalogModelSchema.parse(withSource({ mlx: { ...validMlx, files } }))).toThrow();
+        expect(() =>
+          CatalogModelSchema.parse(withSource({ mlx: { ...validMlx, files } })),
+        ).toThrow();
       }
     });
 
@@ -280,10 +296,7 @@ describe("CatalogModelSchema", () => {
             withSource({
               mlx: {
                 ...validMlx,
-                files: [
-                  ...validMlx.files,
-                  { file, sha256: "a".repeat(64), bytes: 100 },
-                ],
+                files: [...validMlx.files, { file, sha256: "a".repeat(64), bytes: 100 }],
               },
             }),
           ),
@@ -306,14 +319,23 @@ describe("CatalogModelSchema", () => {
       ).not.toThrow();
     });
 
-    it.each(["*.gguf", "model?.gguf", "weights[0].gguf", "../secret.gguf", "a/../b.gguf", "/abs/path.gguf", "sub\\file.gguf", "%2e%2e/secret.gguf", "weights%2f..%2fx.gguf", "bad\u0000name.gguf", "line\nbreak.gguf"])(
-      "rejects an unsafe gguf file: %s",
-      (file) => {
-        expect(() =>
-          CatalogModelSchema.parse(withSource({ gguf: { ...validGguf, file } })),
-        ).toThrow();
-      },
-    );
+    it.each([
+      "*.gguf",
+      "model?.gguf",
+      "weights[0].gguf",
+      "../secret.gguf",
+      "a/../b.gguf",
+      "/abs/path.gguf",
+      "sub\\file.gguf",
+      "%2e%2e/secret.gguf",
+      "weights%2f..%2fx.gguf",
+      "bad\u0000name.gguf",
+      "line\nbreak.gguf",
+    ])("rejects an unsafe gguf file: %s", (file) => {
+      expect(() =>
+        CatalogModelSchema.parse(withSource({ gguf: { ...validGguf, file } })),
+      ).toThrow();
+    });
 
     it("accepts a safe gguf file in a subdirectory", () => {
       expect(() =>
@@ -332,14 +354,18 @@ describe("CatalogModelSchema", () => {
       },
     );
 
-    it.each(["../x", "/absolute/path", "-leading-dash/name", "owner/name/extra", "no-slash", ".hidden/name", "owner/", "/name"])(
-      "rejects an invalid HF repo id: %s",
-      (repo) => {
-        expect(() =>
-          CatalogModelSchema.parse(withSource({ mlx: { ...validMlx, repo } })),
-        ).toThrow();
-      },
-    );
+    it.each([
+      "../x",
+      "/absolute/path",
+      "-leading-dash/name",
+      "owner/name/extra",
+      "no-slash",
+      ".hidden/name",
+      "owner/",
+      "/name",
+    ])("rejects an invalid HF repo id: %s", (repo) => {
+      expect(() => CatalogModelSchema.parse(withSource({ mlx: { ...validMlx, repo } }))).toThrow();
+    });
 
     it("rejects a gguf source missing required fields", () => {
       const { file: _f, ...missingFile } = validGguf;

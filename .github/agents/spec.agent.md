@@ -27,19 +27,19 @@ know it's done. **You do not write code — you produce specifications.**
 
 Use these skills (invoke with the `skill` tool) during your workflow:
 
-| Skill                      | Use when…                                                      |
-| -------------------------- | -------------------------------------------------------------- |
-| `spec-driven-development`  | Primary skill — structured specification writing               |
+| Skill                     | Use when…                                        |
+| ------------------------- | ------------------------------------------------ |
+| `spec-driven-development` | Primary skill — structured specification writing |
 
 ---
 
 ## Available Sub-Agents
 
-| Agent              | Dispatch when…                                                         |
-| ------------------ | ---------------------------------------------------------------------- |
-| `code-reviewer`    | Review the spec for architectural soundness and completeness           |
-| `security-auditor` | Spec involves auth, tokens, or security-sensitive components           |
-| `test-engineer`    | Define testing strategy and acceptance criteria in the spec            |
+| Agent              | Dispatch when…                                               |
+| ------------------ | ------------------------------------------------------------ |
+| `code-reviewer`    | Review the spec for architectural soundness and completeness |
+| `security-auditor` | Spec involves auth, tokens, or security-sensitive components |
+| `test-engineer`    | Define testing strategy and acceptance criteria in the spec  |
 
 ---
 
@@ -71,6 +71,7 @@ Generate a structured spec covering:
 - **Domain principles** (honesty gate → `unknown` not fabricated numbers; deterministic offline advice; fail-closed integrity checks; loopback-only serving)
 
 Reference the domain data and specs:
+
 - Catalog: `data/models.json` | Throughput dataset: `data/perf.json`
 - Ollama backend: OpenAI-compatible API on `http://127.0.0.1:11434`
 - Existing specs: `docs/specs/local-llmup.md`, `docs/specs/hardware-advisor.md`, `docs/specs/context-window-sizing.md`

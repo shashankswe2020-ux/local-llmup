@@ -53,7 +53,12 @@ function normalizeVendor(vendor: string): GpuVendor {
   if (v.includes("nvidia")) return "nvidia";
   if (v.includes("apple")) return "apple";
   // `\bati\b` avoids matching the "ati" inside words like "corporation".
-  if (v.includes("amd") || v.includes("advanced micro") || v.includes("radeon") || /\bati\b/.test(v))
+  if (
+    v.includes("amd") ||
+    v.includes("advanced micro") ||
+    v.includes("radeon") ||
+    /\bati\b/.test(v)
+  )
     return "amd";
   return "none"; // integrated Intel / unknown → no dedicated VRAM
 }
@@ -87,7 +92,8 @@ function mapGpus(controllers: ReadonlyArray<{ vendor: string; vram: number | nul
 }> {
   return controllers.map((c) => {
     const vendor = normalizeVendor(c.vendor ?? "");
-    const vramMib = typeof c.vram === "number" && Number.isFinite(c.vram) && c.vram > 0 ? c.vram : 0;
+    const vramMib =
+      typeof c.vram === "number" && Number.isFinite(c.vram) && c.vram > 0 ? c.vram : 0;
     // Enforce the invariant memory-math relies on: only a *recognized* dedicated
     // GPU contributes VRAM. An adapter mapped to "none" (integrated/unknown) must
     // report 0 so it never routes usable memory to the small VRAM branch. Round

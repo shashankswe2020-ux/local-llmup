@@ -5,11 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
 import { MemoryError } from "../../src/errors.js";
 import { openMemoryStore, type MemoryStore } from "../../src/memory/store.js";
-import {
-  captureExchange,
-  extractFacts,
-  type CaptureEmbedder,
-} from "../../src/memory/capture.js";
+import { captureExchange, extractFacts, type CaptureEmbedder } from "../../src/memory/capture.js";
 
 let home: string;
 let config: Config;

@@ -121,7 +121,11 @@ describe("writeMigration", () => {
   it("restricts staged artifact permissions to the owner under a hostile umask", () => {
     const previous = process.umask(0);
     try {
-      writeMigration(config, { sourceDir, targetDir, targetModelId: "m", plan: makePlan() }, { now });
+      writeMigration(
+        config,
+        { sourceDir, targetDir, targetModelId: "m", plan: makePlan() },
+        { now },
+      );
       expect(statSync(targetDir).mode & 0o777).toBe(0o700);
       expect(statSync(join(targetDir, "meta.json")).mode & 0o777).toBe(0o600);
       expect(statSync(join(targetDir, "embeddings")).mode & 0o777).toBe(0o700);

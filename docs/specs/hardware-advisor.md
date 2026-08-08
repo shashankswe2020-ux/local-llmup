@@ -42,7 +42,7 @@ price, "can run"). Wrong claims erode trust faster than a missing feature.
 1. **Every number is an estimate with a labeled range and a source.** No bare
    "20 tok/s". Always "~15–25 tok/s (estimated, model v3, 2026-08)".
 2. **Determinism.** Advisor output is a pure function of `(HardwareProfile,
-   Catalog, ComponentDB, reference date)`. Same inputs → identical output. All
+Catalog, ComponentDB, reference date)`. Same inputs → identical output. All
    time-relative math uses a **fixed reference date** from the dataset, never the
    wall clock — same rule the ranker already uses for `recencyScore`.
 3. **Estimates never masquerade as live facts.** Prices and component specs come
@@ -59,13 +59,13 @@ price, "can run"). Wrong claims erode trust faster than a missing feature.
 
 ## 3. Phased Scope
 
-| Phase | Feature | Command surface | New data needed | v1? |
-|---|---|---|---|---|
-| 1 | Hardware Assessment + score | `doctor` (extended) | none | ✅ |
-| 2 | "What can I run" pass/warn/fail | `recommend` (extended) / `can-run` | none | ✅ |
-| 3 | Upgrade Planner (target a model) | `plan <model>` | ComponentDB + throughput model | ✅ (curated, static) |
-| 4 | Budget Optimizer | `build --budget <n>` | ComponentDB + prices | ⚠️ v1.1 (static prices) |
-| 5 | Marketplace (live used prices) | `hardware` | live price feed | ❌ deferred (see §7) |
+| Phase | Feature                          | Command surface                    | New data needed                | v1?                     |
+| ----- | -------------------------------- | ---------------------------------- | ------------------------------ | ----------------------- |
+| 1     | Hardware Assessment + score      | `doctor` (extended)                | none                           | ✅                      |
+| 2     | "What can I run" pass/warn/fail  | `recommend` (extended) / `can-run` | none                           | ✅                      |
+| 3     | Upgrade Planner (target a model) | `plan <model>`                     | ComponentDB + throughput model | ✅ (curated, static)    |
+| 4     | Budget Optimizer                 | `build --budget <n>`               | ComponentDB + prices           | ⚠️ v1.1 (static prices) |
+| 5     | Marketplace (live used prices)   | `hardware`                         | live price feed                | ❌ deferred (see §7)    |
 
 ---
 
@@ -83,7 +83,7 @@ score** and a **named primary bottleneck**.
    **storage headroom**.
 3. Identify the **primary bottleneck** = the lowest-weighted-normalized
    sub-score, surfaced as a typed `Bottleneck = "vram" | "ram" | "compute" |
-   "storage"`.
+"storage"`.
 4. Render alongside existing `doctor` checks.
 
 ### Illustrative output
@@ -337,13 +337,13 @@ interface ComponentPrice { lowUsd: number; highUsd: number; asOf: string; }  // 
 
 ## 10. CLI Surface additions
 
-| Command | One-liner | Purpose | Phase |
-|---|---|---|---|
-| `doctor` | `local-llmup doctor` | now also prints AI Hardware Score + bottleneck | 1 |
-| `can-run` | `local-llmup can-run <model>` | single-model yes/slow/no verdict + reason | 2 |
-| `plan` | `local-llmup plan <model>` | upgrade paths to run a target model | 3 |
-| `build` | `local-llmup build --budget <n>` | best build for a budget | 4 (v1.1) |
-| `hardware` | _(deferred)_ | live marketplace advisor | 5 (deferred) |
+| Command    | One-liner                        | Purpose                                        | Phase        |
+| ---------- | -------------------------------- | ---------------------------------------------- | ------------ |
+| `doctor`   | `local-llmup doctor`             | now also prints AI Hardware Score + bottleneck | 1            |
+| `can-run`  | `local-llmup can-run <model>`    | single-model yes/slow/no verdict + reason      | 2            |
+| `plan`     | `local-llmup plan <model>`       | upgrade paths to run a target model            | 3            |
+| `build`    | `local-llmup build --budget <n>` | best build for a budget                        | 4 (v1.1)     |
+| `hardware` | _(deferred)_                     | live marketplace advisor                       | 5 (deferred) |
 
 All support `--json` for scripting (consistent with existing commands).
 
@@ -357,7 +357,7 @@ All support `--json` for scripting (consistent with existing commands).
   are Zod-validated at the boundary; component ids constrained to a safe charset.
 - **No purchase links / affiliate URLs** in v1 (avoids trust + policy issues and
   the base-spec rule against generating vendor URLs).
-- **Estimate labeling** (Principle 1 & 3) is a *security-of-trust* requirement,
+- **Estimate labeling** (Principle 1 & 3) is a _security-of-trust_ requirement,
   not just UX: throughput ranges and dated prices are mandatory in output.
 
 ---

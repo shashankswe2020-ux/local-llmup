@@ -39,11 +39,7 @@ import type {
   ServeOptions,
 } from "./adapter.js";
 import { assertLoopbackEndpoint, buildEndpoint, DEFAULT_BIND_HOST } from "./adapter.js";
-import {
-  probeListenerIdentity,
-  sameListenerProcess,
-  type ListenerIdentity,
-} from "./listener.js";
+import { probeListenerIdentity, sameListenerProcess, type ListenerIdentity } from "./listener.js";
 import { assertSafeModelId } from "./net.js";
 import type { FetchFn, ProcessOutputStream, SleepFn, SpawnFn, SpawnedProcess } from "./ollama.js";
 
@@ -64,7 +60,11 @@ const LISTENER_PROBE_BACKOFF_MS = 100;
 
 const DownloadedModelSchema = z
   .object({
-    path: z.string().min(1).max(4096).refine((value) => stripControl(value) === value),
+    path: z
+      .string()
+      .min(1)
+      .max(4096)
+      .refine((value) => stripControl(value) === value),
     modelKey: z
       .string()
       .min(1)
@@ -79,12 +79,7 @@ const DownloadedModelGroupSchema = z.object({
   variants: z.array(DownloadedModelSchema).max(10_000),
 });
 const DownloadedModelsSchema = z
-  .array(
-    z.union([
-      DownloadedModelSchema,
-      DownloadedModelGroupSchema,
-    ]),
-  )
+  .array(z.union([DownloadedModelSchema, DownloadedModelGroupSchema]))
   .max(10_000);
 const GreetingSchema = z.object({ lmstudio: z.literal(true) }).passthrough();
 const ModelsSchema = z.object({
@@ -106,7 +101,10 @@ const LoadedModelsSchema = z
   )
   .max(1024);
 const ChatResponseSchema = z.object({
-  choices: z.array(z.object({ message: z.object({ content: z.string() }) })).min(1).max(8),
+  choices: z
+    .array(z.object({ message: z.object({ content: z.string() }) }))
+    .min(1)
+    .max(8),
 });
 const EmbeddingResponseSchema = z.object({
   data: z
@@ -194,7 +192,12 @@ function runProbe(spawn: SpawnFn, binary: string): Promise<ProcessResult> {
   });
 }
 
-function runCommand(spawn: SpawnFn, binary: string, args: readonly string[], signal?: AbortSignal): Promise<LmsCommandResult> {
+function runCommand(
+  spawn: SpawnFn,
+  binary: string,
+  args: readonly string[],
+  signal?: AbortSignal,
+): Promise<LmsCommandResult> {
   const controller = new AbortController();
   const onAbort = (): void => controller.abort();
   if (signal?.aborted) controller.abort();
@@ -226,8 +229,12 @@ function runCommand(spawn: SpawnFn, binary: string, args: readonly string[], sig
       }
       return current + chunk;
     };
-    child.stdout?.onData((chunk) => { stdout = append(stdout, chunk); });
-    child.stderr?.onData((chunk) => { stderr = append(stderr, chunk); });
+    child.stdout?.onData((chunk) => {
+      stdout = append(stdout, chunk);
+    });
+    child.stderr?.onData((chunk) => {
+      stderr = append(stderr, chunk);
+    });
     child.onError(() => finish({ code: null, stdout: "", stderr: "" }));
     child.onClose((code) =>
       finish({ code, stdout: overflow ? "" : stdout, stderr: overflow ? "" : stderr }),
@@ -251,10 +258,14 @@ const defaultSleep: SleepFn = (ms, signal) =>
       return;
     }
     const timer = setTimeout(resolve, ms);
-    signal?.addEventListener("abort", () => {
-      clearTimeout(timer);
-      reject(new BackendError("LM Studio wait aborted"));
-    }, { once: true });
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timer);
+        reject(new BackendError("LM Studio wait aborted"));
+      },
+      { once: true },
+    );
   });
 
 export interface LmStudioAdapterOptions {
@@ -264,7 +275,8 @@ export interface LmStudioAdapterOptions {
   readonly runCommand?: LmsCommandFn | undefined;
   readonly fetch?: FetchFn | undefined;
   readonly sleep?: SleepFn | undefined;
-  readonly listenerProbe?: ((port: number, host: string) => Promise<ListenerIdentity | null>) | undefined;
+  readonly listenerProbe?:
+    ((port: number, host: string) => Promise<ListenerIdentity | null>) | undefined;
   readonly env?: NodeJS.ProcessEnv | undefined;
   readonly modelsRoot?: string | undefined;
   readonly trustedExecutables?: readonly string[] | undefined;
@@ -296,7 +308,8 @@ export class LmStudioAdapter implements BackendAdapter {
     this.spawn = options.spawn ?? defaultSpawn;
     this.binary = options.binary ?? LMS_BINARY;
     this.platform = options.platform ?? process.platform;
-    this.runCommand = options.runCommand ?? ((args, signal) => runCommand(this.spawn, this.binary, args, signal));
+    this.runCommand =
+      options.runCommand ?? ((args, signal) => runCommand(this.spawn, this.binary, args, signal));
     this.fetch = options.fetch ?? defaultFetch;
     this.sleep = options.sleep ?? defaultSleep;
     this.listenerProbe = options.listenerProbe ?? probeListenerIdentity;
@@ -369,7 +382,10 @@ export class LmStudioAdapter implements BackendAdapter {
     }> = [];
     for (const model of models) {
       if (candidates.length === 0) {
-        if (model.modelKey === options.modelId || normalizeModelPath(model.path) === options.modelId) {
+        if (
+          model.modelKey === options.modelId ||
+          normalizeModelPath(model.path) === options.modelId
+        ) {
           matches.push({ model, source: undefined });
         }
         continue;
@@ -390,7 +406,9 @@ export class LmStudioAdapter implements BackendAdapter {
       );
     }
     if (matches.length !== 1) {
-      throw new BackendError(`multiple LM Studio models match ${options.modelId}; exact selection required`);
+      throw new BackendError(
+        `multiple LM Studio models match ${options.modelId}; exact selection required`,
+      );
     }
     const selected = matches[0];
     const path = selected?.model.path;
@@ -425,10 +443,7 @@ export class LmStudioAdapter implements BackendAdapter {
     if (!(await this.isLmStudio(endpoint, options.signal))) {
       throw new BackendError(`listener at ${endpoint} is not an authoritative LM Studio server`);
     }
-    const status = await this.runCommand(
-      ["server", "status", "--json", "--quiet"],
-      options.signal,
-    );
+    const status = await this.runCommand(["server", "status", "--json", "--quiet"], options.signal);
     if (status.code !== 0) throw new BackendError("failed to query LM Studio server status");
     const parsedStatus = parseJson(ServerStatusSchema, status.stdout, "lms server status");
     if (parsedStatus.port !== port) {
@@ -492,7 +507,9 @@ export class LmStudioAdapter implements BackendAdapter {
 
   async chat(request: ChatRequest): Promise<ChatResult> {
     assertSafeModelId(request.model);
-    const endpoint = assertLoopbackEndpoint(request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, LM_STUDIO_DEFAULT_PORT));
+    const endpoint = assertLoopbackEndpoint(
+      request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, LM_STUDIO_DEFAULT_PORT),
+    );
     await this.assertInferenceTarget(
       endpoint,
       request.model,
@@ -500,8 +517,13 @@ export class LmStudioAdapter implements BackendAdapter {
       request.expectedModelPath,
       request.signal,
     );
-    const body = JSON.stringify({ model: request.model, messages: request.messages, stream: false });
-    if (Buffer.byteLength(body) > MAX_REQUEST_BYTES) throw new BackendError("LM Studio chat request exceeds byte limit");
+    const body = JSON.stringify({
+      model: request.model,
+      messages: request.messages,
+      stream: false,
+    });
+    if (Buffer.byteLength(body) > MAX_REQUEST_BYTES)
+      throw new BackendError("LM Studio chat request exceeds byte limit");
     const { response, payload } = await this.fetchJson(
       `${endpoint}/v1/chat/completions`,
       { method: "POST", headers: this.headers(true), body, signal: request.signal },
@@ -528,7 +550,9 @@ export class LmStudioAdapter implements BackendAdapter {
 
   async embed(request: EmbedRequest): Promise<EmbedResult> {
     assertSafeModelId(request.model);
-    const endpoint = assertLoopbackEndpoint(request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, LM_STUDIO_DEFAULT_PORT));
+    const endpoint = assertLoopbackEndpoint(
+      request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, LM_STUDIO_DEFAULT_PORT),
+    );
     await this.assertInferenceTarget(
       endpoint,
       request.model,
@@ -540,7 +564,8 @@ export class LmStudioAdapter implements BackendAdapter {
       throw new BackendError("LM Studio embedding input count is invalid");
     }
     const body = JSON.stringify({ model: request.model, input: request.input });
-    if (Buffer.byteLength(body) > MAX_REQUEST_BYTES) throw new BackendError("LM Studio embedding request exceeds byte limit");
+    if (Buffer.byteLength(body) > MAX_REQUEST_BYTES)
+      throw new BackendError("LM Studio embedding request exceeds byte limit");
     const { response, payload } = await this.fetchJson(
       `${endpoint}/v1/embeddings`,
       { method: "POST", headers: this.headers(true), body, signal: request.signal },
@@ -548,7 +573,8 @@ export class LmStudioAdapter implements BackendAdapter {
       request.signal,
       "LM Studio embeddings",
     );
-    if (!response.ok) throw new BackendError(`LM Studio embeddings failed with HTTP ${response.status}`);
+    if (!response.ok)
+      throw new BackendError(`LM Studio embeddings failed with HTTP ${response.status}`);
     const parsed = EmbeddingResponseSchema.safeParse(payload);
     if (!parsed.success || parsed.data.data.length !== request.input.length) {
       throw new BackendError("LM Studio embeddings returned malformed JSON");
@@ -724,11 +750,7 @@ export class LmStudioAdapter implements BackendAdapter {
     signal?: AbortSignal,
     timeoutMs = REQUEST_TIMEOUT_MS,
   ): Promise<void> {
-    const loaded = await this.runCommandWithin(
-      ["ps", "--json", "--quiet"],
-      signal,
-      timeoutMs,
-    );
+    const loaded = await this.runCommandWithin(["ps", "--json", "--quiet"], signal, timeoutMs);
     if (loaded.code !== 0) throw new BackendError("failed to query loaded LM Studio models");
     const loadedModels = parseJson(LoadedModelsSchema, loaded.stdout, "lms ps");
     const exactLoaded = loadedModels.filter(
@@ -909,9 +931,7 @@ function normalizeModelPath(value: string): string {
 function matchesModelSuffix(path: string, suffix: string): boolean {
   const normalizedPath = normalizeModelPath(path);
   const normalizedSuffix = normalizeModelPath(suffix).replace(/^\/+/, "");
-  return (
-    normalizedPath === normalizedSuffix || normalizedPath.endsWith(`/${normalizedSuffix}`)
-  );
+  return normalizedPath === normalizedSuffix || normalizedPath.endsWith(`/${normalizedSuffix}`);
 }
 
 function resolveLocalModelPath(path: string, modelsRoot: string): string | undefined {

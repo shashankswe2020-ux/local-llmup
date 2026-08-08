@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
-  runCatalogMock: vi.fn<
-    (options: { all?: boolean | undefined; refresh?: boolean | undefined }) => Promise<void>
-  >(),
+  runCatalogMock:
+    vi.fn<
+      (options: { all?: boolean | undefined; refresh?: boolean | undefined }) => Promise<void>
+    >(),
 }));
 
 vi.mock("../src/commands/catalog.js", () => ({
@@ -40,10 +41,12 @@ describe("catalog CLI wiring", () => {
   it("writes a prefixed catalog error and sets exitCode=1 on failure", async () => {
     hoisted.runCatalogMock.mockRejectedValueOnce(new Error("boom"));
     const writes: string[] = [];
-    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
-      writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
-      return true;
-    });
+    const stderr = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation((chunk: string | Uint8Array) => {
+        writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"));
+        return true;
+      });
 
     try {
       const cli = buildCli();

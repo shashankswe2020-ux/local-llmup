@@ -226,7 +226,10 @@ describe("openMemoryStore", () => {
       const actual = await vi.importActual<typeof import("node:fs")>("node:fs");
       return {
         ...actual,
-        linkSync: ((existingPath: import("node:fs").PathLike, newPath: import("node:fs").PathLike) => {
+        linkSync: ((
+          existingPath: import("node:fs").PathLike,
+          newPath: import("node:fs").PathLike,
+        ) => {
           observedLinkTarget = String(newPath);
           actual.linkSync(existingPath, newPath);
         }) as typeof import("node:fs").linkSync,

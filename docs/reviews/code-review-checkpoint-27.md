@@ -24,6 +24,7 @@ None.
 ## Suggestions
 
 ### 1. Shared process seams remain owned by the Ollama module
+
 - **File:** `src/backend/ollama.ts:50-82`
 - `SpawnFn`, `SpawnedProcess`, and related generic seam types still live in the concrete Ollama adapter, so `LlamaCppAdapter` and the shared contract suite import generic contracts from a sibling adapter. Moving them to a neutral backend seam module would improve dependency direction, as noted in checkpoints 23 and 24. This is existing architectural debt and does not block B16's behavioral contract.
 
@@ -40,20 +41,20 @@ None.
 
 ## Verification Story
 
-| Check | Status | Notes |
-|-------|--------|-------|
-| Tests reviewed | ✅ | Reviewed the parameterized contract suite first; all 19 cases have meaningful assertions, including complete llama.cpp acquisition forwarding and condition-specific integrity checks. |
-| Focused suite | ✅ | `tests/backend/adapter-contract.test.ts`: 19/19 passing. |
-| Full suite | ✅ | 877/877 passing across 53 files. |
-| Typecheck | ✅ | `npm run typecheck` passes. |
-| Build verified | ✅ | `npm run build` passes. |
-| Lint verified | ⚠️ | Scoped ESLint for both changed sources and the new test passes. Full lint reports only the 2 known `site/main.js` browser-global errors. |
-| Security checked | ✅ | Explicit loopback bind, pre-spawn non-loopback refusal, identity-gated attach, ownership-safe cleanup, discrete argv, Ollama `--` separator, and required `shell:false` were reviewed. |
-| Coverage | ✅ | Every B16 clause has an asserting case; lower-level B13 acquisition tests continue to prove real digest/revision/HTTP/partial-promotion behavior. |
-| Performance | ✅ | No production regression; focused contract assertions execute in 9 ms (268 ms total Vitest process duration). |
+| Check            | Status | Notes                                                                                                                                                                                  |
+| ---------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tests reviewed   | ✅     | Reviewed the parameterized contract suite first; all 19 cases have meaningful assertions, including complete llama.cpp acquisition forwarding and condition-specific integrity checks. |
+| Focused suite    | ✅     | `tests/backend/adapter-contract.test.ts`: 19/19 passing.                                                                                                                               |
+| Full suite       | ✅     | 877/877 passing across 53 files.                                                                                                                                                       |
+| Typecheck        | ✅     | `npm run typecheck` passes.                                                                                                                                                            |
+| Build verified   | ✅     | `npm run build` passes.                                                                                                                                                                |
+| Lint verified    | ⚠️     | Scoped ESLint for both changed sources and the new test passes. Full lint reports only the 2 known `site/main.js` browser-global errors.                                               |
+| Security checked | ✅     | Explicit loopback bind, pre-spawn non-loopback refusal, identity-gated attach, ownership-safe cleanup, discrete argv, Ollama `--` separator, and required `shell:false` were reviewed. |
+| Coverage         | ✅     | Every B16 clause has an asserting case; lower-level B13 acquisition tests continue to prove real digest/revision/HTTP/partial-promotion behavior.                                      |
+| Performance      | ✅     | No production regression; focused contract assertions execute in 9 ms (268 ms total Vitest process duration).                                                                          |
 
 ## Action Items
 
-| # | Priority | Issue | Target |
-|---|----------|-------|--------|
-| 1 | Suggestion | Relocate generic process seams from the Ollama module to a neutral backend module | immediate follow-up / backlog |
+| #   | Priority   | Issue                                                                             | Target                        |
+| --- | ---------- | --------------------------------------------------------------------------------- | ----------------------------- |
+| 1   | Suggestion | Relocate generic process seams from the Ollama module to a neutral backend module | immediate follow-up / backlog |

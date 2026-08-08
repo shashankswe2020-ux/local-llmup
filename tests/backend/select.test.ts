@@ -128,9 +128,9 @@ describe("select — create intent precedence", () => {
   it("throws ValidationError for an unknown explicit flag", async () => {
     const registry = createRegistry([fakeAdapter({ name: "ollama" })]);
 
-    await expect(
-      select({ intent: "create", registry, flag: "bogus" }),
-    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(select({ intent: "create", registry, flag: "bogus" })).rejects.toBeInstanceOf(
+      ValidationError,
+    );
   });
 
   it("ignores a blank flag and falls through to the next source", async () => {

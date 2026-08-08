@@ -91,7 +91,9 @@ describe("parseRawRegistryModels (payload boundary)", () => {
   });
 
   it("fails closed on a shape-malformed payload", () => {
-    expect(() => parseRawRegistryModels([{ id: "x", quantizations: "nope" }])).toThrow(CatalogError);
+    expect(() => parseRawRegistryModels([{ id: "x", quantizations: "nope" }])).toThrow(
+      CatalogError,
+    );
   });
 });
 

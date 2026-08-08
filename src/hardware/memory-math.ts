@@ -292,7 +292,9 @@ export function maxContextTokens(
     throw new ValidationError(`kvBytesPerToken must be a positive integer: ${String(perToken)}`);
   }
   if (!Number.isFinite(budgetBytes) || budgetBytes < 0) {
-    throw new ValidationError(`budgetBytes must be finite and non-negative: ${String(budgetBytes)}`);
+    throw new ValidationError(
+      `budgetBytes must be finite and non-negative: ${String(budgetBytes)}`,
+    );
   }
   // Clamp on the true footprint floor: a model whose legacy footprint exceeds
   // the budget does not fit at any context (requiredMemoryAtContext is floored

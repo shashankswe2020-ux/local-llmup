@@ -51,7 +51,10 @@ export function resolveModel(catalog: Catalog, input: string): ResolvedModel {
     return finalize(withQuant[0] as ResolvedModel);
   }
   if (withQuant.length > 1) {
-    throw ambiguous(query, withQuant.map((entry) => entry.model.id));
+    throw ambiguous(
+      query,
+      withQuant.map((entry) => entry.model.id),
+    );
   }
 
   // 3. Exact family.
@@ -60,7 +63,10 @@ export function resolveModel(catalog: Catalog, input: string): ResolvedModel {
     return finalize({ model: family[0] as CatalogModel });
   }
   if (family.length > 1) {
-    throw ambiguous(query, family.map((model) => model.id));
+    throw ambiguous(
+      query,
+      family.map((model) => model.id),
+    );
   }
 
   // 4. Fuzzy prefix on id or family.
@@ -72,7 +78,10 @@ export function resolveModel(catalog: Catalog, input: string): ResolvedModel {
     return finalize({ model: fuzzy[0] as CatalogModel });
   }
   if (fuzzy.length > 1) {
-    throw ambiguous(query, fuzzy.map((model) => model.id));
+    throw ambiguous(
+      query,
+      fuzzy.map((model) => model.id),
+    );
   }
 
   throw new ModelResolutionError(`no model matches "${query}"`, []);
@@ -87,9 +96,7 @@ function normalizeInput(input: string): string {
     throw new ValidationError(`model name contains path traversal: "${stripControl(trimmed)}"`);
   }
   if (!RESOLVER_INPUT_PATTERN.test(trimmed)) {
-    throw new ValidationError(
-      `model name contains invalid characters: "${stripControl(trimmed)}"`,
-    );
+    throw new ValidationError(`model name contains invalid characters: "${stripControl(trimmed)}"`);
   }
   return trimmed.toLowerCase();
 }

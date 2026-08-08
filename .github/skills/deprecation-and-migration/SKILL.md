@@ -57,9 +57,9 @@ Before deprecating anything, answer these questions:
 
 ## Compulsory vs Advisory Deprecation
 
-| Type | When to Use | Mechanism |
-|------|-------------|-----------|
-| **Advisory** | Migration is optional, old system is stable | Warnings, documentation, nudges. Users migrate on their own timeline. |
+| Type           | When to Use                                                                           | Mechanism                                                                       |
+| -------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **Advisory**   | Migration is optional, old system is stable                                           | Warnings, documentation, nudges. Users migrate on their own timeline.           |
 | **Compulsory** | Old system has security issues, blocks progress, or maintenance cost is unsustainable | Hard deadline. Old system will be removed by date X. Provide migration tooling. |
 
 **Default to advisory.** Use compulsory only when the maintenance cost or risk justifies forcing migration. Compulsory deprecation requires providing migration tooling, documentation, and support — you can't just announce a deadline.
@@ -83,9 +83,10 @@ Don't deprecate without a working alternative. The replacement must:
 **Replacement:** NewService (see migration guide below)
 **Removal date:** Advisory — no hard deadline yet
 **Reason:** OldService requires manual scaling and lacks observability.
-            NewService handles both automatically.
+NewService handles both automatically.
 
 ### Migration Guide
+
 1. Replace `import { client } from 'old-service'` with `import { client } from 'new-service'`
 2. Update configuration (see examples below)
 3. Run the migration verification script: `npx migrate-check`
@@ -154,7 +155,7 @@ Use feature flags to switch consumers from old to new system one at a time:
 
 ```typescript
 function getTaskService(userId: string): TaskService {
-  if (featureFlags.isEnabled('new-task-service', { userId })) {
+  if (featureFlags.isEnabled("new-task-service", { userId })) {
     return new NewTaskService();
   }
   return new LegacyTaskService();
@@ -175,14 +176,14 @@ Zombie code is code that nobody owns but everybody depends on. It's not actively
 
 ## Common Rationalizations
 
-| Rationalization | Reality |
-|---|---|
-| "It still works, why remove it?" | Working code that nobody maintains accumulates security debt and complexity. Maintenance cost grows silently. |
-| "Someone might need it later" | If it's needed later, it can be rebuilt. Keeping unused code "just in case" costs more than rebuilding. |
-| "The migration is too expensive" | Compare migration cost to ongoing maintenance cost over 2-3 years. Migration is usually cheaper long-term. |
+| Rationalization                                     | Reality                                                                                                               |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| "It still works, why remove it?"                    | Working code that nobody maintains accumulates security debt and complexity. Maintenance cost grows silently.         |
+| "Someone might need it later"                       | If it's needed later, it can be rebuilt. Keeping unused code "just in case" costs more than rebuilding.               |
+| "The migration is too expensive"                    | Compare migration cost to ongoing maintenance cost over 2-3 years. Migration is usually cheaper long-term.            |
 | "We'll deprecate it after we finish the new system" | Deprecation planning starts at design time. By the time the new system is done, you'll have new priorities. Plan now. |
-| "Users will migrate on their own" | They won't. Provide tooling, documentation, and incentives — or do the migration yourself (the Churn Rule). |
-| "We can maintain both systems indefinitely" | Two systems doing the same thing is double the maintenance, testing, documentation, and onboarding cost. |
+| "Users will migrate on their own"                   | They won't. Provide tooling, documentation, and incentives — or do the migration yourself (the Churn Rule).           |
+| "We can maintain both systems indefinitely"         | Two systems doing the same thing is double the maintenance, testing, documentation, and onboarding cost.              |
 
 ## Red Flags
 

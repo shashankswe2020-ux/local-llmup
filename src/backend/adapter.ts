@@ -39,12 +39,7 @@ export function assertLoopbackEndpoint(raw: string): string {
   const host = url.hostname.replace(/^\[/, "").replace(/\]$/, "").toLowerCase();
   const loopback =
     host === "localhost" || host === "::1" || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host);
-  if (
-    url.protocol !== "http:" ||
-    url.username !== "" ||
-    url.password !== "" ||
-    !loopback
-  ) {
+  if (url.protocol !== "http:" || url.username !== "" || url.password !== "" || !loopback) {
     throw new ValidationError(`refusing non-loopback backend endpoint: ${raw}`);
   }
   return url.origin;

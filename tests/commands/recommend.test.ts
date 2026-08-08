@@ -29,7 +29,12 @@ function fakeAdapter(overrides: Partial<BackendAdapter> = {}): BackendAdapter {
     isInstalled: async () => true,
     installHint: () => "brew install ollama",
     pull: async () => ({ modelId: "x", digestVerified: true }),
-    serve: async () => ({ endpoint: "http://127.0.0.1:11434", pid: 1, port: 11434, ownedByUs: true }),
+    serve: async () => ({
+      endpoint: "http://127.0.0.1:11434",
+      pid: 1,
+      port: 11434,
+      ownedByUs: true,
+    }),
     waitUntilReady: async () => undefined,
     stop: async () => undefined,
     chat: async () => ({ content: "" }),
@@ -579,7 +584,9 @@ describe("context-mode rendering", () => {
   });
 
   it("emits additive JSON fields incl. kvPrecision for --max-context", () => {
-    const json = JSON.parse(formatRecommendationJson(build(cat, appleHw(64), { maxContext: true })));
+    const json = JSON.parse(
+      formatRecommendationJson(build(cat, appleHw(64), { maxContext: true })),
+    );
     const row = json.ranked.find((r: { id: string }) => r.id === "llama3.1:8b");
     expect(row.maxContextTokens).toBe(131072);
     expect(row.boundBy).toBe("model");

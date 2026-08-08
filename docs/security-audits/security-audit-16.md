@@ -3,11 +3,12 @@
 > **Auditor:** Security Auditor Agent (Security Engineer)
 > **Date:** 7 August 2026
 > **Scope:** Task B14a — `LlamaCppAdapter` descriptor/install/registration skeleton. Files audited (uncommitted working tree only):
+>
 > - `src/backend/llamacpp.ts` (NEW)
 > - `src/backend/registry.ts` (MODIFIED)
 > - `tests/backend/llamacpp.test.ts` (NEW)
 > - `tests/backend/registry.test.ts` (MODIFIED)
-> **Dependencies:** `npm audit` reports 6 vulnerabilities (3 moderate, 1 high, 2 critical) — all in the `vite-node`/`vitest` dev toolchain, none in the runtime deps (`cac`, `zod`, `systeminformation`). Out of scope for this slice; pre-existing and dev-only.
+>   **Dependencies:** `npm audit` reports 6 vulnerabilities (3 moderate, 1 high, 2 critical) — all in the `vite-node`/`vitest` dev toolchain, none in the runtime deps (`cac`, `zod`, `systeminformation`). Out of scope for this slice; pre-existing and dev-only.
 
 ---
 
@@ -24,12 +25,12 @@ attacker-controlled binary on `PATH` (i.e. prior local compromise).
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High | 0 |
-| Medium | 0 |
-| Low | 1 |
-| Info | 2 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 0     |
+| Low      | 1     |
+| Info     | 2     |
 
 ---
 
@@ -98,7 +99,7 @@ attacker-controlled binary on `PATH` (i.e. prior local compromise).
 ### [INFO-1] Capture cap is checked before append and counts UTF-16 code units, not bytes
 
 - **Location:** `src/backend/llamacpp.ts:120-124` (the `onData` accumulator) and the `VERSION_CAPTURE_MAX_BYTES` constant at `:42`
-- **Description:** The guard `if (text.length < VERSION_CAPTURE_MAX_BYTES) text += chunk;` tests the length *before* appending, so a single chunk received while `text.length` is at 8 191 can push the buffer to ~8 191 + one chunk. Additionally, `text.length` is a JS string length (UTF-16 code units) while the constant is named `..._MAX_BYTES`, so for multi-byte output the true byte ceiling is higher than 8 KiB. Overall memory remains bounded (a Node child-process pipe emits chunks bounded by the stream `highWaterMark`, and `version()`'s 1.5 s abort caps total runtime), so there is no unbounded-memory / DoS risk — this is a precision/naming nit, not a live vulnerability.
+- **Description:** The guard `if (text.length < VERSION_CAPTURE_MAX_BYTES) text += chunk;` tests the length _before_ appending, so a single chunk received while `text.length` is at 8 191 can push the buffer to ~8 191 + one chunk. Additionally, `text.length` is a JS string length (UTF-16 code units) while the constant is named `..._MAX_BYTES`, so for multi-byte output the true byte ceiling is higher than 8 KiB. Overall memory remains bounded (a Node child-process pipe emits chunks bounded by the stream `highWaterMark`, and `version()`'s 1.5 s abort caps total runtime), so there is no unbounded-memory / DoS risk — this is a precision/naming nit, not a live vulnerability.
 - **Impact:** None exploitable; at most a few tens of KiB of transient memory before the abort fires.
 - **Recommendation:** For clarity, either (a) check the cap after computing the prospective length and truncate the appended slice, or (b) rename the constant to `VERSION_CAPTURE_MAX_CHARS` to match the `text.length` semantics. Example:
 
@@ -130,11 +131,11 @@ attacker-controlled binary on `PATH` (i.e. prior local compromise).
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | Low | [LOW-1] `isInstalled()` unbounded probe can hang `doctor` / `--available-backends` | Wrap the `--version` probe in an `AbortController` deadline (mirror `version()`); consider same fix for Ollama parity |
-| 2 | Info | [INFO-1] Capture cap off-by-one-chunk + byte/char naming mismatch | Truncate the appended slice and/or rename `VERSION_CAPTURE_MAX_BYTES` → `..._MAX_CHARS` |
-| 3 | Info | [INFO-2] Dev-toolchain CVEs in `vite-node`/`vitest` | Fix in a separate dependency-maintenance change |
+| #   | Severity | Finding                                                                            | Recommendation                                                                                                        |
+| --- | -------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| 1   | Low      | [LOW-1] `isInstalled()` unbounded probe can hang `doctor` / `--available-backends` | Wrap the `--version` probe in an `AbortController` deadline (mirror `version()`); consider same fix for Ollama parity |
+| 2   | Info     | [INFO-1] Capture cap off-by-one-chunk + byte/char naming mismatch                  | Truncate the appended slice and/or rename `VERSION_CAPTURE_MAX_BYTES` → `..._MAX_CHARS`                               |
+| 3   | Info     | [INFO-2] Dev-toolchain CVEs in `vite-node`/`vitest`                                | Fix in a separate dependency-maintenance change                                                                       |
 
 ---
 

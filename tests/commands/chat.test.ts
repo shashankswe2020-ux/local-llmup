@@ -72,9 +72,8 @@ function chatAdapter(replies: readonly string[]): {
   chat: ReturnType<typeof vi.fn>;
 } {
   let index = 0;
-  const chat = vi.fn(
-    (_request: ChatRequest): Promise<ChatResult> =>
-      Promise.resolve({ content: index < replies.length ? (replies[index++] as string) : "" }),
+  const chat = vi.fn((_request: ChatRequest): Promise<ChatResult> =>
+    Promise.resolve({ content: index < replies.length ? (replies[index++] as string) : "" }),
   );
   return { adapter: { ...baseAdapter, chat }, chat };
 }

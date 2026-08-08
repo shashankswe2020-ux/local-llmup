@@ -18,13 +18,15 @@ vi.mock("systeminformation", () => ({
 const GIB = 1024 ** 3;
 const MIB = 1024 ** 2;
 
-function primeOk(overrides: {
-  arch?: string;
-  platform?: string;
-  memData?: Partial<Awaited<ReturnType<typeof mem>>>;
-  controllers?: Array<{ vendor: string; vram: number | null }>;
-  fs?: Array<{ mount: string; available: number }>;
-} = {}): void {
+function primeOk(
+  overrides: {
+    arch?: string;
+    platform?: string;
+    memData?: Partial<Awaited<ReturnType<typeof mem>>>;
+    controllers?: Array<{ vendor: string; vram: number | null }>;
+    fs?: Array<{ mount: string; available: number }>;
+  } = {},
+): void {
   vi.mocked(osInfo).mockResolvedValue({
     arch: overrides.arch ?? "x64",
     platform: overrides.platform ?? "linux",

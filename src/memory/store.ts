@@ -149,7 +149,10 @@ export function memorySlug(modelId: string): string {
     return slug;
   }
 
-  const hash = createHash("sha256").update(slug).digest("hex").slice(0, MEMORY_SLUG_HASH_HEX_LENGTH);
+  const hash = createHash("sha256")
+    .update(slug)
+    .digest("hex")
+    .slice(0, MEMORY_SLUG_HASH_HEX_LENGTH);
   const prefixMaxLength = MEMORY_SLUG_MAX_LENGTH - hash.length - 1;
   const prefix = slug.slice(0, prefixMaxLength).replace(/[-.]+$/, "");
 

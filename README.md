@@ -49,14 +49,14 @@ machine can run it, how fast, and how much context it can hold — and it never
 makes up a number to do so.
 
 - **Runnability, not vibes.** Every model gets a `yes / slow / no` verdict with
-  the *binding reason* (`ram-bound`, `vram-bound`, `disk-bound`,
+  the _binding reason_ (`ram-bound`, `vram-bound`, `disk-bound`,
   `context-bound`) and an estimated tok/s range — computed **before** any
   download.
 - **AI Hardware Score (0–100) + bottleneck.** `doctor` scores your machine and
   names the one thing holding you back (VRAM, RAM, compute, or storage).
 - **Context-window-aware KV-cache sizing.** `recommend --context <n>` re-ranks
   with the KV cache sized at your chosen window; `recommend --max-context`
-  reports the largest context each model can hold on *your* RAM/VRAM. Attention
+  reports the largest context each model can hold on _your_ RAM/VRAM. Attention
   geometry is sourced from a cited dataset — GQA-correct — and fp16 KV is stated
   explicitly.
 - **An honesty gate, everywhere.** When a figure can't be sourced (unknown
@@ -74,7 +74,7 @@ makes up a number to do so.
 - **Portable memory.** `chat` records conversation memory; `migrate` moves it
   between models (remapping context and re-embedding as needed).
 - **Scriptable by design.** Stable text output, `--json` on the advice
-  commands, and a clean exit-code contract (`can-run` exits non-zero *only* for
+  commands, and a clean exit-code contract (`can-run` exits non-zero _only_ for
   `no`).
 
 ## Requirements
@@ -308,7 +308,7 @@ recommend: --context and --max-context are mutually exclusive
       "throughput": { "known": true, "lowTokPerSec": 55.6, "highTokPerSec": 103.3 }
     }
   ],
-  "wontFit": [ { "id": "llama3.1:70b", "reason": "ram-bound" } ],
+  "wontFit": [{ "id": "llama3.1:70b", "reason": "ram-bound" }],
   "command": "local-llmup up qwen3:30b-a3b"
 }
 ```
@@ -563,52 +563,51 @@ Ollama is the local model runtime: it downloads models, runs inference, and
 provides the serving API. `local-llmup` uses Ollama underneath, but adds the
 hardware-aware workflow around it.
 
-| Feature | Ollama | local-llmup |
-|---|---|---|
-| Install runtime | ✅ | ✅ |
-| Detect hardware | ⚠️ Internal only | ✅ User-facing |
-| Recommend best model | ❌ | ✅ |
-| Recommend best quantization | ❌ | ✅ |
-| Choose best runtime (Ollama, llama.cpp, MLX, vLLM...) | ❌ | 🛠️ Planned |
-| One-command setup | ⚠️ Partial | ✅ |
+| Feature                                               | Ollama           | local-llmup    |
+| ----------------------------------------------------- | ---------------- | -------------- |
+| Install runtime                                       | ✅               | ✅             |
+| Detect hardware                                       | ⚠️ Internal only | ✅ User-facing |
+| Recommend best model                                  | ❌               | ✅             |
+| Recommend best quantization                           | ❌               | ✅             |
+| Choose best runtime (Ollama, llama.cpp, MLX, LM Studio) | ❌               | ✅             |
+| One-command setup                                     | ⚠️ Partial       | ✅             |
 
 Think of it as:
 
 > Homebrew for local LLMs.
 
-Ollama is the sole runtime supported in the current release. The backend
-interface is designed for future adapters such as llama.cpp and MLX; runtime
-selection is not yet implemented.
+`local-llmup` now supports multiple runtimes through a single backend adapter
+interface: Ollama, llama.cpp, MLX (Apple Silicon), and LM Studio (attach-only).
+Runtime selection is available through backend-aware command flows.
 
 ### Using Ollama Directly vs. local-llmup
 
-| Using Ollama directly | Using `local-llmup` |
-|---|---|
-| Choose a model and run commands such as `ollama pull`, `ollama run`, and `ollama serve`. | Detect hardware and get ranked model recommendations with `recommend`. |
-| Decide yourself whether a model's memory requirements fit your machine. | Filter and score catalog models using hardware and estimated memory requirements. |
-| Manage model switching and lifecycle commands yourself. | Install, start, stop, and switch models with `up`, `down`, and `switch`. |
-| Manage conversations and any model-to-model context transfer yourself. | Record chat memory and migrate it between models with `chat` and `migrate`. |
-| Troubleshoot the runtime and local setup manually. | Check hardware, backend, ports, disk, catalog, and state with `doctor`. |
+| Using Ollama directly                                                                    | Using `local-llmup`                                                               |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Choose a model and run commands such as `ollama pull`, `ollama run`, and `ollama serve`. | Detect hardware and get ranked model recommendations with `recommend`.            |
+| Decide yourself whether a model's memory requirements fit your machine.                  | Filter and score catalog models using hardware and estimated memory requirements. |
+| Manage model switching and lifecycle commands yourself.                                  | Install, start, stop, and switch models with `up`, `down`, and `switch`.          |
+| Manage conversations and any model-to-model context transfer yourself.                   | Record chat memory and migrate it between models with `chat` and `migrate`.       |
+| Troubleshoot the runtime and local setup manually.                                       | Check hardware, backend, ports, disk, catalog, and state with `doctor`.           |
 
 Use Ollama directly when you only need a lightweight runtime or want full
 manual control. Use `local-llmup` when you want hardware-aware model
-selection and a consistent model-and-memory workflow. It is not a replacement
-for Ollama; Ollama remains a requirement for serving models.
+selection and a consistent model-and-memory workflow across supported backends.
 
 ## Commands at a glance
 
-| Command | Usage | Purpose |
-|---|---|---|
+| Command     | Usage                                                                                                    | Purpose                                                              |
+| ----------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | `recommend` | `local-llmup` (default) or `local-llmup recommend [--task <t>] [--context <n>] [--max-context] [--json]` | Rank models that fit, with verdict, est. tok/s, and KV-cache sizing. |
-| `can-run` | `local-llmup can-run <model> [--json]` | `yes / slow / no` for one model. Exits non-zero only for `no`. |
-| `up` | `local-llmup up <model> [--port <p>]` | Pull, verify, and serve a model on loopback. |
-| `chat` | `local-llmup chat [-m <model>]` | Interactive or piped chat that records memory. |
-| `ls` | `local-llmup ls` | Show the active served model recorded in state. |
-| `switch` | `local-llmup switch <model>` | Make an already-served model active (no memory move). |
-| `down` | `local-llmup down [model]` | Stop the server owned by local-llmup. |
-| `migrate` | `local-llmup migrate --from <a> --to <b> [--move] [--dry-run]` | Move memory between models. |
-| `catalog` | `local-llmup catalog [--all] [--refresh]` | Show or refresh the curated catalog. |
-| `doctor` | `local-llmup doctor [--json]` | Diagnose hardware/backend/disk/ports/state + AI Hardware Score. |
+| `can-run`   | `local-llmup can-run <model> [--json]`                                                                   | `yes / slow / no` for one model. Exits non-zero only for `no`.       |
+| `up`        | `local-llmup up <model> [--port <p>]`                                                                    | Pull, verify, and serve a model on loopback.                         |
+| `chat`      | `local-llmup chat [-m <model>]`                                                                          | Interactive or piped chat that records memory.                       |
+| `ls`        | `local-llmup ls`                                                                                         | Show the active served model recorded in state.                      |
+| `switch`    | `local-llmup switch <model>`                                                                             | Make an already-served model active (no memory move).                |
+| `down`      | `local-llmup down [model]`                                                                               | Stop the server owned by local-llmup.                                |
+| `migrate`   | `local-llmup migrate --from <a> --to <b> [--move] [--dry-run]`                                           | Move memory between models.                                          |
+| `catalog`   | `local-llmup catalog [--all] [--refresh]`                                                                | Show or refresh the curated catalog.                                 |
+| `doctor`    | `local-llmup doctor [--json]`                                                                            | Diagnose hardware/backend/disk/ports/state + AI Hardware Score.      |
 
 ## Troubleshooting
 
@@ -648,4 +647,3 @@ cd site && python3 -m http.server 8080
 - Node.js 18 or newer.
 - Ollama installed locally for serving and lifecycle commands.
 - No API keys are required for the local workflow.
-

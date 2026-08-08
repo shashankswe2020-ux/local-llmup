@@ -39,9 +39,7 @@ export function rawMoe(overrides: Partial<RawRegistryModel> = {}): RawRegistryMo
     capabilities: ["chat", "reasoning"],
     releaseDate: "2025-07-11",
     source: { ollama: "kimi-k2:instruct" },
-    quantizations: [
-      { name: "Q4_K_M", diskBytes: 600_000_000_000, sha256: "a".repeat(64) },
-    ],
+    quantizations: [{ name: "Q4_K_M", diskBytes: 600_000_000_000, sha256: "a".repeat(64) }],
     ...overrides,
   };
 }

@@ -52,7 +52,11 @@ function model(
 
 describe("evaluateVerdict", () => {
   it("returns `no` with a vram-bound reason when the model does not fit VRAM", () => {
-    const v = evaluateVerdict(model("70B"), hw({ gpu: [{ vendor: "nvidia", vramBytes: 8 * GIB }] }), perf);
+    const v = evaluateVerdict(
+      model("70B"),
+      hw({ gpu: [{ vendor: "nvidia", vramBytes: 8 * GIB }] }),
+      perf,
+    );
     expect(v.runnable).toBe("no");
     expect(v.reason).toBe("vram-bound");
     expect(v.throughput.known).toBe(false);
@@ -76,7 +80,11 @@ describe("evaluateVerdict", () => {
 
   it("returns `slow` when the model fits but estimated throughput is below the floor", () => {
     // 13B on a CPU-only box: fits in RAM, but decode is well under the floor.
-    const v = evaluateVerdict(model("13B", [quant("Q4_K_M", 7_900_000_000)]), hw({ gpu: [] }), perf);
+    const v = evaluateVerdict(
+      model("13B", [quant("Q4_K_M", 7_900_000_000)]),
+      hw({ gpu: [] }),
+      perf,
+    );
     expect(v.runnable).toBe("slow");
     expect(v.throughput.known).toBe(true);
     const mid = (v.throughput.lowTokPerSec + v.throughput.highTokPerSec) / 2;
@@ -85,14 +93,20 @@ describe("evaluateVerdict", () => {
 
   it("downgrades `yes` to `slow` when the model fits but throughput is unknown (honesty gate)", () => {
     // AMD GPU has no perf profile → throughput unknown → cannot claim `yes`.
-    const v = evaluateVerdict(model("7B"), hw({ gpu: [{ vendor: "amd", vramBytes: 16 * GIB }] }), perf);
+    const v = evaluateVerdict(
+      model("7B"),
+      hw({ gpu: [{ vendor: "amd", vramBytes: 16 * GIB }] }),
+      perf,
+    );
     expect(v.runnable).toBe("slow");
     expect(v.throughput.known).toBe(false);
     expect(v.quant?.name).toBe("Q4_K_M");
   });
 
   it("is pure — identical inputs yield an identical verdict", () => {
-    expect(evaluateVerdict(model("7B"), hw(), perf)).toEqual(evaluateVerdict(model("7B"), hw(), perf));
+    expect(evaluateVerdict(model("7B"), hw(), perf)).toEqual(
+      evaluateVerdict(model("7B"), hw(), perf),
+    );
   });
 });
 

@@ -131,7 +131,8 @@ describe("LlamaCppAdapter — version", () => {
   it("prefers the build number over a compiler semver banner", async () => {
     const { spawn } = fakeSpawn({
       code: 0,
-      stderr: "version: 3860 (a1b2c3d)\nbuilt with Apple clang version 15.0.0 (clang-1500.0.40.1)\n",
+      stderr:
+        "version: 3860 (a1b2c3d)\nbuilt with Apple clang version 15.0.0 (clang-1500.0.40.1)\n",
     });
     const adapter = new LlamaCppAdapter({ spawn });
     await expect(adapter.version?.()).resolves.toBe("3860");
@@ -418,16 +419,18 @@ function testExecutable(binary: string): string {
   }
   return `/nonexistent/${binary}`;
 }
-const llamaListener = (pid = 4242, server?: FakeServer) => async () =>
-  server !== undefined && !server.listening
-    ? null
-    : {
-        pid,
-        process: "llama-server",
-        executable: testExecutable("llama-server"),
-        started: "2026-08-07T00:00:00Z",
-        localAddress: "127.0.0.1",
-      };
+const llamaListener =
+  (pid = 4242, server?: FakeServer) =>
+  async () =>
+    server !== undefined && !server.listening
+      ? null
+      : {
+          pid,
+          process: "llama-server",
+          executable: testExecutable("llama-server"),
+          started: "2026-08-07T00:00:00Z",
+          localAddress: "127.0.0.1",
+        };
 
 describe("LlamaCppAdapter — serve (loopback + port preflight)", () => {
   it("refuses a non-loopback bind without an explicit opt-in and spawns nothing", async () => {
@@ -474,9 +477,9 @@ describe("LlamaCppAdapter — serve (loopback + port preflight)", () => {
       sleep: noSleep,
       listenerProbe: llamaListener(4242, server),
     });
-    await expect(
-      adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" }),
-    ).rejects.toBeInstanceOf(BackendError);
+    await expect(adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" })).rejects.toBeInstanceOf(
+      BackendError,
+    );
     expect(calls).toHaveLength(0);
   });
 
@@ -586,18 +589,18 @@ describe("LlamaCppAdapter — serve (loopback + port preflight)", () => {
       sleep: noSleep,
       kill: killed,
     });
-    await expect(
-      adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" }),
-    ).rejects.toBeInstanceOf(BackendError);
+    await expect(adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" })).rejects.toBeInstanceOf(
+      BackendError,
+    );
   });
 
   it("fails when the spawned server exits before becoming ready", async () => {
     const server: FakeServer = { listening: false, identity: "llama", healthy: true };
     const { spawn } = makeServeSpawn({ pid: 4242, exitCode: 1 }); // never listens; exits
     const adapter = new LlamaCppAdapter({ spawn, fetch: makeFetch(server), sleep: noSleep });
-    await expect(
-      adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" }),
-    ).rejects.toBeInstanceOf(BackendError);
+    await expect(adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" })).rejects.toBeInstanceOf(
+      BackendError,
+    );
   });
 
   it("does not report an owned server ready while the model is still loading (/health 503)", async () => {
@@ -606,18 +609,18 @@ describe("LlamaCppAdapter — serve (loopback + port preflight)", () => {
     const server: FakeServer = { listening: false, identity: "llama", healthy: false };
     const { spawn } = makeServeSpawn({ pid: 4242, server });
     const adapter = new LlamaCppAdapter({ spawn, fetch: makeFetch(server), sleep: noSleep });
-    await expect(
-      adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" }),
-    ).rejects.toBeInstanceOf(BackendError);
+    await expect(adapter.serve({ port: 8080, modelPath: "/tmp/m.gguf" })).rejects.toBeInstanceOf(
+      BackendError,
+    );
   });
 
   it("refuses a model path that starts with a dash and spawns nothing", async () => {
     const server: FakeServer = { listening: false, identity: "llama", healthy: true };
     const { spawn, calls } = makeServeSpawn({ server });
     const adapter = new LlamaCppAdapter({ spawn, fetch: makeFetch(server), sleep: noSleep });
-    await expect(
-      adapter.serve({ port: 8080, modelPath: "--n-gpu-layers" }),
-    ).rejects.toBeInstanceOf(BackendError);
+    await expect(adapter.serve({ port: 8080, modelPath: "--n-gpu-layers" })).rejects.toBeInstanceOf(
+      BackendError,
+    );
     expect(calls).toHaveLength(0);
   });
 
@@ -734,12 +737,7 @@ describe("LlamaCppAdapter — stop (ownership)", () => {
 describe("createDefaultRegistry — llama.cpp registration", () => {
   it("registers llama.cpp alongside ollama", () => {
     const registry = createDefaultRegistry();
-    expect(registry.all().map((a) => a.name)).toEqual([
-      "ollama",
-      "llamacpp",
-      "mlx",
-      "lmstudio",
-    ]);
+    expect(registry.all().map((a) => a.name)).toEqual(["ollama", "llamacpp", "mlx", "lmstudio"]);
     expect(registry.get("llamacpp")).toBeInstanceOf(LlamaCppAdapter);
   });
 });

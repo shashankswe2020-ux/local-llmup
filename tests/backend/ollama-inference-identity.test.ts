@@ -34,8 +34,7 @@ function makeAdapter(options: {
       return Promise.resolve({
         ok: true,
         status: 200,
-        json: () =>
-          Promise.resolve(options.versionValid === false ? {} : { version: "0.32.5" }),
+        json: () => Promise.resolve(options.versionValid === false ? {} : { version: "0.32.5" }),
       });
     }
     if (url.endsWith("/api/chat")) {
@@ -99,9 +98,9 @@ describe.each<InferenceKind>(["chat", "embed"])("Ollama %s identity preflight", 
     ];
 
     for (const harness of scenarios) {
-      await expect(
-        infer(harness.adapter, kind, "http://127.0.0.1:18134"),
-      ).rejects.toBeInstanceOf(BackendError);
+      await expect(infer(harness.adapter, kind, "http://127.0.0.1:18134")).rejects.toBeInstanceOf(
+        BackendError,
+      );
       expect(dataPostCount(harness.fetch, kind)).toBe(0);
     }
   });
@@ -109,9 +108,9 @@ describe.each<InferenceKind>(["chat", "embed"])("Ollama %s identity preflight", 
   it("checks omitted/default HTTP port 80 rather than Ollama port 11434", async () => {
     const harness = makeAdapter({ identities: [null] });
 
-    await expect(
-      infer(harness.adapter, kind, "http://127.0.0.1"),
-    ).rejects.toBeInstanceOf(BackendError);
+    await expect(infer(harness.adapter, kind, "http://127.0.0.1")).rejects.toBeInstanceOf(
+      BackendError,
+    );
 
     expect(harness.ports).toEqual([80]);
     expect(dataPostCount(harness.fetch, kind)).toBe(0);

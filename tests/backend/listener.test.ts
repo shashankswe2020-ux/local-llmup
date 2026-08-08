@@ -27,9 +27,7 @@ describe("parseLsofTextExecutable", () => {
 
 describe("parsePsStartTime", () => {
   it("normalizes one stable ps lstart row", () => {
-    expect(parsePsStartTime("Sat Aug  8 11:22:39 2026\n")).toBe(
-      "2026-08-08 11:22:39",
-    );
+    expect(parsePsStartTime("Sat Aug  8 11:22:39 2026\n")).toBe("2026-08-08 11:22:39");
   });
 
   it("rejects blank or multiline output", () => {
@@ -68,9 +66,7 @@ describe("findListenerIdentity", () => {
       process: "ollama",
     };
     expect(findListenerIdentity(11434, "127.0.0.1", [])).toBeNull();
-    expect(
-      findListenerIdentity(11434, "127.0.0.1", [{ ...row, state: "ESTABLISHED" }]),
-    ).toBeNull();
+    expect(findListenerIdentity(11434, "127.0.0.1", [{ ...row, state: "ESTABLISHED" }])).toBeNull();
     expect(findListenerIdentity(11434, "127.0.0.1", [row, { ...row }])).toBeNull();
     expect(findListenerIdentity(11434, "127.0.0.1", [{ ...row, pid: 0 }])).toBeNull();
     expect(findListenerIdentity(11434, "127.0.0.1", [{ rogue: true }])).toBeNull();

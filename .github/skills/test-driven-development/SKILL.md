@@ -38,13 +38,13 @@ Write the test first. It must fail. A test that passes immediately proves nothin
 
 ```typescript
 // RED: This test fails because createTask doesn't exist yet
-describe('TaskService', () => {
-  it('creates a task with title and default status', async () => {
-    const task = await taskService.createTask({ title: 'Buy groceries' });
+describe("TaskService", () => {
+  it("creates a task with title and default status", async () => {
+    const task = await taskService.createTask({ title: "Buy groceries" });
 
     expect(task.id).toBeDefined();
-    expect(task.title).toBe('Buy groceries');
-    expect(task.status).toBe('pending');
+    expect(task.title).toBe("Buy groceries");
+    expect(task.status).toBe("pending");
     expect(task.createdAt).toBeInstanceOf(Date);
   });
 });
@@ -60,7 +60,7 @@ export async function createTask(input: { title: string }): Promise<Task> {
   const task = {
     id: generateId(),
     title: input.title,
-    status: 'pending' as const,
+    status: "pending" as const,
     createdAt: new Date(),
   };
   await db.tasks.insert(task);
@@ -108,19 +108,19 @@ Bug report arrives
 // Bug: "Completing a task doesn't update the completedAt timestamp"
 
 // Step 1: Write the reproduction test (it should FAIL)
-it('sets completedAt when task is completed', async () => {
-  const task = await taskService.createTask({ title: 'Test' });
+it("sets completedAt when task is completed", async () => {
+  const task = await taskService.createTask({ title: "Test" });
   const completed = await taskService.completeTask(task.id);
 
-  expect(completed.status).toBe('completed');
-  expect(completed.completedAt).toBeInstanceOf(Date);  // This fails → bug confirmed
+  expect(completed.status).toBe("completed");
+  expect(completed.completedAt).toBeInstanceOf(Date); // This fails → bug confirmed
 });
 
 // Step 2: Fix the bug
 export async function completeTask(id: string): Promise<Task> {
   return db.tasks.update(id, {
-    status: 'completed',
-    completedAt: new Date(),  // This was missing
+    status: "completed",
+    completedAt: new Date(), // This was missing
   });
 }
 
@@ -150,11 +150,11 @@ Invest testing effort according to the pyramid — most tests should be small an
 
 Beyond the pyramid levels, classify tests by what resources they consume:
 
-| Size | Constraints | Speed | Example |
-|------|------------|-------|---------|
-| **Small** | Single process, no I/O, no network, no database | Milliseconds | Pure function tests, data transforms |
-| **Medium** | Multi-process OK, localhost only, no external services | Seconds | API tests with test DB, component tests |
-| **Large** | Multi-machine OK, external services allowed | Minutes | E2E tests, performance benchmarks, staging integration |
+| Size       | Constraints                                            | Speed        | Example                                                |
+| ---------- | ------------------------------------------------------ | ------------ | ------------------------------------------------------ |
+| **Small**  | Single process, no I/O, no network, no database        | Milliseconds | Pure function tests, data transforms                   |
+| **Medium** | Multi-process OK, localhost only, no external services | Seconds      | API tests with test DB, component tests                |
+| **Large**  | Multi-machine OK, external services allowed            | Minutes      | E2E tests, performance benchmarks, staging integration |
 
 Small tests should make up the vast majority of your suite. They're fast, reliable, and easy to debug when they fail.
 
@@ -175,22 +175,19 @@ Is it a critical user flow that must work end-to-end?
 
 ### Test State, Not Interactions
 
-Assert on the *outcome* of an operation, not on which methods were called internally. Tests that verify method call sequences break when you refactor, even if the behavior is unchanged.
+Assert on the _outcome_ of an operation, not on which methods were called internally. Tests that verify method call sequences break when you refactor, even if the behavior is unchanged.
 
 ```typescript
 // Good: Tests what the function does (state-based)
-it('returns tasks sorted by creation date, newest first', async () => {
-  const tasks = await listTasks({ sortBy: 'createdAt', sortOrder: 'desc' });
-  expect(tasks[0].createdAt.getTime())
-    .toBeGreaterThan(tasks[1].createdAt.getTime());
+it("returns tasks sorted by creation date, newest first", async () => {
+  const tasks = await listTasks({ sortBy: "createdAt", sortOrder: "desc" });
+  expect(tasks[0].createdAt.getTime()).toBeGreaterThan(tasks[1].createdAt.getTime());
 });
 
 // Bad: Tests how the function works internally (interaction-based)
-it('calls db.query with ORDER BY created_at DESC', async () => {
-  await listTasks({ sortBy: 'createdAt', sortOrder: 'desc' });
-  expect(db.query).toHaveBeenCalledWith(
-    expect.stringContaining('ORDER BY created_at DESC')
-  );
+it("calls db.query with ORDER BY created_at DESC", async () => {
+  await listTasks({ sortBy: "createdAt", sortOrder: "desc" });
+  expect(db.query).toHaveBeenCalledWith(expect.stringContaining("ORDER BY created_at DESC"));
 });
 ```
 
@@ -200,15 +197,15 @@ In production code, DRY (Don't Repeat Yourself) is usually right. In tests, **DA
 
 ```typescript
 // DAMP: Each test is self-contained and readable
-it('rejects tasks with empty titles', () => {
-  const input = { title: '', assignee: 'user-1' };
-  expect(() => createTask(input)).toThrow('Title is required');
+it("rejects tasks with empty titles", () => {
+  const input = { title: "", assignee: "user-1" };
+  expect(() => createTask(input)).toThrow("Title is required");
 });
 
-it('trims whitespace from titles', () => {
-  const input = { title: '  Buy groceries  ', assignee: 'user-1' };
+it("trims whitespace from titles", () => {
+  const input = { title: "  Buy groceries  ", assignee: "user-1" };
   const task = createTask(input);
-  expect(task.title).toBe('Buy groceries');
+  expect(task.title).toBe("Buy groceries");
 });
 
 // Over-DRY: Shared setup obscures what each test actually verifies
@@ -234,15 +231,15 @@ Preference order (most to least preferred):
 ### Use the Arrange-Act-Assert Pattern
 
 ```typescript
-it('marks overdue tasks when deadline has passed', () => {
+it("marks overdue tasks when deadline has passed", () => {
   // Arrange: Set up the test scenario
   const task = createTask({
-    title: 'Test',
-    deadline: new Date('2025-01-01'),
+    title: "Test",
+    deadline: new Date("2025-01-01"),
   });
 
   // Act: Perform the action being tested
-  const result = checkOverdue(task, new Date('2025-01-02'));
+  const result = checkOverdue(task, new Date("2025-01-02"));
 
   // Assert: Verify the outcome
   expect(result.isOverdue).toBe(true);
@@ -286,14 +283,14 @@ describe('TaskService', () => {
 
 ## Test Anti-Patterns to Avoid
 
-| Anti-Pattern | Problem | Fix |
-|---|---|---|
-| Testing implementation details | Tests break when refactoring even if behavior is unchanged | Test inputs and outputs, not internal structure |
-| Flaky tests (timing, order-dependent) | Erode trust in the test suite | Use deterministic assertions, isolate test state |
-| Testing framework code | Wastes time testing third-party behavior | Only test YOUR code |
-| Snapshot abuse | Large snapshots nobody reviews, break on any change | Use snapshots sparingly and review every change |
-| No test isolation | Tests pass individually but fail together | Each test sets up and tears down its own state |
-| Mocking everything | Tests pass but production breaks | Prefer real implementations > fakes > stubs > mocks. Mock only at boundaries where real deps are slow or non-deterministic |
+| Anti-Pattern                          | Problem                                                    | Fix                                                                                                                        |
+| ------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Testing implementation details        | Tests break when refactoring even if behavior is unchanged | Test inputs and outputs, not internal structure                                                                            |
+| Flaky tests (timing, order-dependent) | Erode trust in the test suite                              | Use deterministic assertions, isolate test state                                                                           |
+| Testing framework code                | Wastes time testing third-party behavior                   | Only test YOUR code                                                                                                        |
+| Snapshot abuse                        | Large snapshots nobody reviews, break on any change        | Use snapshots sparingly and review every change                                                                            |
+| No test isolation                     | Tests pass individually but fail together                  | Each test sets up and tears down its own state                                                                             |
+| Mocking everything                    | Tests pass but production breaks                           | Prefer real implementations > fakes > stubs > mocks. Mock only at boundaries where real deps are slow or non-deterministic |
 
 ## Browser Testing with DevTools
 
@@ -311,14 +308,14 @@ For anything that runs in a browser, unit tests alone aren't enough — you need
 
 ### What to Check
 
-| Tool | When | What to Look For |
-|------|------|-----------------|
-| **Console** | Always | Zero errors and warnings in production-quality code |
-| **Network** | API issues | Status codes, payload shape, timing, CORS errors |
-| **DOM** | UI bugs | Element structure, attributes, accessibility tree |
-| **Styles** | Layout issues | Computed styles vs expected, specificity conflicts |
-| **Performance** | Slow pages | LCP, CLS, INP, long tasks (>50ms) |
-| **Screenshots** | Visual changes | Before/after comparison for CSS and layout changes |
+| Tool            | When           | What to Look For                                    |
+| --------------- | -------------- | --------------------------------------------------- |
+| **Console**     | Always         | Zero errors and warnings in production-quality code |
+| **Network**     | API issues     | Status codes, payload shape, timing, CORS errors    |
+| **DOM**         | UI bugs        | Element structure, attributes, accessibility tree   |
+| **Styles**      | Layout issues  | Computed styles vs expected, specificity conflicts  |
+| **Performance** | Slow pages     | LCP, CLS, INP, long tasks (>50ms)                   |
+| **Screenshots** | Visual changes | Before/after comparison for CSS and layout changes  |
 
 ### Security Boundaries
 
@@ -348,14 +345,14 @@ For detailed testing patterns, examples, and anti-patterns across frameworks, se
 
 ## Common Rationalizations
 
-| Rationalization | Reality |
-|---|---|
-| "I'll write tests after the code works" | You won't. And tests written after the fact test implementation, not behavior. |
-| "This is too simple to test" | Simple code gets complicated. The test documents the expected behavior. |
-| "Tests slow me down" | Tests slow you down now. They speed you up every time you change the code later. |
-| "I tested it manually" | Manual testing doesn't persist. Tomorrow's change might break it with no way to know. |
-| "The code is self-explanatory" | Tests ARE the specification. They document what the code should do, not what it does. |
-| "It's just a prototype" | Prototypes become production code. Tests from day one prevent the "test debt" crisis. |
+| Rationalization                         | Reality                                                                               |
+| --------------------------------------- | ------------------------------------------------------------------------------------- |
+| "I'll write tests after the code works" | You won't. And tests written after the fact test implementation, not behavior.        |
+| "This is too simple to test"            | Simple code gets complicated. The test documents the expected behavior.               |
+| "Tests slow me down"                    | Tests slow you down now. They speed you up every time you change the code later.      |
+| "I tested it manually"                  | Manual testing doesn't persist. Tomorrow's change might break it with no way to know. |
+| "The code is self-explanatory"          | Tests ARE the specification. They document what the code should do, not what it does. |
+| "It's just a prototype"                 | Prototypes become production code. Tests from day one prevent the "test debt" crisis. |
 
 ## Red Flags
 

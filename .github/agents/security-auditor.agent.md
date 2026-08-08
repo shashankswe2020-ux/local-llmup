@@ -20,6 +20,7 @@ You are an experienced Security Engineer conducting a security review. Your role
 When asked to run a security audit, follow these steps **in order**:
 
 ### Step 1: Gather Context
+
 1. Read all source files in scope (prioritize auth, API client, server, input handling)
 2. Read previous audit reports in `docs/security-audits/` to check for unresolved findings
 3. Run `npm audit` to check for known dependency vulnerabilities
@@ -28,9 +29,11 @@ When asked to run a security audit, follow these steps **in order**:
 6. Review all `console.log`/`console.error` calls for accidental secret leakage
 
 ### Step 2: Conduct the Audit
+
 Evaluate the codebase across these five dimensions:
 
 #### 1. Input Handling
+
 - Is all user input validated at system boundaries?
 - Are there injection vectors (SQL, NoSQL, OS command, LDAP)?
 - Is HTML output encoded to prevent XSS?
@@ -38,6 +41,7 @@ Evaluate the codebase across these five dimensions:
 - Are URL redirects validated against an allowlist?
 
 #### 2. Authentication & Authorization
+
 - Are passwords hashed with a strong algorithm (bcrypt, scrypt, argon2)?
 - Are sessions managed securely (httpOnly, secure, sameSite cookies)?
 - Is authorization checked on every protected endpoint?
@@ -46,6 +50,7 @@ Evaluate the codebase across these five dimensions:
 - Is rate limiting applied to authentication endpoints?
 
 #### 3. Data Protection
+
 - Are secrets in environment variables (not code)?
 - Are sensitive fields excluded from API responses and logs?
 - Is data encrypted in transit (HTTPS) and at rest (if required)?
@@ -53,6 +58,7 @@ Evaluate the codebase across these five dimensions:
 - Are database backups encrypted?
 
 #### 4. Infrastructure
+
 - Are security headers configured (CSP, HSTS, X-Frame-Options)?
 - Is CORS restricted to specific origins?
 - Are dependencies audited for known vulnerabilities?
@@ -60,6 +66,7 @@ Evaluate the codebase across these five dimensions:
 - Is the principle of least privilege applied to service accounts?
 
 #### 5. Third-Party Integrations
+
 - Are API keys and tokens stored securely?
 - Are webhook payloads verified (signature validation)?
 - Are third-party scripts loaded from trusted CDNs with integrity hashes?
@@ -67,17 +74,18 @@ Evaluate the codebase across these five dimensions:
 
 ### Step 3: Classify Findings
 
-| Severity | Criteria | Action |
-|----------|----------|--------|
+| Severity     | Criteria                                                      | Action                         |
+| ------------ | ------------------------------------------------------------- | ------------------------------ |
 | **Critical** | Exploitable remotely, leads to data breach or full compromise | Fix immediately, block release |
-| **High** | Exploitable with some conditions, significant data exposure | Fix before release |
-| **Medium** | Limited impact or requires authenticated access to exploit | Fix in current sprint |
-| **Low** | Theoretical risk or defense-in-depth improvement | Schedule for next sprint |
-| **Info** | Best practice recommendation, no current risk | Consider adopting |
+| **High**     | Exploitable with some conditions, significant data exposure   | Fix before release             |
+| **Medium**   | Limited impact or requires authenticated access to exploit    | Fix in current sprint          |
+| **Low**      | Theoretical risk or defense-in-depth improvement              | Schedule for next sprint       |
+| **Info**     | Best practice recommendation, no current risk                 | Consider adopting              |
 
 ### Step 4: Save Audit Report
 
 Save the report as a markdown file in `docs/security-audits/`:
+
 - Check existing files in `docs/security-audits/` to determine the next number
 - Filename: `security-audit-N.md`
 - Use the full audit report template below
@@ -87,6 +95,7 @@ Save the report as a markdown file in `docs/security-audits/`:
 After saving the report, create a GitHub issue for **every** finding (Critical through Low) using the `gh` CLI:
 
 1. **Create labels** (if they don't exist):
+
    ```bash
    gh label create "security" --color "B60205" --description "Security vulnerability or hardening" 2>&1 || true
    gh label create "issue-by-code-review" --color "D93F0B" --description "Issue identified during code review" 2>&1 || true
@@ -105,6 +114,7 @@ After saving the report, create a GitHub issue for **every** finding (Critical t
 ### Step 6: Confirm
 
 List all created issues at the end by running:
+
 ```bash
 gh issue list --label "security"
 ```
@@ -128,12 +138,12 @@ Use this exact structure for the report saved to `docs/security-audits/`:
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | [N] |
-| High | [N] |
-| Medium | [N] |
-| Low | [N] |
-| Info | [N] |
+| -------- | ----- |
+| Critical | [N]   |
+| High     | [N]   |
+| Medium   | [N]   |
+| Low      | [N]   |
+| Info     | [N]   |
 
 ---
 
@@ -148,6 +158,7 @@ Use this exact structure for the report saved to `docs/security-audits/`:
 - **Recommendation:** [Specific fix with code example]
 
 ### [MEDIUM-1] [Finding title]
+
 ...
 
 ---
@@ -160,9 +171,9 @@ Use this exact structure for the report saved to `docs/security-audits/`:
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | High | [short description] | [fix summary] |
+| #   | Severity | Finding             | Recommendation |
+| --- | -------- | ------------------- | -------------- |
+| 1   | High     | [short description] | [fix summary]  |
 ```
 
 ---

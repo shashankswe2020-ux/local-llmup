@@ -8,6 +8,7 @@
 > **Test suite:** 841 tests passing (52 files, +14), typecheck ✅, build ✅,
 > lint (changed files) ✅.
 > **Files reviewed (uncommitted working tree):**
+>
 > - `src/backend/llamacpp.ts` (MODIFIED)
 > - `src/backend/adapter.ts` (MODIFIED)
 > - `tests/backend/llamacpp.test.ts` (MODIFIED)
@@ -37,6 +38,7 @@ None.
 ## Important Issues
 
 ### 1. Owned-spawn readiness never consults llama.cpp's `/health` signal
+
 - **File:** [src/backend/llamacpp.ts](../../src/backend/llamacpp.ts#L494-L497)
   (`this.waitUntilReady({ endpoint, requireOpenAiCompatibility: true })`), with
   probe semantics at [src/backend/llamacpp.ts](../../src/backend/llamacpp.ts#L676-L706)
@@ -45,11 +47,11 @@ None.
   which restricts the readiness probe to `OPENAI_READINESS_PATHS = ["/v1/models"]`
   and never checks `/health`. llama.cpp added `/health` specifically to report
   model-load state (`503 {"status":"loading model"}` → `200 {"status":"ok"}`), which
-  implies the HTTP surface — including `/v1/models` — is reachable *while the model
-  is still loading*. If that holds, `serve` can return a `ready` handle (and the
+  implies the HTTP surface — including `/v1/models` — is reachable _while the model
+  is still loading_. If that holds, `serve` can return a `ready` handle (and the
   caller can persist an "active" server) before the model is actually loadable,
   which conflicts with the honesty posture (don't report ready when it isn't).
-  Note the general `probeReady` "first 2xx across any path" rule would *also* mask a
+  Note the general `probeReady` "first 2xx across any path" rule would _also_ mask a
   `/health` 503 by falling through to `/v1/models` 200, so simply switching to the
   default paths is not sufficient.
 - **Verification dependency:** This rests on `llama-server` answering `/v1/models`
@@ -71,13 +73,14 @@ None.
   where `requireHealth` probes only `/health` and returns ready **only** on a 200
   (a 503 loading response is a definitive not-ready, so `probeReady` must not
   fall through to `/v1/models`). A focused test (`listening:true, healthy:false`
-  must *not* be ready) would pin the intended semantics — see Suggestion 4.
+  must _not_ be ready) would pin the intended semantics — see Suggestion 4.
 
 ---
 
 ## Suggestions
 
 ### 1. `serve` omits `signal` in the `waitUntilReady` call (divergence from Ollama)
+
 - **File:** [src/backend/llamacpp.ts](../../src/backend/llamacpp.ts#L494-L497)
 - The Ollama analog passes the caller signal
   ([src/backend/ollama.ts](../../src/backend/ollama.ts#L782) —
@@ -90,6 +93,7 @@ None.
   `this.waitUntilReady({ endpoint, signal, requireOpenAiCompatibility: true })`.
 
 ### 2. Seam types imported from a sibling concrete adapter couple `llamacpp` → `ollama`
+
 - **File:** [src/backend/llamacpp.ts](../../src/backend/llamacpp.ts#L35-L42)
 - `FetchFn`, `KillFn`, `ProcessOutputStream`, `SleepFn`, `SpawnFn`, and
   `SpawnedProcess` are imported from `./ollama.js`, so the llama.cpp adapter now
@@ -99,18 +103,20 @@ None.
   imports another. Flagging so B16 doesn't lose it.
 
 ### 3. Missing-`modelPath` throws `BackendError` while non-loopback refusal throws `ValidationError`
+
 - **File:** [src/backend/llamacpp.ts](../../src/backend/llamacpp.ts#L454-L457)
   (`BackendError` for missing path) vs
   [src/backend/llamacpp.ts](../../src/backend/llamacpp.ts#L422-L426)
   (`ValidationError` for non-loopback).
 - Both are pre-spawn refusals derived from `ServeOptions`. The distinction is
-  defensible — `modelPath` is only required on the *spawn* branch (attach needs
+  defensible — `modelPath` is only required on the _spawn_ branch (attach needs
   none), so it is contextual rather than pure input validation — but it is a subtle
   inconsistency a future reader may trip on. Either keep it and note the rationale
   in the comment, or align on `ValidationError`. Test currently pins `BackendError`
   intentionally, so this is a judgement call, not a defect.
 
 ### 4. Test coverage gaps
+
 - **File:** [tests/backend/llamacpp.test.ts](../../tests/backend/llamacpp.test.ts)
 - Two paths present in Ollama's suite are unexercised here:
   - **Readiness loading-state:** no case with `listening:true, healthy:false`
@@ -118,7 +124,7 @@ None.
     what would pin Important 1's semantics.
   - **Abort path:** no `serve` case with a pre-aborted / mid-readiness
     `AbortSignal` (ties to Suggestion 1).
-  Adding these would lock in the intended readiness and cancellation behavior.
+    Adding these would lock in the intended readiness and cancellation behavior.
 
 ---
 
@@ -155,24 +161,24 @@ None.
 
 ## Verification Story
 
-| Check | Status | Notes |
-|-------|--------|-------|
-| Tests reviewed | ✅ | 26 llamacpp cases; loopback refusal, attach, foreign refusal, owned spawn arg-array, missing-path, readiness-never/early-exit, stop ownership/pid-reuse all covered. Two gaps noted (Suggestion 4). |
-| Full suite | ✅ | 841 passing (52 files), `npx vitest run`. |
-| Typecheck | ✅ | `tsc --noEmit` clean. |
-| Build | ✅ | `tsc` clean. |
-| Lint (changed) | ✅ | `eslint` clean on the three changed files. |
-| Security checked | ✅ | Loopback fail-closed; `shell:false` arg array; `/props` attach gate is fail-closed; pid-reuse + non-positive-pid guards. `modelPath` flows as a discrete arg (no injection). `response.json()` on `/props` is unbounded but loopback-only and mirrors Ollama. |
-| Coverage | ⚠️ | Strong on the acceptance paths; missing loading-state readiness and abort-path cases. |
+| Check            | Status | Notes                                                                                                                                                                                                                                                         |
+| ---------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tests reviewed   | ✅     | 26 llamacpp cases; loopback refusal, attach, foreign refusal, owned spawn arg-array, missing-path, readiness-never/early-exit, stop ownership/pid-reuse all covered. Two gaps noted (Suggestion 4).                                                           |
+| Full suite       | ✅     | 841 passing (52 files), `npx vitest run`.                                                                                                                                                                                                                     |
+| Typecheck        | ✅     | `tsc --noEmit` clean.                                                                                                                                                                                                                                         |
+| Build            | ✅     | `tsc` clean.                                                                                                                                                                                                                                                  |
+| Lint (changed)   | ✅     | `eslint` clean on the three changed files.                                                                                                                                                                                                                    |
+| Security checked | ✅     | Loopback fail-closed; `shell:false` arg array; `/props` attach gate is fail-closed; pid-reuse + non-positive-pid guards. `modelPath` flows as a discrete arg (no injection). `response.json()` on `/props` is unbounded but loopback-only and mirrors Ollama. |
+| Coverage         | ⚠️     | Strong on the acceptance paths; missing loading-state readiness and abort-path cases.                                                                                                                                                                         |
 
 ---
 
 ## Action Items
 
-| # | Priority | Issue | Target |
-|---|----------|-------|--------|
-| 1 | Important | Confirm `llama-server` `/v1/models` load-state behavior; gate owned-spawn readiness on `/health` 200 if `/v1/models` 200s during load | B14c / before end-to-end wiring |
-| 2 | Suggestion | Thread `signal` into `serve`'s `waitUntilReady` call (mirror Ollama) | B14c |
-| 3 | Suggestion | Hoist shared seam types out of `ollama.ts` into a neutral module | B16 |
-| 4 | Suggestion | Align/annotate missing-`modelPath` error type vs the non-loopback `ValidationError` | backlog |
-| 5 | Suggestion | Add loading-state readiness + serve abort-path tests | B14c / B16 |
+| #   | Priority   | Issue                                                                                                                                 | Target                          |
+| --- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| 1   | Important  | Confirm `llama-server` `/v1/models` load-state behavior; gate owned-spawn readiness on `/health` 200 if `/v1/models` 200s during load | B14c / before end-to-end wiring |
+| 2   | Suggestion | Thread `signal` into `serve`'s `waitUntilReady` call (mirror Ollama)                                                                  | B14c                            |
+| 3   | Suggestion | Hoist shared seam types out of `ollama.ts` into a neutral module                                                                      | B16                             |
+| 4   | Suggestion | Align/annotate missing-`modelPath` error type vs the non-loopback `ValidationError`                                                   | backlog                         |
+| 5   | Suggestion | Add loading-state readiness + serve abort-path tests                                                                                  | B14c / B16                      |

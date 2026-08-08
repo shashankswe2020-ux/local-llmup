@@ -31,7 +31,10 @@ function fakeSpawn(config: FakeSpawnConfig): { spawn: SpawnFn; recorded: Recorde
   const recorded: RecordedSpawn[] = [];
   const spawn: SpawnFn = (command, args, options) => {
     recorded.push({ command, args, signal: options.signal });
-    const dataListeners = { stdout: [] as ((chunk: string) => void)[], stderr: [] as ((chunk: string) => void)[] };
+    const dataListeners = {
+      stdout: [] as ((chunk: string) => void)[],
+      stderr: [] as ((chunk: string) => void)[],
+    };
     const closeListeners: ((code: number | null) => void)[] = [];
     const errorListeners: ((error: Error) => void)[] = [];
     const child: SpawnedProcess = {
@@ -47,8 +50,10 @@ function fakeSpawn(config: FakeSpawnConfig): { spawn: SpawnFn; recorded: Recorde
         for (const listener of errorListeners) listener(config.error);
         return;
       }
-      for (const line of config.stdout ?? []) for (const listener of dataListeners.stdout) listener(line);
-      for (const line of config.stderr ?? []) for (const listener of dataListeners.stderr) listener(line);
+      for (const line of config.stdout ?? [])
+        for (const listener of dataListeners.stdout) listener(line);
+      for (const line of config.stderr ?? [])
+        for (const listener of dataListeners.stderr) listener(line);
       for (const listener of closeListeners) listener(config.code ?? 0);
     }, 0);
     return child;
@@ -94,7 +99,11 @@ describe("OllamaAdapter.pull", () => {
     const adapter = new OllamaAdapter({ spawn, probe: okProbe });
     const controller = new AbortController();
 
-    await adapter.pull({ modelId: "llama3.1:8b", expectedSha256: "abc123", signal: controller.signal });
+    await adapter.pull({
+      modelId: "llama3.1:8b",
+      expectedSha256: "abc123",
+      signal: controller.signal,
+    });
 
     expect(recorded[0]?.signal).toBe(controller.signal);
   });
@@ -103,9 +112,9 @@ describe("OllamaAdapter.pull", () => {
     const { spawn, recorded } = fakeSpawn({ code: 0 });
     const adapter = new OllamaAdapter({ spawn, probe: okProbe });
 
-    await expect(adapter.pull({ modelId: "-rf; rm", expectedSha256: "abc" })).rejects.toBeInstanceOf(
-      ValidationError,
-    );
+    await expect(
+      adapter.pull({ modelId: "-rf; rm", expectedSha256: "abc" }),
+    ).rejects.toBeInstanceOf(ValidationError);
     expect(recorded).toHaveLength(0);
   });
 
@@ -113,9 +122,9 @@ describe("OllamaAdapter.pull", () => {
     const { spawn } = fakeSpawn({ stderr: ["Error: pull failed\n"], code: 1 });
     const adapter = new OllamaAdapter({ spawn, probe: okProbe });
 
-    await expect(adapter.pull({ modelId: "llama3.1:8b", expectedSha256: "abc" })).rejects.toBeInstanceOf(
-      BackendError,
-    );
+    await expect(
+      adapter.pull({ modelId: "llama3.1:8b", expectedSha256: "abc" }),
+    ).rejects.toBeInstanceOf(BackendError);
   });
 
   it("throws BackendError when the process fails to spawn", async () => {
@@ -123,9 +132,9 @@ describe("OllamaAdapter.pull", () => {
     const { spawn } = fakeSpawn({ error: spawnError });
     const adapter = new OllamaAdapter({ spawn, probe: okProbe });
 
-    await expect(adapter.pull({ modelId: "llama3.1:8b", expectedSha256: "abc" })).rejects.toBeInstanceOf(
-      BackendError,
-    );
+    await expect(
+      adapter.pull({ modelId: "llama3.1:8b", expectedSha256: "abc" }),
+    ).rejects.toBeInstanceOf(BackendError);
   });
 
   it("reports digestVerified:true when the digest matches", async () => {

@@ -20,12 +20,12 @@
 ## Summary
 
 | Severity | Count |
-|----------|-------|
-| Critical | 0 |
-| High     | 0 |
-| Medium   | 1 |
-| Low      | 2 |
-| Info     | 2 |
+| -------- | ----- |
+| Critical | 0     |
+| High     | 0     |
+| Medium   | 1     |
+| Low      | 2     |
+| Info     | 2     |
 
 **Verdict:** The B7 validators are strong and well-tested. The anchored regexes
 are ReDoS-free, `.strict()` is applied to every new object, and the `file` /
@@ -81,18 +81,18 @@ LOW-2.
 `HF_REPO_ID_RE` ([src/catalog/schema.ts:18](../../src/catalog/schema.ts#L18)),
 anchored `^…$`, capped at 200 chars, correctly rejects every requested vector:
 
-| Input | Result | Why |
-| --- | --- | --- |
-| `../x` | reject | first char must be `[a-zA-Z0-9]`; `.` fails |
-| `/absolute/path` | reject | leading `/` fails first char class |
-| `-leading/name` | reject | leading `-` fails first char class |
-| `owner\name` | reject | `\` not in class, and no `/` present |
-| `owner/name/extra` | reject | second segment excludes `/`, so `$` fails |
-| `оwner/name` (Cyrillic о) | reject | class is ASCII-only; no `u` flag |
-| `owner/name\n` | reject | JS `$` (non-`m`) does not match before a trailing newline |
+| Input                     | Result | Why                                                       |
+| ------------------------- | ------ | --------------------------------------------------------- |
+| `../x`                    | reject | first char must be `[a-zA-Z0-9]`; `.` fails               |
+| `/absolute/path`          | reject | leading `/` fails first char class                        |
+| `-leading/name`           | reject | leading `-` fails first char class                        |
+| `owner\name`              | reject | `\` not in class, and no `/` present                      |
+| `owner/name/extra`        | reject | second segment excludes `/`, so `$` fails                 |
+| `оwner/name` (Cyrillic о) | reject | class is ASCII-only; no `u` flag                          |
+| `owner/name\n`            | reject | JS `$` (non-`m`) does not match before a trailing newline |
 
 Note the schema is a **necessary precursor, not the SSRF control**: `repo =
-"evil.com/x"` is a *syntactically valid* HF id and, composed into
+"evil.com/x"` is a _syntactically valid_ HF id and, composed into
 `https://huggingface.co/evil.com/x/resolve/…`, stays under the fixed host — but
 only if the download flow hardcodes the `huggingface.co` origin and does not let
 `repo` influence scheme/host or follow cross-host redirects. See INFO-1.
@@ -158,7 +158,7 @@ least one of `ollama | hf | gguf | mlx`. No structural gap found.
     .object({
       repo: HfRepoIdSchema,
       revision: z.string().regex(REVISION_RE, { message: "revision must be a 40-hex commit SHA" }),
-      file: z.string().min(1).max(255).refine(isSafeModelFile, { /* … */ }),
+      file: z.string().min(1).max(255).refine(isSafeModelFile, {/* … */}),
       sha256: z.string().regex(SHA256_RE), // required — per-source digest (spec §2.4, H1–H3)
     })
     .strict();
@@ -270,13 +270,13 @@ track separately from B7.
 
 ## Action Items (Priority Order)
 
-| # | Severity | Finding | Recommendation |
-|---|----------|---------|----------------|
-| 1 | Medium | `gguf.sha256` optional diverges from spec §2.4 | Make digest required, or document the concession and make the download flow fail-closed (`digestVerified:false` + warn) |
-| 2 | Low | Case-insensitive `revision` → cache collision/non-determinism | Drop `/i` (lowercase-only) or `.transform(toLowerCase)` |
-| 3 | Low | `isSafeModelFile` allows control chars / NUL / newline | Reject `[\u0000-\u001f\u007f]` at the boundary |
-| 4 | Info | SSRF / URL-traversal defenses belong in the download flow | Hardcode HF origin, encode segments, block cross-host redirects, resolve-prefix-check cache path |
-| 5 | Info | Dev-only dependency CVEs | Track/update vitest/vite chain separately; not shipped at runtime |
+| #   | Severity | Finding                                                       | Recommendation                                                                                                          |
+| --- | -------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 1   | Medium   | `gguf.sha256` optional diverges from spec §2.4                | Make digest required, or document the concession and make the download flow fail-closed (`digestVerified:false` + warn) |
+| 2   | Low      | Case-insensitive `revision` → cache collision/non-determinism | Drop `/i` (lowercase-only) or `.transform(toLowerCase)`                                                                 |
+| 3   | Low      | `isSafeModelFile` allows control chars / NUL / newline        | Reject `[\u0000-\u001f\u007f]` at the boundary                                                                          |
+| 4   | Info     | SSRF / URL-traversal defenses belong in the download flow     | Hardcode HF origin, encode segments, block cross-host redirects, resolve-prefix-check cache path                        |
+| 5   | Info     | Dev-only dependency CVEs                                      | Track/update vitest/vite chain separately; not shipped at runtime                                                       |
 
 ---
 

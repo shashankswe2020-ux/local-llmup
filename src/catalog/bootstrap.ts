@@ -20,7 +20,15 @@ import { CatalogSchema } from "./schema.js";
  * injected during bootstrap so reruns reproduce `data/models.json` exactly.
  */
 const BOOTSTRAP_GGUF_SOURCES: Readonly<
-  Record<string, { readonly repo: string; readonly revision: string; readonly file: string; readonly sha256: string }>
+  Record<
+    string,
+    {
+      readonly repo: string;
+      readonly revision: string;
+      readonly file: string;
+      readonly sha256: string;
+    }
+  >
 > = {
   "qwen3:14b": {
     repo: "Qwen/Qwen3-14B-GGUF",
@@ -190,10 +198,7 @@ function emptySeed(now: Date): Catalog {
  * result is re-validated against {@link CatalogSchema} so the shipped file is
  * guaranteed loadable and the injected proxy is in range.
  */
-export function buildBootstrapCatalog(
-  snapshot: readonly RawRegistryModel[],
-  now: Date,
-): Catalog {
+export function buildBootstrapCatalog(snapshot: readonly RawRegistryModel[], now: Date): Catalog {
   const { catalog } = enrichCatalog({
     mode: "backfill",
     existing: emptySeed(now),

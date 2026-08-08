@@ -7,11 +7,7 @@ function quant(name: string): Quantization {
   return { name, diskBytes: 1, minRamBytes: 1, minVramBytes: 0 };
 }
 
-function model(
-  id: string,
-  family: string,
-  quants: readonly Quantization[],
-): CatalogModel {
+function model(id: string, family: string, quants: readonly Quantization[]): CatalogModel {
   return {
     id,
     family,
@@ -73,10 +69,7 @@ describe("resolveModel", () => {
       expect.unreachable("expected ambiguity");
     } catch (error) {
       expect(error).toBeInstanceOf(ModelResolutionError);
-      expect((error as ModelResolutionError).candidates).toEqual([
-        "llama3.1:70b",
-        "llama3.1:8b",
-      ]);
+      expect((error as ModelResolutionError).candidates).toEqual(["llama3.1:70b", "llama3.1:8b"]);
     }
   });
 

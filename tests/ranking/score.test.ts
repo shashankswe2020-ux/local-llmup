@@ -24,7 +24,12 @@ function model(overrides: Partial<CatalogModel> = {}): CatalogModel {
     releaseDate: "2025-07-23",
     source: { ollama: "llama3.1:8b" },
     quantizations: [
-      { name: "Q4_K_M", diskBytes: 4_900_000_000, minRamBytes: 6_500_000_000, minVramBytes: 6_000_000_000 },
+      {
+        name: "Q4_K_M",
+        diskBytes: 4_900_000_000,
+        minRamBytes: 6_500_000_000,
+        minVramBytes: 6_000_000_000,
+      },
     ],
     ...overrides,
   };
@@ -45,7 +50,9 @@ function gpuHw(vramBytes: number): HardwareProfile {
   };
 }
 
-function ranked(overrides: Partial<RankedModel> & { model: CatalogModel; score: number }): RankedModel {
+function ranked(
+  overrides: Partial<RankedModel> & { model: CatalogModel; score: number },
+): RankedModel {
   return {
     quant: overrides.model.quantizations[0]!,
     requiredBytes: 1,

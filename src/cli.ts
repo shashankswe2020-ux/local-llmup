@@ -2,7 +2,12 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { cac, type Command } from "cac";
-import { assertModesExclusive, parseBackendName, parseContextTokens, runRecommend } from "./commands/recommend.js";
+import {
+  assertModesExclusive,
+  parseBackendName,
+  parseContextTokens,
+  runRecommend,
+} from "./commands/recommend.js";
 import { runUp } from "./commands/up.js";
 import { runDown } from "./commands/down.js";
 import { runLs } from "./commands/ls.js";
@@ -35,13 +40,22 @@ export interface CommandSpec {
 }
 
 export const COMMANDS: readonly CommandSpec[] = [
-  { name: "recommend", args: "", description: "Detect hardware and print ranked local LLMs + install commands." },
+  {
+    name: "recommend",
+    args: "",
+    description: "Detect hardware and print ranked local LLMs + install commands.",
+  },
   {
     name: "can-run",
     args: "<model>",
-    description: "Answer yes|slow|no whether this machine can run <model>, with an estimated tok/s range.",
+    description:
+      "Answer yes|slow|no whether this machine can run <model>, with an estimated tok/s range.",
   },
-  { name: "up", args: "<model>", description: "Install (if needed) and start a local server for <model>." },
+  {
+    name: "up",
+    args: "<model>",
+    description: "Install (if needed) and start a local server for <model>.",
+  },
   { name: "chat", args: "", description: "Interactive/piped chat that records memory." },
   {
     name: "down",
@@ -49,9 +63,17 @@ export const COMMANDS: readonly CommandSpec[] = [
     description:
       "Stop a server owned by local-llmup, or detach+forget an attached daemon without stopping it.",
   },
-  { name: "switch", args: "<model>", description: "Make <model> the active served model (no memory move)." },
+  {
+    name: "switch",
+    args: "<model>",
+    description: "Make <model> the active served model (no memory move).",
+  },
   { name: "migrate", args: "", description: "Move all memory from one model to another." },
-  { name: "ls", args: "", description: "List active server state from local state (not installed-model inventory)." },
+  {
+    name: "ls",
+    args: "",
+    description: "List active server state from local state (not installed-model inventory).",
+  },
   { name: "catalog", args: "", description: "Show or refresh the model catalog." },
   { name: "doctor", args: "", description: "Diagnose hardware, backend, disk, ports, and state." },
 ];
@@ -208,27 +230,25 @@ function registerMigrate(command: Command): void {
     .option("--to <model>", "Target model to migrate memory to")
     .option("--move", "Delete the source memory after a successful migration")
     .option("--dry-run", "Print the migration plan without writing anything")
-    .action(
-      async (options: { from?: string; to?: string; move?: boolean; dryRun?: boolean }) => {
-        try {
-          if (options.from === undefined || options.to === undefined) {
-            process.stderr.write("migrate: --from and --to are required\n");
-            process.exitCode = 1;
-            return;
-          }
-          await runMigrate({
-            from: options.from,
-            to: options.to,
-            ...(options.move === true ? { move: true } : {}),
-            ...(options.dryRun === true ? { dryRun: true } : {}),
-          });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          process.stderr.write(`migrate: ${stripControl(message)}\n`);
+    .action(async (options: { from?: string; to?: string; move?: boolean; dryRun?: boolean }) => {
+      try {
+        if (options.from === undefined || options.to === undefined) {
+          process.stderr.write("migrate: --from and --to are required\n");
           process.exitCode = 1;
+          return;
         }
-      },
-    );
+        await runMigrate({
+          from: options.from,
+          to: options.to,
+          ...(options.move === true ? { move: true } : {}),
+          ...(options.dryRun === true ? { dryRun: true } : {}),
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`migrate: ${stripControl(message)}\n`);
+        process.exitCode = 1;
+      }
+    });
 }
 
 /** Wire the `doctor` action onto its cac command. */
@@ -361,8 +381,7 @@ export function run(argv: readonly string[] = process.argv): void {
 }
 
 const invokedDirectly =
-  typeof process.argv[1] === "string" &&
-  import.meta.url === pathToFileURL(process.argv[1]).href;
+  typeof process.argv[1] === "string" && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (invokedDirectly) {
   run();

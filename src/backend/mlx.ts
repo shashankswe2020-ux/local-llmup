@@ -169,10 +169,7 @@ function adaptStream(stream: Readable | null): ProcessOutputStream | null {
 
 const defaultSpawn: SpawnFn = (command, args, options) => {
   const child = nodeSpawn(command, [...args], {
-    stdio:
-      options.stdio === "ignore"
-        ? ["ignore", "ignore", "ignore"]
-        : ["ignore", "pipe", "pipe"],
+    stdio: options.stdio === "ignore" ? ["ignore", "ignore", "ignore"] : ["ignore", "pipe", "pipe"],
     shell: false,
     signal: options.signal,
     ...(options.env ? { env: options.env } : {}),
@@ -261,8 +258,7 @@ export interface MlxAdapterOptions {
   readonly sleep?: SleepFn | undefined;
   readonly kill?: KillFn | undefined;
   readonly listenerProbe?:
-    | ((port: number, host: string) => Promise<ListenerIdentity | null>)
-    | undefined;
+    ((port: number, host: string) => Promise<ListenerIdentity | null>) | undefined;
   readonly processProbe?: ((pid: number) => Promise<ProcessIdentity | null>) | undefined;
   readonly modelDirectoryVerifier?: ((path: string) => void) | undefined;
   readonly env?: NodeJS.ProcessEnv | undefined;
@@ -272,7 +268,8 @@ export interface MlxAdapterOptions {
 
 export interface AcquireRepositoryRuntimeOptions {
   readonly signal?: AbortSignal | undefined;
-  readonly onProgress?: ((completedBytes: number, totalBytes: number, file: string) => void) | undefined;
+  readonly onProgress?:
+    ((completedBytes: number, totalBytes: number, file: string) => void) | undefined;
 }
 
 export type AcquireRepositoryFn = (
@@ -291,8 +288,7 @@ const defaultAcquireRepository: AcquireRepositoryFn = (request, options = {}) =>
         onProgress: artifactOptions?.onProgress,
       }),
     signal: options.signal,
-    onProgress: (event) =>
-      options.onProgress?.(event.completedBytes, event.totalBytes, event.file),
+    onProgress: (event) => options.onProgress?.(event.completedBytes, event.totalBytes, event.file),
   });
 
 /** Apple-Silicon MLX runtime adapter. */
@@ -314,10 +310,7 @@ export class MlxAdapter implements BackendAdapter {
   private readonly fetch: FetchFn;
   private readonly sleep: SleepFn;
   private readonly kill: KillFn;
-  private readonly listenerProbe: (
-    port: number,
-    host: string,
-  ) => Promise<ListenerIdentity | null>;
+  private readonly listenerProbe: (port: number, host: string) => Promise<ListenerIdentity | null>;
   private readonly processProbe: (pid: number) => Promise<ProcessIdentity | null>;
   private readonly modelDirectoryVerifier: (path: string) => void;
   private readonly env: NodeJS.ProcessEnv;
@@ -428,7 +421,9 @@ export class MlxAdapter implements BackendAdapter {
     if (options?.signal?.aborted) throw new BackendError(`MLX serve aborted for ${endpoint}`);
     const modelPath = options?.modelPath?.trim();
     if (modelPath === undefined || modelPath.length === 0 || !isAbsolute(modelPath)) {
-      throw new BackendError(`refusing to serve ${endpoint}: verified absolute model path required`);
+      throw new BackendError(
+        `refusing to serve ${endpoint}: verified absolute model path required`,
+      );
     }
     this.modelDirectoryVerifier(modelPath);
 
@@ -510,7 +505,14 @@ export class MlxAdapter implements BackendAdapter {
       if (
         identity === null ||
         identity.pid !== pid ||
-        !(await this.modelReady(endpoint, modelPath, options?.signal, true, READINESS_REQUEST_TIMEOUT_MS, authToken))
+        !(await this.modelReady(
+          endpoint,
+          modelPath,
+          options?.signal,
+          true,
+          READINESS_REQUEST_TIMEOUT_MS,
+          authToken,
+        ))
       ) {
         throw new BackendError(`MLX readiness did not belong to spawned pid ${pid}`);
       }
@@ -595,7 +597,9 @@ export class MlxAdapter implements BackendAdapter {
       const beforeKill = await this.processIdentityStatus(expectedProcess);
       if (beforeKill === "changed") return;
       if (beforeKill === "unknown") {
-        throw new BackendError(`refusing to SIGKILL MLX process ${handle.pid}: identity unavailable`);
+        throw new BackendError(
+          `refusing to SIGKILL MLX process ${handle.pid}: identity unavailable`,
+        );
       }
       this.kill(handle.pid, "SIGKILL");
       for (let attempt = 0; attempt < SHUTDOWN_ATTEMPTS; attempt += 1) {
@@ -692,7 +696,8 @@ export class MlxAdapter implements BackendAdapter {
             requestTimeoutMs,
             authToken,
           )
-        ) return;
+        )
+          return;
       } catch (error) {
         lastError = error;
       }
@@ -753,7 +758,10 @@ export class MlxAdapter implements BackendAdapter {
       `${endpoint}/v1/chat/completions`,
       {
         method: "POST",
-        headers: authToken === undefined ? { "content-type": "application/json" } : authorizationHeaders(authToken, true),
+        headers:
+          authToken === undefined
+            ? { "content-type": "application/json" }
+            : authorizationHeaders(authToken, true),
         body: JSON.stringify({
           model: "default_model",
           messages: [{ role: "user", content: "Reply briefly." }],
@@ -829,14 +837,18 @@ export class MlxAdapter implements BackendAdapter {
     return observed.pid === expected.pid &&
       observed.executable === expected.executable &&
       observed.started === expected.started
-        ? "same"
-        : "changed";
+      ? "same"
+      : "changed";
   }
 }
 
 function isLoopbackHost(host: string): boolean {
   const normalized = host.replace(/^\[/, "").replace(/\]$/, "").toLowerCase();
-  return normalized === "localhost" || normalized === "::1" || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalized);
+  return (
+    normalized === "localhost" ||
+    normalized === "::1" ||
+    /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(normalized)
+  );
 }
 
 function isUsablePid(pid: number | undefined): pid is number {

@@ -43,12 +43,8 @@ describe("computeHardwareScore", () => {
   });
 
   it("ranks stronger hardware higher (AC1)", () => {
-    expect(computeHardwareScore(highEnd).total).toBeGreaterThan(
-      computeHardwareScore(mid).total,
-    );
-    expect(computeHardwareScore(mid).total).toBeGreaterThan(
-      computeHardwareScore(lowEnd).total,
-    );
+    expect(computeHardwareScore(highEnd).total).toBeGreaterThan(computeHardwareScore(mid).total);
+    expect(computeHardwareScore(mid).total).toBeGreaterThan(computeHardwareScore(lowEnd).total);
   });
 
   it("normalizes every sub-score into 0..1 (AC3)", () => {
@@ -74,9 +70,7 @@ describe("identifyBottleneck (AC2)", () => {
   });
 
   it("flags RAM when system memory is starved but the GPU is strong", () => {
-    expect(
-      identifyBottleneck(hw({ totalRamBytes: 8 * GIB, freeRamBytes: 6 * GIB })),
-    ).toBe("ram");
+    expect(identifyBottleneck(hw({ totalRamBytes: 8 * GIB, freeRamBytes: 6 * GIB }))).toBe("ram");
   });
 
   it("flags storage when the disk is nearly full but all else is strong", () => {

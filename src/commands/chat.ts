@@ -145,8 +145,7 @@ export async function runChat(
     await select({ intent: "attach", registry: deps.registry, activeBackend: active.backend })
   ).adapter;
   const singleModelRuntime =
-    adapter.capabilities.formats.includes("gguf") ||
-    adapter.capabilities.formats.includes("mlx");
+    adapter.capabilities.formats.includes("gguf") || adapter.capabilities.formats.includes("mlx");
   if (singleModelRuntime && modelId !== active.modelId) {
     throw new ValidationError(
       `active ${adapter.name} server is serving ${active.modelId}; run \`local-llmup up ${modelId} --backend ${adapter.name}\` first`,

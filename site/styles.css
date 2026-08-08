@@ -29,7 +29,12 @@ body {
   inset: 0;
   pointer-events: none;
   opacity: 0.22;
-  background-image: repeating-radial-gradient(circle at 0 0, transparent 0, #000 0.8px, transparent 1.6px);
+  background-image: repeating-radial-gradient(
+    circle at 0 0,
+    transparent 0,
+    #000 0.8px,
+    transparent 1.6px
+  );
   background-size: 3px 3px;
 }
 
@@ -180,7 +185,9 @@ code {
 .reveal {
   opacity: 0;
   transform: translateY(10px);
-  transition: opacity 500ms ease, transform 500ms ease;
+  transition:
+    opacity 500ms ease,
+    transform 500ms ease;
   transition-delay: var(--delay, 0ms);
 }
 

@@ -15,9 +15,9 @@ These assumptions become decisions only when this spec is approved:
 1. Telemetry is **pseudonymous**, not anonymous: a random installation UUID is a
    persistent identifier even though it is not a name or hardware serial.
 2. Telemetry is enabled by default only after a one-invocation disclosure period
-  and explicit opportunity to opt out. The disclosure is persisted before any
-  UUID/event exists; events created on a later invocation are not eligible for
-  delivery until a subsequent invocation. `DO_NOT_TRACK=1`,
+   and explicit opportunity to opt out. The disclosure is persisted before any
+   UUID/event exists; events created on a later invocation are not eligible for
+   delivery until a subsequent invocation. `DO_NOT_TRACK=1`,
    `LOCAL_LLMUP_TELEMETRY=0`, and CI environments disable it before any event is
    created or sent. Whether default-on is legally appropriate must be approved
    before release; default-off is the fallback if review is incomplete.
@@ -37,11 +37,11 @@ These assumptions become decisions only when this spec is approved:
 7. Exact custom model names are never sent. A model is sent only when it resolves
    to a canonical id in the shipped offline catalog; otherwise it is `other`.
 8. Turning telemetry off deletes the local installation UUID, pending outbox, and
-  every owned telemetry quarantine/staging artifact.
+   every owned telemetry quarantine/staging artifact.
    Turning it on later creates a new UUID, so the two periods cannot be linked by
    local-llmup.
 9. Raw pseudonymous events are retained for at most 30 days. Ingest suspends if
-  that bound cannot be enforced. Identifier-free
+   that bound cannot be enforced. Identifier-free
    daily aggregates may be retained for 13 months; all-time counters contain no
    installation identifiers.
 10. Telemetry never changes `data/models.json`, `data/perf.json`, ranking,
@@ -229,10 +229,10 @@ The command and privacy notice state these limits.
 
 ### 3.4 Exit codes
 
-| Exit | Meaning |
-| --- | --- |
-| `0` | Local telemetry setting/status operation completed |
-| `1` | Invalid action, unsafe/corrupt config, lock, or persistence failure |
+| Exit | Meaning                                                             |
+| ---- | ------------------------------------------------------------------- |
+| `0`  | Local telemetry setting/status operation completed                  |
+| `1`  | Invalid action, unsafe/corrupt config, lock, or persistence failure |
 
 Telemetry delivery never changes another command's exit code.
 
@@ -275,14 +275,14 @@ local-llmup uses pseudonymous usage telemetry (coarse hardware, public catalog m
 ```
 
 2. Atomically persist a schema-valid disclosure-only state whose only affirmative
-  markers are `noticeVersion` and `noticeShown:true`; it has no installation id,
-  outbox event, first-run marker, or last-seen version.
+   markers are `noticeVersion` and `noticeShown:true`; it has no installation id,
+   outbox event, first-run marker, or last-seen version.
 3. On the next successful functional invocation, if not suppressed or opted out,
-  create the UUID and append `first_run` after product completion.
+   create the UUID and append `first_run` after product completion.
 4. Never submit events appended by the current invocation. An eligible runtime
-  invocation flushes only events that existed before current-event construction,
-  then appends current events. The earliest first-run transmission is therefore
-  a third invocation, leaving a full invocation to run `telemetry off`.
+   invocation flushes only events that existed before current-event construction,
+   then appends current events. The earliest first-run transmission is therefore
+   a third invocation, leaving a full invocation to run `telemetry off`.
 
 `--help`, `--version`, CLI parse errors, and telemetry commands are not functional
 use and do not create state, notice, or events. The notice contains no ANSI and is
@@ -404,12 +404,12 @@ falls back from a required check.
 ```ts
 export interface TelemetryEventBaseV1 {
   readonly schemaVersion: 1;
-  readonly eventId: string;       // UUID v4, deduplication only
-  readonly installId: string;     // UUID v4, HMACed then discarded at ingest
-  readonly version: string;       // SemVer, 1..64 ASCII characters
+  readonly eventId: string; // UUID v4, deduplication only
+  readonly installId: string; // UUID v4, HMACed then discarded at ingest
+  readonly version: string; // SemVer, 1..64 ASCII characters
   readonly os: "darwin" | "linux" | "win32" | "other";
   readonly arch: "arm64" | "x64" | "other";
-  readonly nodeMajor: number;     // integer 18..999, no minor/patch
+  readonly nodeMajor: number; // integer 18..999, no minor/patch
 }
 ```
 
@@ -421,10 +421,8 @@ content, hardware, process, path, or time.
 
 ```ts
 export interface CoarseHardwareV1 {
-  readonly memoryGbBucket:
-    | "4_or_less" | "8" | "16" | "32" | "64" | "128" | "256_plus";
-  readonly gpuVendor:
-    | "apple" | "nvidia" | "amd" | "multiple" | "none" | "unknown";
+  readonly memoryGbBucket: "4_or_less" | "8" | "16" | "32" | "64" | "128" | "256_plus";
+  readonly gpuVendor: "apple" | "nvidia" | "amd" | "multiple" | "none" | "unknown";
 }
 ```
 
@@ -475,16 +473,16 @@ string is retained. Unknown failures map to `unknown`.
 
 ### 5.5 Event catalog
 
-| Event | Emission point | Properties |
-| --- | --- | --- |
-| `first_run` | First successful functional command for an enabled install id | coarse hardware when already available; `command` |
-| `command_completed` | After each functional command completes | command enum; `outcome:success\|failed`; optional error category |
-| `model_detected` | Successful `recommend` top result or explicit `can-run` catalog resolution | catalog model or `other`; coarse hardware when available |
-| `model_selected` | User-requested model resolves for `up`, `switch`, or explicit-model `chat` | catalog model or `other`; backend |
-| `setup_success` | `up` completes integrity + readiness | model; backend |
-| `setup_failed` | `up` terminates with a categorized error | model/`other`; backend/`unknown`; error category |
-| `server_started` | `up` establishes a verified server | model; backend; `ownership:owned\|attached` |
-| `upgrade` | Successful functional command sees stored version differ from current | bounded old version; new version |
+| Event               | Emission point                                                             | Properties                                                       |
+| ------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `first_run`         | First successful functional command for an enabled install id              | coarse hardware when already available; `command`                |
+| `command_completed` | After each functional command completes                                    | command enum; `outcome:success\|failed`; optional error category |
+| `model_detected`    | Successful `recommend` top result or explicit `can-run` catalog resolution | catalog model or `other`; coarse hardware when available         |
+| `model_selected`    | User-requested model resolves for `up`, `switch`, or explicit-model `chat` | catalog model or `other`; backend                                |
+| `setup_success`     | `up` completes integrity + readiness                                       | model; backend                                                   |
+| `setup_failed`      | `up` terminates with a categorized error                                   | model/`other`; backend/`unknown`; error category                 |
+| `server_started`    | `up` establishes a verified server                                         | model; backend; `ownership:owned\|attached`                      |
+| `upgrade`           | Successful functional command sees stored version differ from current      | bounded old version; new version                                 |
 
 Rules:
 
@@ -502,8 +500,16 @@ Rules:
 
 ```ts
 export const TELEMETRY_COMMANDS = [
-  "recommend", "can-run", "doctor", "catalog",
-  "up", "down", "switch", "chat", "migrate", "ls",
+  "recommend",
+  "can-run",
+  "doctor",
+  "catalog",
+  "up",
+  "down",
+  "switch",
+  "chat",
+  "migrate",
+  "ls",
 ] as const;
 export type TelemetryCommand = (typeof TELEMETRY_COMMANDS)[number];
 export type TelemetryOutcome = "success" | "product_negative" | "failed";
@@ -524,7 +530,11 @@ export type TelemetryEventV1 =
       readonly event: "command_completed";
       readonly properties:
         | { readonly command: TelemetryCommand; readonly outcome: "success" | "product_negative" }
-        | { readonly command: TelemetryCommand; readonly outcome: "failed"; readonly error: TelemetryErrorCategory };
+        | {
+            readonly command: TelemetryCommand;
+            readonly outcome: "failed";
+            readonly error: TelemetryErrorCategory;
+          };
     })
   | (TelemetryEventBaseV1 & {
       readonly event: "model_detected";
@@ -536,15 +546,26 @@ export type TelemetryEventV1 =
     })
   | (TelemetryEventBaseV1 & {
       readonly event: "setup_success";
-      readonly properties: { readonly model: TelemetryModel; readonly backend: TelemetryBackendName };
+      readonly properties: {
+        readonly model: TelemetryModel;
+        readonly backend: TelemetryBackendName;
+      };
     })
   | (TelemetryEventBaseV1 & {
       readonly event: "setup_failed";
-      readonly properties: { readonly model: TelemetryModel; readonly backend: TelemetryBackend; readonly error: TelemetryErrorCategory };
+      readonly properties: {
+        readonly model: TelemetryModel;
+        readonly backend: TelemetryBackend;
+        readonly error: TelemetryErrorCategory;
+      };
     })
   | (TelemetryEventBaseV1 & {
       readonly event: "server_started";
-      readonly properties: { readonly model: TelemetryModel; readonly backend: TelemetryBackendName; readonly ownership: "owned" | "attached" };
+      readonly properties: {
+        readonly model: TelemetryModel;
+        readonly backend: TelemetryBackendName;
+        readonly ownership: "owned" | "attached";
+      };
     })
   | (TelemetryEventBaseV1 & {
       readonly event: "upgrade";
@@ -678,24 +699,24 @@ eligible runtime command may flush them.
 2. If effective telemetry is disabled, create/send nothing.
 3. Write normal product output and set its exit status.
 4. For an eligible runtime command, acquire the 10 ms delivery lease, then read
-  and recheck effective enabled state plus an immutable snapshot of the old outbox
-  under the state-lock budget. Release only the state lock. Select the largest oldest
-  prefix satisfying both 20 events and an encoded complete batch size <=60 KiB.
+   and recheck effective enabled state plus an immutable snapshot of the old outbox
+   under the state-lock budget. Release only the state lock. Select the largest oldest
+   prefix satisfying both 20 events and an encoded complete batch size <=60 KiB.
 5. POST that bounded old-event batch to the fixed release endpoint.
 6. Apply a 250 ms total deadline covering DNS, connect, TLS, upload, response, and
    body drain; abort and destroy the response body on timeout/overflow.
 7. Follow no redirects. Accept only HTTPS and the compile-time project hostname.
 8. Read at most 4 KiB response; validate strict acknowledgement schema.
 9. Accept only 202 with a strict acknowledgement whose unique ids exactly equal
-  the submitted set. Re-read current state under lock and remove by id only from
-  that submitted set, preserving concurrent appends. For
-  `collectionState:"disabled"`, also set a server-suspension day no more than 7
-  days ahead and stop creating/sending events during that period. Release the
-  delivery lease after state reconciliation.
+   the submitted set. Re-read current state under lock and remove by id only from
+   that submitted set, preserving concurrent appends. For
+   `collectionState:"disabled"`, also set a server-suspension day no more than 7
+   days ahead and stop creating/sending events during that period. Release the
+   delivery lease after state reconciliation.
 10. After flush attempt completes, append current invocation events and marker
-  changes in one atomic state update unless the acknowledgement activated server
-  suspension; in that case discard current events. Current events are never part
-  of the same invocation's request.
+    changes in one atomic state update unless the acknowledgement activated server
+    suspension; in that case discard current events. Current events are never part
+    of the same invocation's request.
 
 Delivery is awaited only inside the 250 ms cap so Node does not silently drop a
 fire-and-forget request during process exit. No output, spinner, warning, or log
@@ -705,13 +726,13 @@ failure.
 
 ### 6.3 Failure policy
 
-| Failure | Local behavior |
-| --- | --- |
-| timeout, DNS/TLS/network, 404, 405, 413, 415, 429, 5xx | retain events; no immediate retry |
-| redirect or endpoint identity mismatch | retain; abort body |
-| 400 strict schema rejection | drop only submitted batch to avoid poison loop |
-| unexpected 2xx, protocol mismatch, non-exact/duplicate/foreign ack ids, malformed/oversized acknowledgement | retain; abort body |
-| state/outbox failure during normal command | disable telemetry for invocation; preserve product result |
+| Failure                                                                                                     | Local behavior                                            |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| timeout, DNS/TLS/network, 404, 405, 413, 415, 429, 5xx                                                      | retain events; no immediate retry                         |
+| redirect or endpoint identity mismatch                                                                      | retain; abort body                                        |
+| 400 strict schema rejection                                                                                 | drop only submitted batch to avoid poison loop            |
+| unexpected 2xx, protocol mismatch, non-exact/duplicate/foreign ack ids, malformed/oversized acknowledgement | retain; abort body                                        |
+| state/outbox failure during normal command                                                                  | disable telemetry for invocation; preserve product result |
 
 There is no exponential retry timer or background worker. The next eligible
 runtime invocation may make one attempt. Outbox caps bound persistent failure.
@@ -1453,7 +1474,7 @@ behavior is unchanged.
 ## 17. Draft decisions requiring human approval
 
 1. Default-on after an interactive disclosure-only invocation and full-invocation
-  choice window versus default-off explicit opt-in.
+   choice window versus default-off explicit opt-in.
 2. Cloudflare Worker + D1 as the ingest/storage reference implementation.
 3. Final project-owned HTTPS telemetry and privacy-policy hostnames.
 4. Dedicated telemetry state/outbox location and filesystem policy.
@@ -1463,7 +1484,7 @@ behavior is unchanged.
 8. Cloud account owner, data region, maintainer access group, privacy/security
    contact, incident response, and recurring cost owner.
 9. Exact request/event/row/ingress/USD hard caps and provider support for automatic
-  cost-stop behavior.
+   cost-stop behavior.
 10. Windows current-user-only DACL adapter and fail-closed platform support.
 
 Implementation must not begin until this spec and all T0 governance decisions are

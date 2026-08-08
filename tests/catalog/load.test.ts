@@ -58,7 +58,12 @@ describe("parseCatalog", () => {
 
   it("strips ANSI and control sequences from model-sourced display fields", () => {
     const dirty = clone(validCatalog) as unknown as {
-      models: { id: string; family: string; source: { ollama?: string }; quantizations: { name: string }[] }[];
+      models: {
+        id: string;
+        family: string;
+        source: { ollama?: string };
+        quantizations: { name: string }[];
+      }[];
     };
     dirty.models[0]!.id = "llama\u001b[31m3.1\u001b[0m:8b\u0007";
     dirty.models[0]!.family = "lla\u0000ma";

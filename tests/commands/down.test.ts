@@ -7,10 +7,7 @@ import { BackendError, ValidationError } from "../../src/errors.js";
 import { readState, STATE_SCHEMA_VERSION, withLock, writeState } from "../../src/state/state.js";
 import { runDown, type DownDeps } from "../../src/commands/down.js";
 import { createRegistry } from "../../src/backend/registry.js";
-import type {
-  BackendAdapter,
-  ServeHandle,
-} from "../../src/backend/adapter.js";
+import type { BackendAdapter, ServeHandle } from "../../src/backend/adapter.js";
 import type { Catalog, CatalogModel } from "../../src/types.js";
 
 function model(id: string): CatalogModel {
@@ -26,7 +23,12 @@ function model(id: string): CatalogModel {
     releaseDate: "2025-06-01",
     source: { ollama: id },
     quantizations: [
-      { name: "Q4_K_M", diskBytes: 5_000_000_000, minRamBytes: 6_000_000_000, minVramBytes: 6_000_000_000 },
+      {
+        name: "Q4_K_M",
+        diskBytes: 5_000_000_000,
+        minRamBytes: 6_000_000_000,
+        minVramBytes: 6_000_000_000,
+      },
     ],
   };
 }
@@ -195,12 +197,15 @@ describe("runDown", () => {
     const adapter = fakeAdapter();
 
     await expect(
-      runDown({}, {
-        ...deps(adapter),
-        writeState: () => {
-          throw new Error("disk full");
+      runDown(
+        {},
+        {
+          ...deps(adapter),
+          writeState: () => {
+            throw new Error("disk full");
+          },
         },
-      }),
+      ),
     ).rejects.toThrow("disk full");
 
     expect(adapter.stopped).toHaveLength(0);

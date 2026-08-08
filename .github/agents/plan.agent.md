@@ -26,19 +26,19 @@ verifiable tasks with explicit acceptance criteria and dependency ordering.
 
 Use these skills (invoke with the `skill` tool) during your workflow:
 
-| Skill                         | Use when…                                                   |
-| ----------------------------- | ----------------------------------------------------------- |
-| `planning-and-task-breakdown` | Primary skill — structuring work into ordered tasks         |
+| Skill                         | Use when…                                           |
+| ----------------------------- | --------------------------------------------------- |
+| `planning-and-task-breakdown` | Primary skill — structuring work into ordered tasks |
 
 ---
 
 ## Available Sub-Agents
 
-| Agent              | Dispatch when…                                                         |
-| ------------------ | ---------------------------------------------------------------------- |
-| `code-reviewer`    | Need architectural review of the proposed plan                         |
-| `security-auditor` | Plan involves auth, tokens, or security-sensitive components           |
-| `test-engineer`    | Need help defining test strategy and coverage targets for the plan     |
+| Agent              | Dispatch when…                                                     |
+| ------------------ | ------------------------------------------------------------------ |
+| `code-reviewer`    | Need architectural review of the proposed plan                     |
+| `security-auditor` | Plan involves auth, tokens, or security-sensitive components       |
+| `test-engineer`    | Need help defining test strategy and coverage targets for the plan |
 
 ---
 

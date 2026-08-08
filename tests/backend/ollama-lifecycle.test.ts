@@ -25,13 +25,15 @@ function testExecutable(binary: string): string {
   }
   return `/nonexistent/${binary}`;
 }
-const ollamaListener = (pid = 9001) => async () => ({
-  pid,
-  process: "ollama",
-  executable: testExecutable("ollama"),
-  started: "2026-08-07T00:00:00Z",
-  localAddress: "127.0.0.1",
-});
+const ollamaListener =
+  (pid = 9001) =>
+  async () => ({
+    pid,
+    process: "ollama",
+    executable: testExecutable("ollama"),
+    started: "2026-08-07T00:00:00Z",
+    localAddress: "127.0.0.1",
+  });
 
 interface RecordedSpawn {
   command: string;
@@ -46,13 +48,15 @@ interface RecordedSpawn {
  * Optionally emits an async `error` or early `close` (as the real child_process
  * does) on the next tick, after the adapter has attached its listeners.
  */
-function fakeServeSpawn(config: {
-  pid?: number;
-  noPid?: boolean;
-  error?: Error;
-  exitCode?: number;
-  exitOnSignal?: NodeJS.Signals | null;
-} = {}): {
+function fakeServeSpawn(
+  config: {
+    pid?: number;
+    noPid?: boolean;
+    error?: Error;
+    exitCode?: number;
+    exitOnSignal?: NodeJS.Signals | null;
+  } = {},
+): {
   spawn: SpawnFn;
   recorded: RecordedSpawn[];
   state: { kills: number; killSignals: Array<NodeJS.Signals | undefined> };
@@ -147,7 +151,11 @@ describe("OllamaAdapter.serve", () => {
   it("attaches to an already-running daemon without spawning", async () => {
     const fetch = vi.fn<FetchFn>((url) => {
       if (url.endsWith("/api/version")) {
-        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ version: "0.4.0" }) });
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ version: "0.4.0" }),
+        });
       }
       return Promise.resolve(ok);
     });

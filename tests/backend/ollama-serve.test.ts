@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { BackendError } from "../../src/errors.js";
-import { OllamaAdapter, type FetchFn, type FetchResponseLike, type SleepFn } from "../../src/backend/ollama.js";
+import {
+  OllamaAdapter,
+  type FetchFn,
+  type FetchResponseLike,
+  type SleepFn,
+} from "../../src/backend/ollama.js";
 
 const ENDPOINT = "http://127.0.0.1:11434";
 
@@ -129,7 +134,9 @@ describe("OllamaAdapter.waitUntilReady", () => {
     const fetch = vi.fn<FetchFn>(
       (_url, init) =>
         new Promise((_resolve, reject) => {
-          init?.signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+          init?.signal?.addEventListener("abort", () => reject(new Error("aborted")), {
+            once: true,
+          });
         }),
     );
     const { sleep } = recordingSleep();

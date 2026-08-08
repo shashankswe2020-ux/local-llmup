@@ -62,12 +62,7 @@ describe("createDefaultRegistry", () => {
     expect(ollama).toBeInstanceOf(OllamaAdapter);
     expect(mlx).toBeInstanceOf(MlxAdapter);
     expect(lmstudio).toBeInstanceOf(LmStudioAdapter);
-    expect(registry.all().map((a) => a.name)).toEqual([
-      "ollama",
-      "llamacpp",
-      "mlx",
-      "lmstudio",
-    ]);
+    expect(registry.all().map((a) => a.name)).toEqual(["ollama", "llamacpp", "mlx", "lmstudio"]);
   });
 });
 

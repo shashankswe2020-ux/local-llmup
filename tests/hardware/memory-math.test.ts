@@ -308,9 +308,9 @@ describe("requiredMemoryAtContext", () => {
   });
 
   it("throws for a present-but-invalid per-token figure (data error, not honesty gate)", () => {
-    expect(() => requiredMemoryAtContext(ctxModel({ kvBytesPerToken: 0 }), ctxQuant, 1_024)).toThrow(
-      ValidationError,
-    );
+    expect(() =>
+      requiredMemoryAtContext(ctxModel({ kvBytesPerToken: 0 }), ctxQuant, 1_024),
+    ).toThrow(ValidationError);
   });
 
   it("stays finite at the accepted context ceiling (AC-CW20)", () => {
@@ -378,12 +378,9 @@ describe("maxContextTokens", () => {
     );
   });
 
-  it.each([Number.NaN, -1, Number.POSITIVE_INFINITY])(
-    "throws for an invalid budget %s",
-    (bad) => {
-      expect(() => maxContextTokens(ctxModel(), ctxQuant, bad)).toThrow(ValidationError);
-    },
-  );
+  it.each([Number.NaN, -1, Number.POSITIVE_INFINITY])("throws for an invalid budget %s", (bad) => {
+    expect(() => maxContextTokens(ctxModel(), ctxQuant, bad)).toThrow(ValidationError);
+  });
 
   it("returns undefined for a model without attention geometry (AC-CW6, honesty gate)", () => {
     expect(maxContextTokens(model(), ctxQuant, B)).toBeUndefined();

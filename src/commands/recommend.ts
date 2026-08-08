@@ -230,9 +230,7 @@ export function buildRecommendation(
       score: ranked.score,
       verdict: verdict.runnable,
       throughput: verdict.throughput,
-      backends: backendsForModel(ranked.model, registry, hardware).map(
-        (adapter) => adapter.name,
-      ),
+      backends: backendsForModel(ranked.model, registry, hardware).map((adapter) => adapter.name),
       ...(contextSizing !== undefined ? { contextSizing } : {}),
       ...(maxContext !== undefined ? { maxContext } : {}),
     };
@@ -377,7 +375,9 @@ function modeNote(result: RecommendationResult): string {
 function wontFitSection(wontFit: readonly WontFitModel[]): string {
   // Sanitize ids here too: unlike the table/JSON renderers, this plain-text
   // section interpolates catalog strings directly, so it must strip escapes.
-  const rows = wontFit.map((entry) => `  ${VERDICT_SYMBOL.no} ${stripControl(entry.model.id)}  (${entry.reason})`);
+  const rows = wontFit.map(
+    (entry) => `  ${VERDICT_SYMBOL.no} ${stripControl(entry.model.id)}  (${entry.reason})`,
+  );
   return [`Won't fit (${wontFit.length}):`, ...rows].join("\n");
 }
 
@@ -504,8 +504,6 @@ export async function runRecommend(
     deps.registry,
     availableBackendNames,
   );
-  const report = options.json
-    ? formatRecommendationJson(result)
-    : formatRecommendationText(result);
+  const report = options.json ? formatRecommendationJson(result) : formatRecommendationText(result);
   deps.write(`${report}\n`);
 }

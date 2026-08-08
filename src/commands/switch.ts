@@ -17,7 +17,13 @@ import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import { select } from "../backend/select.js";
-import { readState, withLock, writeState, STATE_SCHEMA_VERSION, type RuntimeState } from "../state/state.js";
+import {
+  readState,
+  withLock,
+  writeState,
+  STATE_SCHEMA_VERSION,
+  type RuntimeState,
+} from "../state/state.js";
 import type { Catalog } from "../types.js";
 
 /** Inputs for `switch`. */
@@ -59,9 +65,7 @@ export async function runSwitch(
   const target = resolved.model;
   const current = deps.readState(deps.config).active;
   if (current === null) {
-    throw new ValidationError(
-      "no active server to switch. Run `local-llmup up <model>` first.",
-    );
+    throw new ValidationError("no active server to switch. Run `local-llmup up <model>` first.");
   }
   if (current.modelId === target.id) {
     deps.write(`${stripControl(target.id)} is already active.\n`);
