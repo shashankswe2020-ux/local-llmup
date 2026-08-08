@@ -136,8 +136,8 @@ function renderRefresh(diff: EnrichDiff): string {
   return `${lines.join("\n")}\n\n`;
 }
 
-/** Render the catalog table and optional refresh diff. */
-export async function runCatalog(
+/** Collect catalog, fit, backend, hardware, and refresh evidence without rendering. */
+export async function collectCatalog(
   options: CatalogOptions,
   deps: CatalogDeps = createDefaultDeps(),
 ): Promise<CatalogResult> {
@@ -153,7 +153,6 @@ export async function runCatalog(
     });
     catalog = refreshed.catalog;
     refreshDiff = refreshed.diff;
-    deps.write(renderRefresh(refreshed.diff));
   }
 
   const hw = await deps.detectHardware();
@@ -198,6 +197,11 @@ export async function runCatalog(
     refresh: refreshDiff,
     emptyReason: resultRows.length > 0 ? null : sorted.length === 0 ? "catalog-empty" : "no-models-fit",
   });
+  return result;
+}
+
+/** Format the authoritative plain catalog result without detecting hardware again. */
+export function formatCatalogText(result: CatalogResult): string {
   const rows = result.rows.map((row) => [
     row.model.id,
     row.model.params,
@@ -208,11 +212,19 @@ export async function runCatalog(
     row.model.releaseDate,
   ]);
   const header = `Catalog (Filter: ${result.filter}, shown: ${String(rows.length)}/${String(result.total)})`;
-  deps.write(`${header}\n`);
+  const refresh = result.refresh === null ? "" : renderRefresh(result.refresh);
   if (rows.length === 0) {
-    deps.write("No models fit this hardware. Re-run with --all to see the full catalog.\n");
-    return result;
+    return `${refresh}${header}\nNo models fit this hardware. Re-run with --all to see the full catalog.\n`;
   }
-  deps.write(`${renderTable(TABLE_COLUMNS, rows)}\n`);
+  return `${refresh}${header}\n${renderTable(TABLE_COLUMNS, rows)}\n`;
+}
+
+/** Render the catalog table and optional refresh diff. */
+export async function runCatalog(
+  options: CatalogOptions,
+  deps: CatalogDeps = createDefaultDeps(),
+): Promise<CatalogResult> {
+  const result = await collectCatalog(options, deps);
+  deps.write(formatCatalogText(result));
   return result;
 }

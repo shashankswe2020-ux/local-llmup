@@ -86,6 +86,13 @@ export interface RecommendRowViewModel {
 }
 
 export interface RecommendViewModel {
+  readonly scope: {
+    readonly task: TerminalText | null;
+    readonly context: number | null;
+    readonly maxContextMode: boolean;
+    readonly backend: TerminalText;
+    readonly availableBackendsOnly: boolean;
+  };
   readonly hardware: {
     readonly arch: TerminalText;
     readonly platform: TerminalText;

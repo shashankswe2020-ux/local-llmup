@@ -160,6 +160,8 @@ export interface ThroughputEvidence {
 
 /** The full recommendation: what fits, what does not, and the top-pick command. */
 export interface RecommendationResult {
+  readonly task: Capability | null;
+  readonly availableBackendsOnly: boolean;
   readonly hardware: HardwareProfile;
   readonly usableBytes: number;
   readonly memoryKind: "ram" | "vram";
@@ -276,6 +278,8 @@ export function buildRecommendation(
 
   const top = entries[0];
   return immutableSnapshot({
+    task: options.task ?? null,
+    availableBackendsOnly: options.availableBackends === true,
     hardware,
     usableBytes,
     memoryKind: usableMemoryKind(hardware),
@@ -504,8 +508,8 @@ const defaultDeps: RecommendDeps = {
   write: (text) => process.stdout.write(text),
 };
 
-/** Load the catalog, detect hardware, and write the recommendation report. */
-export async function runRecommend(
+/** Execute recommendation domain work once without selecting a presentation. */
+export async function collectRecommendation(
   options: RecommendOptions = {},
   deps: RecommendDeps = defaultDeps,
 ): Promise<RecommendationResult> {
@@ -526,6 +530,15 @@ export async function runRecommend(
     deps.registry,
     availableBackendNames,
   );
+  return result;
+}
+
+/** Load the catalog, detect hardware, and write the recommendation report. */
+export async function runRecommend(
+  options: RecommendOptions = {},
+  deps: RecommendDeps = defaultDeps,
+): Promise<RecommendationResult> {
+  const result = await collectRecommendation(options, deps);
   const report = options.json ? formatRecommendationJson(result) : formatRecommendationText(result);
   deps.write(`${report}\n`);
   return result;

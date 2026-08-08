@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { runCatalog, type CatalogDeps } from "../../src/commands/catalog.js";
+import { collectCatalog, runCatalog, type CatalogDeps } from "../../src/commands/catalog.js";
 import type { Catalog, CatalogModel, HardwareProfile, Quantization } from "../../src/types.js";
 import type { RawRegistryModel } from "../../src/catalog/enrich.js";
 import { createDefaultRegistry } from "../../src/backend/registry.js";
@@ -84,6 +84,13 @@ function baseDeps(overrides: Partial<CatalogDeps> = {}): { deps: CatalogDeps; st
 }
 
 describe("runCatalog", () => {
+  it("collects catalog evidence without rendering", async () => {
+    const { deps, stdout } = baseDeps();
+    const result = await collectCatalog({ all: true }, deps);
+    expect(result.rows).toHaveLength(2);
+    expect(stdout).toEqual([]);
+  });
+
   it("shows only fitting models by default", async () => {
     const { deps, stdout } = baseDeps();
 

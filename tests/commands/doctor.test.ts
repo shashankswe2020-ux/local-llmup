@@ -5,7 +5,7 @@ import { createRegistry } from "../../src/backend/registry.js";
 import { CatalogError, StateError } from "../../src/errors.js";
 import { STATE_SCHEMA_VERSION, type RuntimeState } from "../../src/state/state.js";
 import type { Catalog, HardwareProfile, Quantization } from "../../src/types.js";
-import { runDoctor, type DoctorDeps } from "../../src/commands/doctor.js";
+import { collectDoctor, runDoctor, type DoctorDeps } from "../../src/commands/doctor.js";
 import {
   expectNoninteractiveGolden,
   jsonGoldenName,
@@ -114,6 +114,13 @@ function find(report: Awaited<ReturnType<typeof runDoctor>>, name: string) {
 }
 
 describe("runDoctor", () => {
+  it("collects the report without rendering", async () => {
+    const { deps, stdout } = baseDeps();
+    const report = await collectDoctor(deps);
+    expect(report.ok).toBe(true);
+    expect(stdout).toEqual([]);
+  });
+
   it("reports all clear and returns ok when the system is healthy", async () => {
     const { deps, stdout } = baseDeps();
 

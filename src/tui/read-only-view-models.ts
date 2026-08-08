@@ -161,6 +161,13 @@ export function buildRecommendViewModel(result: RecommendationResult): Recommend
   assertCollectionLimit(result.wontFit, "non-fitting recommendation row");
   assertBoundedInput(result);
   return freezeDeep({
+    scope: {
+      task: result.task === null ? null : line(result.task),
+      context: result.context ?? null,
+      maxContextMode: result.maxContextMode,
+      backend: line(result.throughputBackend),
+      availableBackendsOnly: result.availableBackendsOnly,
+    },
     hardware: {
       arch: line(result.hardware.arch),
       platform: line(result.hardware.platform),

@@ -100,6 +100,11 @@ const REASON_LABEL: Readonly<Record<FitReason, string>> = {
   "context-bound": "context exceeds the model's limit",
 };
 
+/** List canonical offline catalog ids for an interactive can-run picker. */
+export function listCanRunModels(deps: CanRunDeps = defaultDeps): readonly string[] {
+  return Object.freeze(deps.loadCatalog().models.map((model) => model.id));
+}
+
 /** Central estimate of a known range, rounded to one decimal. */
 function midpoint(t: ThroughputEstimate): number {
   return Math.round(((t.lowTokPerSec + t.highTokPerSec) / 2) * 10) / 10;
@@ -191,7 +196,7 @@ export function formatCanRunJson(result: CanRunResult): string {
  * Returns the {@link CanRunResult} so the CLI can gate its exit code (non-zero
  * only for `no`).
  */
-export async function runCanRun(
+export async function collectCanRun(
   options: CanRunOptions,
   deps: CanRunDeps = defaultDeps,
 ): Promise<CanRunResult> {
@@ -211,6 +216,15 @@ export async function runCanRun(
     options.backend ?? DEFAULT_THROUGHPUT_BACKEND,
     deps.registry,
   );
+  return result;
+}
+
+/** Resolve and collect the verdict, then render the authoritative plain/JSON form. */
+export async function runCanRun(
+  options: CanRunOptions,
+  deps: CanRunDeps = defaultDeps,
+): Promise<CanRunResult> {
+  const result = await collectCanRun(options, deps);
   deps.write(`${options.json === true ? formatCanRunJson(result) : formatCanRunText(result)}\n`);
   return result;
 }

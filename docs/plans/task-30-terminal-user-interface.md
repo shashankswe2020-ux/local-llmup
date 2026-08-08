@@ -2,7 +2,7 @@
 
 > Source spec: [docs/specs/terminal-user-interface.md](../specs/terminal-user-interface.md)
 > Related: [docs/specs/local-llmup.md](../specs/local-llmup.md), [docs/plans/task-plan-local-llmup.md](./task-plan-local-llmup.md)
-> Status: **Draft — U1c foundation complete; U0b CI matrix pending; U1d remains**
+> Status: **Draft — U1 read-only phase complete; U0b CI matrix and U2 approvals remain**
 > Last updated: 2026-08-08
 
 ## Overview
@@ -273,16 +273,33 @@ passed. Independent code review: SHIP. Independent security review: GO.
 
 ---
 
-#### Task U1d: Read-only screens rollout
+#### Task U1d: Read-only screens rollout ✅ DONE (2026-08-08)
 
 **Description:** Ship TUI screens for `recommend`, `can-run`, `doctor`, `catalog`,
 `ls` with keyboard navigation/help/search/filter and accessible mode parity.
 
 **Acceptance criteria:**
 
-- [ ] No read-only key path triggers mutation/network beyond existing explicit flags.
-- [ ] Unknown/honesty-gated values are shown as unknown with evidence.
-- [ ] Visible action surface is complete (no hidden key-only action).
+- [x] No read-only key path triggers mutation/network beyond existing explicit flags.
+- [x] Unknown/honesty-gated values are shown as unknown with evidence.
+- [x] Visible action surface is complete (no hidden key-only action).
+
+**Evidence:** Five command-specific Ink screens plus cooked line-oriented
+accessible equivalents render only strict U1c view models. Stable-id navigation,
+search across documented model fields, bounded virtualization, details, help,
+four-model comparison, and conditional can-run model selection are covered by
+focused tests. Read-only command collectors execute domain probes once; lazy mode
+routing imports visual Ink only after eligibility, renders frames to stderr, then
+emits the authoritative plain result once to stdout. Renderer init,
+pre-execution, and runtime failures follow the exact spec notices and restoration
+matrix. Accessible input never enables raw mode and is bounded incrementally by
+line, queue, nested collection, and 256 KiB document budgets. Plain/JSON/help
+goldens remain byte-stable. Focused verification: 15 files / 187 tests before
+review hardening. Final verification: 77 files / 1,307 tests, build, typecheck,
+lint, script-free pack dry-run, and `git diff --check` passed. The production
+build rendered `recommend --tui --no-color` in a real 100x24 pseudo-terminal,
+accepted `q`, restored, and left no process. Independent code review: SHIP.
+Independent security review: GO.
 
 **Verification command:**
 
@@ -304,9 +321,9 @@ passed. Independent code review: SHIP. Independent security review: GO.
 
 **Done criteria:**
 
-- [ ] Read-only command TUIs shipped with accessibility path.
-- [ ] Noninteractive contracts remain byte-stable.
-- [ ] Terminal safety suite green.
+- [x] Read-only command TUIs shipped with accessibility path.
+- [x] Noninteractive contracts remain byte-stable.
+- [x] Terminal safety suite green.
 
 ---
 

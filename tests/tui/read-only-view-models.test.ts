@@ -50,6 +50,8 @@ const hardware: HardwareProfile = {
 function recommendation(id = "qwen3:14b"): RecommendationResult {
   const entryModel = model(id);
   return {
+    task: null,
+    availableBackendsOnly: false,
     hardware,
     usableBytes: 30 * GIB,
     memoryKind: "ram",
@@ -91,6 +93,13 @@ describe("read-only view-model builders", () => {
     });
     expect(first.wontFit[0]?.reason).toBe("ram-bound");
     expect(first).toMatchObject({
+      scope: {
+        task: null,
+        context: null,
+        maxContextMode: false,
+        backend: "ollama",
+        availableBackendsOnly: false,
+      },
       hardware: {
         arch: "arm64",
         platform: "darwin",

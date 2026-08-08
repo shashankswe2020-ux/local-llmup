@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCanRunResult,
+  collectCanRun,
+  listCanRunModels,
   formatCanRunJson,
   formatCanRunText,
   runCanRun,
@@ -232,6 +234,19 @@ describe("backend surfacing (B12)", () => {
 });
 
 describe("runCanRun", () => {
+  it("lists deterministic offline model choices without rendering", () => {
+    const { deps: d, writes } = deps();
+    expect(listCanRunModels(d)).toEqual(["llama3.1:8b"]);
+    expect(writes).toEqual([]);
+  });
+
+  it("collects one immutable result without rendering", async () => {
+    const { deps: d, writes } = deps();
+    const result = await collectCanRun({ model: "llama3.1" }, d);
+    expect(result.runnable).toBe("yes");
+    expect(writes).toEqual([]);
+  });
+
   it("resolves the model, detects hardware, and writes a text report", async () => {
     const { deps: d, writes } = deps();
     const result = await withGoldenEnvironment(() => runCanRun({ model: "llama3.1" }, d));

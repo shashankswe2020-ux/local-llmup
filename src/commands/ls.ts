@@ -41,25 +41,12 @@ export type LsResult =
       readonly ownedByUs: boolean;
     };
 
-/** Print the active server recorded in state, or a note when there is none. */
-export function runLs(deps: LsDeps = createDefaultDeps()): LsResult {
+/** Read one immutable active-state result without selecting a presentation. */
+export function collectLs(deps: LsDeps = createDefaultDeps()): LsResult {
   const active = deps.readState(deps.config).active;
   if (active === null) {
-    deps.write("No active model.\n");
     return Object.freeze({ type: "empty" });
   }
-
-  // renderTable sanitizes every cell, so registry-sourced strings are safe.
-  const table = renderTable(TABLE_COLUMNS, [
-    [
-      active.modelId,
-      active.backend,
-      active.endpoint,
-      String(active.port),
-      active.ownedByUs ? "owned" : "attached",
-    ],
-  ]);
-  deps.write(`${table}\n`);
   return Object.freeze({
     type: "active",
     modelId: active.modelId,
@@ -68,4 +55,26 @@ export function runLs(deps: LsDeps = createDefaultDeps()): LsResult {
     port: active.port,
     ownedByUs: active.ownedByUs,
   });
+}
+
+/** Format the authoritative plain active-state result without rereading state. */
+export function formatLsText(result: LsResult): string {
+  if (result.type === "empty") return "No active model.\n";
+  const table = renderTable(TABLE_COLUMNS, [
+    [
+      result.modelId,
+      result.backend,
+      result.endpoint,
+      String(result.port),
+      result.ownedByUs ? "owned" : "attached",
+    ],
+  ]);
+  return `${table}\n`;
+}
+
+/** Print the active server recorded in state, or a note when there is none. */
+export function runLs(deps: LsDeps = createDefaultDeps()): LsResult {
+  const result = collectLs(deps);
+  deps.write(formatLsText(result));
+  return result;
 }

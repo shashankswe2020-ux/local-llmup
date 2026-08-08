@@ -335,10 +335,9 @@ const BOTTLENECK_LABEL: Readonly<Record<Bottleneck, string>> = {
   storage: "Storage",
 };
 
-/** Run every diagnostic, print a report to stdout, and return the verdict. */
-export async function runDoctor(
+/** Run every diagnostic once and return an immutable report without rendering. */
+export async function collectDoctor(
   deps: DoctorDeps = createDefaultDeps(),
-  options: { json?: boolean } = {},
 ): Promise<DoctorReport> {
   const detection = await detectSafely(deps.detectHardware);
   const backendAdapter = deps.registry.all()[0];
@@ -356,25 +355,43 @@ export async function runDoctor(
   const backends = await probeBackends(deps.registry, detection);
   const report: DoctorReport = immutableSnapshot({ checks, ok, hardwareScore, backends });
 
+  return report;
+}
+
+/** Format the authoritative plain doctor report without executing probes. */
+export function formatDoctorText(report: DoctorReport): string {
+  const table = renderTable(
+    TABLE_COLUMNS,
+    report.checks.map((c) => [c.name, STATUS_LABEL[c.status], c.detail]),
+  );
+  const lines = [table, "", renderBackends(report.backends)];
+  if (report.hardwareScore !== null) {
+    lines.push(
+      "",
+      `AI Hardware Score: ${String(report.hardwareScore.total)}/100`,
+      `Primary bottleneck: ${BOTTLENECK_LABEL[report.hardwareScore.bottleneck]}`,
+    );
+  }
+  lines.push(
+    "",
+    report.ok ? "All checks passed." : "Problems found — see FAIL rows above.",
+  );
+  return `${lines.join("\n")}\n`;
+}
+
+/** Run every diagnostic, print a report to stdout, and return the verdict. */
+export async function runDoctor(
+  deps: DoctorDeps = createDefaultDeps(),
+  options: { json?: boolean } = {},
+): Promise<DoctorReport> {
+  const report = await collectDoctor(deps);
+
   if (options.json === true) {
     deps.write(`${JSON.stringify(report, null, 2)}\n`);
     return report;
   }
 
-  const table = renderTable(
-    TABLE_COLUMNS,
-    checks.map((c) => [c.name, STATUS_LABEL[c.status], c.detail]),
-  );
-  deps.write(`${table}\n`);
-
-  deps.write(`\n${renderBackends(backends)}\n`);
-
-  if (hardwareScore !== null) {
-    deps.write(`\nAI Hardware Score: ${String(hardwareScore.total)}/100\n`);
-    deps.write(`Primary bottleneck: ${BOTTLENECK_LABEL[hardwareScore.bottleneck]}\n`);
-  }
-
-  deps.write(ok ? "\nAll checks passed.\n" : "\nProblems found — see FAIL rows above.\n");
+  deps.write(formatDoctorText(report));
 
   return report;
 }

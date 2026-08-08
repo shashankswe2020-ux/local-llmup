@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildRecommendation,
+  collectRecommendation,
   formatRecommendationJson,
   formatRecommendationText,
   runRecommend,
@@ -192,6 +193,22 @@ describe("buildRecommendation", () => {
     for (let i = 0; i < noTask.entries.length; i += 1) {
       expect(withChat.entries[i]!.score).toBeCloseTo(noTask.entries[i]!.score, 10);
     }
+  });
+
+  it("preserves the authoritative task, context, backend, and availability scope", () => {
+    const result = build(FIXTURE, appleHw(32), {
+      task: "reasoning",
+      context: 8192,
+      backend: "llamacpp",
+      availableBackends: true,
+    });
+    expect(result).toMatchObject({
+      task: "reasoning",
+      context: 8192,
+      maxContextMode: false,
+      throughputBackend: "llamacpp",
+      availableBackendsOnly: true,
+    });
   });
 
   it("returns no command when nothing fits", () => {
@@ -436,6 +453,13 @@ describe("runRecommend", () => {
     const result = await withGoldenEnvironment(() => runRecommend({}, d));
     expect(result).toMatchObject({ command: "local-llmup up llama3.1:8b" });
     expectNoninteractiveGolden(plainGoldenName("recommend"), writes.join(""));
+  });
+
+  it("collects one immutable result without rendering", async () => {
+    const { deps: d, writes } = deps();
+    const result = await collectRecommendation({}, d);
+    expect(result.command).toBe("local-llmup up llama3.1:8b");
+    expect(writes).toEqual([]);
   });
 
   it("writes JSON when json is requested", async () => {

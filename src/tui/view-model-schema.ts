@@ -92,6 +92,15 @@ const commandHandoffSchema = z
 
 const recommendSchema = z
   .object({
+    scope: z
+      .object({
+        task: text.nullable(),
+        context: count.nullable(),
+        maxContextMode: z.boolean(),
+        backend: text,
+        availableBackendsOnly: z.boolean(),
+      })
+      .strict(),
     hardware: hardwareSchema,
     rows: items(recommendRowSchema),
     wontFit: items(

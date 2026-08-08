@@ -89,9 +89,79 @@ function isCapability(value: string): value is Capability {
   return (CAPABILITIES as readonly string[]).includes(value);
 }
 
+interface UiCliOptions {
+  readonly tui?: boolean | readonly boolean[] | undefined;
+  readonly accessible?: boolean | undefined;
+  readonly noColor?: boolean | undefined;
+}
+
+function registerReadOnlyUiOptions(command: Command): Command {
+  return command
+    .option("--tui", "Use the interactive terminal UI (fails when incompatible)")
+    .option("--no-tui", "Force existing plain noninteractive output")
+    .option("--accessible", "Use the line-oriented accessible interactive UI")
+    .option("--no-color", "Disable interactive color while retaining layout");
+}
+
+interface CliHelpSection {
+  readonly title?: string;
+  readonly body: string;
+}
+
+function preserveLegacyHelp(sections: CliHelpSection[]): CliHelpSection[] {
+  const hiddenFlags = ["--tui", "--no-tui", "--accessible", "--no-color"];
+  return sections.map((section) => ({
+    ...section,
+    body: section.body
+      .split("\n")
+      .filter((line) => !hiddenFlags.some((flag) => line.includes(flag)))
+      .join("\n"),
+  }));
+}
+
+async function resolveReadOnlyMode(
+  options: UiCliOptions & { readonly json?: boolean | undefined },
+  rawArgs: readonly string[],
+): Promise<import("./tui/capabilities.js").UiModeSelection> {
+  const { resolveUiModeFromSources } = await import("./tui/capabilities.js");
+  return resolveUiModeFromSources({
+    ...(options.json === true ? { json: true } : {}),
+    ...(rawArgs.includes("--tui") ? { tui: true } : {}),
+    ...(rawArgs.includes("--no-tui") ? { noTui: true } : {}),
+    ...(options.accessible === true ? { accessible: true } : {}),
+    ...(options.noColor === true || rawArgs.includes("--no-color") ? { noColor: true } : {}),
+  });
+}
+
+function usesDirectNoninteractivePath(
+  options: UiCliOptions & { readonly json?: boolean | undefined },
+  rawArgs: readonly string[],
+): boolean {
+  const tui = rawArgs.includes("--tui");
+  const noTui = rawArgs.includes("--no-tui");
+  const accessible = options.accessible === true;
+  if (options.json === true && !tui && !accessible) return true;
+  if (noTui && !tui && !accessible) return true;
+  return (
+    !tui &&
+    !accessible &&
+    (process.stdin.isTTY !== true ||
+      process.stdout.isTTY !== true ||
+      process.stderr.isTTY !== true)
+  );
+}
+
+function isInteractiveSelection(
+  selection: import("./tui/capabilities.js").UiModeSelection,
+): selection is import("./tui/capabilities.js").UiModeSelection & {
+  readonly mode: "tui" | "accessible";
+} {
+  return selection.mode === "tui" || selection.mode === "accessible";
+}
+
 /** Wire the shared `recommend` action onto a cac command (named and default). */
 function registerRecommend(command: Command): void {
-  command
+  registerReadOnlyUiOptions(command)
     .option("--task <task>", `Boost models for a task: ${CAPABILITIES.join("|")}`)
     .option("--context <tokens>", "Size the KV cache at this context (tokens) and re-rank")
     .option("--max-context", "Report the largest context each model can hold on this hardware")
@@ -106,7 +176,7 @@ function registerRecommend(command: Command): void {
         backend?: string;
         availableBackends?: boolean;
         json?: boolean;
-      }) => {
+      } & UiCliOptions) => {
         try {
           if (options.task !== undefined && !isCapability(options.task)) {
             process.stderr.write(
@@ -122,14 +192,25 @@ function registerRecommend(command: Command): void {
           assertModesExclusive(context, options.maxContext);
           const backend =
             options.backend !== undefined ? parseBackendName(String(options.backend)) : undefined;
-          await runRecommend({
+          const commandOptions = {
             ...(options.task !== undefined ? { task: options.task as Capability } : {}),
             ...(context !== undefined ? { context } : {}),
             ...(options.maxContext === true ? { maxContext: true } : {}),
             ...(backend !== undefined ? { backend } : {}),
             ...(options.availableBackends === true ? { availableBackends: true } : {}),
             ...(options.json === true ? { json: true } : {}),
-          });
+          };
+          if (usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
+            await runRecommend(commandOptions);
+            return;
+          }
+          const mode = await resolveReadOnlyMode(options, command.cli.rawArgs);
+          if (isInteractiveSelection(mode)) {
+            const { runInteractiveRecommend } = await import("./tui/read-only-entry.js");
+            await runInteractiveRecommend(commandOptions, mode);
+          } else {
+            await runRecommend(commandOptions);
+          }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           process.stderr.write(`recommend: ${stripControl(message)}\n`);
@@ -184,9 +265,19 @@ function registerDown(command: Command): void {
 
 /** Wire the `ls` action onto its cac command. */
 function registerLs(command: Command): void {
-  command.action(() => {
+  registerReadOnlyUiOptions(command).action(async (options: UiCliOptions) => {
     try {
-      runLs();
+      if (usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
+        runLs();
+        return;
+      }
+      const mode = await resolveReadOnlyMode(options, command.cli.rawArgs);
+      if (isInteractiveSelection(mode)) {
+        const { runInteractiveLs } = await import("./tui/read-only-entry.js");
+        await runInteractiveLs(mode);
+      } else {
+        runLs();
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       process.stderr.write(`ls: ${stripControl(message)}\n`);
@@ -253,11 +344,23 @@ function registerMigrate(command: Command): void {
 
 /** Wire the `doctor` action onto its cac command. */
 function registerDoctor(command: Command): void {
-  command
+  registerReadOnlyUiOptions(command)
     .option("--json", "Emit machine-readable JSON")
-    .action(async (options: { json?: boolean }) => {
+    .action(async (options: { json?: boolean } & UiCliOptions) => {
       try {
-        const report = await runDoctor(undefined, options.json === true ? { json: true } : {});
+        if (usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
+          const report = await runDoctor(
+            undefined,
+            options.json === true ? { json: true } : {},
+          );
+          if (!report.ok) process.exitCode = 1;
+          return;
+        }
+        const mode = await resolveReadOnlyMode(options, command.cli.rawArgs);
+        const report =
+          isInteractiveSelection(mode)
+            ? await (await import("./tui/read-only-entry.js")).runInteractiveDoctor(mode)
+            : await runDoctor(undefined, options.json === true ? { json: true } : {});
         if (!report.ok) process.exitCode = 1;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -269,18 +372,43 @@ function registerDoctor(command: Command): void {
 
 /** Wire the `can-run` action onto its cac command. Non-zero exit only for `no`. */
 function registerCanRun(command: Command): void {
-  command
+  registerReadOnlyUiOptions(command)
     .option("--backend <name>", `Scope throughput to a runtime: ${BACKEND_NAMES.join("|")}`)
     .option("--json", "Emit machine-readable JSON")
-    .action(async (model: string, options: { backend?: string; json?: boolean }) => {
+    .action(async (model: string | undefined, options: { backend?: string; json?: boolean } & UiCliOptions) => {
       try {
         const backend =
           options.backend !== undefined ? parseBackendName(String(options.backend)) : undefined;
-        const result = await runCanRun({
-          model,
+        const commandOptions = {
+          ...(model !== undefined ? { model } : {}),
           ...(backend !== undefined ? { backend } : {}),
           ...(options.json === true ? { json: true } : {}),
-        });
+        };
+        if (usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
+          if (model === undefined) {
+            process.stderr.write("can-run: model is required outside interactive mode\n");
+            process.exitCode = 1;
+            return;
+          }
+          const result = await runCanRun({ ...commandOptions, model });
+          if (result.runnable === "no") process.exitCode = 1;
+          return;
+        }
+        const mode = await resolveReadOnlyMode(options, command.cli.rawArgs);
+        const result =
+          isInteractiveSelection(mode)
+            ? await (await import("./tui/read-only-entry.js")).runInteractiveCanRun(
+                commandOptions,
+                mode,
+              )
+            : model === undefined
+              ? null
+              : await runCanRun({ ...commandOptions, model });
+        if (result === null) {
+          process.exitCode = 130;
+          return;
+        }
+        if (result === undefined) return;
         if (result.runnable === "no") process.exitCode = 1;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -292,15 +420,26 @@ function registerCanRun(command: Command): void {
 
 /** Wire the `catalog` action onto its cac command. */
 function registerCatalog(command: Command): void {
-  command
+  registerReadOnlyUiOptions(command)
     .option("--all", "Show every model (including non-fitting models)")
     .option("--refresh", "Run incremental enrichment locally and print the dry-run diff")
-    .action(async (options: { all?: boolean; refresh?: boolean }) => {
+    .action(async (options: { all?: boolean; refresh?: boolean } & UiCliOptions) => {
       try {
-        await runCatalog({
+        const commandOptions = {
           ...(options.all === true ? { all: true } : {}),
           ...(options.refresh === true ? { refresh: true } : {}),
-        });
+        };
+        if (usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
+          await runCatalog(commandOptions);
+          return;
+        }
+        const mode = await resolveReadOnlyMode(options, command.cli.rawArgs);
+        if (isInteractiveSelection(mode)) {
+          const { runInteractiveCatalog } = await import("./tui/read-only-entry.js");
+          await runInteractiveCatalog(commandOptions, mode);
+        } else {
+          await runCatalog(commandOptions);
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         process.stderr.write(`catalog: ${stripControl(message)}\n`);
@@ -338,8 +477,10 @@ export function buildCli(): ReturnType<typeof cac> {
   const cli = cac(NAME);
 
   for (const spec of COMMANDS) {
-    const usage = spec.args ? `${spec.name} ${spec.args}` : spec.name;
+    const registrationArgs = spec.name === "can-run" ? "[model]" : spec.args;
+    const usage = registrationArgs ? `${spec.name} ${registrationArgs}` : spec.name;
     const command = cli.command(usage, spec.description);
+    if (spec.name === "can-run") command.rawName = "can-run <model>";
     if (spec.name === "recommend") {
       registerRecommend(command);
     } else if (spec.name === "can-run") {
@@ -370,7 +511,7 @@ export function buildCli(): ReturnType<typeof cac> {
   // Default command mirrors `recommend`.
   registerRecommend(cli.command("", COMMANDS[0]?.description ?? ""));
 
-  cli.help();
+  cli.help(preserveLegacyHelp);
   cli.version(readPackageVersion());
   return cli;
 }

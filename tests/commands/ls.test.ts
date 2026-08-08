@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
 import { readState, STATE_SCHEMA_VERSION, writeState } from "../../src/state/state.js";
-import { runLs, type LsDeps } from "../../src/commands/ls.js";
+import { collectLs, runLs, type LsDeps } from "../../src/commands/ls.js";
 import {
   expectNoninteractiveGolden,
   plainGoldenName,
@@ -34,6 +34,12 @@ function deps(): LsDeps {
 }
 
 describe("runLs", () => {
+  it("collects state without rendering", () => {
+    const result = collectLs(deps());
+    expect(result).toEqual({ type: "empty" });
+    expect(stdout).toEqual([]);
+  });
+
   it("reports when no model is active", async () => {
     const result = await withGoldenEnvironment(() => runLs(deps()));
     expectNoninteractiveGolden(plainGoldenName("ls"), stdout.join(""));
