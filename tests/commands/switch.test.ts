@@ -53,8 +53,8 @@ interface FakeAdapter extends BackendAdapter {
 }
 
 function fakeAdapter(options: {
-  name?: "ollama" | "llamacpp";
-  formats?: readonly ("ollama" | "gguf")[];
+  name?: "ollama" | "llamacpp" | "mlx";
+  formats?: readonly ("ollama" | "gguf" | "mlx")[];
 } = {}): FakeAdapter {
   const pullArgs: PullOptions[] = [];
   const readyArgs: ReadinessOptions[] = [];
@@ -120,7 +120,7 @@ function deps(adapter: FakeAdapter, cat: Catalog = CAT): SwitchDeps {
   };
 }
 
-function seedActive(modelId: string, backend: "ollama" | "llamacpp" = "ollama"): void {
+function seedActive(modelId: string, backend: "ollama" | "llamacpp" | "mlx" = "ollama"): void {
   writeState(config, {
     schemaVersion: STATE_SCHEMA_VERSION,
     active: {
@@ -130,6 +130,13 @@ function seedActive(modelId: string, backend: "ollama" | "llamacpp" = "ollama"):
       pid: 9001,
       port: 11434,
       ownedByUs: true,
+      ...(backend === "mlx"
+        ? {
+            processExecutable: "/usr/bin/python3",
+            processStartedAt: "2026-08-08T00:00:00Z",
+            authToken: "a".repeat(64),
+          }
+        : {}),
     },
   });
 }
@@ -224,6 +231,18 @@ describe("runSwitch", () => {
   it("rejects switch on a single-model llama.cpp server without pulling or rewriting state", async () => {
     seedActive("llama3.1:8b", "llamacpp");
     const adapter = fakeAdapter({ name: "llamacpp", formats: ["gguf"] });
+
+    await expect(runSwitch({ model: "qwen2.5:7b" }, deps(adapter))).rejects.toThrow(
+      /single-model|local-llmup up/i,
+    );
+
+    expect(adapter.pullArgs).toHaveLength(0);
+    expect(readState(config).active).toMatchObject({ modelId: "llama3.1:8b" });
+  });
+
+  it("rejects switch on a single-model MLX server without pulling or rewriting state", async () => {
+    seedActive("llama3.1:8b", "mlx");
+    const adapter = fakeAdapter({ name: "mlx", formats: ["mlx"] });
 
     await expect(runSwitch({ model: "qwen2.5:7b" }, deps(adapter))).rejects.toThrow(
       /single-model|local-llmup up/i,

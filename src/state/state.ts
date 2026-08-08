@@ -52,6 +52,7 @@ const OwnedServerStateSchema = ServerStateCommonSchema.extend({
   pid: z.number().int().positive(),
   processExecutable: z.string().min(1).optional(),
   processStartedAt: z.string().min(1).optional(),
+  authToken: z.string().regex(/^[a-f0-9]{64}$/).optional(),
 }).strict();
 
 /** A daemon we attached to and do not own (no trusted pid available). */
@@ -74,6 +75,31 @@ const RuntimeStateSchema = z
   .strict()
   .superRefine((state, context) => {
     if (state.active === null) return;
+    if (state.active.backend === "mlx") {
+      if (!state.active.ownedByUs) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["active", "ownedByUs"],
+          message: "MLX state must describe an owned process",
+        });
+      } else {
+        for (const field of ["processExecutable", "processStartedAt", "authToken"] as const) {
+          if (state.active[field] === undefined) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["active", field],
+              message: `owned MLX state requires ${field}`,
+            });
+          }
+        }
+      }
+    } else if (state.active.ownedByUs && state.active.authToken !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["active", "authToken"],
+        message: "session token is only valid for MLX state",
+      });
+    }
     const url = new URL(state.active.endpoint);
     const endpointPort = Number(url.port || "80");
     if (endpointPort !== state.active.port) {

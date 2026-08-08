@@ -19,6 +19,13 @@ Phase 2 llama.cpp production hardening after real-process smoke testing.
 - Real Ollama smoke testing fixed macOS listener identity for `ollama serve` and
   implemented the advertised embedding capability with trusted-endpoint checks,
   bounded requests/responses, timeout/cancellation, and strict vector validation.
+- Added the Apple-Silicon MLX backend (audited `mlx-lm==0.31.3`) with platform gating,
+  loopback-only lifecycle, process-bound inference, bounded OpenAI-compatible
+  chat, per-session bearer authentication, browser-origin/content-type/body-size
+  guards, custom-code refusal, vector-less embedding fallback, and fail-closed multi-file repository
+  acquisition from a pinned per-file SHA-256/size manifest. Direct-adapter real
+  smoke passed pull/cache→serve→inference→stop with SmolLM2 360M on a custom
+  port; catalog/CLI MLX smoke remains gated on curated MLX source data.
 
 ## 0.4.1 - 2026-08-07
 

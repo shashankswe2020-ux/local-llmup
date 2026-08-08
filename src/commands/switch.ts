@@ -73,7 +73,10 @@ export async function runSwitch(
   const adapter = (
     await select({ intent: "attach", registry: deps.registry, activeBackend: current.backend })
   ).adapter;
-  if (adapter.capabilities.formats.includes("gguf")) {
+  if (
+    adapter.capabilities.formats.includes("gguf") ||
+    adapter.capabilities.formats.includes("mlx")
+  ) {
     throw new ValidationError(
       `${adapter.name} is a single-model server; run \`local-llmup up ${target.id} --backend ${adapter.name}\` to replace it`,
     );

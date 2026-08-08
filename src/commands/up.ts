@@ -26,6 +26,7 @@ import {
 } from "../backend/adapter.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import { select } from "../backend/select.js";
+import { backendsForModel } from "../catalog/backends.js";
 import {
   STATE_SCHEMA_VERSION,
   readState,
@@ -186,11 +187,17 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
     registry: deps.registry,
     platform: hardware.platform,
     arch: hardware.arch,
+    autoCandidates: backendsForModel(model, deps.registry).map((candidate) => candidate.name),
     ...(options.backend !== undefined ? { flag: options.backend } : {}),
     env: deps.env,
     ...(deps.configBackend !== undefined ? { configBackend: deps.configBackend } : {}),
   });
   const adapter = selection.adapter;
+  if (selection.source !== "auto" && !(await adapter.isInstalled())) {
+    throw new BackendError(
+      `backend ${adapter.name} is unavailable; install it with: ${adapter.installHint()}`,
+    );
+  }
 
   // 4. Pull and verify the weights. Source resolution is format-aware: daemon
   // runtimes (Ollama) pull by model id through their own store; self-managed
@@ -200,6 +207,9 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
     : undefined;
   const ggufSource = adapter.capabilities.formats.includes("gguf")
     ? model.source.gguf
+    : undefined;
+  const mlxSource = adapter.capabilities.formats.includes("mlx")
+    ? model.source.mlx
     : undefined;
   let pullResult: PullResult;
   if (ollamaId !== undefined) {
@@ -223,13 +233,36 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
       expectedSizeBytes: quant.diskBytes,
       onProgress: (event) => deps.log(`  ${stripControl(event.status)}\n`),
     });
+  } else if (mlxSource !== undefined) {
+    if (model.quantizations.length !== 1) {
+      throw new ValidationError(
+        `model ${model.id} has ${model.quantizations.length} quantizations but one model-level MLX repository; refusing ambiguous selection`,
+      );
+    }
+    const repositoryBytes = mlxSource.files.reduce((total, file) => total + file.bytes, 0);
+    if (!Number.isSafeInteger(repositoryBytes) || repositoryBytes !== quant.diskBytes) {
+      throw new ValidationError(
+        `model ${model.id} MLX manifest bytes do not match quantization ${quant.name}`,
+      );
+    }
+    deps.log(`Pulling ${stripControl(mlxSource.repo)} (${quant.name})...\n`);
+    pullResult = await adapter.pull({
+      modelId: model.id,
+      repository: {
+        repo: mlxSource.repo,
+        revision: mlxSource.revision,
+        files: mlxSource.files.map((entry) => ({ ...entry })),
+      },
+      expectedSizeBytes: quant.diskBytes,
+      onProgress: (event) => deps.log(`  ${stripControl(event.status)}\n`),
+    });
   } else {
     throw new ValidationError(
       `model ${model.id} has no source that backend ${adapter.name} can serve`,
     );
   }
 
-  if (ggufSource !== undefined && !pullResult.digestVerified) {
+  if ((ggufSource !== undefined || mlxSource !== undefined) && !pullResult.digestVerified) {
     throw new BackendError(
       `refusing to serve ${model.id}: self-managed weights failed digest verification`,
     );
@@ -281,6 +314,7 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
       await adapter.waitUntilReady({
         endpoint: handle.endpoint,
         requireOpenAiCompatibility: true,
+        ...(handle.authToken !== undefined ? { authToken: handle.authToken } : {}),
       });
       const backend = adapter.name;
       const active: ServerState = handle.ownedByUs
@@ -297,6 +331,7 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
             ...(handle.processStartedAt !== undefined
               ? { processStartedAt: handle.processStartedAt }
               : {}),
+            ...(handle.authToken !== undefined ? { authToken: handle.authToken } : {}),
           }
         : {
             backend,

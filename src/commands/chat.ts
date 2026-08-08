@@ -144,7 +144,10 @@ export async function runChat(
   const adapter = (
     await select({ intent: "attach", registry: deps.registry, activeBackend: active.backend })
   ).adapter;
-  if (adapter.capabilities.formats.includes("gguf") && modelId !== active.modelId) {
+  const singleModelRuntime =
+    adapter.capabilities.formats.includes("gguf") ||
+    adapter.capabilities.formats.includes("mlx");
+  if (singleModelRuntime && modelId !== active.modelId) {
     throw new ValidationError(
       `active ${adapter.name} server is serving ${active.modelId}; run \`local-llmup up ${modelId} --backend ${adapter.name}\` first`,
     );
@@ -193,6 +196,20 @@ export async function runChat(
       endpoint: active.endpoint,
       model: backendModelId,
       messages: context,
+      ...(active.ownedByUs && active.authToken !== undefined
+        ? { authToken: active.authToken }
+        : {}),
+      ...(active.ownedByUs &&
+      active.processExecutable !== undefined &&
+      active.processStartedAt !== undefined
+        ? {
+            expectedProcess: {
+              pid: active.pid,
+              executable: active.processExecutable,
+              started: active.processStartedAt,
+            },
+          }
+        : {}),
     });
     const reply = result.content;
 

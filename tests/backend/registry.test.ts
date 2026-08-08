@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { ValidationError } from "../../src/errors.js";
 import { OllamaAdapter } from "../../src/backend/ollama.js";
+import { MlxAdapter } from "../../src/backend/mlx.js";
 import type {
   BackendAdapter,
   ChatRequest,
@@ -55,8 +56,10 @@ describe("createDefaultRegistry", () => {
   it("registers the Ollama adapter", () => {
     const registry = createDefaultRegistry();
     const ollama = registry.get("ollama");
+    const mlx = registry.get("mlx");
     expect(ollama).toBeInstanceOf(OllamaAdapter);
-    expect(registry.all().map((a) => a.name)).toEqual(["ollama", "llamacpp"]);
+    expect(mlx).toBeInstanceOf(MlxAdapter);
+    expect(registry.all().map((a) => a.name)).toEqual(["ollama", "llamacpp", "mlx"]);
   });
 });
 

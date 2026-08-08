@@ -39,7 +39,7 @@ import {
   writeSync,
 } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { dirname, join, relative, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, sep } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { Transform } from "node:stream";
@@ -86,6 +86,51 @@ export interface AcquireResult {
   readonly digestVerified: boolean;
   /** True when served from an already-cached, digest-matching file (no download). */
   readonly cached: boolean;
+}
+
+/** One file in a complete pinned repository manifest. */
+export interface AcquireRepositoryArtifact {
+  readonly file: string;
+  readonly sha256: string;
+  readonly bytes: number;
+}
+
+/** A complete repository snapshot to acquire for a multi-file runtime. */
+export interface AcquireRepositoryRequest {
+  readonly backend: BackendName;
+  readonly repo: string;
+  readonly revision: string;
+  readonly files: readonly AcquireRepositoryArtifact[];
+}
+
+/** Successful verified repository acquisition. */
+export type AcquireRepositoryResult = AcquireResult;
+
+export interface AcquireRepositoryFileOptions {
+  readonly signal?: AbortSignal | undefined;
+  readonly maxBytes?: number | undefined;
+  readonly onProgress?: ((completedBytes: number) => void) | undefined;
+}
+
+/** Injectable single-file acquisition seam for repository downloads. */
+export type AcquireRepositoryFile = (
+  request: AcquireRequest,
+  options?: AcquireRepositoryFileOptions,
+) => Promise<AcquireResult>;
+
+/** Injectable boundaries for {@link acquireRepository}. */
+export interface AcquireRepositoryDeps {
+  readonly acquire: AcquireRepositoryFile;
+  readonly lockRepository?:
+    | ((request: AcquireRepositoryRequest) => () => void)
+    | undefined;
+  readonly signal?: AbortSignal | undefined;
+  readonly onProgress?: ((event: {
+    readonly completedBytes: number;
+    readonly totalBytes: number;
+    readonly file: string;
+  }) => void) | undefined;
+  readonly listFiles?: ((root: string) => readonly string[]) | undefined;
 }
 
 /** Minimal HTTP response surface consumed by {@link acquireWeight}; injected in tests. */
@@ -354,6 +399,162 @@ export async function acquireWeight(
   } finally {
     releaseLock();
   }
+}
+
+/**
+ * Acquire and verify every file in a pinned repository manifest. A repository
+ * is usable only when every artifact is digest-verified, has the exact catalog
+ * byte size, resolves under one revision directory, and the completed directory
+ * contains exactly the declared files. Partial cache population may remain for
+ * a later retry, but no incomplete snapshot is returned to a runtime.
+ */
+export async function acquireRepository(
+  request: AcquireRepositoryRequest,
+  deps: AcquireRepositoryDeps,
+): Promise<AcquireRepositoryResult> {
+  if (request.files.length === 0) {
+    throw new ValidationError("repository manifest must contain at least one file");
+  }
+  const expected = new Set<string>();
+  let totalBytes = 0;
+  for (const artifact of request.files) {
+    assertValidRequest({
+      backend: request.backend,
+      repo: request.repo,
+      revision: request.revision,
+      file: artifact.file,
+      sha256: artifact.sha256,
+    });
+    if (!Number.isSafeInteger(artifact.bytes) || artifact.bytes <= 0) {
+      throw new ValidationError(`invalid expected byte size for ${artifact.file}`);
+    }
+    if (expected.has(artifact.file)) {
+      throw new ValidationError(`duplicate repository file: ${artifact.file}`);
+    }
+    expected.add(artifact.file);
+    totalBytes += artifact.bytes;
+    if (!Number.isSafeInteger(totalBytes)) {
+      throw new ValidationError("repository byte total exceeds the safe integer range");
+    }
+  }
+
+  const releaseLock = deps.lockRepository?.(request) ?? (() => {});
+  try {
+    let completedBytes = 0;
+    let allCached = true;
+    let root: string | undefined;
+    for (const artifact of request.files) {
+    if (deps.signal?.aborted) {
+      throw new BackendError(`repository acquisition aborted for ${request.repo}`);
+    }
+    const before = completedBytes;
+    const result = await deps.acquire(
+      {
+        backend: request.backend,
+        repo: request.repo,
+        revision: request.revision,
+        file: artifact.file,
+        sha256: artifact.sha256,
+      },
+      {
+        signal: deps.signal,
+        maxBytes: artifact.bytes,
+        onProgress: (fileBytes) =>
+          deps.onProgress?.({
+            completedBytes: before + Math.min(fileBytes, artifact.bytes),
+            totalBytes,
+            file: artifact.file,
+          }),
+      },
+    );
+    if (!result.digestVerified) {
+      throw new BackendError(`repository file was not digest-verified: ${artifact.file}`);
+    }
+    if (result.bytes !== artifact.bytes) {
+      throw new BackendError(
+        `repository file size mismatch for ${artifact.file}: expected ${artifact.bytes}, got ${result.bytes}`,
+      );
+    }
+    const candidateRoot = repositoryRoot(result.path, artifact.file);
+    if (root !== undefined && root !== candidateRoot) {
+      throw new BackendError(`repository files resolved to different cache roots`);
+    }
+    root = candidateRoot;
+    completedBytes += result.bytes;
+    allCached = allCached && result.cached;
+    deps.onProgress?.({ completedBytes, totalBytes, file: artifact.file });
+    }
+
+    if (root === undefined) {
+      throw new BackendError(`repository acquisition produced no root for ${request.repo}`);
+    }
+    const actualFiles = [...(deps.listFiles ?? listRepositoryFiles)(root)].sort();
+    const expectedFiles = [...expected].sort();
+    if (
+      actualFiles.length !== expectedFiles.length ||
+      actualFiles.some((file, index) => file !== expectedFiles[index])
+    ) {
+      throw new BackendError(`repository contents do not match the pinned manifest for ${request.repo}`);
+    }
+
+    return {
+      path: root,
+      bytes: completedBytes,
+      digestVerified: true,
+      cached: allCached,
+    };
+  } finally {
+    releaseLock();
+  }
+}
+
+/** Acquire an owner-only lock adjacent to one immutable repository snapshot. */
+export function lockRepositorySnapshot(
+  request: AcquireRepositoryRequest,
+  config: Config = loadConfig(),
+): () => void {
+  if (!HF_REPO_ID_RE.test(request.repo) || !REVISION_RE.test(request.revision)) {
+    throw new ValidationError("cannot lock an invalid repository coordinate");
+  }
+  const cacheRoot = join(config.homeDir, "cache");
+  const [owner, name] = request.repo.split("/") as [string, string];
+  const repoDir = join(cacheRoot, request.backend, owner, `${name}@${request.revision}`);
+  ensureCacheDir(config.homeDir, cacheRoot, dirname(repoDir));
+  return acquireArtifactLock(`${repoDir}.repository`);
+}
+
+function repositoryRoot(path: string, file: string): string {
+  if (!isAbsolute(path)) {
+    throw new BackendError(`acquired repository file path is not absolute: ${file}`);
+  }
+  let root = path;
+  for (const _segment of file.split("/")) root = dirname(root);
+  const observedFile = relative(root, path).split(sep).join("/");
+  if (observedFile !== file) {
+    throw new BackendError(`acquired repository file path does not match manifest: ${file}`);
+  }
+  return root;
+}
+
+function listRepositoryFiles(root: string): readonly string[] {
+  const files: string[] = [];
+  const visit = (directory: string): void => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isSymbolicLink()) {
+        throw new BackendError(`refusing symlink in acquired repository: ${path}`);
+      }
+      if (entry.isDirectory()) {
+        visit(path);
+      } else if (entry.isFile()) {
+        files.push(relative(root, path).split(sep).join("/"));
+      } else {
+        throw new BackendError(`refusing special file in acquired repository: ${path}`);
+      }
+    }
+  };
+  visit(root);
+  return files;
 }
 
 function assertValidRequest(request: AcquireRequest): void {

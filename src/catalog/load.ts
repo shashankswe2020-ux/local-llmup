@@ -45,6 +45,11 @@ function sanitizeCatalog(catalog: Catalog): { catalog: Catalog; changed: boolean
             mlx: {
               repo: clean(model.source.mlx.repo),
               revision: clean(model.source.mlx.revision),
+              files: model.source.mlx.files.map((entry) => ({
+                ...entry,
+                file: clean(entry.file),
+                sha256: clean(entry.sha256),
+              })),
             },
           }
         : {}),

@@ -42,6 +42,8 @@ export interface SelectInputs {
   readonly platform?: Platform | undefined;
   /** Arch for auto-detect priority ordering. */
   readonly arch?: Arch | undefined;
+  /** Model-compatible backend names used only by the auto-detect branch. */
+  readonly autoCandidates?: readonly BackendName[] | undefined;
 }
 
 /** The resolved adapter and the input that determined it. */
@@ -150,7 +152,7 @@ async function selectCreate(
     return { adapter: registry.get(inputs.configBackend), source: "config" };
   }
 
-  return autoSelect(registry, inputs.platform, inputs.arch);
+  return autoSelect(registry, inputs.platform, inputs.arch, inputs.autoCandidates);
 }
 
 /**
@@ -162,15 +164,18 @@ async function autoSelect(
   registry: BackendRegistry,
   platform: Platform | undefined,
   arch: Arch | undefined,
+  candidates: readonly BackendName[] | undefined,
 ): Promise<SelectResult> {
+  const allowed = candidates === undefined ? undefined : new Set(candidates);
   const installed = await registry.available();
   for (const name of autoDetectPriority(platform, arch)) {
+    if (allowed !== undefined && !allowed.has(name)) continue;
     const match = installed.find((adapter) => adapter.name === name);
     if (match !== undefined) {
       return { adapter: match, source: "auto" };
     }
   }
-  throw new BackendError(noServableBackendMessage(registry, platform, arch));
+  throw new BackendError(noServableBackendMessage(registry, platform, arch, allowed));
 }
 
 /** Compose a fail-closed message listing the install hints for servable backends. */
@@ -178,9 +183,11 @@ function noServableBackendMessage(
   registry: BackendRegistry,
   platform: Platform | undefined,
   arch: Arch | undefined,
+  allowed: ReadonlySet<BackendName> | undefined,
 ): string {
   const hints = autoDetectPriority(platform, arch)
     .filter((name) => isRegistered(registry, name))
+    .filter((name) => allowed === undefined || allowed.has(name))
     .map((name) => `  ${name}: ${registry.get(name).installHint()}`);
   const body = hints.length > 0 ? `\n${hints.join("\n")}` : "";
   return `no installed backend can serve; install one of:${body}`;

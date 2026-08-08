@@ -73,6 +73,20 @@ export interface PullWeightSource {
   readonly sha256?: string | undefined;
 }
 
+/** One digest-pinned file in a complete self-managed repository snapshot. */
+export interface PullRepositoryFile {
+  readonly file: string;
+  readonly sha256: string;
+  readonly bytes: number;
+}
+
+/** Complete pinned repository source used by multi-file runtimes such as MLX. */
+export interface PullRepositorySource {
+  readonly repo: string;
+  readonly revision: string;
+  readonly files: readonly PullRepositoryFile[];
+}
+
 /** Inputs for pulling (downloading) a model quantization. */
 export interface PullOptions {
   readonly modelId: string;
@@ -91,6 +105,8 @@ export interface PullOptions {
    * which resolve weights from {@link modelId} through their own store.
    */
   readonly source?: PullWeightSource | undefined;
+  /** Complete multi-file repository manifest for MLX-style runtimes. */
+  readonly repository?: PullRepositorySource | undefined;
   readonly onProgress?: ((event: PullProgress) => void) | undefined;
   readonly signal?: AbortSignal | undefined;
 }
@@ -140,6 +156,8 @@ export interface ServeHandle {
   /** Immutable process identity captured from the listening socket owner. */
   readonly processExecutable?: string | undefined;
   readonly processStartedAt?: string | undefined;
+  /** Per-session bearer secret required by guarded self-managed runtimes. */
+  readonly authToken?: string | undefined;
 }
 
 /** Inputs for the readiness probe. */
@@ -152,6 +170,7 @@ export interface ReadinessOptions {
    * native Ollama fallback (`/api/tags`).
    */
   readonly requireOpenAiCompatibility?: boolean | undefined;
+  readonly authToken?: string | undefined;
   readonly signal?: AbortSignal | undefined;
 }
 
@@ -161,6 +180,13 @@ export interface ChatMessage {
   readonly content: string;
 }
 
+/** Persisted process instance expected to own an active inference endpoint. */
+export interface ExpectedProcessIdentity {
+  readonly pid: number;
+  readonly executable: string;
+  readonly started: string;
+}
+
 /** Inputs for a (non-streaming) chat completion. */
 export interface ChatRequest {
   /** Active server endpoint from state; omitted only by legacy/default callers. */
@@ -168,6 +194,10 @@ export interface ChatRequest {
   readonly model: string;
   readonly messages: readonly ChatMessage[];
   readonly signal?: AbortSignal | undefined;
+  /** Optional for legacy/daemon callers; required by MLX inference. */
+  readonly expectedProcess?: ExpectedProcessIdentity | undefined;
+  /** Active server bearer secret; required by guarded MLX inference. */
+  readonly authToken?: string | undefined;
 }
 
 /** Result of a chat completion. */

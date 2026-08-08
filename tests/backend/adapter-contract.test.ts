@@ -2,9 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import { existsSync, realpathSync } from "node:fs";
 import { delimiter, join } from "node:path";
 import { BackendError, ValidationError } from "../../src/errors.js";
-import { assertExactFileMatch, type AcquireRequest } from "../../src/backend/acquire.js";
+import {
+  assertExactFileMatch,
+  type AcquireRepositoryRequest,
+  type AcquireRequest,
+} from "../../src/backend/acquire.js";
 import type { BackendAdapter, PullOptions, ServeOptions } from "../../src/backend/adapter.js";
 import { LlamaCppAdapter } from "../../src/backend/llamacpp.js";
+import { MlxAdapter } from "../../src/backend/mlx.js";
 import { createDefaultRegistry } from "../../src/backend/registry.js";
 import {
   OllamaAdapter,
@@ -136,6 +141,7 @@ interface IntegrityCase {
 
 interface AdapterContract {
   readonly name: BackendName;
+  readonly supportsTrustedAttach: boolean;
   createServe(listener?: Partial<FakeListener>, startsListener?: boolean): ServeContractInstance;
   readonly integrityCases: readonly IntegrityCase[];
 }
@@ -238,9 +244,60 @@ function llamaCppIntegrityCase(
   };
 }
 
+function mlxFetch(listener: FakeListener): FetchFn {
+  return vi.fn<FetchFn>((url, init) => {
+    if (!listener.listening) return Promise.reject(new Error("ECONNREFUSED"));
+    const path = new URL(url).pathname;
+    if (path === "/health") return Promise.resolve(response(true, 200, { status: "ok" }));
+    if (path === "/v1/models") {
+      return Promise.resolve(response(true, 200, { object: "list", data: [{ id: "/cache/model" }] }));
+    }
+    if (path === "/v1/chat/completions") {
+      const body = JSON.parse(init?.body ?? "{}") as { max_tokens?: number };
+      return Promise.resolve(
+        listener.ready && body.max_tokens === 1
+          ? response(true, 200, { choices: [{ message: { content: "ok" } }] })
+          : response(false, 503, { error: "loading" }),
+      );
+    }
+    return Promise.resolve(response(false, 404));
+  });
+}
+
+function mlxIntegrityCase(name: string, message: string): IntegrityCase {
+  return {
+    name,
+    async run(): Promise<void> {
+      const requests: AcquireRepositoryRequest[] = [];
+      const adapter = new MlxAdapter({
+        platform: "darwin",
+        arch: "arm64",
+        acquireRepository: vi.fn((request: AcquireRepositoryRequest) => {
+          requests.push(request);
+          return Promise.reject(new BackendError(message));
+        }),
+      });
+      const repository = {
+        repo: "mlx-community/Qwen3-14B-4bit",
+        revision: "a".repeat(40),
+        files: [
+          { file: "config.json", sha256: "b".repeat(64), bytes: 100 },
+          { file: "tokenizer_config.json", sha256: "c".repeat(64), bytes: 200 },
+          { file: "model.safetensors", sha256: "d".repeat(64), bytes: 1_000 },
+        ],
+      };
+      await expect(adapter.pull({ modelId: "qwen3:14b", repository })).rejects.toBeInstanceOf(
+        BackendError,
+      );
+      expect(requests).toEqual([{ backend: "mlx", ...repository }]);
+    },
+  };
+}
+
 const CONTRACTS: readonly AdapterContract[] = [
   {
     name: "ollama",
+    supportsTrustedAttach: true,
     createServe(overrides = {}, startsListener = true): ServeContractInstance {
       const listener: FakeListener = {
         listening: false,
@@ -290,6 +347,7 @@ const CONTRACTS: readonly AdapterContract[] = [
   },
   {
     name: "llamacpp",
+    supportsTrustedAttach: true,
     createServe(overrides = {}, startsListener = true): ServeContractInstance {
       const listener: FakeListener = {
         listening: false,
@@ -354,6 +412,81 @@ const CONTRACTS: readonly AdapterContract[] = [
       }),
     ],
   },
+  {
+    name: "mlx",
+    supportsTrustedAttach: false,
+    createServe(overrides = {}, startsListener = true): ServeContractInstance {
+      const listener: FakeListener = {
+        listening: false,
+        identity: "trusted",
+        ready: true,
+        ...overrides,
+      };
+      const spawn = makeSpawnHarness(listener, startsListener);
+      return {
+        adapter: new MlxAdapter({
+          platform: "darwin",
+          arch: "arm64",
+          spawn: spawn.spawn,
+          fetch: mlxFetch(listener),
+          sleep: noSleep,
+          modelDirectoryVerifier: () => {},
+          listenerProbe: async () =>
+            listener.listening
+              ? {
+                  pid: 4242,
+                  process: "Python",
+                  executable: testExecutable("python3"),
+                  started: "2026-08-07T00:00:00Z",
+                  localAddress: "127.0.0.1",
+                }
+              : null,
+        }),
+        listener,
+        spawn,
+        options: { host: "127.0.0.1", port: 8080, modelPath: "/cache/model" },
+        assertExplicitLoopback(record): void {
+          expect(record.command).toBe("python3");
+          expect(record.args.slice(0, 2)).toEqual(["-I", "-c"]);
+          expect(record.args[2]).toContain("GuardedHandler");
+          expect(record.args.slice(3)).toEqual([
+            "mlx_lm.server",
+            "--model",
+            "/cache/model",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "8080",
+            "--allowed-origins",
+            "",
+            "--log-level",
+            "ERROR",
+          ]);
+          expect(
+            Object.keys(record.env ?? {}).every((name) =>
+              [
+                "PATH",
+                "HOME",
+                "TMPDIR",
+                "LANG",
+                "LC_ALL",
+                "SSL_CERT_FILE",
+                "SSL_CERT_DIR",
+                "LLMUP_MLX_AUTH_TOKEN",
+              ].includes(name),
+            ),
+          ).toBe(true);
+          expect(record.env?.["HF_TOKEN"]).toBeUndefined();
+          expect(record.env?.["LLMUP_MLX_AUTH_TOKEN"]).toMatch(/^[a-f0-9]{64}$/);
+        },
+      };
+    },
+    integrityCases: [
+      mlxIntegrityCase("fails closed on repository digest mismatch", "digest mismatch"),
+      mlxIntegrityCase("fails closed on repository revision mismatch", "revision mismatch"),
+      mlxIntegrityCase("fails closed on incomplete repository manifest", "missing artifact"),
+    ],
+  },
 ];
 
 describe("BackendAdapter contract registration", () => {
@@ -405,9 +538,12 @@ describe.each(CONTRACTS)("BackendAdapter contract — $name", (contract) => {
 
   it("attaches to a trusted listener without claiming ownership", async () => {
     const instance = contract.createServe({ listening: true, identity: "trusted", ready: true });
-
+    if (!contract.supportsTrustedAttach) {
+      await expect(instance.adapter.serve(instance.options)).rejects.toBeInstanceOf(BackendError);
+      expect(instance.spawn.records).toHaveLength(0);
+      return;
+    }
     const handle = await instance.adapter.serve(instance.options);
-
     expect(handle.ownedByUs).toBe(false);
     expect(handle.pid).toBe(4242);
     expect(instance.spawn.records).toHaveLength(0);

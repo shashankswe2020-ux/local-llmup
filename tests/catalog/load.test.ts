@@ -122,11 +122,16 @@ describe("parseCatalog", () => {
   it("preserves gguf/mlx sources through parseCatalog", () => {
     const dirty = clone(validCatalog) as unknown as {
       models: {
+        quantizations: { diskBytes: number }[];
         source: {
           ollama?: string;
           hf?: string;
           gguf?: { repo: string; revision: string; file: string; sha256?: string };
-          mlx?: { repo: string; revision: string };
+          mlx?: {
+            repo: string;
+            revision: string;
+            files: { file: string; sha256: string; bytes: number }[];
+          };
         };
       }[];
     };
@@ -142,8 +147,14 @@ describe("parseCatalog", () => {
       mlx: {
         repo: "mlx-community/Qwen3-14B-4bit",
         revision: "c".repeat(40),
+        files: [
+          { file: "config.json", sha256: "d".repeat(64), bytes: 100 },
+          { file: "tokenizer_config.json", sha256: "e".repeat(64), bytes: 200 },
+          { file: "model.safetensors", sha256: "f".repeat(64), bytes: 1_000 },
+        ],
       },
     };
+    dirty.models[0]!.quantizations[0]!.diskBytes = 1_300;
 
     const catalog = parseCatalog(JSON.stringify(dirty));
     const source = catalog.models[0]!.source;
@@ -156,6 +167,11 @@ describe("parseCatalog", () => {
     expect(source.mlx).toEqual({
       repo: "mlx-community/Qwen3-14B-4bit",
       revision: "c".repeat(40),
+      files: [
+        { file: "config.json", sha256: "d".repeat(64), bytes: 100 },
+        { file: "tokenizer_config.json", sha256: "e".repeat(64), bytes: 200 },
+        { file: "model.safetensors", sha256: "f".repeat(64), bytes: 1_000 },
+      ],
     });
   });
 

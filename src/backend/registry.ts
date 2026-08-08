@@ -2,12 +2,13 @@
  * The backend registry is the single construction site for `BackendAdapter`
  * implementations. Command code receives a {@link BackendRegistry} in its deps
  * and resolves adapters by name (or via `select()`), never calling `new
- * *Adapter()` directly. Phase 0 registers Ollama only; later phases add
- * llama.cpp, MLX, and LM Studio here without touching command code.
+ * *Adapter()` directly. The default registry currently includes Ollama,
+ * llama.cpp, and MLX; later phases can add LM Studio without touching commands.
  */
 import { ValidationError } from "../errors.js";
 import type { BackendAdapter } from "./adapter.js";
 import { LlamaCppAdapter } from "./llamacpp.js";
+import { MlxAdapter } from "./mlx.js";
 import { OllamaAdapter } from "./ollama.js";
 
 /** A read-only lookup over the registered inference backends. */
@@ -67,8 +68,7 @@ export function createRegistry(adapters: readonly BackendAdapter[]): BackendRegi
   };
 }
 
-/** The default registry for v1. Registers Ollama and llama.cpp (serving is
- * Ollama-only until the llama.cpp lifecycle slices land). */
+/** Build the production registry in stable fallback order. */
 export function createDefaultRegistry(): BackendRegistry {
-  return createRegistry([new OllamaAdapter(), new LlamaCppAdapter()]);
+  return createRegistry([new OllamaAdapter(), new LlamaCppAdapter(), new MlxAdapter()]);
 }

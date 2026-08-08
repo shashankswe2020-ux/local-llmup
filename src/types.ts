@@ -133,11 +133,23 @@ export interface GgufSource {
 }
 
 /** A pinned MLX weight repo in Hugging Face. */
+export interface MlxSourceFile {
+  /** Safe repo-relative path within the pinned revision. */
+  readonly file: string;
+  /** SHA-256 of the exact file bytes. */
+  readonly sha256: string;
+  /** Exact byte size, used to cap acquisition and verify completeness. */
+  readonly bytes: number;
+}
+
+/** A pinned, complete MLX model repository in Hugging Face. */
 export interface MlxSource {
   /** Hugging Face repo id (`owner/name`). */
   readonly repo: string;
   /** 40-hex commit SHA — pinned, never a tag or branch. */
   readonly revision: string;
+  /** Complete verified file manifest required to load the local snapshot. */
+  readonly files: readonly MlxSourceFile[];
 }
 
 /** Upstream registry coordinates for a model. */

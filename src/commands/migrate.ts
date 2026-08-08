@@ -21,7 +21,11 @@ import { loadConfig, type Config } from "../config.js";
 import { ValidationError } from "../errors.js";
 import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
-import type { BackendAdapter, ChatMessage } from "../backend/adapter.js";
+import type {
+  BackendAdapter,
+  ChatMessage,
+  ExpectedProcessIdentity,
+} from "../backend/adapter.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import { select } from "../backend/select.js";
 import {
@@ -89,7 +93,13 @@ const createDefaultDeps = (): MigrateDeps => ({
  * role boundaries; any stored `system` turn is demoted to `user` so it cannot
  * inject a fresh instruction. The planner sanitizes and bounds the returned text.
  */
-function buildSummarizer(adapter: BackendAdapter, modelId: string, endpoint: string): Summarizer {
+function buildSummarizer(
+  adapter: BackendAdapter,
+  modelId: string,
+  endpoint: string,
+  expectedProcess?: ExpectedProcessIdentity,
+  authToken?: string,
+): Summarizer {
   return async (turns: readonly ConversationTurn[]): Promise<string> => {
     const history: ChatMessage[] = turns.map((turn) => ({
       role: turn.role === "assistant" ? "assistant" : "user",
@@ -110,7 +120,13 @@ function buildSummarizer(adapter: BackendAdapter, modelId: string, endpoint: str
           "preserves key facts, decisions, and context. Do not add commentary.",
       },
     ];
-    const result = await adapter.chat({ endpoint, model: modelId, messages });
+    const result = await adapter.chat({
+      endpoint,
+      model: modelId,
+      messages,
+      ...(expectedProcess !== undefined ? { expectedProcess } : {}),
+      ...(authToken !== undefined ? { authToken } : {}),
+    });
     return result.content;
   };
 }
@@ -162,7 +178,23 @@ export async function runMigrate(
         ? toResolved.model.source.ollama
         : toId;
       if (backendModelId !== undefined) {
-        summarizer = buildSummarizer(adapter, backendModelId, active.endpoint);
+        const expectedProcess =
+          active.ownedByUs &&
+          active.processExecutable !== undefined &&
+          active.processStartedAt !== undefined
+            ? {
+                pid: active.pid,
+                executable: active.processExecutable,
+                started: active.processStartedAt,
+              }
+            : undefined;
+        summarizer = buildSummarizer(
+          adapter,
+          backendModelId,
+          active.endpoint,
+          expectedProcess,
+          active.ownedByUs ? active.authToken : undefined,
+        );
       }
     }
   }

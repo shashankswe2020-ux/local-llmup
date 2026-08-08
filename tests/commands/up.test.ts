@@ -86,6 +86,24 @@ function ggufModel(id: string, quants: readonly Quantization[]): CatalogModel {
   };
 }
 
+function mlxModel(id: string, quants: readonly Quantization[]): CatalogModel {
+  const repositoryBytes = quants[0]?.diskBytes ?? 1_300;
+  return {
+    ...model(id, quants),
+    source: {
+      mlx: {
+        repo: "mlx-community/Qwen3-14B-4bit",
+        revision: "c".repeat(40),
+        files: [
+          { file: "config.json", sha256: "d".repeat(64), bytes: 100 },
+          { file: "tokenizer_config.json", sha256: "e".repeat(64), bytes: 200 },
+          { file: "model.safetensors", sha256: "f".repeat(64), bytes: repositoryBytes - 300 },
+        ],
+      },
+    },
+  };
+}
+
 function catalog(models: readonly CatalogModel[]): Catalog {
   return { schemaVersion: 1, generatedAt: "2026-01-01T00:00:00.000Z", models };
 }
@@ -129,7 +147,7 @@ function fakeAdapter(options: FakeAdapterOptions = {}): FakeAdapter {
   const stopped: ServeHandle[] = [];
   const backendName: BackendName = options.name ?? "ollama";
   const formats = options.formats ?? (["ollama"] as const);
-  const defaultPort = backendName === "llamacpp" ? 8080 : 11434;
+  const defaultPort = backendName === "llamacpp" || backendName === "mlx" ? 8080 : 11434;
   const handle: ServeHandle = options.handle ?? {
     endpoint: `http://127.0.0.1:${defaultPort}`,
     pid: 9001,
@@ -146,7 +164,7 @@ function fakeAdapter(options: FakeAdapterOptions = {}): FakeAdapter {
     name: backendName,
     capabilities: {
       canPull: true,
-      canEmbed: backendName !== "llamacpp",
+      canEmbed: backendName !== "llamacpp" && backendName !== "mlx",
       openAiCompatible: true,
       formats: [...formats],
       defaultPort,
@@ -290,7 +308,7 @@ describe("runUp", () => {
 
     await runUp({ model: "qwen3:14b", backend: "llamacpp" }, deps(adapter, cat));
 
-    expect(adapter.calls).toEqual(["detect", "pull", "serve", "health", "state"]);
+    expect(adapter.calls).toEqual(["detect", "isInstalled", "pull", "serve", "health", "state"]);
     expect(adapter.pullArgs[0]).toMatchObject({
       modelId: "qwen3:14b",
       source: {
@@ -311,6 +329,76 @@ describe("runUp", () => {
       port: 8080,
       ownedByUs: true,
     });
+  });
+
+  it("up --backend mlx pulls a pinned repository, serves its local directory, and records backend:mlx", async () => {
+    const adapter = fakeAdapter({
+      name: "mlx",
+      formats: ["mlx"],
+      pullModelPath: "/cache/mlx/qwen3-14b",
+      handle: {
+        endpoint: "http://127.0.0.1:8080",
+        pid: 7002,
+        port: 8080,
+        ownedByUs: true,
+        processExecutable: "/usr/bin/python3",
+        processStartedAt: "2026-08-08T00:00:00Z",
+        authToken: "a".repeat(64),
+      },
+    });
+    const cat = catalog([mlxModel("qwen3:14b", [quant("4bit", 9 * GIB)])]);
+
+    await runUp({ model: "qwen3:14b", backend: "mlx" }, deps(adapter, cat));
+
+    expect(adapter.pullArgs[0]).toMatchObject({
+      modelId: "qwen3:14b",
+      repository: cat.models[0]!.source.mlx,
+    });
+    expect(adapter.serveArgs[0]).toMatchObject({
+      host: "127.0.0.1",
+      port: 8080,
+      modelPath: "/cache/mlx/qwen3-14b",
+      modelId: "qwen3:14b",
+    });
+    expect(readState(config).active).toMatchObject({
+      backend: "mlx",
+      processExecutable: "/usr/bin/python3",
+      processStartedAt: "2026-08-08T00:00:00Z",
+      authToken: "a".repeat(64),
+    });
+    expect(adapter.readyArgs[0]?.authToken).toBe("a".repeat(64));
+  });
+
+  it("does not pull when an explicitly selected backend is unavailable", async () => {
+    const adapter = fakeAdapter({ name: "mlx", formats: ["mlx"], installed: false });
+    const cat = catalog([mlxModel("qwen3:14b", [quant("4bit", 9 * GIB)])]);
+
+    await expect(runUp({ model: "qwen3:14b", backend: "mlx" }, deps(adapter, cat))).rejects.toBeInstanceOf(BackendError);
+    expect(adapter.pullArgs).toHaveLength(0);
+  });
+
+  it("rejects ambiguous or size-mismatched MLX quantization manifests before pull", async () => {
+    const adapter = fakeAdapter({ name: "mlx", formats: ["mlx"] });
+    const ambiguous = mlxModel("qwen3:14b", [quant("4bit", 9 * GIB), quant("8bit", 17 * GIB)]);
+    await expect(
+      runUp({ model: "qwen3:14b", backend: "mlx" }, deps(adapter, catalog([ambiguous]))),
+    ).rejects.toBeInstanceOf(ValidationError);
+    const exact = mlxModel("qwen3:14b", [quant("4bit", 9 * GIB)]);
+    const mismatched: CatalogModel = {
+      ...exact,
+      source: {
+        mlx: {
+          ...exact.source.mlx!,
+          files: exact.source.mlx!.files.map((file, index) =>
+            index === 2 ? { ...file, bytes: file.bytes - 1 } : file,
+          ),
+        },
+      },
+    };
+    await expect(
+      runUp({ model: "qwen3:14b", backend: "mlx" }, deps(adapter, catalog([mismatched]))),
+    ).rejects.toBeInstanceOf(ValidationError);
+    expect(adapter.pullArgs).toHaveLength(0);
   });
 
   it("honors LOCAL_LLMUP_BACKEND when no flag is provided", async () => {
@@ -411,6 +499,22 @@ describe("runUp", () => {
     expect(adapter.calls).not.toContain("serve");
     expect(readState(config).active).toBeNull();
   });
+
+    it("auto-selects an installed backend that can serve the model instead of MLX-first blindly", async () => {
+      const ollama = fakeAdapter({ name: "ollama", formats: ["ollama"] });
+      const mlx = fakeAdapter({ name: "mlx", formats: ["mlx"] });
+      const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
+      const d: UpDeps = {
+        ...deps(ollama, cat),
+        registry: createRegistry([ollama, mlx]),
+      };
+
+      await runUp({ model: "llama3.1:8b" }, d);
+
+      expect(ollama.pullArgs).toHaveLength(1);
+      expect(mlx.pullArgs).toHaveLength(0);
+      expect(readState(config).active?.backend).toBe("ollama");
+    });
 
   it("uses the same insufficient-disk message for auto and explicit quant selection", async () => {
     const autoAdapter = fakeAdapter();

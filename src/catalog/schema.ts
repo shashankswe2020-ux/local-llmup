@@ -16,6 +16,7 @@ const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const REVISION_RE = /^[0-9a-f]{40}$/i;
 /** Hugging Face repo id: exactly one `owner/name`, each segment starting alphanumeric. */
 const HF_REPO_ID_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+const MLX_EXECUTABLE_FILE_RE = /\.(?:py|pyc|pyo|so|dylib|dll|bundle)$/i;
 
 /** True when `s` is a real calendar date (rejects e.g. 2024-02-30, 2024-13-01). */
 function isRealCalendarDate(s: string): boolean {
@@ -62,13 +63,56 @@ const MlxSourceSchema = z
   .object({
     repo: HfRepoIdSchema,
     revision: z.string().regex(REVISION_RE, { message: "revision must be a 40-hex commit SHA" }),
+    files: z
+      .array(
+        z
+          .object({
+            file: z
+              .string()
+              .min(1)
+              .max(512)
+              .refine(isSafeModelFile, {
+                message: "file must be a safe repo-relative path (no globs, `..`, or absolute paths)",
+              })
+              .refine((file) => !MLX_EXECUTABLE_FILE_RE.test(file), {
+                message: "MLX manifest must not contain executable Python or native-module files",
+              }),
+            sha256: z.string().regex(SHA256_RE),
+            bytes: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+          })
+          .strict(),
+      )
+      .min(3)
+      .max(256),
   })
-  .strict();
+  .strict()
+  .superRefine((source, ctx) => {
+    const paths = new Set<string>();
+    for (const [index, entry] of source.files.entries()) {
+      if (paths.has(entry.file)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["files", index, "file"],
+          message: `duplicate MLX file path: ${entry.file}`,
+        });
+      }
+      paths.add(entry.file);
+    }
+    if (!paths.has("config.json")) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["files"], message: "MLX manifest requires config.json" });
+    }
+    if (!paths.has("tokenizer_config.json")) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["files"], message: "MLX manifest requires tokenizer_config.json" });
+    }
+    if (![...paths].some((path) => path.endsWith(".safetensors"))) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["files"], message: "MLX manifest requires safetensors weights or index" });
+    }
+  });
 
 const QuantizationSchema = z
   .object({
     name: z.string().min(1),
-    diskBytes: z.number().int().positive(),
+    diskBytes: z.number().int().positive().safe(),
     minRamBytes: z.number().int().positive(),
     minVramBytes: z.number().int().nonnegative(),
     sha256: z.string().regex(SHA256_RE).optional(),
@@ -117,6 +161,39 @@ export const CatalogModelSchema = z
   })
   .strict()
   .superRefine((model, ctx) => {
+    if (model.source.mlx !== undefined) {
+      if (model.quantizations.length !== 1) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["quantizations"],
+          message: "a model-level MLX manifest requires exactly one quantization",
+        });
+      }
+      let manifestBytes = 0;
+      for (const file of model.source.mlx.files) {
+        manifestBytes += file.bytes;
+        if (!Number.isSafeInteger(manifestBytes)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["source", "mlx", "files"],
+            message: "MLX manifest byte total exceeds the safe integer range",
+          });
+          break;
+        }
+      }
+      const quantization = model.quantizations[0];
+      if (
+        Number.isSafeInteger(manifestBytes) &&
+        quantization !== undefined &&
+        quantization.diskBytes !== manifestBytes
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["quantizations", 0, "diskBytes"],
+          message: "MLX manifest bytes must equal the quantization diskBytes",
+        });
+      }
+    }
     if (model.architecture === "moe" && model.activeParams === undefined) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

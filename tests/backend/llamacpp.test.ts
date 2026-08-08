@@ -734,7 +734,7 @@ describe("LlamaCppAdapter — stop (ownership)", () => {
 describe("createDefaultRegistry — llama.cpp registration", () => {
   it("registers llama.cpp alongside ollama", () => {
     const registry = createDefaultRegistry();
-    expect(registry.all().map((a) => a.name)).toEqual(["ollama", "llamacpp"]);
+    expect(registry.all().map((a) => a.name)).toEqual(["ollama", "llamacpp", "mlx"]);
     expect(registry.get("llamacpp")).toBeInstanceOf(LlamaCppAdapter);
   });
 });

@@ -122,9 +122,25 @@ describe("CatalogModelSchema", () => {
     const validMlx = {
       repo: "mlx-community/Qwen3-14B-4bit",
       revision: "c".repeat(40),
+      files: [
+        { file: "config.json", sha256: "d".repeat(64), bytes: 100 },
+        { file: "tokenizer_config.json", sha256: "e".repeat(64), bytes: 200 },
+        { file: "model.safetensors", sha256: "f".repeat(64), bytes: 1_000 },
+      ],
     };
 
-    const withSource = (source: unknown): unknown => ({ ...denseModel, source });
+    const withSource = (source: unknown): unknown => ({
+      ...denseModel,
+      source,
+      ...(typeof source === "object" && source !== null && "mlx" in source
+        ? {
+            quantizations: denseModel.quantizations.map((quantization) => ({
+              ...quantization,
+              diskBytes: 1_300,
+            })),
+          }
+        : {}),
+    });
 
     it("accepts a gguf source", () => {
       expect(() => CatalogModelSchema.parse(withSource({ gguf: validGguf }))).not.toThrow();
@@ -132,6 +148,36 @@ describe("CatalogModelSchema", () => {
 
     it("accepts an mlx source", () => {
       expect(() => CatalogModelSchema.parse(withSource({ mlx: validMlx }))).not.toThrow();
+    });
+
+    it("binds an MLX manifest to exactly one equal-size quantization", () => {
+      const valid = withSource({ mlx: validMlx }) as typeof denseModel;
+      expect(() =>
+        CatalogModelSchema.parse({
+          ...valid,
+          quantizations: [...valid.quantizations, { ...valid.quantizations[0]!, name: "other" }],
+        }),
+      ).toThrow();
+      expect(() =>
+        CatalogModelSchema.parse({
+          ...valid,
+          quantizations: [{ ...valid.quantizations[0]!, diskBytes: 1_299 }],
+        }),
+      ).toThrow();
+      expect(() =>
+        CatalogModelSchema.parse({
+          ...valid,
+          source: {
+            mlx: {
+              ...validMlx,
+              files: validMlx.files.map((file) => ({
+                ...file,
+                bytes: Number.MAX_SAFE_INTEGER,
+              })),
+            },
+          },
+        }),
+      ).toThrow();
     });
 
     it("rejects a gguf source without sha256 (self-managed weights fail closed)", () => {
@@ -157,6 +203,92 @@ describe("CatalogModelSchema", () => {
       expect(() =>
         CatalogModelSchema.parse(withSource({ mlx: { ...validMlx, rogue: true } })),
       ).toThrow();
+    });
+
+    it("rejects an MLX manifest with duplicate file paths", () => {
+      expect(() =>
+        CatalogModelSchema.parse(
+          withSource({ mlx: { ...validMlx, files: [...validMlx.files, validMlx.files[0]] } }),
+        ),
+      ).toThrow();
+    });
+
+    it("rejects an MLX manifest without config, tokenizer, or safetensors", () => {
+      for (const files of [
+        validMlx.files.filter((entry) => entry.file !== "config.json"),
+        validMlx.files.filter((entry) => entry.file !== "tokenizer_config.json"),
+        validMlx.files.filter((entry) => !entry.file.endsWith(".safetensors")),
+      ]) {
+        expect(() => CatalogModelSchema.parse(withSource({ mlx: { ...validMlx, files } }))).toThrow();
+      }
+    });
+
+    it("rejects unsafe MLX paths and invalid file evidence", () => {
+      expect(() =>
+        CatalogModelSchema.parse(
+          withSource({
+            mlx: {
+              ...validMlx,
+              files: [{ file: "../config.json", sha256: "d".repeat(64), bytes: 100 }],
+            },
+          }),
+        ),
+      ).toThrow();
+      expect(() =>
+        CatalogModelSchema.parse(
+          withSource({
+            mlx: {
+              ...validMlx,
+              files: [{ file: "config.json", sha256: "bad", bytes: 0 }],
+            },
+          }),
+        ),
+      ).toThrow();
+    });
+
+    it("bounds MLX manifest file count and safe-integer byte sizes", () => {
+      const tooMany = [
+        ...validMlx.files,
+        ...Array.from({ length: 254 }, (_, index) => ({
+          file: `extra-${String(index)}.json`,
+          sha256: "a".repeat(64),
+          bytes: 1,
+        })),
+      ];
+      expect(() =>
+        CatalogModelSchema.parse(withSource({ mlx: { ...validMlx, files: tooMany } })),
+      ).toThrow();
+      expect(() =>
+        CatalogModelSchema.parse(
+          withSource({
+            mlx: {
+              ...validMlx,
+              files: [
+                ...validMlx.files.slice(0, -1),
+                { ...validMlx.files.at(-1)!, bytes: Number.MAX_SAFE_INTEGER + 1 },
+              ],
+            },
+          }),
+        ),
+      ).toThrow();
+    });
+
+    it("rejects executable code files in an MLX manifest", () => {
+      for (const file of ["model.py", "module.pyc", "native.so", "native.dylib", "native.dll"]) {
+        expect(() =>
+          CatalogModelSchema.parse(
+            withSource({
+              mlx: {
+                ...validMlx,
+                files: [
+                  ...validMlx.files,
+                  { file, sha256: "a".repeat(64), bytes: 100 },
+                ],
+              },
+            }),
+          ),
+        ).toThrow();
+      }
     });
 
     it.each(["main", "HEAD", "v1.0", "a".repeat(39), "a".repeat(41), "g".repeat(40)])(

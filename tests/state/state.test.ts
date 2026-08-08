@@ -55,6 +55,62 @@ describe("readState", () => {
     expect(readState(config)).toEqual(SERVER);
   });
 
+  it("round-trips an owned MLX session token", () => {
+    const mlx: RuntimeState = {
+      schemaVersion: STATE_SCHEMA_VERSION,
+      active: {
+        backend: "mlx",
+        modelId: "smollm2-360m",
+        endpoint: "http://127.0.0.1:18082",
+        pid: 4243,
+        port: 18082,
+        ownedByUs: true,
+        processExecutable: "/usr/bin/python3",
+        processStartedAt: "2026-08-08T00:00:00Z",
+        authToken: "a".repeat(64),
+      },
+    };
+    writeState(config, mlx);
+    expect(readState(config)).toEqual(mlx);
+  });
+
+  it("rejects incomplete, attached, or token-bearing non-MLX runtime state", () => {
+    const base = {
+      schemaVersion: STATE_SCHEMA_VERSION,
+    } as const;
+    expect(() =>
+      writeState(config, {
+        ...base,
+        active: {
+          backend: "mlx",
+          modelId: "m",
+          endpoint: "http://127.0.0.1:8080",
+          pid: 1,
+          port: 8080,
+          ownedByUs: true,
+        },
+      }),
+    ).toThrow(StateError);
+    expect(() =>
+      writeState(config, {
+        ...base,
+        active: {
+          backend: "mlx",
+          modelId: "m",
+          endpoint: "http://127.0.0.1:8080",
+          port: 8080,
+          ownedByUs: false,
+        },
+      }),
+    ).toThrow(StateError);
+    expect(() =>
+      writeState(config, {
+        ...SERVER,
+        active: { ...SERVER.active!, authToken: "a".repeat(64) },
+      }),
+    ).toThrow(StateError);
+  });
+
   it("round-trips an attached server with an unknown pid", () => {
     const attached: RuntimeState = {
       schemaVersion: STATE_SCHEMA_VERSION,

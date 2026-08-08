@@ -134,8 +134,8 @@ function harness(options: {
   state?: RuntimeState;
   cat?: Catalog;
   canEmbed?: boolean;
-  backendName?: "ollama" | "llamacpp";
-  formats?: readonly ("ollama" | "gguf")[];
+  backendName?: "ollama" | "llamacpp" | "mlx";
+  formats?: readonly ("ollama" | "gguf" | "mlx")[];
 }): Harness {
   const { adapter: chatCapable, chat } = chatAdapter(options.replies);
   const withBackend: BackendAdapter = {
@@ -316,6 +316,71 @@ describe("runChat", () => {
       endpoint: "http://127.0.0.1:18080",
       model: "qwen3:14b",
     });
+  });
+
+  it("rejects a different model before transmitting to a single-model MLX server", async () => {
+    const { deps, chat } = harness({
+      turns: ["hi"],
+      replies: ["must not send"],
+      backendName: "mlx",
+      formats: ["mlx"],
+      canEmbed: false,
+      state: activeState("llama3.1:8b", {
+        backend: "mlx",
+        endpoint: "http://127.0.0.1:18082",
+        port: 18082,
+      }),
+    });
+
+    await expect(runChat({ model: "qwen2.5:7b" }, deps)).rejects.toThrow(ValidationError);
+    expect(chat).not.toHaveBeenCalled();
+  });
+
+  it("forwards the persisted MLX token and process identity to chat", async () => {
+    const mlxCatalog = catalog([
+      model("smollm2:360m", {
+        source: {
+          mlx: {
+            repo: "mlx-community/SmolLM2-360M-Instruct-6bit",
+            revision: "a".repeat(40),
+            files: [
+              { file: "config.json", sha256: "b".repeat(64), bytes: 1 },
+              { file: "tokenizer_config.json", sha256: "c".repeat(64), bytes: 1 },
+              { file: "model.safetensors", sha256: "d".repeat(64), bytes: 4_999_999_998 },
+            ],
+          },
+        },
+      }),
+    ]);
+    const state = activeState("smollm2:360m", {
+      backend: "mlx",
+      endpoint: "http://127.0.0.1:18082",
+      port: 18082,
+      processExecutable: "/usr/bin/python3",
+      processStartedAt: "2026-08-08T00:00:00Z",
+      authToken: "a".repeat(64),
+    });
+    const { deps, chat } = harness({
+      turns: ["hi"],
+      replies: ["ok"],
+      state,
+      cat: mlxCatalog,
+      backendName: "mlx",
+      formats: ["mlx"],
+    });
+
+    await runChat({}, deps);
+
+    expect(chat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        authToken: "a".repeat(64),
+        expectedProcess: {
+          pid: 9001,
+          executable: "/usr/bin/python3",
+          started: "2026-08-08T00:00:00Z",
+        },
+      }),
+    );
   });
 
   it("throws when there is no active server", async () => {

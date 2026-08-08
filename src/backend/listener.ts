@@ -37,6 +37,14 @@ export interface ListenerIdentity {
   readonly localAddress: string;
 }
 
+/** Process identity independent of listener ownership, used during shutdown. */
+export interface ProcessIdentity {
+  readonly pid: number;
+  readonly process: string;
+  readonly executable: string;
+  readonly started: string;
+}
+
 /**
  * Return the unique process listening on `port`, or `null` when external probe
  * data is malformed, missing, or ambiguous. External systeminformation output
@@ -85,6 +93,30 @@ export async function probeListenerIdentity(
     if (executable === null) return null;
     return {
       ...listener,
+      process: processResult.data.name,
+      executable,
+      started: processResult.data.started,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Probe a specific PID's canonical executable and start identity. */
+export async function probeProcessIdentity(pid: number): Promise<ProcessIdentity | null> {
+  try {
+    const processList = await processes();
+    const processValue = processList.list.find((entry) => entry.pid === pid);
+    const processResult = ProcessSchema.safeParse(processValue);
+    if (!processResult.success) return null;
+    const executable = await processExecutable(
+      pid,
+      processResult.data.path,
+      processResult.data.name,
+    );
+    if (executable === null) return null;
+    return {
+      pid,
       process: processResult.data.name,
       executable,
       started: processResult.data.started,

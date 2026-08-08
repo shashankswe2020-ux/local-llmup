@@ -273,17 +273,30 @@ describe("runMigrate", () => {
     const chat = vi.fn((): Promise<ChatResult> =>
       Promise.resolve({ content: "prior chat covered setup and greetings" }),
     );
+    const mlxAdapter: BackendAdapter = {
+      ...fakeAdapter(chat),
+      name: "mlx",
+      capabilities: {
+        ...fakeAdapter(chat).capabilities,
+        canEmbed: false,
+        formats: ["mlx"],
+        defaultPort: 8080,
+      },
+    };
     const deps = makeDeps(cat, {
-      registry: createRegistry([fakeAdapter(chat)]),
+      registry: createRegistry([mlxAdapter]),
       readState: () => ({
         schemaVersion: STATE_SCHEMA_VERSION,
         active: {
-          backend: "ollama",
+          backend: "mlx",
           modelId: "small",
           endpoint: "http://127.0.0.1:12000",
           pid: 1,
-          port: 2,
+          port: 12000,
           ownedByUs: true,
+          processExecutable: "/usr/bin/python3",
+          processStartedAt: "2026-08-08T00:00:00Z",
+          authToken: "a".repeat(64),
         },
       }),
     });
@@ -294,6 +307,12 @@ describe("runMigrate", () => {
     expect(chat.mock.calls[0]?.[0]).toMatchObject({
       endpoint: "http://127.0.0.1:12000",
       model: "small",
+      authToken: "a".repeat(64),
+      expectedProcess: {
+        pid: 1,
+        executable: "/usr/bin/python3",
+        started: "2026-08-08T00:00:00Z",
+      },
     });
     expect(stdout.join("")).toContain("summarize");
   });

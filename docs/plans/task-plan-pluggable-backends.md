@@ -3,7 +3,7 @@
 > Source spec: [docs/specs/pluggable-inference-backends.md](../specs/pluggable-inference-backends.md) (Draft v0.5)
 > Related: [docs/specs/local-llmup.md](../specs/local-llmup.md), [docs/specs/hardware-advisor.md](../specs/hardware-advisor.md)
 > Status: **Draft — pending human approval + sub-agent review**
-> Last updated: 2026-08-06
+> Last updated: 2026-08-08
 
 ## Overview
 
@@ -52,7 +52,7 @@ Phase 0/1. Proposed defaults given.
 | D1 | Which catalog models get `gguf` sources + where digests come from | B15 | 3–5 popular models (e.g. Qwen3, Llama-3.1, Mistral) from official HF GGUF repos; `sha256` cross-checked against HF LFS pointer at ingest |
 | D2 | `(class, llamacpp)` efficiency rows: reuse existing class scalar (shared with ollama) vs re-derive per §12.2b | B15 | Reuse existing class scalar (spec §2.7 — `ollama`/`llamacpp` share); no NVIDIA re-derivation in this effort |
 | D3 | `(class, mlx)` efficiency: ship `unknown` vs seed a cited low-confidence value | B18 | Ship **`unknown`** (spec §12.2c — no reproducible primary source) |
-| D4 | Minimum `llama-server` / `mlx_lm` / `lms` versions the adapters target | B14a, B16, B17, B19 | Latest stable at implementation; record in `installHint()` |
+| D4 | Minimum `llama-server` / `mlx_lm` / `lms` versions the adapters target | B14a, B16, B17, B19 | MLX permits audited `mlx-lm==0.31.3` only (latest non-yanked stable verified 2026-08-08); others recorded at implementation |
 
 ## Architecture decisions
 
@@ -413,8 +413,15 @@ on digest/revision/exact-file/size-floor; readiness-probe timeout;
 (per-file digests), `mlx_lm.server` loopback-forced serve, OpenAI readiness.
 Register in `createDefaultRegistry`.
 **Acceptance:**
-- [ ] Not "installed" off Apple Silicon (mocked arch); loopback-forced serve; fail-closed pull.
-- [ ] Contract suite (B16) green for `mlx`.
+- [x] Not "installed" off Apple Silicon (mocked arch); loopback-forced serve; fail-closed multi-file repository pull.
+- [x] Contract suite (B16) green for `mlx`.
+**Production smoke (2026-08-08):** `mlx-lm==0.31.3` served the immutable
+`mlx-community/SmolLM2-360M-Instruct-6bit` snapshot on `127.0.0.1:18082`;
+authenticated health and exact-marker chat passed, unauthenticated/foreign-origin/
+wrong-media-type/oversized/excess-token requests failed closed, embeddings were
+rejected, and ownership-safe stop released the PID and port without disturbing
+the pre-existing listener on port 8080. This exercised the direct production
+adapter; catalog/CLI MLX smoke awaits a curated MLX catalog entry.
 **Verify:** `npm test tests/backend/mlx tests/backend/adapter-contract`
 **Deps:** B13, B14c **Files:** `src/backend/mlx.ts`, `src/backend/registry.ts`, `tests/backend/mlx.test.ts` **Scope:** L
 
