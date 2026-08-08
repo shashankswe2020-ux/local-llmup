@@ -8,6 +8,12 @@ import {
 } from "../../src/commands/can-run.js";
 import { loadPerf } from "../../src/advisor/perf-data.js";
 import { createDefaultRegistry } from "../../src/backend/registry.js";
+import {
+  expectNoninteractiveGolden,
+  jsonGoldenName,
+  plainGoldenName,
+  withGoldenEnvironment,
+} from "../fixtures/noninteractive-golden.js";
 import type {
   Catalog,
   CatalogModel,
@@ -214,14 +220,15 @@ describe("backend surfacing (B12)", () => {
 describe("runCanRun", () => {
   it("resolves the model, detects hardware, and writes a text report", async () => {
     const { deps: d, writes } = deps();
-    const result = await runCanRun({ model: "llama3.1" }, d);
+    const result = await withGoldenEnvironment(() => runCanRun({ model: "llama3.1" }, d));
     expect(result.runnable).toBe("yes");
-    expect(writes.join("")).toContain("llama3.1:8b");
+    expectNoninteractiveGolden(plainGoldenName("can-run"), writes.join(""));
   });
 
   it("emits JSON when --json is set", async () => {
     const { deps: d, writes } = deps();
-    await runCanRun({ model: "llama3.1", json: true }, d);
+    await withGoldenEnvironment(() => runCanRun({ model: "llama3.1", json: true }, d));
+    expectNoninteractiveGolden(jsonGoldenName("can-run"), writes.join(""));
     const parsed = JSON.parse(writes.join("")) as Record<string, unknown>;
     expect(parsed["verdict"]).toBe("yes");
   });

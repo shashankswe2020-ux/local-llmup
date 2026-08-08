@@ -1,0 +1,44 @@
+{
+  "checks": [
+    {
+      "name": "hardware",
+      "status": "ok",
+      "detail": "arm64/darwin, 30.0 GiB usable memory, 500.0 GiB free disk"
+    },
+    {
+      "name": "backend",
+      "status": "ok",
+      "detail": "ollama is installed"
+    },
+    {
+      "name": "catalog",
+      "status": "ok",
+      "detail": "1 model(s), all digests verified"
+    },
+    {
+      "name": "state",
+      "status": "ok",
+      "detail": "no active server recorded"
+    }
+  ],
+  "ok": true,
+  "hardwareScore": {
+    "total": 79,
+    "sub": {
+      "vram": 1,
+      "ram": 0.5,
+      "compute": 0.65,
+      "storage": 1
+    },
+    "bottleneck": "ram"
+  },
+  "backends": [
+    {
+      "name": "ollama",
+      "installed": true,
+      "version": "0.3.14",
+      "isDefault": true,
+      "installHint": "brew install ollama"
+    }
+  ]
+}

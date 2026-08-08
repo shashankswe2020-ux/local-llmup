@@ -10,6 +10,11 @@ import type { BackendAdapter, ChatRequest, ChatResult } from "../../src/backend/
 import type { MemoryStore } from "../../src/memory/store.js";
 import { STATE_SCHEMA_VERSION, type RuntimeState } from "../../src/state/state.js";
 import type { Catalog, CatalogModel, Quantization } from "../../src/types.js";
+import {
+  expectNoninteractiveGolden,
+  plainGoldenName,
+  withGoldenEnvironment,
+} from "../fixtures/noninteractive-golden.js";
 
 function quant(name: string, overrides: Partial<Quantization> = {}): Quantization {
   return {
@@ -181,11 +186,21 @@ describe("runChat", () => {
       replies: ["hello there", "doing well"],
     });
 
-    await runChat({}, deps);
+    await withGoldenEnvironment(() => runChat({}, deps));
 
     expect(chat).toHaveBeenCalledTimes(2);
-    expect(stdout.join("")).toContain("hello there");
-    expect(stdout.join("")).toContain("doing well");
+    expectNoninteractiveGolden(plainGoldenName("chat"), stdout.join(""));
+  });
+
+  it("preserves piped EOF behavior without emitting a transcript", async () => {
+    const { deps, chat, capture } = harness({ turns: [], replies: [] });
+
+    await withGoldenEnvironment(() => runChat({}, deps));
+
+    expect(stdout.join("")).toBe("");
+    expectNoninteractiveGolden("chat-piped-eof-stderr.txt", stderr.join(""));
+    expect(chat).not.toHaveBeenCalled();
+    expect(capture).not.toHaveBeenCalled();
   });
 
   it("invokes capture with the exact user/assistant payload", async () => {

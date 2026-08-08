@@ -17,6 +17,11 @@ import { createRegistry } from "../../src/backend/registry.js";
 import type { BackendAdapter, ChatRequest, ChatResult } from "../../src/backend/adapter.js";
 import type { Catalog, CatalogModel } from "../../src/types.js";
 import { STATE_SCHEMA_VERSION, type RuntimeState } from "../../src/state/state.js";
+import {
+  expectNoninteractiveGolden,
+  plainGoldenName,
+  withGoldenEnvironment,
+} from "../fixtures/noninteractive-golden.js";
 
 function model(id: string, contextLength = 8192): CatalogModel {
   return {
@@ -155,7 +160,9 @@ describe("runMigrate", () => {
       factsText: `{"schemaVersion":1,"facts":[{"text":"name = Ada","ts":"t"}]}`,
     });
 
-    await runMigrate({ from: "llama3.1:8b", to: "qwen2.5:14b" }, makeDeps(cat));
+    await withGoldenEnvironment(() =>
+      runMigrate({ from: "llama3.1:8b", to: "qwen2.5:14b" }, makeDeps(cat)),
+    );
 
     const targetDir = join(config.memoryDir, memorySlug("qwen2.5:14b"));
     expect(existsSync(join(targetDir, "conversation.jsonl"))).toBe(true);
@@ -166,9 +173,7 @@ describe("runMigrate", () => {
     // source left intact (no --move)
     expect(existsSync(join(config.memoryDir, memorySlug("llama3.1:8b")))).toBe(true);
     const summary = stdout.join("");
-    expect(summary).toContain("llama3.1:8b");
-    expect(summary).toContain("qwen2.5:14b");
-    expect(summary).toContain("carried");
+    expectNoninteractiveGolden(plainGoldenName("migrate"), summary);
   });
 
   it("copies the embedding index as-is when no target embedder is wired (reuse)", async () => {

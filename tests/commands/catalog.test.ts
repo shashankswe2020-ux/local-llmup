@@ -2,6 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 import { runCatalog, type CatalogDeps } from "../../src/commands/catalog.js";
 import type { Catalog, CatalogModel, HardwareProfile, Quantization } from "../../src/types.js";
 import type { RawRegistryModel } from "../../src/catalog/enrich.js";
+import {
+  expectNoninteractiveGolden,
+  plainGoldenName,
+  withGoldenEnvironment,
+} from "../fixtures/noninteractive-golden.js";
 
 const GiB = 1024 ** 3;
 
@@ -79,9 +84,10 @@ describe("runCatalog", () => {
   it("shows only fitting models by default", async () => {
     const { deps, stdout } = baseDeps();
 
-    await runCatalog({}, deps);
+    await withGoldenEnvironment(() => runCatalog({}, deps));
 
     const out = stdout.join("");
+    expectNoninteractiveGolden(plainGoldenName("catalog"), out);
     expect(out).toContain("llama3.1:8b");
     expect(out).not.toContain("kimi-k2:instruct");
     expect(out).toContain("Filter: fits");

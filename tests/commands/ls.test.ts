@@ -5,6 +5,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
 import { readState, STATE_SCHEMA_VERSION, writeState } from "../../src/state/state.js";
 import { runLs, type LsDeps } from "../../src/commands/ls.js";
+import {
+  expectNoninteractiveGolden,
+  plainGoldenName,
+  withGoldenEnvironment,
+} from "../fixtures/noninteractive-golden.js";
 
 let home: string;
 let config: Config;
@@ -29,9 +34,9 @@ function deps(): LsDeps {
 }
 
 describe("runLs", () => {
-  it("reports when no model is active", () => {
-    runLs(deps());
-    expect(stdout.join("")).toMatch(/no active model/i);
+  it("reports when no model is active", async () => {
+    await withGoldenEnvironment(() => runLs(deps()));
+    expectNoninteractiveGolden(plainGoldenName("ls"), stdout.join(""));
   });
 
   it("reflects the active owned server from state", () => {

@@ -14,6 +14,11 @@ import type {
   ReadinessOptions,
 } from "../../src/backend/adapter.js";
 import type { Catalog, CatalogModel, Quantization } from "../../src/types.js";
+import {
+  expectNoninteractiveGolden,
+  plainGoldenName,
+  withGoldenEnvironment,
+} from "../fixtures/noninteractive-golden.js";
 
 function quant(name: string, overrides: Partial<Quantization> = {}): Quantization {
   return {
@@ -174,7 +179,7 @@ describe("runSwitch", () => {
     seedActive("llama3.1:8b");
     const adapter = fakeAdapter();
 
-    await runSwitch({ model: "qwen2.5" }, deps(adapter));
+    await withGoldenEnvironment(() => runSwitch({ model: "qwen2.5" }, deps(adapter)));
 
     expect(adapter.pullArgs[0]?.modelId).toBe("qwen2.5:7b");
     expect(adapter.readyArgs[0]?.endpoint).toBe("http://127.0.0.1:11434");
@@ -186,7 +191,7 @@ describe("runSwitch", () => {
       port: 11434,
       ownedByUs: true,
     });
-    expect(stdout.join("")).toContain("qwen2.5:7b");
+    expectNoninteractiveGolden(plainGoldenName("switch"), stdout.join(""));
   });
 
   it("preserves the prior active model when the pull fails", async () => {

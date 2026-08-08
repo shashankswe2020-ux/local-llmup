@@ -1,0 +1,6 @@
+Migrated memory: llama3.1:8b -> qwen2.5:14b
+  turns carried:       2
+  turns summarized:    0
+  vectors re-embedded: 0
+  context strategy:    none
+  embedding strategy:  none

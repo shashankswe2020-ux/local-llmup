@@ -13,6 +13,12 @@ import { loadCatalog } from "../../src/catalog/load.js";
 import { loadPerf } from "../../src/advisor/perf-data.js";
 import { ValidationError } from "../../src/errors.js";
 import { createRegistry } from "../../src/backend/registry.js";
+import {
+  expectNoninteractiveGolden,
+  jsonGoldenName,
+  plainGoldenName,
+  withGoldenEnvironment,
+} from "../fixtures/noninteractive-golden.js";
 import type { BackendAdapter } from "../../src/backend/adapter.js";
 import type { Capability, Catalog, CatalogModel, HardwareProfile } from "../../src/types.js";
 
@@ -416,13 +422,14 @@ describe("runRecommend", () => {
 
   it("writes the text report by default", async () => {
     const { deps: d, writes } = deps();
-    await runRecommend({}, d);
-    expect(writes.join("")).toContain("local-llmup up llama3.1:8b");
+    await withGoldenEnvironment(() => runRecommend({}, d));
+    expectNoninteractiveGolden(plainGoldenName("recommend"), writes.join(""));
   });
 
   it("writes JSON when json is requested", async () => {
     const { deps: d, writes } = deps();
-    await runRecommend({ json: true }, d);
+    await withGoldenEnvironment(() => runRecommend({ json: true }, d));
+    expectNoninteractiveGolden(jsonGoldenName("recommend"), writes.join(""));
     const parsed = JSON.parse(writes.join(""));
     expect(parsed.command).toBe("local-llmup up llama3.1:8b");
   });

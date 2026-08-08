@@ -6,6 +6,12 @@ import { CatalogError, StateError } from "../../src/errors.js";
 import { STATE_SCHEMA_VERSION, type RuntimeState } from "../../src/state/state.js";
 import type { Catalog, HardwareProfile, Quantization } from "../../src/types.js";
 import { runDoctor, type DoctorDeps } from "../../src/commands/doctor.js";
+import {
+  expectNoninteractiveGolden,
+  jsonGoldenName,
+  plainGoldenName,
+  withGoldenEnvironment,
+} from "../fixtures/noninteractive-golden.js";
 
 const GiB = 1024 ** 3;
 
@@ -111,14 +117,14 @@ describe("runDoctor", () => {
   it("reports all clear and returns ok when the system is healthy", async () => {
     const { deps, stdout } = baseDeps();
 
-    const report = await runDoctor(deps);
+    const report = await withGoldenEnvironment(() => runDoctor(deps));
 
     expect(report.ok).toBe(true);
     expect(report.checks.every((c) => c.status !== "fail")).toBe(true);
     expect(find(report, "backend").status).toBe("ok");
     expect(find(report, "hardware").status).toBe("ok");
     expect(find(report, "state").status).toBe("ok");
-    expect(stdout.join("")).toMatch(/backend/i);
+    expectNoninteractiveGolden(plainGoldenName("doctor"), stdout.join(""));
   });
 
   it("fails when the backend is not installed and surfaces the install hint", async () => {
@@ -487,7 +493,8 @@ describe("runDoctor — backends section (B11)", () => {
       ]),
     });
 
-    await runDoctor(deps, { json: true });
+    await withGoldenEnvironment(() => runDoctor(deps, { json: true }));
+    expectNoninteractiveGolden(jsonGoldenName("doctor"), stdout.join(""));
 
     const parsed = JSON.parse(stdout.join("")) as {
       backends: ReadonlyArray<{

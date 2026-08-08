@@ -23,6 +23,11 @@ import type {
   ModelFormat,
   Quantization,
 } from "../../src/types.js";
+import {
+  expectNoninteractiveGolden,
+  plainGoldenName,
+  withGoldenEnvironment,
+} from "../fixtures/noninteractive-golden.js";
 
 const GIB = 1024 ** 3;
 
@@ -936,9 +941,9 @@ describe("runUp", () => {
     });
     const cat = catalog([model("llama3.1:8b", [quant("Q4_K_M", 5 * GIB)])]);
 
-    await runUp({ model: "llama3.1:8b" }, deps(adapter, cat));
+    await withGoldenEnvironment(() => runUp({ model: "llama3.1:8b" }, deps(adapter, cat)));
 
-    expect(stdout.join("")).toBe("llama3.1:8b ready at http://127.0.0.1:11434\n");
+    expectNoninteractiveGolden(plainGoldenName("up"), stdout.join(""));
     expect(stdout.join("")).not.toContain("\u0007");
   });
 });

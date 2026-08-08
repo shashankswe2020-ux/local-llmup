@@ -1,0 +1,61 @@
+{
+  "hardware": {
+    "arch": "arm64",
+    "platform": "darwin",
+    "usableMemoryBytes": 32212254720,
+    "memoryKind": "ram"
+  },
+  "ranked": [
+    {
+      "rank": 1,
+      "id": "llama3.1:8b",
+      "family": "llama3.1",
+      "params": "8B",
+      "quant": "Q4_K_M",
+      "requiredBytes": 5635000000,
+      "license": "apache-2.0",
+      "capabilities": [
+        "chat"
+      ],
+      "score": 0.569993037809407,
+      "verdict": "yes",
+      "estTokPerSec": {
+        "lowTokPerSec": 20.9,
+        "highTokPerSec": 38.7
+      },
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama"
+    },
+    {
+      "rank": 2,
+      "id": "gemma2:2b",
+      "family": "gemma2",
+      "params": "2B",
+      "quant": "Q4_K_M",
+      "requiredBytes": 1840000000,
+      "license": "apache-2.0",
+      "capabilities": [
+        "chat"
+      ],
+      "score": 0.5051707694632552,
+      "verdict": "yes",
+      "estTokPerSec": {
+        "lowTokPerSec": 83.4,
+        "highTokPerSec": 154.9
+      },
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama"
+    }
+  ],
+  "wontFit": [
+    {
+      "id": "kimi-k2:instruct",
+      "reason": "ram-bound"
+    }
+  ],
+  "command": "local-llmup up llama3.1:8b"
+}

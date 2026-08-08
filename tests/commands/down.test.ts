@@ -9,6 +9,11 @@ import { runDown, type DownDeps } from "../../src/commands/down.js";
 import { createRegistry } from "../../src/backend/registry.js";
 import type { BackendAdapter, ServeHandle } from "../../src/backend/adapter.js";
 import type { Catalog, CatalogModel } from "../../src/types.js";
+import {
+  expectNoninteractiveGolden,
+  plainGoldenName,
+  withGoldenEnvironment,
+} from "../fixtures/noninteractive-golden.js";
 
 function model(id: string): CatalogModel {
   return {
@@ -129,7 +134,7 @@ describe("runDown", () => {
   it("is a no-op when no server is active", async () => {
     const adapter = fakeAdapter();
 
-    await runDown({}, deps(adapter));
+    await withGoldenEnvironment(() => runDown({}, deps(adapter)));
 
     expect(adapter.stopped).toHaveLength(0);
     expect(readState(config).active).toBeNull();
@@ -140,12 +145,12 @@ describe("runDown", () => {
     seedOwned();
     const adapter = fakeAdapter();
 
-    await runDown({}, deps(adapter));
+    await withGoldenEnvironment(() => runDown({}, deps(adapter)));
 
     expect(adapter.stopped).toHaveLength(1);
     expect(adapter.stopped[0]).toMatchObject({ pid: 9001, port: 11434, ownedByUs: true });
     expect(readState(config).active).toBeNull();
-    expect(stdout.join("")).toContain("llama3.1:8b");
+    expectNoninteractiveGolden(plainGoldenName("down"), stdout.join(""));
   });
 
   it("detaches from an attached daemon without stopping it", async () => {

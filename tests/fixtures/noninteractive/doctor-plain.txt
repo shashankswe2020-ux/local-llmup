@@ -1,0 +1,14 @@
+Check     Status  Detail
+hardware  OK      arm64/darwin, 30.0 GiB usable memory, 500.0 GiB free disk
+backend   OK      ollama is installed
+catalog   OK      1 model(s), all digests verified
+state     OK      no active server recorded
+
+Backends
+Backend  Installed  Version  Default  Detail
+ollama   yes        unknown  yes
+
+AI Hardware Score: 79/100
+Primary bottleneck: RAM
+
+All checks passed.

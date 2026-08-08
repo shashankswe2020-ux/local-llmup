@@ -1,0 +1,4 @@
+✓ llama3.1:8b: yes — runs comfortably
+Quant: Q4_K_M
+Estimated throughput: 110–204.2 tok/s
+Backends: ollama (throughput scoped to ollama)

@@ -1,0 +1,1 @@
+llama3.1:8b ready at http://127.0.0.1:11434

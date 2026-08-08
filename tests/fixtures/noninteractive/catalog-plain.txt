@@ -1,0 +1,3 @@
+Catalog (Filter: fits, shown: 1/2)
+Model        Params  Arch   Quant   Need GiB  Fit  Release
+llama3.1:8b  8B      dense  Q4_K_M       6.9  fit  2025-07-23

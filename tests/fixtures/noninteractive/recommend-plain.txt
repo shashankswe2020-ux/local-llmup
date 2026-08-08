@@ -1,0 +1,10 @@
+Ranked local LLMs for arm64/darwin (30.0 GiB ram usable):
+
+Rank  Model        Params  Quant   Est. Mem  Verdict  Est. tok/s  Backends  License     Score
+   1  llama3.1:8b      8B  Q4_K_M   5.2 GiB  ✓ yes     20.9–38.7  ollama    apache-2.0   0.57
+   2  gemma2:2b        2B  Q4_K_M   1.7 GiB  ✓ yes    83.4–154.9  ollama    apache-2.0   0.51
+
+Run the top pick:  local-llmup up llama3.1:8b
+
+Won't fit (1):
+  ❌ kimi-k2:instruct  (ram-bound)

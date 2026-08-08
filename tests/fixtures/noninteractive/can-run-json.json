@@ -1,0 +1,15 @@
+{
+  "model": "llama3.1:8b",
+  "verdict": "yes",
+  "quant": "Q4_K_M",
+  "reason": null,
+  "throughput": {
+    "known": true,
+    "lowTokPerSec": 110,
+    "highTokPerSec": 204.2
+  },
+  "backends": [
+    "ollama"
+  ],
+  "throughputBackend": "ollama"
+}
