@@ -187,7 +187,9 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
     registry: deps.registry,
     platform: hardware.platform,
     arch: hardware.arch,
-    autoCandidates: backendsForModel(model, deps.registry).map((candidate) => candidate.name),
+    autoCandidates: backendsForModel(model, deps.registry, hardware).map(
+      (candidate) => candidate.name,
+    ),
     ...(options.backend !== undefined ? { flag: options.backend } : {}),
     env: deps.env,
     ...(deps.configBackend !== undefined ? { configBackend: deps.configBackend } : {}),

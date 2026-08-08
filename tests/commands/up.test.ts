@@ -516,6 +516,35 @@ describe("runUp", () => {
       expect(readState(config).active?.backend).toBe("ollama");
     });
 
+  it("auto-selects MLX only on Apple Silicon for an MLX-source model", async () => {
+    const mlx = fakeAdapter({
+      name: "mlx",
+      formats: ["mlx"],
+      pullModelPath: "/cache/mlx/qwen3-14b",
+      handle: {
+        endpoint: "http://127.0.0.1:8080",
+        pid: 7018,
+        port: 8080,
+        ownedByUs: true,
+        processExecutable: "/usr/bin/python3",
+        processStartedAt: "2026-08-08T00:00:00Z",
+        authToken: "a".repeat(64),
+      },
+    });
+    const cat = catalog([mlxModel("qwen3:14b", [quant("4bit", 9 * GIB)])]);
+
+    await runUp({ model: "qwen3:14b" }, deps(mlx, cat));
+    expect(mlx.pullArgs).toHaveLength(1);
+    expect(readState(config).active?.backend).toBe("mlx");
+
+    writeState(config, { schemaVersion: STATE_SCHEMA_VERSION, active: null });
+    const nonApple = hardware({ platform: "linux", arch: "x64", gpu: [] });
+    await expect(runUp({ model: "qwen3:14b" }, deps(mlx, cat, nonApple))).rejects.toBeInstanceOf(
+      BackendError,
+    );
+    expect(mlx.pullArgs).toHaveLength(1);
+  });
+
   it("uses the same insufficient-disk message for auto and explicit quant selection", async () => {
     const autoAdapter = fakeAdapter();
     const explicitAdapter = fakeAdapter();

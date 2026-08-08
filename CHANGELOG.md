@@ -26,6 +26,10 @@ Phase 2 llama.cpp production hardening after real-process smoke testing.
   acquisition from a pinned per-file SHA-256/size manifest. Direct-adapter real
   smoke passed pull/cache→serve→inference→stop with SmolLM2 360M on a custom
   port; catalog/CLI MLX smoke remains gated on curated MLX source data.
+- Completed Phase 3 backend selection: MLX is auto-preferred only on Apple
+  Silicon, is omitted from non-Apple `recommend`/`can-run` servability output,
+  and remains honesty-gated to unknown throughput because no cited MLX
+  efficiency scalar is shipped.
 
 ## 0.4.1 - 2026-08-07
 

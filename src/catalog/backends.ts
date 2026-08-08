@@ -10,6 +10,7 @@
  */
 import type { BackendAdapter } from "../backend/adapter.js";
 import type { BackendRegistry } from "../backend/registry.js";
+import { backendSupportsPlatform, type BackendPlatformTarget } from "../backend/platform.js";
 import type { CatalogModel, ModelFormat, ModelSource } from "../types.js";
 
 /**
@@ -37,18 +38,23 @@ export function formatsForModel(model: CatalogModel): readonly ModelFormat[] {
 }
 
 /**
- * The registered backends that can serve `model`, in registration order. Empty
- * when the model has only advisory sources or no registered backend matches.
+ * The registered backends that can serve `model` on `target`, in registration
+ * order. Empty when the model has only advisory sources, no registered backend
+ * matches, or every matching backend is unsupported on the target platform.
  */
 export function backendsForModel(
   model: CatalogModel,
   registry: BackendRegistry,
+  target: BackendPlatformTarget,
 ): readonly BackendAdapter[] {
   const formats = formatsForModel(model);
   if (formats.length === 0) {
     return [];
   }
-  return registry.all().filter((adapter) =>
-    adapter.capabilities.formats.some((format) => formats.includes(format)),
-  );
+  return registry
+    .all()
+    .filter((adapter) => backendSupportsPlatform(adapter.name, target))
+    .filter((adapter) =>
+      adapter.capabilities.formats.some((format) => formats.includes(format)),
+    );
 }

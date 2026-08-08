@@ -110,7 +110,7 @@ export function buildCanRunResult(
     throughput: verdict.throughput,
     quant: verdict.quant?.name ?? null,
     reason: verdict.reason ?? null,
-    backends: backendsForModel(model, registry).map((adapter) => adapter.name),
+    backends: backendsForModel(model, registry, hardware).map((adapter) => adapter.name),
     throughputBackend: backend,
   };
 }

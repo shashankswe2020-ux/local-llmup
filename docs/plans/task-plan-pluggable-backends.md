@@ -2,7 +2,7 @@
 
 > Source spec: [docs/specs/pluggable-inference-backends.md](../specs/pluggable-inference-backends.md) (Draft v0.5)
 > Related: [docs/specs/local-llmup.md](../specs/local-llmup.md), [docs/specs/hardware-advisor.md](../specs/hardware-advisor.md)
-> Status: **Draft — pending human approval + sub-agent review**
+> Status: **In progress — Phase 3 complete**
 > Last updated: 2026-08-08
 
 ## Overview
@@ -430,9 +430,14 @@ adapter; catalog/CLI MLX smoke awaits a curated MLX catalog entry.
 (installed-only). Ship `(apple, mlx)` efficiency as **`unknown`** (no cited
 number). Ensure `mlx` never surfaces as servable on non-Apple hardware.
 **Acceptance:**
-- [ ] Apple-Silicon profile with MLX installed → auto-selects `mlx` (mocked).
-- [ ] `recommend --backend mlx` → `unknown` throughput (honesty gate), model still ranked.
-- [ ] Non-Apple profile never lists `mlx` as servable.
+- [x] Apple-Silicon profile with MLX installed → auto-selects `mlx` (mocked).
+- [x] `recommend --backend mlx` → `unknown` throughput (honesty gate), model still ranked.
+- [x] Non-Apple profile never lists `mlx` as servable.
+**Implementation note (2026-08-08):** one pure, mandatory platform gate now
+drives auto-detect, MLX install/serve checks, `up` candidates, and deterministic
+`recommend`/`can-run` backend annotations. MLX is admitted only for the exact
+`darwin/arm64` pair; unknown or unsupported targets fail closed. No MLX
+efficiency scalar was added to `data/perf.json`.
 **Verify:** `npm test tests/backend/select tests/commands/recommend`
 **Deps:** B5, B17 **Files:** `src/backend/select.ts`, `data/perf.json`, `tests/**` **Scope:** S
 

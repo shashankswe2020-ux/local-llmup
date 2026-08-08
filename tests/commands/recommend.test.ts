@@ -284,6 +284,54 @@ describe("backend surfacing (B12)", () => {
     }
   });
 
+  it("keeps MLX throughput unknown and never advertises MLX as servable off Apple Silicon", () => {
+    const mlxModel = dense("smollm2:360m", "360M", 1_300, {
+      source: {
+        mlx: {
+          repo: "mlx-community/SmolLM2-360M-Instruct-6bit",
+          revision: "a".repeat(40),
+          files: [
+            { file: "config.json", sha256: "b".repeat(64), bytes: 100 },
+            { file: "tokenizer_config.json", sha256: "c".repeat(64), bytes: 200 },
+            { file: "model.safetensors", sha256: "d".repeat(64), bytes: 1_000 },
+          ],
+        },
+      },
+    });
+    const mlx = fakeAdapter({
+      name: "mlx",
+      capabilities: {
+        canPull: true,
+        canEmbed: false,
+        openAiCompatible: true,
+        formats: ["mlx"],
+        defaultPort: 8080,
+      },
+    });
+    const registry = createRegistry([mlx]);
+
+    const apple = buildRecommendation(
+      catalog([mlxModel]),
+      appleHw(32),
+      PERF,
+      { backend: "mlx" },
+      registry,
+    );
+    expect(apple.entries[0]?.backends).toEqual(["mlx"]);
+    expect(apple.entries[0]?.throughput.known).toBe(false);
+
+    const nonApple = buildRecommendation(
+      catalog([mlxModel]),
+      amdHw(16),
+      PERF,
+      { backend: "mlx" },
+      registry,
+    );
+    expect(nonApple.entries).toHaveLength(1);
+    expect(nonApple.entries[0]?.backends).toEqual([]);
+    expect(nonApple.entries[0]?.throughput.known).toBe(false);
+  });
+
   it("annotates servable backends in the text table", () => {
     const text = formatRecommendationText(build(FIXTURE, appleHw(32)));
     expect(text).toContain("Backends");

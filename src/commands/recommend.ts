@@ -230,7 +230,9 @@ export function buildRecommendation(
       score: ranked.score,
       verdict: verdict.runnable,
       throughput: verdict.throughput,
-      backends: backendsForModel(ranked.model, registry).map((adapter) => adapter.name),
+      backends: backendsForModel(ranked.model, registry, hardware).map(
+        (adapter) => adapter.name,
+      ),
       ...(contextSizing !== undefined ? { contextSizing } : {}),
       ...(maxContext !== undefined ? { maxContext } : {}),
     };
@@ -246,7 +248,9 @@ export function buildRecommendation(
       .filter((entry) => entry.backends.some((name) => installed.has(name)))
       .map((entry, index) => ({ ...entry, rank: index + 1 }));
     wontFit = wontFit.filter((entry) =>
-      backendsForModel(entry.model, registry).some((adapter) => installed.has(adapter.name)),
+      backendsForModel(entry.model, registry, hardware).some((adapter) =>
+        installed.has(adapter.name),
+      ),
     );
   }
 

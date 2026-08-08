@@ -52,6 +52,8 @@ function fakeAdapter(name: BackendAdapter["name"], formats: readonly ModelFormat
 const ollamaAdapter = fakeAdapter("ollama", ["ollama"]);
 const llamacppAdapter = fakeAdapter("llamacpp", ["gguf"]);
 const mlxAdapter = fakeAdapter("mlx", ["mlx"]);
+const APPLE_TARGET = { platform: "darwin", arch: "arm64" } as const;
+const LINUX_TARGET = { platform: "linux", arch: "x64" } as const;
 
 function modelWithSource(source: ModelSource): CatalogModel {
   return { ...denseModel, source };
@@ -62,7 +64,15 @@ const validGguf = {
   revision: "a".repeat(40),
   file: "qwen3-14b-q4_k_m.gguf",
 } as const;
-const validMlx = { repo: "mlx-community/Qwen3-14B-4bit", revision: "b".repeat(40) } as const;
+const validMlx = {
+  repo: "mlx-community/Qwen3-14B-4bit",
+  revision: "b".repeat(40),
+  files: [
+    { file: "config.json", sha256: "c".repeat(64), bytes: 100 },
+    { file: "tokenizer_config.json", sha256: "d".repeat(64), bytes: 200 },
+    { file: "model.safetensors", sha256: "e".repeat(64), bytes: 1_000 },
+  ],
+} as const;
 
 describe("formatsForModel", () => {
   it("maps an ollama source to the ollama format", () => {
@@ -97,7 +107,11 @@ describe("formatsForModel", () => {
 describe("backendsForModel", () => {
   it("returns the ollama backend for an ollama-only model (never dropped)", () => {
     const registry = createRegistry([ollamaAdapter, llamacppAdapter, mlxAdapter]);
-    const backends = backendsForModel(modelWithSource({ ollama: "llama3.1:8b" }), registry);
+    const backends = backendsForModel(
+      modelWithSource({ ollama: "llama3.1:8b" }),
+      registry,
+      LINUX_TARGET,
+    );
     expect(backends.map((a) => a.name)).toEqual(["ollama"]);
   });
 
@@ -106,6 +120,7 @@ describe("backendsForModel", () => {
     const backends = backendsForModel(
       modelWithSource({ gguf: validGguf, ollama: "llama3.1:8b" }),
       registry,
+      LINUX_TARGET,
     );
     expect(backends.map((a) => a.name)).toEqual(["ollama", "llamacpp"]);
   });
@@ -115,14 +130,31 @@ describe("backendsForModel", () => {
     const backends = backendsForModel(
       modelWithSource({ hf: "meta-llama/Llama-3.1-8B" }),
       registry,
+      LINUX_TARGET,
     );
     expect(backends).toEqual([]);
   });
 
   it("returns the mlx backend for an mlx-only model", () => {
     const registry = createRegistry([ollamaAdapter, llamacppAdapter, mlxAdapter]);
-    const backends = backendsForModel(modelWithSource({ mlx: validMlx }), registry);
+    const backends = backendsForModel(modelWithSource({ mlx: validMlx }), registry, APPLE_TARGET);
     expect(backends.map((a) => a.name)).toEqual(["mlx"]);
+  });
+
+  it("omits MLX for a non-Apple target without probing installation", () => {
+    const registry = createRegistry([ollamaAdapter, mlxAdapter]);
+    const model = modelWithSource({ mlx: validMlx });
+
+    expect(
+      backendsForModel(model, registry, LINUX_TARGET).map(
+        (adapter) => adapter.name,
+      ),
+    ).toEqual([]);
+    expect(
+      backendsForModel(model, registry, APPLE_TARGET).map(
+        (adapter) => adapter.name,
+      ),
+    ).toEqual(["mlx"]);
   });
 
   it("omits a gguf backend that is not registered", () => {
@@ -130,6 +162,7 @@ describe("backendsForModel", () => {
     const backends = backendsForModel(
       modelWithSource({ gguf: validGguf, ollama: "llama3.1:8b" }),
       registry,
+      LINUX_TARGET,
     );
     expect(backends.map((a) => a.name)).toEqual(["ollama"]);
   });
@@ -139,6 +172,7 @@ describe("backendsForModel", () => {
     const backends = backendsForModel(
       modelWithSource({ ollama: "llama3.1:8b", gguf: validGguf }),
       registry,
+      LINUX_TARGET,
     );
     expect(backends.map((a) => a.name)).toEqual(["llamacpp", "ollama"]);
   });

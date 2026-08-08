@@ -51,6 +51,7 @@ import {
   type ListenerIdentity,
   type ProcessIdentity,
 } from "./listener.js";
+import { backendSupportsPlatform } from "./platform.js";
 
 const MLX_PYTHON_BINARY = "python3";
 const MLX_SERVER_MODULE = "mlx_lm.server";
@@ -341,7 +342,14 @@ export class MlxAdapter implements BackendAdapter {
   }
 
   async isInstalled(): Promise<boolean> {
-    if (this.platform !== "darwin" || this.arch !== "arm64") return false;
+    if (
+      !backendSupportsPlatform(this.name, {
+        platform: this.platform === "darwin" ? "darwin" : undefined,
+        arch: this.arch === "arm64" ? "arm64" : undefined,
+      })
+    ) {
+      return false;
+    }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), INSTALL_PROBE_TIMEOUT_MS);
     try {
@@ -401,7 +409,12 @@ export class MlxAdapter implements BackendAdapter {
   }
 
   async serve(options?: ServeOptions): Promise<ServeHandle> {
-    if (this.platform !== "darwin" || this.arch !== "arm64") {
+    if (
+      !backendSupportsPlatform(this.name, {
+        platform: this.platform === "darwin" ? "darwin" : undefined,
+        arch: this.arch === "arm64" ? "arm64" : undefined,
+      })
+    ) {
       throw new BackendError("MLX serving requires Apple Silicon (darwin/arm64)");
     }
     const host = options?.host ?? DEFAULT_BIND_HOST;

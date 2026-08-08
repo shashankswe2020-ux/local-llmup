@@ -16,6 +16,7 @@ import { BackendError, ValidationError } from "../errors.js";
 import type { Arch, BackendName, Platform } from "../types.js";
 import type { BackendAdapter } from "./adapter.js";
 import type { BackendRegistry } from "./registry.js";
+import { backendSupportsPlatform } from "./platform.js";
 
 /** Environment variable that overrides the backend for a single invocation. */
 export const ENV_BACKEND_OVERRIDE = "LOCAL_LLMUP_BACKEND";
@@ -63,8 +64,9 @@ export function autoDetectPriority(
   platform: Platform | undefined,
   arch: Arch | undefined,
 ): readonly BackendName[] {
-  const appleSilicon = platform === "darwin" && arch === "arm64";
-  return appleSilicon ? ["mlx", "ollama", "llamacpp"] : ["ollama", "llamacpp"];
+  return (["mlx", "ollama", "llamacpp"] as const).filter((backend) =>
+    backendSupportsPlatform(backend, { platform, arch }),
+  );
 }
 
 /** True when an adapter with `name` is registered, without throwing. */

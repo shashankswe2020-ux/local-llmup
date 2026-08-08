@@ -157,6 +157,36 @@ describe("backend surfacing (B12)", () => {
     expect(["yes", "slow"]).toContain(result.runnable);
   });
 
+  it("surfaces MLX only on Apple Silicon while keeping throughput unknown", () => {
+    const mlxModel: CatalogModel = {
+      ...model("smollm2:360m", "360M", [quant("6bit", 1_300)]),
+      source: {
+        mlx: {
+          repo: "mlx-community/SmolLM2-360M-Instruct-6bit",
+          revision: "a".repeat(40),
+          files: [
+            { file: "config.json", sha256: "b".repeat(64), bytes: 100 },
+            { file: "tokenizer_config.json", sha256: "c".repeat(64), bytes: 200 },
+            { file: "model.safetensors", sha256: "d".repeat(64), bytes: 1_000 },
+          ],
+        },
+      },
+    };
+    const apple = hw({
+      platform: "darwin",
+      arch: "arm64",
+      gpu: [{ vendor: "apple", vramBytes: 0 }],
+    });
+
+    const supported = buildCanRunResult(mlxModel, apple, perf, "mlx");
+    expect(supported.backends).toEqual(["mlx"]);
+    expect(supported.throughput.known).toBe(false);
+
+    const unsupported = buildCanRunResult(mlxModel, hw(), perf, "mlx");
+    expect(unsupported.backends).toEqual([]);
+    expect(unsupported.throughput.known).toBe(false);
+  });
+
   it("exposes backends[] and throughputBackend in --json", () => {
     const result = buildCanRunResult(model("llama3.1:8b", "7B"), hw(), perf);
     const parsed = JSON.parse(formatCanRunJson(result)) as {
