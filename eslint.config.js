@@ -28,4 +28,13 @@ export default tseslint.config(
       "@typescript-eslint/no-non-null-assertion": "off",
     },
   },
+  {
+    files: ["site/**/*.js"],
+    languageOptions: {
+      globals: {
+        document: "readonly",
+        IntersectionObserver: "readonly",
+      },
+    },
+  },
 );
