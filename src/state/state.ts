@@ -221,7 +221,7 @@ export interface LockOptions {
   readonly pid?: number;
 }
 
-const DEFAULT_LOCK_TIMEOUT_MS = 10_000;
+export const DEFAULT_LOCK_TIMEOUT_MS = 10_000;
 const DEFAULT_POLL_INTERVAL_MS = 25;
 
 /** A fresh state with no active server. */
