@@ -5,7 +5,7 @@ Set Shell "zsh"
 Set Theme "Catppuccin Mocha"
 Set FontSize 14
 Set Width 1200
-Set Height 700
+Set Height 1100
 Set Padding 20
 
 Type "local-llmup recommend"
