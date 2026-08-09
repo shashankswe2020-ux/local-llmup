@@ -430,28 +430,38 @@ security audit: GO (audit 35).
 
 ---
 
-#### Task U2c: Cancellation/compensation model + lock/cleanup timeouts
+#### Task U2c: Cancellation/compensation model + lock/cleanup timeouts ✅ DONE (2026-08-09)
 
 **Description:** Enforce typed termination effects, bounded cleanup timeout,
 lock-order policy, and signal semantics (`129/130/143`) after cleanup.
 
 **Acceptance criteria:**
 
-- [ ] Cleanup timeout and lock timeout are explicit constants and test-covered.
-- [ ] Repeated Ctrl+C never bypasses ownership checks or forces unsafe exit.
-- [ ] Partial completion states report exact remediation, not generic success.
+- [x] Cleanup timeout and lock timeout are explicit constants and test-covered.
+- [x] Repeated Ctrl+C never bypasses ownership checks or forces unsafe exit.
+- [x] Partial completion states report exact remediation, not generic success.
+
+**Evidence:** `src/tui/cancellation.ts` exports `CLEANUP_TIMEOUT_MS` (30s),
+`LOCK_TIMEOUT_MS` (10s, sourced from `src/state/state.ts`), `SIGNAL_EXIT_CODES`
+(frozen map: SIGHUP→129, SIGINT→130, SIGTERM→143), a typed `CommandTermination`
+discriminated union (success/cancelled/partial/failed), phase-aware classifiers
+for up/down/switch cancellation, and exact remediation messages for partial
+completion that never collapse into generic success. The session layer (U1b)
+already enforces that repeated signals invoke `onRepeatedSignal` without
+bypassing pending cleanup or calling `process.exit()`. Final verification: 83
+files / 1,401 tests, build, typecheck, and lint passed. Independent code review:
+APPROVE (checkpoint 54). Independent security audit: GO (audit 36).
 
 **Verification command:**
 
 - `npm test -- --reporter=dot tests/tui/cancellation.test.ts tests/commands/*`
 - `npm run typecheck && npm run build`
 
-**Files likely touched:**
+**Files touched:**
 
-- `src/tui/presenter.ts`
-- `src/tui/session.ts`
-- `src/commands/{up,down,switch,migrate}.ts`
-- `tests/tui/cancellation.test.ts`
+- `src/tui/cancellation.ts` (new)
+- `src/state/state.ts` (export `DEFAULT_LOCK_TIMEOUT_MS`)
+- `tests/tui/cancellation.test.ts` (new, 32 tests)
 
 **Dependencies:** U2b
 
@@ -459,36 +469,50 @@ lock-order policy, and signal semantics (`129/130/143`) after cleanup.
 
 **Done criteria:**
 
-- [ ] Mutating command TUIs shipped with snapshot revalidation.
-- [ ] Cancellation/cleanup and race suites green.
-- [ ] No duplicate domain execution across renderer faults.
+- [x] Mutating command TUIs shipped with snapshot revalidation.
+- [x] Cancellation/cleanup and race suites green.
+- [x] No duplicate domain execution across renderer faults.
 
 ---
 
 ### Phase U3 — Chat TUI + Release Hardening
 
-#### Task U3a: Chat interaction model and limits
+#### Task U3a: Chat interaction model and limits ✅ DONE (2026-08-09)
 
 **Description:** Implement chat screen/editor, request-in-progress behavior,
 response/draft bounds, and memory-capture warning semantics.
 
 **Acceptance criteria:**
 
-- [ ] Draft limits enforced (32 KiB, 8192 graphemes, 256 lines).
-- [ ] No fake token streaming; pending-state explicit.
-- [ ] Auto TUI chat emits session-end summary only; `--no-tui` preserves transcript.
+- [x] Draft limits enforced (32 KiB, 8192 graphemes, 256 lines).
+- [x] No fake token streaming; pending-state explicit.
+- [x] Auto TUI chat emits session-end summary only; `--no-tui` preserves transcript.
+
+**Evidence:** `src/tui/chat-limits.ts` exports hard limit constants, a pure
+synchronous `validateDraft()` gate (checks bytes → graphemes → lines in order),
+`isResponseWithinLimits()` for 1 MiB response cap, grapheme-safe truncation, and
+`formatChatSessionSummary()`. `src/tui/chat-entry.ts` provides `runInteractiveChat()`
+which routes assistant replies to stderr (TUI stream) and emits only a compact
+session-end summary to stdout on exit. `src/tui/screens/chat.tsx` renders the Ink
+component with explicit "Waiting for response…" pending state (no fake streaming).
+Draft limits are validated before any backend call; oversized responses warn but
+don't terminate the session. Intl.Segmenter is hoisted as a module-level singleton
+and response display uses grapheme-safe truncation. Final verification: 85 files /
+1,444 tests, build, typecheck, and lint passed. Independent code review: APPROVE
+(checkpoint 55).
 
 **Verification command:**
 
-- `npm test -- --reporter=dot tests/tui/screens/chat.test.ts tests/commands/chat.test.ts`
+- `npm test -- --reporter=dot tests/tui/chat-limits.test.ts tests/tui/chat-entry.test.ts tests/commands/chat.test.ts`
 - `npm run typecheck && npm run build`
 
-**Files likely touched:**
+**Files touched:**
 
-- `src/tui/screens/chat.tsx`
-- `src/commands/chat.ts`
-- `tests/tui/screens/chat.test.ts`
-- `tests/commands/chat.test.ts`
+- `src/tui/chat-limits.ts` (new)
+- `src/tui/chat-entry.ts` (new)
+- `src/tui/screens/chat.tsx` (new)
+- `tests/tui/chat-limits.test.ts` (new, 31 tests)
+- `tests/tui/chat-entry.test.ts` (new, 12 tests)
 
 **Dependencies:** U2c
 
