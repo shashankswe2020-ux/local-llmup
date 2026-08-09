@@ -518,16 +518,16 @@ and response display uses grapheme-safe truncation. Final verification: 85 files
 
 ---
 
-#### Task U3b: Performance/package gates + real terminal smoke
+#### Task U3b: Performance/package gates + real terminal smoke — DONE
 
 **Description:** Add automated budget checks and required smoke matrix across
 macOS/Linux/Windows terminal environments.
 
 **Acceptance criteria:**
 
-- [ ] Plain/JSON cold-start regression and interactive latency budgets pass.
-- [ ] Tarball/install-size gates pass with committed lockfile.
-- [ ] Required smoke jobs prove no stuck raw mode/hidden cursor/orphan process.
+- [x] Plain/JSON cold-start regression and interactive latency budgets pass.
+- [x] Tarball/install-size gates pass with committed lockfile.
+- [x] Required smoke jobs prove no stuck raw mode/hidden cursor/orphan process.
 
 **Verification command:**
 
