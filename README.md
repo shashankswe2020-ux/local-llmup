@@ -19,25 +19,7 @@ chat across four supported backends.
 ## Highlights
 
 <div align="center">
-<pre style="background:#0d1117;color:#c9d1d9;padding:16px;border-radius:8px;overflow-x:auto;">
-<span style="color:#58a6ff;">local-llmup / Doctor</span>                                                       <span style="color:#3fb950;">healthy</span>
-<span style="color:#30363d;">─────────────────────────────────────────────────────────────────────────────</span>
-  Diagnostics
-  <span style="color:#3fb950;">✓ OK</span>   hardware: arm64/darwin, 34.0 GiB usable memory, 765 GiB free disk
-  <span style="color:#3fb950;">✓ OK</span>   backend: ollama is installed
-  <span style="color:#3fb950;">✓ OK</span>   catalog: 58 model(s), all digests verified
-  <span style="color:#3fb950;">✓ OK</span>   state: no active server recorded
-
-  <span style="color:#58a6ff;">Backends</span>
-  ollama · <span style="color:#3fb950;">installed</span> · version 0.32.5 · <span style="color:#d29922;">default</span>
-  llamacpp · <span style="color:#3fb950;">installed</span> · version 10090
-  lmstudio · <span style="color:#3fb950;">installed</span> · CLI commit: 71bd99c
-
-  <span style="color:#58a6ff;">Score: 80/100</span> · Bottleneck: <span style="color:#d29922;">RAM</span>
-  VRAM <span style="color:#3fb950;">1</span> · RAM <span style="color:#d29922;">0.5625</span> · Compute 0.65 · Storage <span style="color:#3fb950;">1</span>
-<span style="color:#30363d;">─────────────────────────────────────────────────────────────────────────────</span>
-  <span style="color:#8b949e;">q/Esc Quit · ? Help</span>
-</pre>
+<img src="assets/demo.gif" alt="local-llmup end-to-end demo" width="800" />
 </div>
 
 - **Runnability verdicts.** `yes / slow / no` with binding reason and est. tok/s — **before** any download.
@@ -158,85 +140,24 @@ when running in a capable terminal (TTY with ≥60 columns, ≥16 rows).
 | `q` / `Esc` | Quit / back |
 | `Ctrl+C` | Cancel operation (with compensation) |
 
-### TUI Screenshots
+### Screenshots
 
-**Recommend screen** — interactive model list with search and details:
+**Recommend** — interactive TUI with ranked models, search, details, and compare:
 
 <div align="center">
-<pre style="background:#0d1117;color:#c9d1d9;padding:16px;border-radius:8px;overflow-x:auto;">
-<span style="color:#58a6ff;">local-llmup / Recommend</span>                                        <span style="color:#8b949e;">arm64/darwin 34 GiB</span>
-<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
-  Rank  Model              Params  Verdict     Est. tok/s   Score
-     1  qwen3:30b-a3b         30B  <span style="color:#3fb950;">✓ yes</span>       55.6–103.3    0.78
-  <span style="color:#58a6ff;">►</span>  2  kimi-vl-a3b           16B  <span style="color:#3fb950;">✓ yes</span>       55.6–103.3    0.66
-     3  qwen3:32b             32B  <span style="color:#d29922;">⚠️ slow</span>        5.2–9.7    0.61
-     4  deepseek-r1:32b       32B  <span style="color:#d29922;">⚠️ slow</span>        5.2–9.7    0.59
-     5  qwen2.5-coder:32b     32B  <span style="color:#d29922;">⚠️ slow</span>        5.2–9.7    0.57
-     …
-<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
-  <span style="color:#8b949e;">↑↓ Navigate · Enter Select · / Search · m Mark · c Compare · d Details · q Quit</span>
-</pre>
+<img src="assets/screenshot-recommend.png" alt="local-llmup recommend TUI" width="800" />
 </div>
 
-**Doctor dashboard** — hardware diagnostics and backend status:
+**Doctor** — hardware diagnostics, backend status, and AI hardware score:
 
 <div align="center">
-<pre style="background:#0d1117;color:#c9d1d9;padding:16px;border-radius:8px;overflow-x:auto;">
-<span style="color:#58a6ff;">local-llmup / Doctor</span>                                                       <span style="color:#3fb950;">healthy</span>
-<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
-Diagnostics
-<span style="color:#3fb950;">✓ OK</span>      hardware: arm64/darwin, 34.0 GiB usable memory, 765.1 GiB free disk
-<span style="color:#3fb950;">✓ OK</span>      backend: ollama is installed
-<span style="color:#3fb950;">✓ OK</span>      catalog: 58 model(s), all digests verified
-<span style="color:#3fb950;">✓ OK</span>      state: no active server recorded
-
-<span style="color:#58a6ff;">Backends</span>
-ollama · <span style="color:#3fb950;">installed</span> · version 0.32.5 · <span style="color:#d29922;">default</span> · brew install ollama
-llamacpp · <span style="color:#3fb950;">installed</span> · version 10090 · not default · brew install llama.cpp
-mlx · <span style="color:#f85149;">not installed</span> · not default · python3 -m pip install "mlx-lm==0.31.3"
-lmstudio · <span style="color:#3fb950;">installed</span> · CLI commit: 71bd99c · not default
-
-<span style="color:#58a6ff;">Score: 80/100</span> · Bottleneck: <span style="color:#d29922;">RAM</span>
-VRAM <span style="color:#3fb950;">1</span> · RAM <span style="color:#d29922;">0.5625</span> · Compute 0.65 · Storage <span style="color:#3fb950;">1</span>
-<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
-<span style="color:#8b949e;">q/Esc Quit · ? Help</span>
-</pre>
+<img src="assets/screenshot-doctor.png" alt="local-llmup doctor TUI" width="800" />
 </div>
 
-**Lifecycle progress** — real-time pull/verify/serve with cancellation:
+**Can-run** — instant yes/slow/no verdict for any model:
 
 <div align="center">
-<pre style="background:#0d1117;color:#c9d1d9;padding:16px;border-radius:8px;overflow-x:auto;">
-<span style="color:#58a6ff;">local-llmup / Up</span>                                                      <span style="color:#8b949e;">llama3.1:8b</span>
-<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
-Stage: Pulling weights
-
-  <span style="color:#3fb950;">✓</span> Preflight checks passed
-  <span style="color:#58a6ff;">●</span> Pulling llama3.1:8b (Q4_K_M)...
-    pulling 8eeb52dfb3bb: 67% <span style="color:#3fb950;">▕████████████</span><span style="color:#30363d;">░░░░░░▏</span> 3.2/4.7 GB  42 MB/s
-  <span style="color:#8b949e;">○</span> Verifying digest
-  <span style="color:#8b949e;">○</span> Starting server
-
-<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
-<span style="color:#8b949e;">Ctrl+C Cancel (partial state will be cleaned up)</span>
-</pre>
-</div>
-
-**Chat screen** — streaming responses with session summary:
-
-<div align="center">
-<pre style="background:#0d1117;color:#c9d1d9;padding:16px;border-radius:8px;overflow-x:auto;">
-<span style="color:#58a6ff;">local-llmup / Chat</span>                                    <span style="color:#8b949e;">llama3.1:8b @ 127.0.0.1:11434</span>
-<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
-  <span style="color:#d29922;">user:</span> What is the meaning of life?
-  <span style="color:#3fb950;">assistant:</span> The question of life's meaning has occupied philosophers for
-  millennia. Some find it in connection, others in creation...
-
-  <span style="color:#d29922;">user:</span> <span style="color:#58a6ff;">█</span>
-
-<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
-<span style="color:#8b949e;">Enter Send · Ctrl+J Newline · Esc/Ctrl+C Exit</span>
-</pre>
+<img src="assets/screenshot-can-run.png" alt="local-llmup can-run output" width="800" />
 </div>
 
 ### Modes
