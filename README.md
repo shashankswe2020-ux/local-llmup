@@ -37,16 +37,28 @@ chat across four supported backends.
 
 ## Table of Contents
 
-- [Install](#install)
-- [Quick Start](#quick-start)
-- [Terminal UI](#terminal-ui)
-- [Commands](#commands)
-- [Supported Backends](#supported-backends)
-- [How Advice Works](#how-advice-works)
-- [Scripting & Exit Codes](#scripting--exit-codes)
-- [local-llmup vs. Ollama](#local-llmup-vs-ollama)
-- [Development](#development)
-- [Troubleshooting](#troubleshooting)
+- [local-llmup](#local-llmup)
+  - [Highlights](#highlights)
+  - [Table of Contents](#table-of-contents)
+  - [Install](#install)
+  - [Quick Start](#quick-start)
+  - [Terminal UI](#terminal-ui)
+    - [Features](#features)
+    - [Keyboard Shortcuts](#keyboard-shortcuts)
+    - [Screenshots](#screenshots)
+    - [Modes](#modes)
+  - [Commands](#commands)
+    - [Global Options](#global-options)
+    - [Machine-Readable Output](#machine-readable-output)
+  - [Supported Backends](#supported-backends)
+  - [How Advice Works](#how-advice-works)
+  - [Scripting \& Exit Codes](#scripting--exit-codes)
+  - [local-llmup vs. Ollama](#local-llmup-vs-ollama)
+  - [Development](#development)
+    - [Architecture](#architecture)
+    - [Testing Philosophy](#testing-philosophy)
+  - [Troubleshooting](#troubleshooting)
+  - [License](#license)
 
 ---
 
