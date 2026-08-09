@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1 - 2026-08-10
+
+**Documentation patch.**
+
+- Add real TUI screenshots and end-to-end demo GIF recorded with vhs
+- Replace HTML `<pre>` mockups with actual terminal captures
+- Include VHS tape files for reproducible re-recording (`assets/*.tape`)
+
 ## 0.6.0 - 2026-08-10
 
 **Terminal User Interface (TUI) — Release Candidate.**
