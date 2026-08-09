@@ -1,8 +1,54 @@
 # Changelog
 
-## Unreleased
+## 0.6.0 - 2026-08-10
 
-- No entries yet.
+**Terminal User Interface (TUI) — Release Candidate.**
+
+This release adds a full interactive terminal UI that activates automatically in
+capable terminals (TTY ≥60×16) and degrades gracefully to plain text elsewhere.
+
+### New Features
+
+- **Interactive TUI** with Ink 5 + React 18 rendering to stderr:
+  - **Recommend screen** — searchable, scrollable model list with selection,
+    marking, comparison, and detail overlays.
+  - **Doctor dashboard** — box-drawn diagnostics, backend version table, AI
+    Hardware Score axes.
+  - **Catalog browser** — search, filter, refresh diff, and model details.
+  - **Lifecycle progress** — real-time staged pull/verify/serve with Ctrl+C
+    cancellation and partial-state compensation.
+  - **Chat screen** — multi-line input (Ctrl+J), streaming responses, draft
+    validation (32 KiB / 8192 graphemes / 256 lines), session summary on exit.
+  - **Model picker** — keyboard-navigable model selection for switch/migrate.
+  - **`ls` card** — active server status with auto-exit for implicit TUI.
+- **Accessible mode** (`--accessible`) — cooked line-oriented fallback for
+  screen readers. Never enters raw mode or writes cursor-control sequences.
+- **Mode auto-selection** — visual / accessible / plain chosen by terminal
+  capabilities, environment, and user flags.
+- **Cancellation model** — signals trigger a 30-second cleanup timeout with
+  compensation (partial state cleared, cursor restored, raw mode exited).
+  Second signal forces immediate exit with documented exit codes.
+- **Session ownership** — terminal resources (raw mode, cursor, resize listener,
+  stdin pause/resume) are tracked and restored on any exit path.
+- **Performance budgets** — cold-start regression ≤20 ms p90, TUI module load
+  ≤150 ms p90, tarball increase ≤250 KiB, install increase ≤15 MiB.
+- **Terminal hygiene guarantees** — no stuck raw mode, no hidden cursor, no
+  orphan processes (proven by automated smoke tests).
+
+### Infrastructure
+
+- 23 new TUI test files (337 assertions) covering screens, session, keys,
+  cancellation, chat limits, lifecycle, model picker, and budget gates.
+- TUI-specific CI workflow (`tui-compatibility.yml`) with runtime-proof,
+  package-budget, and dependency-policy jobs across macOS/Linux/Windows ×
+  Node 18/20/22/24.
+- `tui:package-budget`, `tui:runtime-budget`, and `tui:dependency-policy`
+  scripts enforce performance gates in CI and locally.
+- Total test count: **1459 tests** across **87 files**, all passing.
+
+### Dependencies Added
+
+- `ink` ^5.2.1, `react` ^18.3.1 (lazy-imported; zero cost on non-TUI paths)
 
 ## 0.5.0 - 2026-08-08
 

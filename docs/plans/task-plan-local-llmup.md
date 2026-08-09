@@ -13,6 +13,13 @@ a weekly GitHub Actions pipeline. Work is sliced vertically so the **headline
 `recommend` feature ships first** (Tasks 6–11, no backend/state/memory needed),
 then serving, then memory/migrate, then the enrichment pipeline.
 
+Follow-on implementation plans derived from this baseline:
+
+- [docs/plans/task-plan-hardware-advisor.md](./task-plan-hardware-advisor.md)
+- [docs/plans/task-plan-context-window.md](./task-plan-context-window.md)
+- [docs/plans/task-plan-pluggable-backends.md](./task-plan-pluggable-backends.md)
+- [docs/plans/task-30-terminal-user-interface.md](./task-30-terminal-user-interface.md)
+
 > **v2 revisions** (from code-review + test-engineering of the v1 plan): added a
 > shared-types task (T2) and an output-formatter task (T10); extracted a reusable
 > **model resolver** (T14); split oversized tasks — ranking (T8/T9), the Ollama

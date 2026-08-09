@@ -546,9 +546,9 @@ macOS/Linux/Windows terminal environments.
 
 **Done criteria:**
 
-- [ ] U0/U1/U2/U3 acceptance criteria all green.
-- [ ] Code review: no unresolved Critical/Important.
-- [ ] Security audit: no unresolved Critical/High/Medium.
+- [x] U0/U1/U2/U3 acceptance criteria all green.
+- [x] Code review: no unresolved Critical/Important.
+- [x] Security audit: no unresolved Critical/High/Medium.
 
 ---
 

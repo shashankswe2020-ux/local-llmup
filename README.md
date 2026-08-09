@@ -3,168 +3,120 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/tests-636%20passing-brightgreen.svg)](#development)
-[![Ollama](https://img.shields.io/badge/runtime-Ollama-000000.svg)](https://ollama.com)
+[![Tests](https://img.shields.io/badge/tests-1459%20passing-brightgreen.svg)](#development)
+[![Backends](https://img.shields.io/badge/backends-Ollama%20%7C%20llama.cpp%20%7C%20MLX%20%7C%20LM%20Studio-000000.svg)](#supported-backends)
 
-**Know which local LLMs will actually run on your machine — `yes / slow / no`,
-with an estimated tokens-per-second range — in one command, before you download
-anything.**
+> **Know which local LLMs will actually run on your machine — before you download anything.**
 
-`local-llmup` is a hardware-aware CLI for discovering, sizing, installing,
-serving, and migrating local LLMs. It detects your hardware, scores it, and
-ranks a curated catalog of open-weight models by what fits and how fast it will
-go — then drives the whole Ollama lifecycle from a single tool.
+`local-llmup` is a hardware-aware CLI with an interactive terminal UI for
+discovering, sizing, installing, serving, and migrating local LLMs. One command
+gives you a `yes / slow / no` verdict with estimated tokens-per-second for every
+model in its curated catalog — then drives the entire lifecycle from pull through
+chat across four supported backends.
 
 ---
 
-## Table of contents
+## Highlights
 
-- [What makes it different](#what-makes-it-different)
-- [Requirements](#requirements)
+<div align="center">
+<pre style="background:#0d1117;color:#c9d1d9;padding:16px;border-radius:8px;overflow-x:auto;">
+<span style="color:#58a6ff;">local-llmup / Doctor</span>                                                       <span style="color:#3fb950;">healthy</span>
+<span style="color:#30363d;">─────────────────────────────────────────────────────────────────────────────</span>
+  Diagnostics
+  <span style="color:#3fb950;">✓ OK</span>   hardware: arm64/darwin, 34.0 GiB usable memory, 765 GiB free disk
+  <span style="color:#3fb950;">✓ OK</span>   backend: ollama is installed
+  <span style="color:#3fb950;">✓ OK</span>   catalog: 58 model(s), all digests verified
+  <span style="color:#3fb950;">✓ OK</span>   state: no active server recorded
+
+  <span style="color:#58a6ff;">Backends</span>
+  ollama · <span style="color:#3fb950;">installed</span> · version 0.32.5 · <span style="color:#d29922;">default</span>
+  llamacpp · <span style="color:#3fb950;">installed</span> · version 10090
+  lmstudio · <span style="color:#3fb950;">installed</span> · CLI commit: 71bd99c
+
+  <span style="color:#58a6ff;">Score: 80/100</span> · Bottleneck: <span style="color:#d29922;">RAM</span>
+  VRAM <span style="color:#3fb950;">1</span> · RAM <span style="color:#d29922;">0.5625</span> · Compute 0.65 · Storage <span style="color:#3fb950;">1</span>
+<span style="color:#30363d;">─────────────────────────────────────────────────────────────────────────────</span>
+  <span style="color:#8b949e;">q/Esc Quit · ? Help</span>
+</pre>
+</div>
+
+- **Runnability verdicts.** `yes / slow / no` with binding reason and est. tok/s — **before** any download.
+- **Interactive TUI.** Rich terminal interface with search, filtering, keyboard navigation, and screen-reader accessible mode. Falls back gracefully to plain text when not in a TTY.
+- **4 backends.** Ollama, llama.cpp, MLX (Apple Silicon), and LM Studio — auto-selected or user-chosen.
+- **AI Hardware Score (0–100).** Diagnose your machine's bottleneck in one command.
+- **Context-window sizing.** KV-cache-aware memory estimates with GQA-correct attention geometry.
+- **Honesty gate.** Unknown figures render as `unknown` — never fabricated.
+- **Integrity-verified installs.** SHA-256 digest checks; fail-closed on mismatch.
+- **Loopback-only.** Servers bind `127.0.0.1` — nothing exposed to the network.
+- **Portable memory.** Chat history follows you between models via `migrate`.
+- **Scriptable.** Stable text + `--json`, clean exit codes, zero network for advice.
+
+---
+
+## Table of Contents
+
 - [Install](#install)
-- [60-second tour (end-to-end)](#60-second-tour-end-to-end)
-- [Command reference (with real output)](#command-reference-with-real-output)
-  - [`recommend`](#recommend--the-default-command)
-  - [`can-run`](#can-run)
-  - [`doctor`](#doctor)
-  - [`catalog`](#catalog)
-  - [`up`](#up)
-  - [`chat`](#chat)
-  - [`ls`](#ls)
-  - [`switch`](#switch)
-  - [`down`](#down)
-  - [`migrate`](#migrate)
-- [How the advice is computed](#how-the-advice-is-computed)
-- [Scripting & exit codes](#scripting--exit-codes)
-- [local-llmup vs. using Ollama directly](#local-llmup-vs-using-ollama-directly)
-- [Troubleshooting](#troubleshooting)
+- [Quick Start](#quick-start)
+- [Terminal UI](#terminal-ui)
+- [Commands](#commands)
+- [Supported Backends](#supported-backends)
+- [How Advice Works](#how-advice-works)
+- [Scripting & Exit Codes](#scripting--exit-codes)
+- [local-llmup vs. Ollama](#local-llmup-vs-ollama)
 - [Development](#development)
+- [Troubleshooting](#troubleshooting)
 
 ---
-
-## What makes it different
-
-Most tools tell you a model exists. `local-llmup` tells you whether **your**
-machine can run it, how fast, and how much context it can hold — and it never
-makes up a number to do so.
-
-- **Runnability, not vibes.** Every model gets a `yes / slow / no` verdict with
-  the _binding reason_ (`ram-bound`, `vram-bound`, `disk-bound`,
-  `context-bound`) and an estimated tok/s range — computed **before** any
-  download.
-- **AI Hardware Score (0–100) + bottleneck.** `doctor` scores your machine and
-  names the one thing holding you back (VRAM, RAM, compute, or storage).
-- **Context-window-aware KV-cache sizing.** `recommend --context <n>` re-ranks
-  with the KV cache sized at your chosen window; `recommend --max-context`
-  reports the largest context each model can hold on _your_ RAM/VRAM. Attention
-  geometry is sourced from a cited dataset — GQA-correct — and fp16 KV is stated
-  explicitly.
-- **An honesty gate, everywhere.** When a figure can't be sourced (unknown
-  hardware bandwidth, missing attention geometry), the output says `unknown`
-  rather than guessing. Models with unknown geometry are still ranked by their
-  weights — never silently dropped.
-- **No network calls for advice. No pricing data.** Throughput is a
-  memory-bandwidth estimate from a curated, cited, offline dataset. Advice is
-  deterministic and reproducible.
-- **Integrity-verified installs.** `up` verifies pulled weights against a
-  catalog digest (or a size fallback) and **fails closed** on a mismatch — it
-  never serves unverified weights.
-- **Loopback-only serving.** Servers bind `127.0.0.1` by default; nothing is
-  exposed to your network.
-- **Portable memory.** `chat` records conversation memory; `migrate` moves it
-  between models (remapping context and re-embedding as needed).
-- **Scriptable by design.** Stable text output, `--json` on the advice
-  commands, and a clean exit-code contract (`can-run` exits non-zero _only_ for
-  `no`).
-
-## Requirements
-
-- **Node.js 18+** (uses native `fetch`).
-- **[Ollama](https://ollama.com)** installed locally for serving and lifecycle
-  commands (`up`, `down`, `switch`, `chat`, `migrate`). The advice commands
-  (`recommend`, `can-run`, `doctor`, `catalog`) work without it.
-- No API keys. No accounts. No cloud.
 
 ## Install
 
 ```bash
-# Global install
 npm install -g local-llmup
+```
 
-# …or run without installing
+Or run without installing:
+
+```bash
 npx local-llmup
 ```
 
-Verify the install:
+**Requirements:** Node.js 18+ · No API keys · No cloud accounts
 
-```text
-$ local-llmup --version
-0.3.2
+For lifecycle commands (`up`, `down`, `chat`, `switch`, `migrate`), you need at
+least one backend installed:
+- [Ollama](https://ollama.com) (recommended default)
+- [llama.cpp](https://github.com/ggml-org/llama.cpp) (`brew install llama.cpp`)
+- [MLX](https://github.com/ml-explore/mlx-lm) (`pip install "mlx-lm==0.31.3"`, Apple Silicon only)
+- [LM Studio](https://lmstudio.ai) (attach-only, bring your own server)
+
+---
+
+## Quick Start
+
+```bash
+# 1. What can this machine run?
+local-llmup
+
+# 2. Check a specific model
+local-llmup can-run llama3.1:8b
+
+# 3. Pull + verify + serve (loopback-only)
+local-llmup up llama3.1:8b
+
+# 4. Chat (records memory)
+local-llmup chat
+
+# 5. Migrate memory to a better model
+local-llmup migrate --from llama3.1:8b --to qwen3:14b
+local-llmup switch qwen3:14b
+
+# 6. Stop when done
+local-llmup down
 ```
-
-The top-level `--help` lists every command:
-
-```text
-$ local-llmup --help
-local-llmup/0.3.2
-
-Usage:
-  $ local-llmup
-
-Commands:
-  recommend        Detect hardware and print ranked local LLMs + install commands.
-  can-run <model>  Answer yes|slow|no whether this machine can run <model>, with an estimated tok/s range.
-  up <model>       Install (if needed) and start a local server for <model>.
-  chat             Interactive/piped chat that records memory.
-  down [model]     Stop a server owned by local-llmup, or detach+forget an attached daemon without stopping it.
-  switch <model>   Make <model> the active served model (no memory move).
-  migrate          Move all memory from one model to another.
-  ls               List active server state from local state (not installed-model inventory).
-  catalog          Show or refresh the model catalog.
-  doctor           Diagnose hardware, backend, disk, ports, and state.
-
-Options:
-  --task <task>       Boost models for a task: chat|code|vision|reasoning|tools|embedding
-  --context <tokens>  Size the KV cache at this context (tokens) and re-rank
-  --max-context       Report the largest context each model can hold on this hardware
-  --json              Emit machine-readable JSON
-  -h, --help          Display this message
-  -v, --version       Display version number
-```
-
-## 60-second tour (end-to-end)
-
-A typical first session, start to finish:
-
-```text
-# 1. What can this machine run, and how fast?
-$ npx local-llmup
-
-# 2. Sanity-check one model as a scriptable gate.
-$ npx local-llmup can-run llama3.1:8b
-
-# 3. Pull + serve it (loopback-only, integrity-verified).
-$ npx local-llmup up llama3.1:8b
-
-# 4. Chat with the active model; the exchange is recorded to memory.
-$ npx local-llmup chat
-
-# 5. See what is currently active.
-$ npx local-llmup ls
-
-# 6. Move that memory to a stronger model, then serve it.
-$ npx local-llmup migrate --from llama3.1:8b --to qwen3:14b
-$ npx local-llmup switch qwen3:14b
-
-# 7. Stop the server when you are done.
-$ npx local-llmup down
-```
-
-The same lifecycle, visually — every command below flows into the next:
 
 ```mermaid
 flowchart LR
-    HW([Your machine]) --> REC["recommend<br/>rank what fits"]
+    HW([Your Hardware]) --> REC["recommend<br/>rank what fits"]
     REC --> CR{"can-run?"}
     CR -- "yes / slow" --> UP["up<br/>pull + verify + serve"]
     CR -- "no" --> REC
@@ -174,124 +126,162 @@ flowchart LR
     SW --> DOWN["down<br/>stop server"]
 ```
 
-Each of those commands is shown with real output below.
+---
+
+## Terminal UI
+
+v0.6.0 introduces a full interactive terminal UI that activates automatically
+when running in a capable terminal (TTY with ≥60 columns, ≥16 rows).
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| **Interactive model list** | Search, filter, scroll through ranked models with keyboard |
+| **Model details & comparison** | Mark models and compare side-by-side |
+| **Lifecycle progress** | Real-time pull/verify/serve progress with cancellation |
+| **Chat screen** | Multi-line input, streaming responses, session summary |
+| **Doctor dashboard** | Box-drawn diagnostics with backend table and score breakdown |
+| **Accessible mode** | Cooked line-oriented fallback for screen readers (`--accessible`) |
+| **Graceful degradation** | Falls back to plain text in non-TTY / piped / CI environments |
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` or `j` / `k` | Navigate list |
+| `Enter` | Select / confirm |
+| `/` | Search / filter |
+| `m` | Mark model for comparison |
+| `c` | Compare marked models |
+| `d` | Show model details |
+| `q` / `Esc` | Quit / back |
+| `Ctrl+C` | Cancel operation (with compensation) |
+
+### TUI Screenshots
+
+**Recommend screen** — interactive model list with search and details:
+
+<div align="center">
+<pre style="background:#0d1117;color:#c9d1d9;padding:16px;border-radius:8px;overflow-x:auto;">
+<span style="color:#58a6ff;">local-llmup / Recommend</span>                                        <span style="color:#8b949e;">arm64/darwin 34 GiB</span>
+<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
+  Rank  Model              Params  Verdict     Est. tok/s   Score
+     1  qwen3:30b-a3b         30B  <span style="color:#3fb950;">✓ yes</span>       55.6–103.3    0.78
+  <span style="color:#58a6ff;">►</span>  2  kimi-vl-a3b           16B  <span style="color:#3fb950;">✓ yes</span>       55.6–103.3    0.66
+     3  qwen3:32b             32B  <span style="color:#d29922;">⚠️ slow</span>        5.2–9.7    0.61
+     4  deepseek-r1:32b       32B  <span style="color:#d29922;">⚠️ slow</span>        5.2–9.7    0.59
+     5  qwen2.5-coder:32b     32B  <span style="color:#d29922;">⚠️ slow</span>        5.2–9.7    0.57
+     …
+<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
+  <span style="color:#8b949e;">↑↓ Navigate · Enter Select · / Search · m Mark · c Compare · d Details · q Quit</span>
+</pre>
+</div>
+
+**Doctor dashboard** — hardware diagnostics and backend status:
+
+<div align="center">
+<pre style="background:#0d1117;color:#c9d1d9;padding:16px;border-radius:8px;overflow-x:auto;">
+<span style="color:#58a6ff;">local-llmup / Doctor</span>                                                       <span style="color:#3fb950;">healthy</span>
+<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
+Diagnostics
+<span style="color:#3fb950;">✓ OK</span>      hardware: arm64/darwin, 34.0 GiB usable memory, 765.1 GiB free disk
+<span style="color:#3fb950;">✓ OK</span>      backend: ollama is installed
+<span style="color:#3fb950;">✓ OK</span>      catalog: 58 model(s), all digests verified
+<span style="color:#3fb950;">✓ OK</span>      state: no active server recorded
+
+<span style="color:#58a6ff;">Backends</span>
+ollama · <span style="color:#3fb950;">installed</span> · version 0.32.5 · <span style="color:#d29922;">default</span> · brew install ollama
+llamacpp · <span style="color:#3fb950;">installed</span> · version 10090 · not default · brew install llama.cpp
+mlx · <span style="color:#f85149;">not installed</span> · not default · python3 -m pip install "mlx-lm==0.31.3"
+lmstudio · <span style="color:#3fb950;">installed</span> · CLI commit: 71bd99c · not default
+
+<span style="color:#58a6ff;">Score: 80/100</span> · Bottleneck: <span style="color:#d29922;">RAM</span>
+VRAM <span style="color:#3fb950;">1</span> · RAM <span style="color:#d29922;">0.5625</span> · Compute 0.65 · Storage <span style="color:#3fb950;">1</span>
+<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
+<span style="color:#8b949e;">q/Esc Quit · ? Help</span>
+</pre>
+</div>
+
+**Lifecycle progress** — real-time pull/verify/serve with cancellation:
+
+<div align="center">
+<pre style="background:#0d1117;color:#c9d1d9;padding:16px;border-radius:8px;overflow-x:auto;">
+<span style="color:#58a6ff;">local-llmup / Up</span>                                                      <span style="color:#8b949e;">llama3.1:8b</span>
+<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
+Stage: Pulling weights
+
+  <span style="color:#3fb950;">✓</span> Preflight checks passed
+  <span style="color:#58a6ff;">●</span> Pulling llama3.1:8b (Q4_K_M)...
+    pulling 8eeb52dfb3bb: 67% <span style="color:#3fb950;">▕████████████</span><span style="color:#30363d;">░░░░░░▏</span> 3.2/4.7 GB  42 MB/s
+  <span style="color:#8b949e;">○</span> Verifying digest
+  <span style="color:#8b949e;">○</span> Starting server
+
+<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
+<span style="color:#8b949e;">Ctrl+C Cancel (partial state will be cleaned up)</span>
+</pre>
+</div>
+
+**Chat screen** — streaming responses with session summary:
+
+<div align="center">
+<pre style="background:#0d1117;color:#c9d1d9;padding:16px;border-radius:8px;overflow-x:auto;">
+<span style="color:#58a6ff;">local-llmup / Chat</span>                                    <span style="color:#8b949e;">llama3.1:8b @ 127.0.0.1:11434</span>
+<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
+  <span style="color:#d29922;">user:</span> What is the meaning of life?
+  <span style="color:#3fb950;">assistant:</span> The question of life's meaning has occupied philosophers for
+  millennia. Some find it in connection, others in creation...
+
+  <span style="color:#d29922;">user:</span> <span style="color:#58a6ff;">█</span>
+
+<span style="color:#30363d;">────────────────────────────────────────────────────────────────────────────────────</span>
+<span style="color:#8b949e;">Enter Send · Ctrl+J Newline · Esc/Ctrl+C Exit</span>
+</pre>
+</div>
+
+### Modes
+
+The UI auto-selects the best mode for your terminal:
+
+| Mode | When | Behavior |
+|------|------|----------|
+| **Visual** | TTY ≥60×16 | Full Ink-rendered interactive UI |
+| **Accessible** | `--accessible` or `TERM_PROGRAM=screen-reader` | Line-oriented cooked input |
+| **Plain** | Non-TTY, piped, `--json`, `--no-tui` | Traditional text output |
 
 ---
 
-## Command reference (with real output)
+## Commands
 
-> The logs below are captured from a real run on an Apple Silicon machine
-> (arm64/darwin, 34.0 GiB usable memory). Your numbers will differ — that's the
-> point. Long tables are trimmed to the top rows; the tool prints the full list.
+| Command | Usage | Purpose |
+|---------|-------|---------|
+| `recommend` | `local-llmup [--task <t>] [--context <n>] [--json]` | Rank models that fit (default command) |
+| `can-run` | `local-llmup can-run <model> [--json]` | `yes/slow/no` for one model |
+| `doctor` | `local-llmup doctor [--json]` | Hardware + backend diagnostics |
+| `up` | `local-llmup up <model> [--port <p>] [--backend <b>]` | Pull, verify, serve |
+| `chat` | `local-llmup chat [-m <model>]` | Interactive chat with memory |
+| `ls` | `local-llmup ls` | Show active server |
+| `switch` | `local-llmup switch <model>` | Change active model |
+| `down` | `local-llmup down [model]` | Stop server |
+| `migrate` | `local-llmup migrate --from <a> --to <b> [--dry-run]` | Move memory between models |
+| `catalog` | `local-llmup catalog [--all] [--refresh]` | Browse model catalog |
 
-### `recommend` — the default command
+### Global Options
 
-Detect hardware and print every catalog model that fits, ranked, each with a
-verdict, estimated throughput, license, and a fitness score. `recommend` is the
-**default command**, so `npx local-llmup` and `npx local-llmup recommend` are
-the same.
-
-```text
-$ npx local-llmup recommend
-Ranked local LLMs for arm64/darwin (34.0 GiB ram usable):
-
-Rank  Model              Params  Quant   Est. Mem  Verdict     Est. tok/s  License              Score
-   1  qwen3:30b-a3b         30B  Q4_K_M  19.8 GiB  ✓ yes       55.6–103.3  apache-2.0            0.78
-   2  kimi-vl-a3b           16B  Q4_K_M  10.7 GiB  ✓ yes       55.6–103.3  modified-mit          0.66
-   3  qwen3:32b             32B  Q4_K_M  20.9 GiB  ⚠️ slow        5.2–9.7  apache-2.0            0.61
-   4  deepseek-r1:32b       32B  Q4_K_M  20.9 GiB  ⚠️ slow        5.2–9.7  apache-2.0            0.59
-   5  qwen2.5-coder:32b     32B  Q4_K_M  20.9 GiB  ⚠️ slow        5.2–9.7  apache-2.0            0.57
-   6  gemma3:27b            27B  Q4_K_M  17.1 GiB  ⚠️ slow       6.2–11.5  gemma                 0.57
-   7  qwen2.5:32b           32B  Q4_K_M  20.9 GiB  ⚠️ slow        5.2–9.7  apache-2.0            0.56
-   8  yi:34b                34B  Q4_K_M  22.0 GiB  ⚠️ slow        4.9–9.1  apache-2.0            0.53
-   … 36 more fitting models …
-
-Run the top pick:  local-llmup up qwen3:30b-a3b
-
-Won't fit (14):
-  ❌ kimi-k2-thinking  (ram-bound)
-  ❌ qwen3:235b-a22b  (ram-bound)
-  ❌ deepseek-r1:671b  (ram-bound)
-  ❌ llama3.3:70b  (ram-bound)
-  ❌ llama3.1:70b  (ram-bound)
-  ❌ mixtral:8x22b  (ram-bound)
-  … 8 more …
+```
+--task <task>         Boost models for: chat|code|vision|reasoning|tools|embedding
+--context <tokens>    Size KV cache at N tokens and re-rank
+--max-context         Report largest holdable context per model
+--backend <name>      Scope to: ollama|llamacpp|mlx|lmstudio
+--available-backends  Only show models an installed backend can serve
+--json                Machine-readable JSON output
+--no-tui              Force plain text mode
+--accessible          Force accessible mode
+-h, --help            Help
+-v, --version         Version
 ```
 
-The `Est. tok/s` column is what separates a usable pick from a frustrating one.
-Here are the midpoints for a sample of the ranked models above — note how the
-MoE model (`qwen3:30b-a3b`) leaves the dense 27B–34B models far behind:
-
-```mermaid
-xychart-beta
-    title "Estimated throughput — midpoint tok/s (higher is better)"
-    x-axis ["qwen3:30b-a3b", "llama3.1:8b", "qwen2.5:14b", "gemma3:27b", "qwen3:32b", "yi:34b"]
-    y-axis "tok/s" 0 --> 110
-    bar [79.5, 29.8, 17, 8.9, 7.5, 7]
-```
-
-**Bias the ranking toward a task** with `--task` (`chat`, `code`, `vision`,
-`reasoning`, `tools`, `embedding`). Task-capable models are boosted; the rest
-still appear:
-
-```text
-$ npx local-llmup recommend --task code
-Ranked local LLMs for arm64/darwin (34.0 GiB ram usable):
-
-Rank  Model              Params  Quant   Est. Mem  Verdict     Est. tok/s  License              Score
-   1  qwen3:30b-a3b         30B  Q4_K_M  19.8 GiB  ✓ yes       55.6–103.3  apache-2.0            0.78
-   2  qwen3:32b             32B  Q4_K_M  20.9 GiB  ⚠️ slow        5.2–9.7  apache-2.0            0.61
-   3  deepseek-r1:32b       32B  Q4_K_M  20.9 GiB  ⚠️ slow        5.2–9.7  apache-2.0            0.59
-   4  qwen2.5-coder:32b     32B  Q4_K_M  20.9 GiB  ⚠️ slow        5.2–9.7  apache-2.0            0.57
-   … more …
-```
-
-**Size the KV cache at a specific context window** with `--context <tokens>`.
-This re-ranks using weights **plus** the fp16 KV cache at that context, and adds
-`Weights` and `KV Cache` columns. A model that fits at 4K can OOM at 128K — this
-catches it. `unknown` in the `KV Cache` column means the model's attention
-geometry isn't in the dataset yet; it is still ranked by its weights:
-
-```text
-$ npx local-llmup recommend --context 32768
-Ranked local LLMs for arm64/darwin (34.0 GiB ram usable): — sized at 32768-token context (KV fp16)
-
-Rank  Model              Params  Quant    Weights  KV Cache  Est. Mem  Verdict   Est. tok/s  License              Score
-   1  qwen3:30b-a3b         30B  Q4_K_M  17.2 GiB   unknown  19.8 GiB  ✓ yes     55.6–103.3  apache-2.0            0.78
-   6  mistral-small:24b     24B  Q4_K_M  13.1 GiB   5.0 GiB  18.8 GiB  ⚠️ slow       7–12.9  apache-2.0            0.56
-   9  qwen2.5:14b           14B  Q4_K_M   8.4 GiB   6.0 GiB  14.8 GiB  ✓ yes      11.9–22.1  apache-2.0            0.50
-   … more …
-```
-
-**Ask how far each model's context can stretch** on your hardware with
-`--max-context`. The `Bound-By` column tells you what caps it: `hardware`
-(memory), `model` (the model's own context limit), or `unknown` (geometry not in
-the dataset):
-
-```text
-$ npx local-llmup recommend --max-context
-Ranked local LLMs for arm64/darwin (34.0 GiB ram usable): — largest holdable context per model (KV fp16)
-
-Rank  Model              Params  Quant   Est. Mem  Max Context  Bound-By  Verdict   Est. tok/s  License              Score
-   1  qwen3:30b-a3b         30B  Q4_K_M  19.8 GiB      unknown  unknown   ✓ yes     55.6–103.3  apache-2.0            0.78
-   5  qwen2.5-coder:32b     32B  Q4_K_M  20.9 GiB       40,268  hardware  ⚠️ slow       5.2–9.7  apache-2.0            0.57
-   9  mistral-small:24b     24B  Q4_K_M  15.1 GiB       32,768  model     ⚠️ slow        7–12.9  apache-2.0            0.53
-   … more …
-```
-
-`--context` and `--max-context` are **mutually exclusive**. Both add fields to
-`--json` additively (including `"kvPrecision": "fp16"`) and leave the default
-no-flag output unchanged. Invalid input fails fast with a non-zero exit:
-
-```text
-$ npx local-llmup recommend --context 0
-recommend: --context must be an integer in 1..10000000: 0
-
-$ npx local-llmup recommend --context 8192 --max-context
-recommend: --context and --max-context are mutually exclusive
-```
-
-**Machine-readable output** with `--json`:
+### Machine-Readable Output
 
 ```json
 {
@@ -302,348 +292,165 @@ recommend: --context and --max-context are mutually exclusive
       "id": "qwen3:30b-a3b",
       "params": "30B",
       "quant": "Q4_K_M",
-      "requiredBytes": 21260320768,
       "verdict": "yes",
       "score": 0.78,
-      "throughput": { "known": true, "lowTokPerSec": 55.6, "highTokPerSec": 103.3 }
+      "throughput": { "known": true, "lowTokPerSec": 55.6, "highTokPerSec": 103.3 },
+      "backends": ["ollama", "llamacpp", "lmstudio"]
     }
   ],
-  "wontFit": [{ "id": "llama3.1:70b", "reason": "ram-bound" }],
-  "command": "local-llmup up qwen3:30b-a3b"
+  "wontFit": [{ "id": "llama3.1:70b", "reason": "ram-bound" }]
 }
-```
-
-### `can-run`
-
-Answer `yes / slow / no` for a single model, with the binding reason and an
-estimated throughput range. It **exits non-zero only for `no`**, so it works as
-a gate in scripts and CI.
-
-```text
-$ npx local-llmup can-run llama3.1:8b
-✓ llama3.1:8b: yes — runs comfortably
-Quant: Q4_K_M
-Estimated throughput: 20.9–38.7 tok/s
-```
-
-```text
-$ npx local-llmup can-run llama3.1:70b
-❌ llama3.1:70b: no — does not fit (ram-bound: not enough RAM)
-```
-
-With `--json`:
-
-```text
-$ npx local-llmup can-run qwen3:14b --json
-{
-  "model": "qwen3:14b",
-  "verdict": "yes",
-  "quant": "Q4_K_M",
-  "reason": null,
-  "throughput": {
-    "known": true,
-    "lowTokPerSec": 11.9,
-    "highTokPerSec": 22.1
-  }
-}
-```
-
-### `doctor`
-
-Diagnose hardware, backend, disk, ports, and recorded state, then report the AI
-Hardware Score (0–100) and your primary bottleneck. Exits non-zero if any check
-fails.
-
-```text
-$ npx local-llmup doctor
-Check     Status  Detail
-hardware  OK      arm64/darwin, 34.0 GiB usable memory, 776.1 GiB free disk
-backend   OK      ollama is installed
-catalog   OK      58 model(s), all digests verified
-state     OK      no active server recorded
-
-AI Hardware Score: 80/100
-Primary bottleneck: RAM
-
-All checks passed.
-```
-
-The score is a blend of four sub-scores; the **lowest one is your bottleneck**.
-On this machine, RAM (56/100) drags down otherwise-maxed VRAM and storage:
-
-```mermaid
-xychart-beta
-    title "AI Hardware Score breakdown — this machine (total 80/100)"
-    x-axis ["VRAM", "RAM", "Compute", "Storage"]
-    y-axis "sub-score (0-100)" 0 --> 100
-    bar [100, 56, 65, 100]
-```
-
-`--json` emits the full report including the score breakdown:
-
-```text
-$ npx local-llmup doctor --json
-{
-  "checks": [
-    { "name": "hardware", "status": "ok", "detail": "arm64/darwin, 34.0 GiB usable memory, 776.1 GiB free disk" },
-    { "name": "backend",  "status": "ok", "detail": "ollama is installed" },
-    { "name": "catalog",  "status": "ok", "detail": "58 model(s), all digests verified" },
-    { "name": "state",    "status": "ok", "detail": "no active server recorded" }
-  ],
-  "ok": true,
-  "hardwareScore": {
-    "total": 80,
-    "sub": { "vram": 1, "ram": 0.5625, "compute": 0.65, "storage": 1 },
-    "bottleneck": "ram"
-  }
-}
-```
-
-### `catalog`
-
-Inspect the curated catalog. By default it shows only models that fit your
-hardware; `--all` shows every model; `--refresh` runs local enrichment and
-prints a dry-run diff without writing.
-
-```text
-$ npx local-llmup catalog
-Catalog (Filter: fits, shown: 44/58)
-Model              Params  Arch   Quant   Need GiB  Fit  Release
-qwen3:14b          14B     dense  Q4_K_M       9.6  fit  2025-04-28
-qwen3:30b-a3b      30B     moe    Q4_K_M      19.8  fit  2025-04-28
-qwen3:32b          32B     dense  Q4_K_M      20.9  fit  2025-04-28
-qwen3:8b           8B      dense  Q4_K_M       5.6  fit  2025-04-28
-glm4:9b            9B      dense  Q4_K_M       5.9  fit  2025-04-14
-gemma3:12b         12B     dense  Q4_K_M       7.8  fit  2025-03-12
-gemma3:27b         27B     dense  Q4_K_M      17.1  fit  2025-03-12
-mistral-small:24b  24B     dense  Q4_K_M      15.1  fit  2025-01-30
-…
-```
-
-### `up`
-
-Bring a model online end-to-end: resolve the name against the catalog, preflight
-free disk against the selected quant, ensure the backend is installed, pull and
-**verify** the weights, start a loopback-only server, wait for a health probe to
-pass, and record the active server. If verification fails, `up` **fails closed**
-and never records a running server.
-
-```text
-$ npx local-llmup up llama3.1:8b
-Pulling llama3.1:8b (Q4_K_M)...
-  pulling manifest
-  pulling 8eeb52dfb3bb: 100% ▕██████████████████▏ 4.7 GB
-  verifying sha256 digest
-  writing manifest
-  success
-llama3.1:8b ready at http://127.0.0.1:11434
-```
-
-Use `--port <port>` to bind a non-default port (still loopback-only).
-
-> Note: `up` verifies the download against the catalog. When a model has a
-> recorded SHA-256, the pull is checked byte-for-byte and fails closed on any
-> mismatch. When it does not, `up` falls back to a plausibility check on the
-> download size (rejecting only grossly-truncated pulls), since the catalog's
-> recorded size is approximate.
-
-### `chat`
-
-Chat with the active model (or `-m <model>`). Reads a turn from stdin, prints the
-reply to stdout, and records the exchange to memory under a lock. Works
-interactively or piped.
-
-```text
-$ echo "Give me a one-line haiku about running models locally." | npx local-llmup chat
-Chatting with llama3.1:8b (http://127.0.0.1:11434). End input to exit.
-Silicon whispers — your words never leave the room.
-```
-
-### `ls`
-
-Show the active server recorded in local state (not your full installed-model
-inventory).
-
-```text
-$ npx local-llmup ls
-No active model.
-```
-
-After an `up`, it reports the active model and endpoint.
-
-### `switch`
-
-Make an already-served model the active one without moving memory. With no
-active server it tells you what to do:
-
-```text
-$ npx local-llmup switch llama3.1:8b
-switch: no active server to switch. Run `local-llmup up <model>` first.
-```
-
-### `down`
-
-Stop the server owned by local-llmup (or detach+forget an attached daemon). Safe
-to run when nothing is active:
-
-```text
-$ npx local-llmup down
-No active server to stop.
-```
-
-### `migrate`
-
-Move all memory from one model to another: remap the context window, carry or
-re-embed the vector index, and write the target store under a lock. `--dry-run`
-prints the plan and writes nothing; `--move` deletes the source after a
-successful migration.
-
-```text
-$ npx local-llmup migrate --from llama3.1:8b --to qwen3:14b --dry-run
-[dry-run] no changes written.
-[dry-run] Planned migration: llama3.1:8b -> qwen3:14b
-  turns carried:       128
-  turns summarized:    12
-  vectors re-embedded: 0
-  context strategy:    remap
-  embedding strategy:  reuse
 ```
 
 ---
 
-## How the advice is computed
+## Supported Backends
 
-Every model runs through the same decision, before any download happens:
+| Backend | Platform | Lifecycle | Notes |
+|---------|----------|-----------|-------|
+| **Ollama** | All | Full (pull/serve/stop) | Default. Managed daemon. |
+| **llama.cpp** | All | Full (pull/serve/stop) | Self-managed GGUF with HF acquisition |
+| **MLX** | macOS (Apple Silicon) | Full (pull/serve/stop) | `mlx-lm` Python package |
+| **LM Studio** | All | Attach-only | User manages the server; llmup attaches |
+
+**Auto-selection logic:**
+- Apple Silicon → MLX preferred (when installed)
+- Everywhere else → Ollama preferred (when installed)
+- Override with `--backend <name>`
+
+All backends bind to `127.0.0.1` only. Integrity verification is SHA-256 for
+self-managed pulls; LM Studio uses delegated integrity with a named trust boundary.
+
+---
+
+## How Advice Works
 
 ```mermaid
 flowchart TD
-    A["Model + selected quant"] --> B{"Weights + KV cache<br/>fit in usable memory?"}
-    B -- No --> C["❌ no<br/>reason: ram-bound / vram-bound /<br/>disk-bound / context-bound"]
-    B -- Yes --> D{"Memory-bandwidth<br/>limited?"}
-    D -- Yes --> E["⚠️ slow<br/>fits, but bandwidth-bound"]
-    D -- No --> F["✓ yes<br/>fits with throughput headroom"]
+    A["Model + quant"] --> B{"Weights + KV cache<br/>fit in usable memory?"}
+    B -- No --> C["❌ no<br/>ram/vram/disk/context-bound"]
+    B -- Yes --> D{"Bandwidth-limited?"}
+    D -- Yes --> E["⚠️ slow"]
+    D -- No --> F["✓ yes"]
 ```
 
-- **Memory footprint.** Estimated as resident weights (from the selected quant)
-  plus runtime overhead. With `--context`, the flat overhead is replaced by an
-  explicit fp16 **KV cache** sized from the model's attention geometry (GQA-aware),
-  and the reported footprint is the larger of the two — never double-counted.
-- **Verdict (`yes / slow / no`).** `yes` fits with throughput headroom; `slow`
-  fits but is memory-bandwidth-limited; `no` does not fit, with the binding
-  reason: `ram-bound`, `vram-bound`, `disk-bound`, or `context-bound`.
-- **Throughput (est. tok/s).** A range derived from a **memory-bandwidth model**
-  over a curated, cited dataset. No live benchmarking, no network calls. When
-  bandwidth for your hardware is unknown, throughput reports `unknown` instead of
-  guessing.
-- **AI Hardware Score.** A 0–100 blend of VRAM, RAM, compute, and storage
-  sub-scores; the lowest sub-score is surfaced as your bottleneck.
-- **The honesty gate.** Any figure that cannot be sourced — hardware bandwidth,
-  attention geometry — renders as `unknown`. Models with unknown geometry are
-  ranked by weights, not dropped.
+| Principle | Implementation |
+|-----------|---------------|
+| **Offline** | Zero network calls. Curated dataset in `data/` |
+| **Deterministic** | Same hardware → same output, always |
+| **Memory-bandwidth model** | tok/s from hardware bandwidth × model size |
+| **KV-cache aware** | `--context N` includes fp16 KV (GQA-correct geometry) |
+| **Honest** | Unknown → `unknown`, never fabricated |
 
-## Scripting & exit codes
+**AI Hardware Score** is a blend of VRAM, RAM, compute, and storage sub-scores
+(each 0–1). The lowest sub-score is surfaced as your bottleneck:
 
-- `can-run` exits `0` for `yes`/`slow` and `1` for `no` — use it as a gate:
+```mermaid
+xychart-beta
+    title "AI Hardware Score breakdown (total 80/100)"
+    x-axis ["VRAM", "RAM", "Compute", "Storage"]
+    y-axis "sub-score" 0 --> 1
+    bar [1, 0.5625, 0.65, 1]
+```
 
-  ```bash
-  if npx local-llmup can-run llama3.1:8b; then
-    npx local-llmup up llama3.1:8b
-  fi
-  ```
+---
 
-- `doctor` exits non-zero if any check fails.
-- `recommend` (and its flags) exit non-zero on invalid input (bad `--context`,
-  bad `--task`, or `--context` + `--max-context` together).
-- `recommend`, `can-run`, and `doctor` accept `--json` for stable,
-  machine-readable output.
+## Scripting & Exit Codes
 
-## local-llmup vs. using Ollama directly
+| Command | Exit 0 | Exit 1 |
+|---------|--------|--------|
+| `can-run` | `yes` or `slow` | `no` |
+| `doctor` | All checks pass | Any check fails |
+| `recommend` | Success | Invalid input |
+| `up` | Model served | Verification/pull failed |
 
-Ollama is the local model runtime: it downloads models, runs inference, and
-provides the serving API. `local-llmup` uses Ollama underneath, but adds the
-hardware-aware workflow around it.
+```bash
+# CI gate example
+if local-llmup can-run llama3.1:8b; then
+  local-llmup up llama3.1:8b
+fi
+```
 
-| Feature                                               | Ollama           | local-llmup    |
-| ----------------------------------------------------- | ---------------- | -------------- |
-| Install runtime                                       | ✅               | ✅             |
-| Detect hardware                                       | ⚠️ Internal only | ✅ User-facing |
-| Recommend best model                                  | ❌               | ✅             |
-| Recommend best quantization                           | ❌               | ✅             |
-| Choose best runtime (Ollama, llama.cpp, MLX, LM Studio) | ❌               | ✅             |
-| One-command setup                                     | ⚠️ Partial       | ✅             |
+---
 
-Think of it as:
+## local-llmup vs. Ollama
 
-> Homebrew for local LLMs.
+| Feature | Ollama | local-llmup |
+|---------|--------|-------------|
+| Run inference | ✅ | ✅ (via backends) |
+| Hardware-aware recommendations | ❌ | ✅ |
+| Quantization selection | ❌ | ✅ |
+| Multi-backend (4 runtimes) | ❌ | ✅ |
+| Integrity-verified pulls (SHA-256) | ❌ | ✅ |
+| Context-window sizing | ❌ | ✅ |
+| Memory migration between models | ❌ | ✅ |
+| Interactive TUI | ❌ | ✅ |
+| AI Hardware Score | ❌ | ✅ |
+| Accessible mode (screen readers) | ❌ | ✅ |
 
-`local-llmup` now supports multiple runtimes through a single backend adapter
-interface: Ollama, llama.cpp, MLX (Apple Silicon), and LM Studio (attach-only).
-Runtime selection is available through backend-aware command flows.
+> **Homebrew for local LLMs** — hardware-aware model selection with a consistent
+> workflow across runtimes.
 
-### Using Ollama Directly vs. local-llmup
-
-| Using Ollama directly                                                                    | Using `local-llmup`                                                               |
-| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Choose a model and run commands such as `ollama pull`, `ollama run`, and `ollama serve`. | Detect hardware and get ranked model recommendations with `recommend`.            |
-| Decide yourself whether a model's memory requirements fit your machine.                  | Filter and score catalog models using hardware and estimated memory requirements. |
-| Manage model switching and lifecycle commands yourself.                                  | Install, start, stop, and switch models with `up`, `down`, and `switch`.          |
-| Manage conversations and any model-to-model context transfer yourself.                   | Record chat memory and migrate it between models with `chat` and `migrate`.       |
-| Troubleshoot the runtime and local setup manually.                                       | Check hardware, backend, ports, disk, catalog, and state with `doctor`.           |
-
-Use Ollama directly when you only need a lightweight runtime or want full
-manual control. Use `local-llmup` when you want hardware-aware model
-selection and a consistent model-and-memory workflow across supported backends.
-
-## Commands at a glance
-
-| Command     | Usage                                                                                                    | Purpose                                                              |
-| ----------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `recommend` | `local-llmup` (default) or `local-llmup recommend [--task <t>] [--context <n>] [--max-context] [--json]` | Rank models that fit, with verdict, est. tok/s, and KV-cache sizing. |
-| `can-run`   | `local-llmup can-run <model> [--json]`                                                                   | `yes / slow / no` for one model. Exits non-zero only for `no`.       |
-| `up`        | `local-llmup up <model> [--port <p>]`                                                                    | Pull, verify, and serve a model on loopback.                         |
-| `chat`      | `local-llmup chat [-m <model>]`                                                                          | Interactive or piped chat that records memory.                       |
-| `ls`        | `local-llmup ls`                                                                                         | Show the active served model recorded in state.                      |
-| `switch`    | `local-llmup switch <model>`                                                                             | Make an already-served model active (no memory move).                |
-| `down`      | `local-llmup down [model]`                                                                               | Stop the server owned by local-llmup.                                |
-| `migrate`   | `local-llmup migrate --from <a> --to <b> [--move] [--dry-run]`                                           | Move memory between models.                                          |
-| `catalog`   | `local-llmup catalog [--all] [--refresh]`                                                                | Show or refresh the curated catalog.                                 |
-| `doctor`    | `local-llmup doctor [--json]`                                                                            | Diagnose hardware/backend/disk/ports/state + AI Hardware Score.      |
-
-## Troubleshooting
-
-- **`up` fails with `size too small ... expected roughly N bytes, found only M`.**
-  The downloaded weights are far smaller than the catalog estimate, which points
-  to a truncated or interrupted pull. Re-run `up`, or `ollama pull <model>`
-  directly to see the raw download progress. (A model whose actual size merely
-  differs from the estimate is accepted — only grossly-truncated pulls are
-  rejected.)
-- **`ollama is not installed`.** Install Ollama from
-  [ollama.com](https://ollama.com); the advice commands (`recommend`,
-  `can-run`, `doctor`, `catalog`) still work without it.
-- **Throughput shows `unknown`.** Your hardware's memory bandwidth isn't in the
-  dataset. `local-llmup` reports `unknown` rather than guessing.
-- **`KV Cache` / `Max Context` shows `unknown`.** The model's attention geometry
-  isn't in the dataset yet; the model is still ranked by its weights.
+---
 
 ## Development
 
 ```bash
-npm install          # install dev dependencies
-npm run build        # compile TypeScript to dist/
-npm test             # run the Vitest suite
+npm install          # Install dependencies
+npm run build        # Compile TypeScript
+npm test             # 1459 tests (Vitest)
 npm run typecheck    # tsc --noEmit
 npm run lint         # ESLint
-npm run bootstrap    # regenerate data/models.json
+npm run format       # Prettier
+npm run dev          # Dev mode (tsx src/cli.ts)
+npm run bootstrap    # Regenerate data/models.json
 ```
 
-Local website preview:
+### Architecture
 
-```bash
-cd site && python3 -m http.server 8080
+```
+src/
+├── cli.ts, bin.ts       Entry points & CLI wiring
+├── commands/            One file per subcommand
+├── advisor/             Scoring, throughput, verdict engine
+├── hardware/            Detection + memory math (KV-cache sizing)
+├── catalog/             Model catalog, schema, enrichment
+├── backend/             Ollama, llama.cpp, MLX, LM Studio adapters
+├── ranking/             Fit + rank + weights
+├── memory/              Conversation memory capture & migration
+├── state/               Active-model / server state
+└── tui/                 Terminal UI (Ink 5 + React 18)
+    ├── screens/         Visual components (recommend, chat, lifecycle, doctor)
+    ├── session.ts       Terminal resource ownership & restoration
+    ├── capabilities.ts  Mode selection (visual/accessible/plain)
+    ├── cancellation.ts  Signal handling + compensation
+    ├── chat-limits.ts   Draft validation & session summary
+    └── keys.ts          Keyboard binding definitions
 ```
 
-## Requirements recap
+### Testing Philosophy
 
-- Node.js 18 or newer.
-- Ollama installed locally for serving and lifecycle commands.
-- No API keys are required for the local workflow.
+- **TDD.** Failing test → minimal implementation → refactor.
+- **All mocked.** No real network/Ollama/filesystem in Vitest tests.
+- **87 test files, 1459 assertions.** Unit > integration > e2e.
+- **Coverage gates.** 80% lines+branches on core modules.
+- **Runtime smoke.** Real backend processes tested separately via production builds.
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| `up` fails with size mismatch | Re-run — likely an interrupted download |
+| `ollama is not installed` | Install from [ollama.com](https://ollama.com); advice commands still work |
+| Throughput shows `unknown` | Your hardware bandwidth isn't in the dataset |
+| TUI not rendering | Check terminal size ≥60×16, or use `--no-tui` |
+| Screen reader not working | Use `--accessible` flag |
+| KV Cache shows `unknown` | Model's attention geometry isn't in the dataset |
+
+---
+
+## License
+
+[MIT](LICENSE)
