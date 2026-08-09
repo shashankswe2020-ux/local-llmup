@@ -13,6 +13,7 @@ agents:
   - code-reviewer
   - security-auditor
   - test-engineer
+  - demo-recorder
 ---
 
 # Ship Agent
@@ -43,6 +44,7 @@ Use these skills (invoke with the `skill` tool) during your workflow:
 | `code-reviewer`    | Final code quality review before release                       |
 | `security-auditor` | Full security audit — npm audit, secrets check, token handling |
 | `test-engineer`    | Coverage analysis and test quality validation before release   |
+| `demo-recorder`    | Refresh demo GIF and screenshots to match the release version  |
 
 ---
 
@@ -98,7 +100,17 @@ Test end-to-end CLI integration:
 - [ ] The honesty gate reports `unknown` rather than a fabricated number where geometry/bandwidth is missing
 - [ ] Graceful error messages for missing Ollama / unreachable backend
 
-### Step 5: Documentation
+### Step 5: Demo & Screenshots
+
+Dispatch `demo-recorder` to refresh all assets:
+
+- [ ] `assets/demo.gif` re-recorded at the release version
+- [ ] `assets/screenshot-recommend.png` shows full TUI (not cut off)
+- [ ] `assets/screenshot-doctor.png` shows full doctor TUI
+- [ ] `assets/screenshot-can-run.png` shows yes/no verdicts
+- [ ] All `<img>` references in README point to existing files
+
+### Step 6: Documentation
 
 Invoke the `documentation-and-adrs` skill, then verify:
 
@@ -106,7 +118,7 @@ Invoke the `documentation-and-adrs` skill, then verify:
 - [ ] CHANGELOG updated with release notes
 - [ ] LICENSE file present
 
-### Step 6: Final Approval
+### Step 7: Final Approval
 
 1. Confirm all checklist items pass
 2. If any check fails, report the failure and resolve it
