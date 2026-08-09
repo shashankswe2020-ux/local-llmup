@@ -222,10 +222,10 @@ function registerRecommend(command: Command): void {
 
 /** Wire the `up` action onto its cac command. */
 function registerUp(command: Command): void {
-  command
+  registerReadOnlyUiOptions(command)
     .option("--port <port>", "Port for the backend server (default 11434)")
     .option("--backend <name>", "Force a backend (ollama, llamacpp)")
-    .action(async (model: string, options: { port?: string | number; backend?: string }) => {
+    .action(async (model: string | undefined, options: { port?: string | number; backend?: string } & UiCliOptions) => {
       try {
         const port = options.port === undefined ? undefined : Number(options.port);
         if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
@@ -237,12 +237,35 @@ function registerUp(command: Command): void {
         }
         const backend =
           options.backend !== undefined ? parseBackendName(String(options.backend)) : undefined;
-        await runUp({
-          model,
+        const commandOptions = {
+          ...(model !== undefined ? { model } : {}),
           ...(port !== undefined ? { port } : {}),
           ...(backend !== undefined ? { backend } : {}),
-        });
+        };
+        if (usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
+          if (model === undefined) {
+            process.stderr.write("up: model is required outside interactive mode\n");
+            process.exitCode = 1;
+            return;
+          }
+          await runUp({ ...commandOptions, model });
+          return;
+        }
+        const mode = await resolveReadOnlyMode(options, command.cli.rawArgs);
+        if (isInteractiveSelection(mode)) {
+          const outcome = await (await import("./tui/lifecycle-entry.js")).runInteractiveUp(
+            commandOptions,
+            mode,
+          );
+          if (outcome.type === "cancelled") process.exitCode = 130;
+        } else if (model !== undefined) {
+          await runUp({ ...commandOptions, model });
+        }
       } catch (error) {
+        if (error instanceof Error && error.name === "LifecycleUiHandledError") {
+          process.exitCode = 1;
+          return;
+        }
         const message = error instanceof Error ? error.message : String(error);
         process.stderr.write(`up: ${stripControl(message)}\n`);
         process.exitCode = 1;
@@ -252,15 +275,36 @@ function registerUp(command: Command): void {
 
 /** Wire the `down` action onto its cac command. */
 function registerDown(command: Command): void {
-  command.action(async (model: string | undefined) => {
+  registerReadOnlyUiOptions(command)
+    .option("--yes", "Skip the down confirmation (drift protection remains enabled)")
+    .action(async (model: string | undefined, options: UiCliOptions & { readonly yes?: boolean }) => {
     try {
-      await runDown(model !== undefined ? { model } : {});
+      const commandOptions = model !== undefined ? { model } : {};
+      if (usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
+        await runDown(commandOptions);
+        return;
+      }
+      const mode = await resolveReadOnlyMode(options, command.cli.rawArgs);
+      if (isInteractiveSelection(mode)) {
+        const outcome = await (await import("./tui/lifecycle-entry.js")).runInteractiveDown(
+          commandOptions,
+          mode,
+          options.yes === true,
+        );
+        if (outcome.type === "cancelled") process.exitCode = 130;
+      } else {
+        await runDown(commandOptions);
+      }
     } catch (error) {
+      if (error instanceof Error && error.name === "LifecycleUiHandledError") {
+        process.exitCode = 1;
+        return;
+      }
       const message = error instanceof Error ? error.message : String(error);
       process.stderr.write(`down: ${stripControl(message)}\n`);
       process.exitCode = 1;
     }
-  });
+    });
 }
 
 /** Wire the `ls` action onto its cac command. */
@@ -288,10 +332,32 @@ function registerLs(command: Command): void {
 
 /** Wire the `switch` action onto its cac command. */
 function registerSwitch(command: Command): void {
-  command.action(async (model: string) => {
+  registerReadOnlyUiOptions(command).action(async (model: string | undefined, options: UiCliOptions) => {
     try {
-      await runSwitch({ model });
+      if (usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
+        if (model === undefined) {
+          process.stderr.write("switch: model is required outside interactive mode\n");
+          process.exitCode = 1;
+          return;
+        }
+        await runSwitch({ model });
+        return;
+      }
+      const mode = await resolveReadOnlyMode(options, command.cli.rawArgs);
+      if (isInteractiveSelection(mode)) {
+        const outcome = await (await import("./tui/lifecycle-entry.js")).runInteractiveSwitch(
+          model === undefined ? {} : { model },
+          mode,
+        );
+        if (outcome.type === "cancelled") process.exitCode = 130;
+      } else if (model !== undefined) {
+        await runSwitch({ model });
+      }
     } catch (error) {
+      if (error instanceof Error && error.name === "LifecycleUiHandledError") {
+        process.exitCode = 1;
+        return;
+      }
       const message = error instanceof Error ? error.message : String(error);
       process.stderr.write(`switch: ${stripControl(message)}\n`);
       process.exitCode = 1;
@@ -316,13 +382,38 @@ function registerChat(command: Command): void {
 
 /** Wire the `migrate` action onto its cac command. */
 function registerMigrate(command: Command): void {
-  command
+  registerReadOnlyUiOptions(command)
     .option("--from <model>", "Source model to migrate memory from")
     .option("--to <model>", "Target model to migrate memory to")
     .option("--move", "Delete the source memory after a successful migration")
     .option("--dry-run", "Print the migration plan without writing anything")
-    .action(async (options: { from?: string; to?: string; move?: boolean; dryRun?: boolean }) => {
+    .option("--yes", "Skip confirmation for --move only (drift protection remains enabled)")
+    .action(async (options: { from?: string; to?: string; move?: boolean; dryRun?: boolean; yes?: boolean } & UiCliOptions) => {
       try {
+        if (options.yes === true && options.move !== true) {
+          process.stderr.write("migrate: --yes is accepted only with --move\n");
+          process.exitCode = 1;
+          return;
+        }
+        if (usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
+          if (options.from === undefined || options.to === undefined) {
+            process.stderr.write("migrate: --from and --to are required\n");
+            process.exitCode = 1;
+            return;
+          }
+          await runMigrate({
+            from: options.from,
+            to: options.to,
+            ...(options.move === true ? { move: true } : {}),
+            ...(options.dryRun === true ? { dryRun: true } : {}),
+          });
+          return;
+        }
+        const mode = await resolveReadOnlyMode(options, command.cli.rawArgs);
+        if (isInteractiveSelection(mode)) {
+          await (await import("./tui/lifecycle-entry.js")).runInteractiveMigrateUnavailable(mode);
+          return;
+        }
         if (options.from === undefined || options.to === undefined) {
           process.stderr.write("migrate: --from and --to are required\n");
           process.exitCode = 1;
@@ -477,10 +568,14 @@ export function buildCli(): ReturnType<typeof cac> {
   const cli = cac(NAME);
 
   for (const spec of COMMANDS) {
-    const registrationArgs = spec.name === "can-run" ? "[model]" : spec.args;
+    const registrationArgs = ["can-run", "up", "switch"].includes(spec.name)
+      ? "[model]"
+      : spec.args;
     const usage = registrationArgs ? `${spec.name} ${registrationArgs}` : spec.name;
     const command = cli.command(usage, spec.description);
     if (spec.name === "can-run") command.rawName = "can-run <model>";
+    if (spec.name === "up") command.rawName = "up <model>";
+    if (spec.name === "switch") command.rawName = "switch <model>";
     if (spec.name === "recommend") {
       registerRecommend(command);
     } else if (spec.name === "can-run") {

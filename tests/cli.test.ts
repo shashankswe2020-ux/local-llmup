@@ -2,6 +2,11 @@ import { afterEach, describe, it, expect, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
   runUpMock: vi.fn<(options: { model: string; port?: number | undefined }) => Promise<void>>(),
+  runDownMock: vi.fn<(options: { model?: string | undefined }) => Promise<void>>(),
+  resolveUiModeFromSourcesMock: vi.fn(),
+  runInteractiveUpMock: vi.fn<
+    (options: { model?: string; port?: number; backend?: string }, mode: unknown) => Promise<unknown>
+  >(),
   runCanRunMock:
     vi.fn<
       (options: { model: string; json?: boolean }) => Promise<{ runnable: "yes" | "slow" | "no" }>
@@ -21,6 +26,22 @@ vi.mock("../src/commands/up.js", () => ({
   runUp: hoisted.runUpMock,
 }));
 
+vi.mock("../src/commands/down.js", () => ({
+  runDown: hoisted.runDownMock,
+}));
+
+vi.mock("../src/tui/lifecycle-entry.js", () => ({
+  runInteractiveUp: hoisted.runInteractiveUpMock,
+}));
+
+vi.mock("../src/tui/capabilities.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/tui/capabilities.js")>();
+  return {
+    ...actual,
+    resolveUiModeFromSources: hoisted.resolveUiModeFromSourcesMock,
+  };
+});
+
 vi.mock("../src/commands/can-run.js", () => ({
   runCanRun: hoisted.runCanRunMock,
 }));
@@ -34,6 +55,9 @@ import { COMMANDS, buildCli, type CommandName } from "../src/cli.js";
 
 afterEach(() => {
   hoisted.runUpMock.mockReset();
+  hoisted.runDownMock.mockReset();
+  hoisted.resolveUiModeFromSourcesMock.mockReset();
+  hoisted.runInteractiveUpMock.mockReset();
   hoisted.runCanRunMock.mockReset();
   hoisted.runRecommendMock.mockReset();
   process.exitCode = undefined;
@@ -143,6 +167,48 @@ describe("buildCli", () => {
     expect(hoisted.runUpMock).toHaveBeenCalledTimes(2);
     expect(hoisted.runUpMock).toHaveBeenNthCalledWith(1, { model: "llama3.1:8b", port: 1 });
     expect(hoisted.runUpMock).toHaveBeenNthCalledWith(2, { model: "llama3.1:8b", port: 65535 });
+  });
+
+  it("accepts command-scoped down --yes without changing plain execution", async () => {
+    hoisted.runDownMock.mockResolvedValue(undefined);
+
+    await buildCli().parse(["node", "local-llmup", "down", "--yes"]);
+
+    expect(hoisted.runDownMock).toHaveBeenCalledOnce();
+    expect(hoisted.runDownMock).toHaveBeenCalledWith({});
+  });
+
+  it("rejects migrate --yes unless --move is explicitly present", async () => {
+    const writes: string[] = [];
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      writes.push(String(chunk));
+      return true;
+    });
+
+    await buildCli().parse(["node", "local-llmup", "migrate", "--yes"]);
+
+    expect(writes.join("")).toContain("migrate: --yes is accepted only with --move");
+    expect(process.exitCode).toBe(1);
+    stderr.mockRestore();
+  });
+
+  it("does not append a raw handled up error after the exact lifecycle notice", async () => {
+    hoisted.runUpMock.mockRejectedValueOnce(
+      Object.assign(new Error("internal renderer detail"), { name: "LifecycleUiHandledError" }),
+    );
+    const writes: string[] = [];
+    const stderr = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      writes.push(String(chunk));
+      return true;
+    });
+    try {
+      await buildCli().parse(["node", "local-llmup", "up", "llama3.1:8b"]);
+
+      expect(writes.join("")).not.toContain("internal renderer detail");
+      expect(process.exitCode).toBe(1);
+    } finally {
+      stderr.mockRestore();
+    }
   });
 
   it("forwards a valid --context to runRecommend", async () => {

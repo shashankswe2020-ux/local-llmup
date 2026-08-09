@@ -5,7 +5,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
 import { BackendError, ValidationError } from "../../src/errors.js";
 import { readState, STATE_SCHEMA_VERSION, withLock, writeState } from "../../src/state/state.js";
-import { runDown, type DownDeps } from "../../src/commands/down.js";
+import {
+  executePreparedDown,
+  prepareDownConfirmation,
+  runDown,
+  type DownDeps,
+} from "../../src/commands/down.js";
 import { createRegistry } from "../../src/backend/registry.js";
 import type { BackendAdapter, ServeHandle } from "../../src/backend/adapter.js";
 import type { Catalog, CatalogModel } from "../../src/types.js";
@@ -146,6 +151,34 @@ function seedAttached(): void {
 }
 
 describe("runDown", () => {
+  it("executes the exact reviewed snapshot and returns a typed stopped result", async () => {
+    seedOwned();
+    const adapter = fakeAdapter();
+    const dependencies = deps(adapter);
+    const prepared = await prepareDownConfirmation({}, dependencies);
+    const events: string[] = [];
+
+    const result = await executePreparedDown(prepared, dependencies, (event) => {
+      events.push(`${event.status}:${event.phase}`);
+      throw new Error("renderer failed");
+    });
+
+    expect(result).toEqual({
+      type: "stopped",
+      modelId: "llama3.1:8b",
+      endpoint: "http://127.0.0.1:11434",
+    });
+    expect(stdout).toEqual([]);
+    expect(events).toEqual([
+      "started:locked-revalidate",
+      "completed:locked-revalidate",
+      "started:state-clear",
+      "completed:state-clear",
+      "started:stop-detach",
+      "completed:stop-detach",
+    ]);
+  });
+
   it("is a no-op when no server is active", async () => {
     const adapter = fakeAdapter();
 

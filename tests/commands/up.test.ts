@@ -5,7 +5,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
 import { BackendError, ModelResolutionError, ValidationError } from "../../src/errors.js";
 import { readState, STATE_SCHEMA_VERSION, withLock, writeState } from "../../src/state/state.js";
-import { runUp, type UpDeps } from "../../src/commands/up.js";
+import {
+  executePreparedUp,
+  prepareUp,
+  runUp,
+  type UpDeps,
+} from "../../src/commands/up.js";
 import { captureLiveProcessIdentity } from "../../src/tui/snapshots.js";
 import { createRegistry } from "../../src/backend/registry.js";
 import type {
@@ -278,6 +283,43 @@ function deps(adapter: FakeAdapter, cat: Catalog, hw: HardwareProfile = hardware
 }
 
 describe("runUp", () => {
+  it("executes one prepared lifecycle and returns a typed ready result", async () => {
+    const adapter = fakeAdapter();
+    const dependencies = deps(
+      adapter,
+      catalog([model("llama3.1:8b", [quant("Q4_K_M", 5_000_000_000)])]),
+    );
+    const prepared = await prepareUp({ model: "llama3.1:8b" }, dependencies);
+    const events: string[] = [];
+
+    const result = await executePreparedUp(prepared, dependencies, (event) => {
+      events.push(`${event.status}:${event.phase}`);
+      throw new Error("renderer failed");
+    });
+
+    expect(result).toMatchObject({
+      modelId: "llama3.1:8b",
+      backend: "ollama",
+      endpoint: "http://127.0.0.1:11434",
+      integrity: "verified",
+    });
+    expect(stdout).toEqual([]);
+    expect(events).toEqual([
+      "started:acquire",
+      "completed:acquire",
+      "started:verify",
+      "completed:verify",
+      "started:prior-cleanup",
+      "completed:prior-cleanup",
+      "started:serve",
+      "completed:serve",
+      "started:readiness",
+      "completed:readiness",
+      "started:state-commit",
+      "completed:state-commit",
+    ]);
+  });
+
   it("resolves, preflights disk, ensures backend, pulls, serves, health-checks, then writes state in order", async () => {
     const adapter = fakeAdapter();
     const cat = catalog([
@@ -669,7 +711,9 @@ describe("runUp", () => {
 
     await runUp({ model: "llama3.1:8b-Q4_K_M" }, deps(adapter, cat, hw));
 
-    expect(stderr.join("")).toContain("may not fit this hardware (ram-bound)");
+    expect(stderr[0]).toBe(
+      "up: requested quant Q4_K_M for llama3.1:8b may not fit this hardware (ram-bound); continuing because it was explicitly requested\n",
+    );
     expect(stdout.join("")).toContain("ready at");
   });
 

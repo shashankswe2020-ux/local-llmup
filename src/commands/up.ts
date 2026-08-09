@@ -25,7 +25,7 @@ import {
   type ServeHandle,
 } from "../backend/adapter.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
-import { select } from "../backend/select.js";
+import { select, type SelectSource } from "../backend/select.js";
 import { backendsForModel, formatsForModel } from "../catalog/backends.js";
 import { backendSupportsFormatOnPlatform } from "../backend/platform.js";
 import {
@@ -47,6 +47,7 @@ import {
   assertConfirmationUnchanged,
   captureLiveProcessIdentity,
   createRuntimeConfirmationSnapshot,
+  type ConfirmationSnapshot,
 } from "../tui/snapshots.js";
 
 /** Inputs for `up`. Servers always bind loopback in v1, so there is no host. */
@@ -152,12 +153,50 @@ function insufficientDiskMessage(
   return `insufficient disk for ${model.id} (${quant.name}): need ${formatGiB(quant.diskBytes)}, ${formatGiB(freeDiskBytes)} free`;
 }
 
+export interface UpPrepared {
+  readonly model: CatalogModel;
+  readonly quant: Quantization;
+  readonly hardware: HardwareProfile;
+  readonly adapter: BackendAdapter;
+  readonly backendSource: SelectSource;
+  readonly port: number;
+  readonly snapshot: ConfirmationSnapshot;
+  readonly fitWarning: string | null;
+}
+
+export interface UpResult {
+  readonly modelId: string;
+  readonly backend: BackendName;
+  readonly endpoint: string;
+  readonly ownership: "owned" | "attached";
+  readonly integrity: "verified" | "delegated" | "size-only";
+}
+
+export type UpExecutionPhase =
+  | "acquire"
+  | "verify"
+  | "prior-cleanup"
+  | "serve"
+  | "readiness"
+  | "state-commit";
+
+export interface UpExecutionEvent {
+  readonly phase: UpExecutionPhase;
+  readonly status: "started" | "completed";
+  readonly label: string;
+}
+
+export type UpExecutionObserver = (event: UpExecutionEvent) => void;
+
 /**
  * Bring `options.model` online and persist it as the active server. Throws a
  * typed error on any failure; the caller maps that to a stderr message and a
  * non-zero exit code.
  */
-export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps()): Promise<void> {
+export async function prepareUp(
+  options: UpOptions,
+  deps: UpDeps = createDefaultDeps(),
+): Promise<UpPrepared> {
   if (
     options.port !== undefined &&
     (!Number.isInteger(options.port) || options.port < 1 || options.port > 65535)
@@ -174,12 +213,11 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
   // 2. Detect hardware and select the requested/default quant.
   const hardware = await deps.detectHardware();
   const quant = chooseQuant(model, resolved.quant, hardware);
+  let fitWarning: string | null = null;
   if (resolved.quant !== undefined) {
     const fit = evaluateRequestedQuantFit(model, quant, hardware);
     if (!fit.fits) {
-      deps.log(
-        `up: requested quant ${stripControl(quant.name)} for ${stripControl(model.id)} may not fit this hardware (${fit.reason}); continuing because it was explicitly requested\n`,
-      );
+      fitWarning = `requested quant ${quant.name} for ${model.id} may not fit this hardware (${fit.reason})`;
     }
   }
 
@@ -235,6 +273,37 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
     state: preparedState,
     processIdentityHash: preparedProcessIdentity?.hash ?? null,
   });
+  return Object.freeze({
+    model,
+    quant,
+    hardware,
+    adapter,
+    backendSource: selection.source,
+    port: options.port ?? adapter.capabilities.defaultPort,
+    snapshot: approvedSnapshot,
+    fitWarning,
+  });
+}
+
+/** Execute exactly one reviewed up preparation. */
+export async function executePreparedUp(
+  prepared: UpPrepared,
+  deps: UpDeps = createDefaultDeps(),
+  observe: UpExecutionObserver = () => undefined,
+): Promise<UpResult> {
+  const { model, quant, hardware, adapter } = prepared;
+  const notify = (event: UpExecutionEvent): void => {
+    try {
+      observe(event);
+    } catch {
+      // Presentation progress is advisory and cannot affect domain execution.
+    }
+  };
+  if (prepared.fitWarning !== null) {
+    deps.log(
+      `up: ${stripControl(prepared.fitWarning)}; continuing because it was explicitly requested\n`,
+    );
+  }
 
   // 4. Pull and verify the weights. Source resolution is format-aware: daemon
   // runtimes (Ollama) pull by model id through their own store; self-managed
@@ -245,6 +314,7 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
   const ggufSource = adapter.capabilities.formats.includes("gguf") ? model.source.gguf : undefined;
   const mlxSource = adapter.capabilities.formats.includes("mlx") ? model.source.mlx : undefined;
   let pullResult: PullResult;
+  notify({ phase: "acquire", status: "started", label: "Acquire weights" });
   if (!adapter.capabilities.canPull) {
     const delegatedSources = [
       ...(ggufSource !== undefined &&
@@ -325,7 +395,9 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
       `model ${model.id} has no source that backend ${adapter.name} can serve`,
     );
   }
+  notify({ phase: "acquire", status: "completed", label: "Weights acquired" });
 
+  notify({ phase: "verify", status: "started", label: "Verify weight integrity" });
   if (
     adapter.capabilities.canPull &&
     (ggufSource !== undefined || mlxSource !== undefined) &&
@@ -349,12 +421,18 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
       );
     }
   }
+  notify({
+    phase: "verify",
+    status: "completed",
+    label: pullResult.digestVerified ? "Digest verified" : "Weaker integrity disclosed",
+  });
 
   // 5-7. Spawn/attach, health-check, and persist under one lock.
   // This closes the race where two concurrent `up` runs could both spawn owned
   // daemons before either one writes state.
-  const port = options.port ?? adapter.capabilities.defaultPort;
+  const port = prepared.port;
   let endpoint = "";
+  let ownership: "owned" | "attached" = "attached";
   await deps.withLock(deps.config, async () => {
     const modelPath = pullResult.modelPath;
     const lockedState = deps.readState(deps.config);
@@ -368,10 +446,11 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
       processIdentityHash: lockedProcessIdentity?.hash ?? null,
     });
     assertConfirmationUnchanged(
-      approvedSnapshot,
+      prepared.snapshot,
       currentSnapshot,
       "the active server changed during up; retry the command.",
     );
+    notify({ phase: "prior-cleanup", status: "started", label: "Prior owned cleanup" });
     if (prior !== null && prior.ownedByUs) {
       if (lockedProcessIdentity === null) {
         throw new ValidationError("prior owned runtime process identity is unavailable");
@@ -388,18 +467,22 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
       // Do not retain a stale owned PID if replacement startup fails.
       deps.writeState(deps.config, { schemaVersion: STATE_SCHEMA_VERSION, active: null });
     }
+    notify({ phase: "prior-cleanup", status: "completed", label: "Prior cleanup complete" });
 
     let handle: ServeHandle | undefined;
     try {
+      notify({ phase: "serve", status: "started", label: "Serve or attach on loopback" });
       handle = await adapter.serve({
         host: DEFAULT_BIND_HOST,
         port,
         modelId: model.id,
         ...(modelPath !== undefined ? { modelPath } : {}),
       });
+      notify({ phase: "serve", status: "completed", label: "Server process verified" });
 
       // `serve` proves backend-specific load readiness; this command-level probe
       // additionally requires the OpenAI-compatible API before persistence.
+      notify({ phase: "readiness", status: "started", label: "Check API readiness" });
       await adapter.waitUntilReady({
         endpoint: handle.endpoint,
         requireOpenAiCompatibility: true,
@@ -416,6 +499,7 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
         modelId: model.id,
         ...(handle.modelPath !== undefined ? { expectedModelPath: handle.modelPath } : {}),
       });
+      notify({ phase: "readiness", status: "completed", label: "API readiness passed" });
       const backend = adapter.name;
       if (
         !handle.ownedByUs &&
@@ -454,15 +538,38 @@ export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps
             processStartedAt: handle.processStartedAt,
             ...(handle.modelPath !== undefined ? { modelPath: handle.modelPath } : {}),
           };
+      notify({ phase: "state-commit", status: "started", label: "Commit active server state" });
       deps.writeState(deps.config, { schemaVersion: STATE_SCHEMA_VERSION, active });
+      notify({ phase: "state-commit", status: "completed", label: "Active server state committed" });
       endpoint = handle.endpoint;
+      ownership = handle.ownedByUs ? "owned" : "attached";
     } catch (error) {
       if (handle !== undefined) await stopQuietly(adapter, handle);
       throw error;
     }
   });
 
-  deps.write(`${stripControl(model.id)} ready at ${stripControl(endpoint)}\n`);
+  return {
+    modelId: model.id,
+    backend: adapter.name,
+    endpoint,
+    ownership,
+    integrity: pullResult.digestVerified
+      ? "verified"
+      : adapter.capabilities.canPull
+        ? "size-only"
+        : "delegated",
+  };
+}
+
+export function formatUpResult(result: UpResult): string {
+  return `${stripControl(result.modelId)} ready at ${stripControl(result.endpoint)}\n`;
+}
+
+export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps()): Promise<void> {
+  const prepared = await prepareUp(options, deps);
+  const result = await executePreparedUp(prepared, deps);
+  deps.write(formatUpResult(result));
 }
 
 /** Stop an owned daemon during cleanup, swallowing errors so the original

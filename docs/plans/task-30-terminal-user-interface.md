@@ -376,29 +376,55 @@ Independent code review: SHIP (checkpoint 44). Independent security review: GO
 
 ---
 
-#### Task U2b: Lifecycle screens (`up`, `switch`, `down`, `migrate`)
+#### Task U2b: Lifecycle screens (`up`, `switch`, `down`, `migrate`) — PARTIAL (2026-08-09)
 
 **Description:** Add staged review/progress/confirmation screens while preserving
 existing domain stage order and side-effect semantics.
 
 **Acceptance criteria:**
 
-- [ ] `up` stage order matches spec and existing orchestration.
-- [ ] `down` default action is cancel; attached/owned consequences explicit.
+- [x] `up` stage order matches spec and existing orchestration.
+- [x] `down` default action is cancel; attached/owned consequences explicit.
 - [ ] `migrate` preview is pure/read-only; materialization only after acceptance.
+
+**Evidence:** `src/tui/lifecycle-entry.ts`, `src/tui/lifecycle-renderer.tsx`,
+`src/tui/lifecycle-accessible.ts`, and `src/tui/screens/lifecycle.tsx` add
+interactive review/progress flows for `up`, `switch`, and `down`, plus an honest
+unavailable `migrate` screen that performs no store access. Lifecycle commands are
+split into immutable `prepare` and exact `executePrepared*` seams so reviewed
+snapshots remain the execution authority; command-scoped `--yes` is wired only
+for `down`, and renderer init/review/progress failures follow the exact
+pre-execution/runtime fallback contract without duplicate domain execution or raw
+renderer stderr. `up`, `switch`, and `down` now emit real command-boundary
+progress events from acquisition/verification/cleanup/serve/readiness/revalidate/
+commit boundaries, while committed stdout remains authoritative if rendering fails.
+`switch` interactive selection excludes the active Ollama target and fails closed
+for single-model/runtime-managed backends. Because production `migrate` remains
+fail-closed until a reviewed secure filesystem helper exists, U2b stays partial by
+approved design: the migrate preview/materialization acceptance criterion remains
+open and moves to the future secure-filesystem boundary. Final verification: 82
+files / 1,369 tests, build, typecheck, lint, script-free pack dry-run, and `git diff --check`
+passed. Real llama.cpp smoke exercised built `prepareUp` → `executePreparedUp`
+and `prepareDownConfirmation` → `executePreparedDown` on verified Qwen3 loopback
+weights with cleanup. Independent code review: SHIP (checkpoint 53). Independent
+security audit: GO (audit 35).
 
 **Verification command:**
 
-- `npm test -- --reporter=dot tests/tui/screens/lifecycle/*.test.ts tests/commands/{up,down,switch,migrate}.test.ts`
+- `npm test -- --reporter=dot tests/tui/lifecycle-entry.test.ts tests/tui/lifecycle-renderer.test.ts tests/tui/lifecycle-screens.test.ts tests/commands/{up,down,switch,migrate}.test.ts`
 - `npm run typecheck && npm run build`
 
 **Files likely touched:**
 
-- `src/tui/screens/up.tsx`
-- `src/tui/screens/switch.tsx`
-- `src/tui/screens/down.tsx`
-- `src/tui/screens/migrate.tsx`
-- `tests/tui/screens/lifecycle/*`
+- `src/tui/lifecycle-entry.ts`
+- `src/tui/lifecycle-renderer.tsx`
+- `src/tui/lifecycle-accessible.ts`
+- `src/tui/lifecycle-types.ts`
+- `src/tui/screens/lifecycle.tsx`
+- `src/cli.ts`
+- `src/commands/{up,down,switch}.ts`
+- `tests/tui/lifecycle-*.test.ts`
+- `tests/commands/{up,down,switch}.test.ts`
 
 **Dependencies:** U2a
 

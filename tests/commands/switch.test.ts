@@ -5,7 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
 import { BackendError, ValidationError } from "../../src/errors.js";
 import { readState, STATE_SCHEMA_VERSION, withLock, writeState } from "../../src/state/state.js";
-import { runSwitch, type SwitchDeps } from "../../src/commands/switch.js";
+import {
+  executePreparedSwitch,
+  prepareSwitch,
+  runSwitch,
+  type SwitchDeps,
+} from "../../src/commands/switch.js";
 import {
   captureLiveProcessIdentity,
   ConfirmationDriftError,
@@ -168,6 +173,36 @@ function seedActive(modelId: string, backend: "ollama" | "llamacpp" | "mlx" = "o
 }
 
 describe("runSwitch", () => {
+  it("executes one immutable prepared switch and returns a typed result", async () => {
+    seedActive("llama3.1:8b");
+    const adapter = fakeAdapter();
+    const dependencies = deps(adapter);
+    const prepared = await prepareSwitch({ model: "qwen2.5:7b" }, dependencies);
+    const events: string[] = [];
+
+    const result = await executePreparedSwitch(prepared, dependencies, (event) => {
+      events.push(`${event.status}:${event.phase}`);
+      throw new Error("renderer failed");
+    });
+
+    expect(result).toEqual({
+      type: "switched",
+      modelId: "qwen2.5:7b",
+      endpoint: "http://127.0.0.1:11434",
+    });
+    expect(stdout).toEqual([]);
+    expect(events).toEqual([
+      "started:prepare",
+      "completed:prepare",
+      "started:readiness",
+      "completed:readiness",
+      "started:locked-revalidate",
+      "completed:locked-revalidate",
+      "started:state-commit",
+      "completed:state-commit",
+    ]);
+  });
+
   it("rejects when no server is active", async () => {
     const adapter = fakeAdapter();
 

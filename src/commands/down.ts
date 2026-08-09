@@ -65,6 +65,19 @@ export interface DownPrepared {
   readonly processIdentity: LiveProcessIdentity | null;
 }
 
+export type DownResult =
+  | { readonly type: "no-active" }
+  | { readonly type: "stopped"; readonly modelId: string; readonly endpoint: string }
+  | { readonly type: "detached"; readonly modelId: string; readonly endpoint: string };
+
+export interface DownExecutionEvent {
+  readonly phase: "locked-revalidate" | "state-clear" | "stop-detach" | "rollback";
+  readonly status: "started" | "completed";
+  readonly label: string;
+}
+
+export type DownExecutionObserver = (event: DownExecutionEvent) => void;
+
 /** Capture the exact state/process target shown by a future confirmation review. */
 export async function prepareDownConfirmation(
   options: DownOptions,
@@ -93,13 +106,21 @@ export async function prepareDownConfirmation(
   });
 }
 
-/** Stop the active server (if we own it) and clear the state record. */
-export async function runDown(
-  options: DownOptions,
+/** Execute only the exact state/process target represented by `prepared`. */
+export async function executePreparedDown(
+  prepared: DownPrepared,
   deps: DownDeps = createDefaultDeps(),
-): Promise<void> {
-  const prepared = await prepareDownConfirmation(options, deps);
-  await deps.withLock(deps.config, async () => {
+  observe: DownExecutionObserver = () => undefined,
+): Promise<DownResult> {
+  const notify = (event: DownExecutionEvent): void => {
+    try {
+      observe(event);
+    } catch {
+      // Presentation progress is advisory and cannot affect domain execution.
+    }
+  };
+  return deps.withLock(deps.config, async () => {
+    notify({ phase: "locked-revalidate", status: "started", label: "Revalidate active server" });
     const currentState = deps.readState(deps.config);
     const active = currentState.active;
     const currentProcessIdentity =
@@ -111,13 +132,10 @@ export async function runDown(
       processIdentityHash: currentProcessIdentity?.hash ?? null,
     });
     assertConfirmationUnchanged(prepared.snapshot, current);
+    notify({ phase: "locked-revalidate", status: "completed", label: "Active server revalidated" });
     if (active === null) {
-      deps.write("No active server to stop.\n");
-      return;
+      return { type: "no-active" };
     }
-
-    const label = stripControl(active.modelId);
-    const endpoint = stripControl(active.endpoint);
 
     if (active.ownedByUs) {
       const adapter = (
@@ -129,8 +147,11 @@ export async function runDown(
       }
 
       // Clear first so a successful stop cannot strand an owned pid in state.
+      notify({ phase: "state-clear", status: "started", label: "Clear active server state" });
       deps.writeState(deps.config, createEmptyState());
+      notify({ phase: "state-clear", status: "completed", label: "Active server state cleared" });
       try {
+        notify({ phase: "stop-detach", status: "started", label: "Stop verified owned process" });
         await adapter.stop({
           endpoint: active.endpoint,
           pid: active.pid,
@@ -139,19 +160,42 @@ export async function runDown(
           processExecutable: currentProcessIdentity.expectedProcess.executable,
           processStartedAt: currentProcessIdentity.expectedProcess.started,
         });
+        notify({ phase: "stop-detach", status: "completed", label: "Owned process stopped" });
       } catch (error) {
+        notify({ phase: "rollback", status: "started", label: "Restore active server state" });
         deps.writeState(deps.config, previousState);
+        notify({ phase: "rollback", status: "completed", label: "Active server state restored" });
         throw error;
       }
 
-      deps.write(`Stopped ${label} (${endpoint}).\n`);
-      return;
+      return { type: "stopped", modelId: active.modelId, endpoint: active.endpoint };
     }
 
     // Attached daemon: not ours to stop. Forget it but leave it running.
+    notify({ phase: "state-clear", status: "started", label: "Forget attached runtime state" });
     deps.writeState(deps.config, createEmptyState());
-    deps.write(
-      `Detached from ${label} (${endpoint}); it was not started by local-llmup and is still running.\n`,
-    );
+    notify({ phase: "state-clear", status: "completed", label: "Attached runtime state forgotten" });
+    notify({ phase: "stop-detach", status: "completed", label: "Runtime left running" });
+    return { type: "detached", modelId: active.modelId, endpoint: active.endpoint };
   });
+}
+
+/** Preserve the authoritative plain output contract for a typed down result. */
+export function formatDownResult(result: DownResult): string {
+  if (result.type === "no-active") return "No active server to stop.\n";
+  const label = stripControl(result.modelId);
+  const endpoint = stripControl(result.endpoint);
+  return result.type === "stopped"
+    ? `Stopped ${label} (${endpoint}).\n`
+    : `Detached from ${label} (${endpoint}); it was not started by local-llmup and is still running.\n`;
+}
+
+/** Stop the active server (if we own it) and clear the state record. */
+export async function runDown(
+  options: DownOptions,
+  deps: DownDeps = createDefaultDeps(),
+): Promise<void> {
+  const prepared = await prepareDownConfirmation(options, deps);
+  const result = await executePreparedDown(prepared, deps);
+  deps.write(formatDownResult(result));
 }
