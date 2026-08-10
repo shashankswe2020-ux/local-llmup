@@ -3,937 +3,337 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>local-llmup: Will this LLM run on my machine?</title>
-    <meta
-      name="description"
-      content="A hardware-aware CLI that scores your machine and tells you which local LLMs will run — yes, slow, or no, with estimated tokens per second — then installs, serves, and migrates them."
-    />
+    <title>local-llmup — Hardware-aware CLI for local LLMs</title>
+    <meta name="description" content="Know which local LLMs will run on your machine — yes/slow/no + est. tok/s — before you download anything. Interactive TUI, 4 backends, integrity-verified installs." />
     <meta property="og:title" content="local-llmup" />
-    <meta
-      property="og:description"
-      content="Know which local LLMs will run on your machine — yes/slow/no + tok/s — in one command."
-    />
+    <meta property="og:description" content="Hardware-aware CLI for local LLMs. Interactive TUI, runnability verdicts, 4 backends, portable memory." />
     <meta property="og:type" content="website" />
-    <meta name="theme-color" content="#f7f6f2" />
-
+    <meta name="theme-color" content="#1e1c2e" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
-    />
-
-    <style>
-      :root {
-        --font: "Archivo", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-        --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-        --paper: #f7f6f2;
-        --paper-2: #f1efe8;
-        --paper-press: #e8e6dd;
-        --ink: #16150f;
-        --ink-2: #56544a;
-        --ink-3: #87847a;
-        --rule: #16150f;
-        --rule-soft: #d6d3c8;
-      }
-
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --paper: #16150f;
-          --paper-2: #1e1c16;
-          --paper-press: #23211a;
-          --ink: #f3f1ea;
-          --ink-2: #b8b5a8;
-          --ink-3: #87847a;
-          --rule: #f3f1ea;
-          --rule-soft: #34322a;
-        }
-      }
-
-      *,
-      *::before,
-      *::after {
-        box-sizing: border-box;
-        border-radius: 0;
-      }
-
-      html {
-        background: var(--paper);
-      }
-
-      body {
-        margin: 0;
-        font-family: var(--font);
-        color: var(--ink);
-        background: var(--paper);
-        overflow-x: hidden;
-      }
-
-      .frame {
-        max-width: 1440px;
-        margin: 0 auto;
-        border-inline: 1px solid var(--rule);
-      }
-
-      .nav {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1.1rem 2rem;
-        border-bottom: 1px solid var(--rule);
-      }
-
-      .wordmark {
-        font-weight: 800;
-        font-size: 1.4rem;
-        letter-spacing: -0.035em;
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .nav-links {
-        display: flex;
-        align-items: center;
-        gap: 2rem;
-      }
-
-      .nav-links a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .nav-links a:not(.star):hover {
-        text-decoration: underline;
-        text-underline-offset: 4px;
-      }
-
-      .star {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        border: 1px solid var(--rule);
-        padding: 0.4rem 0.85rem;
-        font-weight: 600;
-      }
-
-      .star:hover {
-        background: var(--paper-press);
-      }
-
-      .hero {
-        display: grid;
-        grid-template-columns: 1.05fr 0.95fr;
-        border-bottom: 1px solid var(--rule);
-      }
-
-      .hero-left {
-        padding: 4.5rem 3rem 4rem;
-      }
-
-      .hero-right {
-        border-inline-start: 1px solid var(--rule);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2.5rem;
-      }
-
-      h1 {
-        font-size: clamp(2.4rem, 6vw, 4.6rem);
-        line-height: 0.98;
-        font-weight: 800;
-        letter-spacing: -0.04em;
-        margin: 0 0 1.6rem;
-      }
-
-      .lede {
-        font-size: 1.18rem;
-        line-height: 1.5;
-        color: var(--ink-2);
-        max-width: 42ch;
-        margin: 0 0 2.2rem;
-      }
-
-      .cta {
-        display: flex;
-        gap: 0.9rem;
-        margin-bottom: 1.6rem;
-        flex-wrap: wrap;
-      }
-
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.8rem 1.5rem;
-        font-size: 1rem;
-        font-weight: 600;
-        text-decoration: none;
-        border: 1px solid var(--rule);
-      }
-
-      .btn-primary {
-        background: var(--ink);
-        color: var(--paper);
-      }
-
-      .btn-primary:hover {
-        background: transparent;
-        color: var(--ink);
-      }
-
-      .btn-ghost {
-        color: var(--ink);
-      }
-
-      .btn-ghost:hover {
-        background: var(--paper-press);
-      }
-
-      .install {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        border: 1px solid var(--rule);
-        padding: 0.5rem 0.55rem 0.5rem 0.9rem;
-        font-family: var(--mono);
-        font-size: 0.95rem;
-      }
-
-      .install code {
-        font-family: inherit;
-      }
-
-      .copy {
-        border: none;
-        background: transparent;
-        cursor: pointer;
-        color: var(--ink-2);
-        padding: 0.3rem;
-      }
-
-      .copy:hover {
-        color: var(--ink);
-      }
-
-      .copied {
-        font-size: 0.8rem;
-        padding: 0 0.2rem;
-      }
-
-      .stat {
-        margin: 1.6rem 0 0;
-        font-family: var(--mono);
-        font-size: 0.85rem;
-        color: var(--ink-3);
-      }
-
-      .graph {
-        width: 100%;
-        max-width: 560px;
-      }
-
-      .graph .edges line {
-        stroke: var(--ink);
-        stroke-width: 1.25;
-      }
-
-      .graph .node circle {
-        fill: var(--paper);
-        stroke: var(--ink);
-        stroke-width: 1.5;
-      }
-
-      .graph .node text {
-        font-family: var(--mono);
-        font-size: 15px;
-        fill: var(--ink);
-      }
-
-      .features {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-      }
-
-      .feature {
-        display: grid;
-        grid-template-columns: auto 1px 1fr;
-        column-gap: 1.5rem;
-        align-items: center;
-        padding: 2.6rem 2rem;
-      }
-
-      .feature + .feature {
-        border-inline-start: 1px solid var(--rule);
-      }
-
-      .feature::before {
-        content: "";
-        grid-column: 2;
-        grid-row: 1 / 3;
-        align-self: stretch;
-        width: 1px;
-        background: var(--rule);
-      }
-
-      .ficon {
-        grid-column: 1;
-        grid-row: 1 / 3;
-        width: 56px;
-        height: 56px;
-      }
-
-      .feature h2 {
-        grid-column: 3;
-        margin: 0 0 0.6rem;
-      }
-
-      .feature p {
-        grid-column: 3;
-        margin: 0;
-        line-height: 1.55;
-        color: var(--ink-2);
-      }
-
-      .setup {
-        border-top: 1px solid var(--rule);
-        padding: 3.4rem 2rem 3.8rem;
-      }
-
-      .setup-head {
-        font-size: clamp(1.6rem, 3vw, 2.1rem);
-        font-weight: 800;
-        letter-spacing: -0.03em;
-        margin: 0 0 0.6rem;
-      }
-
-      .setup-sub {
-        color: var(--ink-2);
-        margin: 0 0 2rem;
-        max-width: 56ch;
-      }
-
-      .setup-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1px;
-        background: var(--rule);
-        border: 1px solid var(--rule);
-      }
-
-      .setup-card {
-        background: var(--paper);
-        padding: 1.9rem;
-      }
-
-      .setup-card h3 {
-        margin: 0 0 1rem;
-      }
-
-      .setup-card p {
-        line-height: 1.55;
-        color: var(--ink-2);
-        margin: 1.1rem 0 0;
-      }
-
-      .install--block {
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-        overflow-x: auto;
-      }
-
-      .install--block code {
-        white-space: nowrap;
-      }
-
-      .commands {
-        border-top: 1px solid var(--rule);
-        padding: 3.4rem 2rem 3.8rem;
-      }
-
-      .commands-head {
-        font-size: clamp(1.6rem, 3vw, 2.1rem);
-        font-weight: 800;
-        letter-spacing: -0.03em;
-        margin: 0 0 0.6rem;
-      }
-
-      .commands-sub {
-        color: var(--ink-2);
-        margin: 0 0 2rem;
-        max-width: 60ch;
-      }
-
-      .cmd-table {
-        width: 100%;
-        border-collapse: collapse;
-        border: 1px solid var(--rule);
-      }
-
-      .cmd-table th,
-      .cmd-table td {
-        text-align: start;
-        padding: 0.85rem 1.1rem;
-        border-bottom: 1px solid var(--rule-soft);
-        vertical-align: top;
-      }
-
-      .cmd-table thead th {
-        border-bottom: 1px solid var(--rule);
-        font-weight: 700;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--ink-3);
-      }
-
-      .cmd-table tbody tr:last-child td {
-        border-bottom: none;
-      }
-
-      .cmd-table td code {
-        font-family: var(--mono);
-        font-size: 0.9rem;
-        color: var(--ink);
-        white-space: nowrap;
-      }
-
-      .cmd-table td.cmd-desc {
-        color: var(--ink-2);
-        line-height: 1.5;
-      }
-
-      @media (max-width: 620px) {
-        .cmd-table,
-        .cmd-table tbody,
-        .cmd-table tr,
-        .cmd-table td {
-          display: block;
-          width: 100%;
-        }
-
-        .cmd-table thead {
-          display: none;
-        }
-
-        .cmd-table tr {
-          border-bottom: 1px solid var(--rule);
-          padding: 0.4rem 0;
-        }
-
-        .cmd-table tr:last-child {
-          border-bottom: none;
-        }
-
-        .cmd-table td {
-          border-bottom: none;
-          padding: 0.3rem 1.1rem;
-        }
-      }
-
-      .foot {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 1.4rem 2rem;
-        border-top: 1px solid var(--rule);
-      }
-
-      .foot-mark {
-        font-weight: 800;
-      }
-
-      .foot-links {
-        display: flex;
-        gap: 1.6rem;
-      }
-
-      .foot-links a {
-        color: var(--ink-2);
-        text-decoration: none;
-      }
-
-      .foot-links a:hover {
-        color: var(--ink);
-        text-decoration: underline;
-        text-underline-offset: 3px;
-      }
-
-      @media (max-width: 860px) {
-        .hero {
-          grid-template-columns: 1fr;
-        }
-
-        .hero-right {
-          border-inline-start: none;
-          border-top: 1px solid var(--rule);
-        }
-
-        .features {
-          grid-template-columns: 1fr;
-        }
-
-        .feature + .feature {
-          border-inline-start: none;
-          border-top: 1px solid var(--rule);
-        }
-
-        .setup-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .nav {
-          padding: 1rem 1.25rem;
-        }
-
-        .nav-links {
-          gap: 0.85rem;
-          font-size: 0.85rem;
-        }
-
-        .nav-links .opt,
-        .star {
-          display: none;
-        }
-
-        .hero-left {
-          padding: 2.75rem 1.25rem 2.5rem;
-        }
-
-        .foot {
-          flex-direction: column;
-          gap: 1rem;
-          align-items: flex-start;
-        }
-      }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <div class="frame">
-      <header class="nav">
-        <a class="wordmark" href="./">local-llmup</a>
-        <nav class="nav-links">
-          <a class="opt" href="#commands">Commands</a>
-          <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
-          <a class="opt" href="https://www.npmjs.com/package/local-llmup">npm</a>
-          <a href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
-          <a class="star" href="https://github.com/shashankswe2020-ux/local-llmup/stargazers"
-            ><span aria-hidden="true">★</span>Star</a
-          >
+
+    <!-- Nav -->
+    <div class="nav-wrap">
+      <div class="frame">
+        <nav class="nav">
+          <a class="wordmark" href="./">local-llmup</a>
+          <div class="nav-links">
+            <a class="opt" href="#tui">TUI</a>
+            <a class="opt" href="#commands">Commands</a>
+            <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
+            <a class="opt" href="https://www.npmjs.com/package/local-llmup">npm</a>
+            <a href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
+            <a class="nav-cta" href="#quickstart">Get started &rarr;</a>
+          </div>
         </nav>
-      </header>
-
-      <main>
-        <section class="hero">
-          <div class="hero-left">
-            <h1>Know which local LLMs will run on your machine</h1>
-            <p class="lede">
-              local-llmup scores your hardware, then gives every model a straight answer —
-              <strong>yes</strong>, <strong>slow</strong>, or <strong>no</strong>, with an estimated
-              tokens-per-second range — before you download a thing. Then it pulls, serves, and
-              migrates memory, all locally.
-            </p>
-            <div class="cta">
-              <a class="btn btn-primary" href="#setup">Get started</a>
-              <a class="btn btn-ghost" href="https://www.npmjs.com/package/local-llmup"
-                >View on npm</a
-              >
-            </div>
-            <div class="install" data-install="npm install -g local-llmup">
-              <code>npm install -g local-llmup</code>
-              <button class="copy" type="button" aria-label="Copy install command">
-                <svg
-                  viewBox="0 0 24 24"
-                  width="18"
-                  height="18"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                >
-                  <rect x="9" y="9" width="11" height="11" />
-                  <path d="M5 15V5a1 1 0 0 1 1-1h9" />
-                </svg>
-              </button>
-            </div>
-            <p class="stat">
-              10 commands - yes/slow/no verdicts - est. tok/s - local-first workflow
-            </p>
-          </div>
-
-          <div class="hero-right">
-            <svg
-              class="graph"
-              viewBox="0 0 780 600"
-              role="img"
-              aria-label="Graph showing hardware profile, ranking, pull, serve, chat, and migration flows."
-            >
-              <g class="edges">
-                <line x1="390" y1="70" x2="240" y2="200" />
-                <line x1="390" y1="70" x2="390" y2="260" />
-                <line x1="390" y1="70" x2="550" y2="200" />
-                <line x1="240" y1="200" x2="165" y2="370" />
-                <line x1="240" y1="200" x2="305" y2="370" />
-                <line x1="390" y1="260" x2="465" y2="380" />
-                <line x1="550" y1="200" x2="610" y2="360" />
-              </g>
-              <g class="nodes">
-                <g class="node">
-                  <circle cx="390" cy="70" r="9" />
-                  <text x="408" y="75">hardware</text>
-                </g>
-                <g class="node">
-                  <circle cx="240" cy="200" r="9" />
-                  <text x="222" y="205" text-anchor="end">catalog</text>
-                </g>
-                <g class="node">
-                  <circle cx="390" cy="260" r="9" />
-                  <text x="408" y="265">up</text>
-                </g>
-                <g class="node">
-                  <circle cx="550" cy="200" r="9" />
-                  <text x="568" y="205">ranking</text>
-                </g>
-                <g class="node">
-                  <circle cx="165" cy="370" r="9" />
-                  <text x="165" y="400" text-anchor="middle">recommend</text>
-                </g>
-                <g class="node">
-                  <circle cx="305" cy="370" r="9" />
-                  <text x="305" y="400" text-anchor="middle">can-run</text>
-                </g>
-                <g class="node">
-                  <circle cx="465" cy="380" r="9" />
-                  <text x="483" y="385">chat</text>
-                </g>
-                <g class="node">
-                  <circle cx="610" cy="360" r="9" />
-                  <text x="628" y="365">migrate</text>
-                </g>
-              </g>
-            </svg>
-          </div>
-        </section>
-
-        <section class="features">
-          <article class="feature">
-            <svg
-              class="ficon"
-              viewBox="0 0 48 48"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-            >
-              <path d="M4 26h7l4-12 6 26 6-32 4 18h7" />
-            </svg>
-            <h2>Runnability, not guesswork</h2>
-            <p>
-              An AI Hardware Score (0–100) names your bottleneck, and every model gets a yes / slow
-              / no verdict with an estimated tok/s range. Size the KV cache at a chosen window with
-              <code>recommend --context</code>, or find each model's ceiling with
-              <code>--max-context</code>. Unknown hardware or geometry says “unknown” — never a
-              made-up number.
-            </p>
-          </article>
-
-          <article class="feature">
-            <svg
-              class="ficon"
-              viewBox="0 0 48 48"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-            >
-              <rect x="5" y="10" width="38" height="28" />
-              <path d="M13 20l6 4-6 4M26 28h9" />
-            </svg>
-            <h2>One-command lifecycle</h2>
-            <p>
-              `up`, `down`, `switch`, and `doctor` coordinate the local server lifecycle through
-              Ollama with safer defaults and consistent diagnostics.
-            </p>
-          </article>
-
-          <article class="feature">
-            <svg
-              class="ficon"
-              viewBox="0 0 48 48"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-            >
-              <rect x="11" y="21" width="26" height="20" />
-              <path d="M16 21v-6a8 8 0 0 1 16 0v6" />
-              <circle cx="24" cy="30" r="2.5" />
-              <path d="M24 32.5V36" />
-            </svg>
-            <h2>Portable memory switching</h2>
-            <p>
-              Migrate local memory from one model to another when you change quality or latency
-              targets, while keeping conversational continuity.
-            </p>
-          </article>
-        </section>
-
-        <section class="setup" id="setup">
-          <h2 class="setup-head">Get running in a few commands</h2>
-          <p class="setup-sub">
-            Use the defaults for quick setup, then switch to a specific model when ready. These are
-            examples from a typical local workflow.
-          </p>
-
-          <div class="setup-grid">
-            <div class="setup-card">
-              <h3>Install and rank</h3>
-              <div class="install install--block" data-install="npx local-llmup">
-                <code>npx local-llmup</code>
-                <button class="copy" type="button" aria-label="Copy rank command">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="18"
-                    height="18"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                  >
-                    <rect x="9" y="9" width="11" height="11" />
-                    <path d="M5 15V5a1 1 0 0 1 1-1h9" />
-                  </svg>
-                </button>
-              </div>
-              <p>Prints ranked models with a verdict and est. tok/s, plus a top-pick command.</p>
-            </div>
-
-            <div class="setup-card">
-              <h3>Will it run?</h3>
-              <div class="install install--block" data-install="local-llmup can-run llama3.1:8b">
-                <code>local-llmup can-run llama3.1:8b</code>
-                <button class="copy" type="button" aria-label="Copy can-run command">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="18"
-                    height="18"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                  >
-                    <rect x="9" y="9" width="11" height="11" />
-                    <path d="M5 15V5a1 1 0 0 1 1-1h9" />
-                  </svg>
-                </button>
-              </div>
-              <p>
-                Answers yes / slow / no with est. tok/s. Exits non-zero only for no, so it scripts.
-              </p>
-            </div>
-
-            <div class="setup-card">
-              <h3>Size the context</h3>
-              <div
-                class="install install--block"
-                data-install="local-llmup recommend --context 32768"
-              >
-                <code>local-llmup recommend --context 32768</code>
-                <button class="copy" type="button" aria-label="Copy recommend context command">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="18"
-                    height="18"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                  >
-                    <rect x="9" y="9" width="11" height="11" />
-                    <path d="M5 15V5a1 1 0 0 1 1-1h9" />
-                  </svg>
-                </button>
-              </div>
-              <p>
-                Re-ranks with the KV cache sized at your window. Add <code>--max-context</code> for
-                each model's ceiling.
-              </p>
-            </div>
-
-            <div class="setup-card">
-              <h3>Pull and serve</h3>
-              <div class="install install--block" data-install="local-llmup up qwen3:30b-a3b">
-                <code>local-llmup up qwen3:30b-a3b</code>
-                <button class="copy" type="button" aria-label="Copy up command">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="18"
-                    height="18"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                  >
-                    <rect x="9" y="9" width="11" height="11" />
-                    <path d="M5 15V5a1 1 0 0 1 1-1h9" />
-                  </svg>
-                </button>
-              </div>
-              <p>Pulls the model through Ollama and brings up the local server endpoint.</p>
-            </div>
-
-            <div class="setup-card">
-              <h3>Chat</h3>
-              <div class="install install--block" data-install="local-llmup chat -m qwen3:30b-a3b">
-                <code>local-llmup chat -m qwen3:30b-a3b</code>
-                <button class="copy" type="button" aria-label="Copy chat command">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="18"
-                    height="18"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                  >
-                    <rect x="9" y="9" width="11" height="11" />
-                    <path d="M5 15V5a1 1 0 0 1 1-1h9" />
-                  </svg>
-                </button>
-              </div>
-              <p>Starts an interactive prompt against your active or selected model.</p>
-            </div>
-
-            <div class="setup-card">
-              <h3>Diagnostics</h3>
-              <div class="install install--block" data-install="local-llmup doctor">
-                <code>local-llmup doctor</code>
-                <button class="copy" type="button" aria-label="Copy doctor command">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="18"
-                    height="18"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                  >
-                    <rect x="9" y="9" width="11" height="11" />
-                    <path d="M5 15V5a1 1 0 0 1 1-1h9" />
-                  </svg>
-                </button>
-              </div>
-              <p>
-                Scores your hardware, names the primary bottleneck, and reports actionable issues.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section class="commands" id="commands">
-          <h2 class="commands-head">All commands</h2>
-          <p class="commands-sub">
-            Ten commands cover the whole local-LLM lifecycle — from hardware-aware discovery to
-            serving, chatting, and migrating memory. Run any command with <code>--help</code>, or
-            <code>--json</code> for machine-readable output.
-          </p>
-
-          <table class="cmd-table">
-            <thead>
-              <tr>
-                <th>Command</th>
-                <th>What it does</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><code>recommend</code></td>
-                <td class="cmd-desc">
-                  Default command. Ranks the catalog for your machine with a yes / slow / no verdict
-                  and est. tok/s. Size the KV cache with <code>--context</code> or find each model's
-                  ceiling with <code>--max-context</code>; filter by <code>--task</code>.
-                </td>
-              </tr>
-              <tr>
-                <td><code>can-run</code></td>
-                <td class="cmd-desc">
-                  Checks a single model and answers yes / slow / no with the binding reason and est.
-                  tok/s. Exits non-zero only on <em>no</em>, so it works as a script gate.
-                </td>
-              </tr>
-              <tr>
-                <td><code>catalog</code></td>
-                <td class="cmd-desc">
-                  Lists the curated model catalog with quantization, size, and context length.
-                  Filters to what fits your machine.
-                </td>
-              </tr>
-              <tr>
-                <td><code>doctor</code></td>
-                <td class="cmd-desc">
-                  Scores your hardware (0–100), names the primary bottleneck, and reports actionable
-                  environment issues.
-                </td>
-              </tr>
-              <tr>
-                <td><code>up</code></td>
-                <td class="cmd-desc">
-                  Pulls a model through Ollama (integrity-verified) and brings up the loopback-only
-                  server endpoint.
-                </td>
-              </tr>
-              <tr>
-                <td><code>chat</code></td>
-                <td class="cmd-desc">
-                  Opens an interactive prompt against the active or selected model; the exchange is
-                  recorded to local memory.
-                </td>
-              </tr>
-              <tr>
-                <td><code>ls</code></td>
-                <td class="cmd-desc">Shows the currently active model and server endpoint.</td>
-              </tr>
-              <tr>
-                <td><code>switch</code></td>
-                <td class="cmd-desc">
-                  Switches the active server to a different already-served model.
-                </td>
-              </tr>
-              <tr>
-                <td><code>migrate</code></td>
-                <td class="cmd-desc">
-                  Moves local memory from one model to another when you change quality or latency
-                  targets. Preview with <code>--dry-run</code>.
-                </td>
-              </tr>
-              <tr>
-                <td><code>down</code></td>
-                <td class="cmd-desc">Stops the local server when you are done.</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-      </main>
-
-      <footer class="foot">
-        <span class="foot-mark">local-llmup</span>
-        <nav class="foot-links">
-          <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
-          <a href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
-          <a href="https://www.npmjs.com/package/local-llmup">npm</a>
-          <a href="https://github.com/shashankswe2020-ux/local-llmup/blob/main/LICENSE">MIT</a>
-        </nav>
-      </footer>
+      </div>
     </div>
 
-    <script>
-      document.querySelectorAll(".install").forEach((wrap) => {
-        const btn = wrap.querySelector(".copy");
-        if (!btn) return;
-        const original = btn.innerHTML;
-        btn.addEventListener("click", async () => {
-          try {
-            await navigator.clipboard.writeText(wrap.getAttribute("data-install") || "");
-            btn.innerHTML = '<span class="copied">Copied</span>';
-            setTimeout(() => {
-              btn.innerHTML = original;
-            }, 1400);
-          } catch {
-            // Clipboard can be blocked by browser settings.
-          }
-        });
-      });
-    </script>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="frame">
+        <div class="hero-badge">
+          <span>v0.6.1</span>
+          &middot; Interactive TUI &middot; 4 Backends &middot; 1 459 tests
+        </div>
+        <h1>Which local LLMs will<br />run on <em>your machine</em>?</h1>
+        <p class="hero-sub">
+          A hardware-aware CLI that scores your machine and gives every model a straight answer &mdash;
+          <strong>yes</strong>, <strong>slow</strong>, or <strong>no</strong>, with an estimated tok/s range &mdash;
+          before you download a thing. Then it pulls, serves, chats, and migrates memory, all locally.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#quickstart">Get started</a>
+          <a class="btn btn-secondary" href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
+        </div>
+        <div class="install-strip" data-install="npm install -g local-llmup">
+          <span class="prompt">$</span>
+          <span>npm install -g local-llmup</span>
+          <button class="copy-btn" type="button" aria-label="Copy install command">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg>
+          </button>
+        </div>
+
+        <!-- Demo GIF -->
+        <div class="demo-wrap reveal">
+          <img src="../assets/demo.gif" alt="local-llmup end-to-end demo — install, recommend TUI, doctor, can-run" width="900" loading="lazy" />
+        </div>
+
+        <!-- Verdict pills -->
+        <div class="verdicts">
+          <div class="verdict-pill">
+            <span class="vbadge yes">&#10003; yes</span>
+            <span class="vlabel">Fits in memory, meets bandwidth</span>
+          </div>
+          <div class="verdict-pill">
+            <span class="vbadge slow">&#9888; slow</span>
+            <span class="vlabel">Fits but bandwidth-limited</span>
+          </div>
+          <div class="verdict-pill">
+            <span class="vbadge no">&#10007; no</span>
+            <span class="vlabel">Won&rsquo;t fit &mdash; binding reason shown</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section" id="features">
+      <div class="frame">
+        <div class="section-label">Why local-llmup</div>
+        <h2 class="section-title">Everything you need to run LLMs locally</h2>
+        <p class="section-sub">From hardware profiling to integrity-verified installs, interactive TUI to portable memory &mdash; a complete local-LLM workflow in one CLI.</p>
+        <div class="features reveal">
+          <article class="feature">
+            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 26h7l4-12 6 26 6-32 4 18h7"/></svg>
+            <h3>Hardware-accurate verdicts</h3>
+            <p>An AI Hardware Score (0&ndash;100) names your bottleneck. Every model in the catalog gets a <strong>yes / slow / no</strong> verdict with est. tok/s &mdash; before any download. Unknown figures render as <code>unknown</code>, never fabricated.</p>
+          </article>
+          <article class="feature">
+            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="8" width="36" height="30" rx="2"/><path d="M14 20l6 4-6 4M26 28h8"/></svg>
+            <h3>Interactive terminal UI</h3>
+            <p>A full Ink-rendered TUI activates automatically in capable terminals &mdash; searchable model list, keyboard navigation, doctor dashboard, real-time lifecycle progress. Falls back to plain text in CI or piped mode.</p>
+          </article>
+          <article class="feature">
+            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="16" width="40" height="18" rx="2"/><path d="M4 24h40M12 16V8M24 16V8M36 16V8"/></svg>
+            <h3>4 backends</h3>
+            <p>Ollama, llama.cpp, MLX (Apple Silicon), and LM Studio &mdash; auto-selected or user-chosen. All bind <code>127.0.0.1</code> only. Override with <code>--backend</code>.</p>
+          </article>
+          <article class="feature">
+            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="11" y="22" width="26" height="20" rx="1"/><path d="M16 22v-7a8 8 0 0 1 16 0v7"/><circle cx="24" cy="31" r="2.5"/><path d="M24 33.5V37"/></svg>
+            <h3>Integrity-verified installs</h3>
+            <p>SHA-256 digest checks on every pull. The <code>up</code> and <code>switch</code> commands fail closed on any mismatch &mdash; no silently corrupt weights.</p>
+          </article>
+          <article class="feature">
+            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 24a16 16 0 0 1 32 0"/><path d="M14 31a12 12 0 0 1 20 0"/><circle cx="24" cy="36" r="3"/></svg>
+            <h3>Context-window sizing</h3>
+            <p>KV-cache-aware memory math with GQA-correct attention geometry. Pass <code>--context&nbsp;N</code> to re-rank at a given window, or <code>--max-context</code> for each model&rsquo;s ceiling.</p>
+          </article>
+          <article class="feature">
+            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 36V22a12 12 0 0 1 24 0v14"/><path d="M8 36h32M20 36v6M28 36v6"/></svg>
+            <h3>Portable memory</h3>
+            <p>Chat sessions stored locally and migrate with you. Use <code>migrate --from a --to b</code> when switching models &mdash; conversational continuity without cloud.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- TUI Screenshots -->
+    <section class="section" id="tui">
+      <div class="frame">
+        <div class="section-label">Terminal UI</div>
+        <h2 class="section-title">A real TUI &mdash; not just pretty text</h2>
+        <p class="section-sub">v0.6 brings a full Ink 5 + React 18 terminal UI that activates automatically when your terminal is &ge;60&times;16. Screen-reader accessible mode and plain-text fallback always available.</p>
+
+        <div class="screenshots">
+          <!-- Recommend -->
+          <div class="screenshot-block reveal">
+            <div class="screenshot-meta">
+              <span class="screenshot-tag">recommend</span>
+              <h3>Searchable ranked model list</h3>
+              <p>Every model in the catalog scored for your hardware. Navigate with arrow keys, search with <kbd>/</kbd>, mark models for comparison, inspect evidence panels. Verdicts update live.</p>
+              <div class="screenshot-keys">
+                <span class="key">&uarr;&darr; navigate</span>
+                <span class="key">/ search</span>
+                <span class="key">m mark</span>
+                <span class="key">c compare</span>
+                <span class="key">d details</span>
+                <span class="key">q quit</span>
+              </div>
+            </div>
+            <div class="screenshot-img">
+              <img src="../assets/screenshot-recommend.png" alt="local-llmup recommend TUI showing ranked model list" loading="lazy" />
+            </div>
+          </div>
+
+          <!-- Doctor -->
+          <div class="screenshot-block reverse reveal">
+            <div class="screenshot-meta">
+              <span class="screenshot-tag">doctor</span>
+              <h3>Hardware diagnostics dashboard</h3>
+              <p>Box-drawn diagnostics show &check; OK / &excl; WARN / &cross; FAIL for every check. AI Hardware Score (0&ndash;100) with sub-scores for VRAM, RAM, compute, and storage. Backend version table with install status.</p>
+              <div class="screenshot-keys">
+                <span class="key">q quit</span>
+                <span class="key">--json output</span>
+              </div>
+            </div>
+            <div class="screenshot-img">
+              <img src="../assets/screenshot-doctor.png" alt="local-llmup doctor TUI showing hardware diagnostics" loading="lazy" />
+            </div>
+          </div>
+
+          <!-- Can-run -->
+          <div class="screenshot-block reveal">
+            <div class="screenshot-meta">
+              <span class="screenshot-tag">can-run</span>
+              <h3>Instant single-model verdict</h3>
+              <p>A focused answer for one model &mdash; verdict, binding reason, and est. tok/s range. Exits non-zero only on <strong>no</strong>, so it works as a CI gate without extra parsing.</p>
+              <div class="screenshot-keys">
+                <span class="key">exit 0 on yes/slow</span>
+                <span class="key">exit 1 on no</span>
+                <span class="key">--json</span>
+              </div>
+            </div>
+            <div class="screenshot-img">
+              <img src="../assets/screenshot-can-run.png" alt="local-llmup can-run showing yes and no verdicts" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick start -->
+    <section class="section" id="quickstart">
+      <div class="frame">
+        <div class="section-label">Quick start</div>
+        <h2 class="section-title">From zero to running in minutes</h2>
+        <p class="section-sub">Node.js 18+. No API keys, no cloud accounts. For lifecycle commands you need at least one backend &mdash; Ollama is the recommended default.</p>
+        <div class="quickstart reveal">
+          <div class="qs-card">
+            <span class="qs-num">01</span>
+            <h3>Install</h3>
+            <div class="qs-install" data-install="npm install -g local-llmup"><code>npm install -g local-llmup</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
+            <p>Or try without installing: <code>npx local-llmup</code></p>
+          </div>
+          <div class="qs-card">
+            <span class="qs-num">02</span>
+            <h3>See what fits</h3>
+            <div class="qs-install" data-install="local-llmup"><code>local-llmup</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
+            <p>Interactive TUI opens in a capable terminal. Ranked models with verdicts and est. tok/s.</p>
+          </div>
+          <div class="qs-card">
+            <span class="qs-num">03</span>
+            <h3>Check one model</h3>
+            <div class="qs-install" data-install="local-llmup can-run qwen3:8b"><code>local-llmup can-run qwen3:8b</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
+            <p>Instant yes / slow / no verdict with est. tok/s. Works as a CI gate.</p>
+          </div>
+          <div class="qs-card">
+            <span class="qs-num">04</span>
+            <h3>Pull and serve</h3>
+            <div class="qs-install" data-install="local-llmup up qwen3:8b"><code>local-llmup up qwen3:8b</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
+            <p>Integrity-verified pull via Ollama, then a loopback-only server endpoint.</p>
+          </div>
+          <div class="qs-card">
+            <span class="qs-num">05</span>
+            <h3>Chat</h3>
+            <div class="qs-install" data-install="local-llmup chat"><code>local-llmup chat</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
+            <p>Multi-line input, streaming responses, session recorded to local memory.</p>
+          </div>
+          <div class="qs-card">
+            <span class="qs-num">06</span>
+            <h3>Migrate memory</h3>
+            <div class="qs-install" data-install="local-llmup migrate --from qwen3:8b --to qwen3:14b"><code>local-llmup migrate --from qwen3:8b --to qwen3:14b</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
+            <p>Carry conversation memory when upgrading models. No data left behind.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Commands -->
+    <section class="section" id="commands">
+      <div class="frame">
+        <div class="section-label">Commands</div>
+        <h2 class="section-title">10 commands, full lifecycle</h2>
+        <p class="section-sub">Every command supports <code>--json</code> for machine-readable output and <code>--help</code> for usage. Advice commands make zero network calls.</p>
+        <div class="cmd-grid reveal">
+          <div class="cmd-row cmd-head"><div class="cmd-name">command</div><div class="cmd-desc">what it does</div></div>
+          <div class="cmd-row"><div class="cmd-name">recommend</div><div class="cmd-desc">Default. Ranks the catalog for your machine with yes/slow/no verdicts and est. tok/s. Filter with <code>--task</code>, size context with <code>--context N</code>.</div></div>
+          <div class="cmd-row"><div class="cmd-name">can-run</div><div class="cmd-desc">Yes/slow/no for one model with binding reason and est. tok/s. Exits non-zero only on <em>no</em> &mdash; scripts cleanly.</div></div>
+          <div class="cmd-row"><div class="cmd-name">doctor</div><div class="cmd-desc">AI Hardware Score (0&ndash;100), bottleneck diagnosis, backend status, and actionable environment checks.</div></div>
+          <div class="cmd-row"><div class="cmd-name">catalog</div><div class="cmd-desc">Browse the curated model catalog with quantization, size, context lengths, and backend availability.</div></div>
+          <div class="cmd-row"><div class="cmd-name">up</div><div class="cmd-desc">Pull a model (SHA-256 integrity-verified), then bring up the loopback-only server endpoint.</div></div>
+          <div class="cmd-row"><div class="cmd-name">chat</div><div class="cmd-desc">Interactive TUI chat with streaming responses, multi-line input (Ctrl+J), and session memory.</div></div>
+          <div class="cmd-row"><div class="cmd-name">ls</div><div class="cmd-desc">Show the currently active model and server endpoint.</div></div>
+          <div class="cmd-row"><div class="cmd-name">switch</div><div class="cmd-desc">Change the active model without re-pulling. Keyboard-navigable model picker in TUI mode.</div></div>
+          <div class="cmd-row"><div class="cmd-name">migrate</div><div class="cmd-desc">Move local conversation memory from one model to another. Preview with <code>--dry-run</code>.</div></div>
+          <div class="cmd-row"><div class="cmd-name">down</div><div class="cmd-desc">Stop the local server cleanly when you are done.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Backends -->
+    <section class="section" id="backends">
+      <div class="frame">
+        <div class="section-label">Backends</div>
+        <h2 class="section-title">4 runtimes, one workflow</h2>
+        <p class="section-sub">Auto-selected based on your platform and installed runtimes. Override with <code>--backend</code>. All bind <code>127.0.0.1</code> only.</p>
+        <div class="backends reveal">
+          <div class="backend-card">
+            <div class="backend-name">Ollama</div>
+            <div class="backend-plat">macOS &middot; Linux &middot; Windows</div>
+            <p class="backend-desc">Managed daemon. Recommended default. Handles pull, serve, and stop.</p>
+            <span class="backend-badge badge-full">Full lifecycle</span>
+          </div>
+          <div class="backend-card">
+            <div class="backend-name">llama.cpp</div>
+            <div class="backend-plat">macOS &middot; Linux &middot; Windows</div>
+            <p class="backend-desc">Self-managed GGUF with HuggingFace acquisition. Maximum control.</p>
+            <span class="backend-badge badge-full">Full lifecycle</span>
+          </div>
+          <div class="backend-card">
+            <div class="backend-name">MLX</div>
+            <div class="backend-plat">macOS (Apple Silicon only)</div>
+            <p class="backend-desc">mlx-lm Python package. Preferred on Apple Silicon when installed.</p>
+            <span class="backend-badge badge-full">Full lifecycle</span>
+          </div>
+          <div class="backend-card">
+            <div class="backend-name">LM Studio</div>
+            <div class="backend-plat">macOS &middot; Linux &middot; Windows</div>
+            <p class="backend-desc">Attach-only &mdash; user manages the server, llmup attaches.</p>
+            <span class="backend-badge badge-attach">Attach-only</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- vs Ollama -->
+    <section class="section">
+      <div class="frame">
+        <div class="section-label">Comparison</div>
+        <h2 class="section-title">local-llmup vs. Ollama</h2>
+        <p class="section-sub">Ollama is an excellent runtime. local-llmup adds the hardware-aware intelligence layer on top of it (and three other runtimes).</p>
+        <table class="compare-table reveal">
+          <thead><tr><th>Feature</th><th>Ollama</th><th>local-llmup</th></tr></thead>
+          <tbody>
+            <tr><td>Run inference</td><td class="yes-mark">&#10003;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>Hardware-aware model recommendations</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>yes / slow / no verdicts + est. tok/s</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>AI Hardware Score (0&ndash;100)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>Context-window sizing (KV-cache aware)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>Interactive terminal UI</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>Accessible mode (screen readers)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>Multi-backend (4 runtimes)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>SHA-256 integrity verification</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>Portable memory migration</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>Offline deterministic advice</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+      <div class="frame">
+        <div class="footer">
+          <div>
+            <div class="footer-mark">local-llmup</div>
+            <div class="footer-meta">MIT License &middot; v0.6.1 &middot; Node.js 18+</div>
+          </div>
+          <nav class="footer-links">
+            <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
+            <a href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
+            <a href="https://www.npmjs.com/package/local-llmup">npm</a>
+            <a href="https://github.com/shashankswe2020-ux/local-llmup/blob/main/CHANGELOG.md">Changelog</a>
+            <a href="https://github.com/shashankswe2020-ux/local-llmup/blob/main/LICENSE">MIT</a>
+          </nav>
+        </div>
+      </div>
+    </footer>
+
+    <script src="main.js"></script>
   </body>
 </html>

@@ -1,24 +1,28 @@
-const revealNodes = Array.from(document.querySelectorAll(".reveal"));
+// Copy-to-clipboard for all [data-install] containers
+document.querySelectorAll("[data-install]").forEach((wrap) => {
+  wrap.querySelectorAll(".copy-btn").forEach((btn) => {
+    const svg = btn.innerHTML;
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(wrap.getAttribute("data-install") || "");
+        btn.textContent = "✓";
+        btn.style.color = "var(--green)";
+        setTimeout(() => { btn.innerHTML = svg; btn.style.color = ""; }, 1500);
+      } catch { /* Clipboard may be blocked */ }
+    });
+  });
+});
 
-for (const [index, node] of revealNodes.entries()) {
-  const seededTwist = ((index * 13) % 5) - 2;
-  if (node.classList.contains("card")) {
-    node.style.setProperty("--twist", String(seededTwist));
-  }
-}
-
+// Scroll-reveal
 const observer = new IntersectionObserver(
   (entries) => {
-    for (const entry of entries) {
-      if (entry.isIntersecting) {
-        entry.target.classList.add("visible");
-        observer.unobserve(entry.target);
+    for (const e of entries) {
+      if (e.isIntersecting) {
+        e.target.classList.add("visible");
+        observer.unobserve(e.target);
       }
     }
   },
-  { threshold: 0.18 },
+  { threshold: 0.1 }
 );
-
-for (const node of revealNodes) {
-  observer.observe(node);
-}
+document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
