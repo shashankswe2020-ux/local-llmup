@@ -55,7 +55,7 @@
   },
   "dependencies": {
     "cac": "^6.7.14",
-    "ink": "5.2.1",
+    "ink": "7.1.1",
     "react": "18.3.1",
     "string-width": "7.2.0",
     "systeminformation": "^5.33.1",
