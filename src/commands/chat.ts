@@ -20,6 +20,8 @@ import { stripControl } from "../sanitize.js";
 import type { ChatMessage } from "../backend/adapter.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import { select } from "../backend/select.js";
+import { createDefaultRegistry as createDefaultHarnessRegistry, type HarnessRegistry } from "../harness/registry.js";
+import { parseHarnessName, type HarnessName } from "../harness/adapter.js";
 import { captureExchange, type CaptureEmbedder, type CaptureResult } from "../memory/capture.js";
 import { openMemoryStore, type MemoryStore } from "../memory/store.js";
 import { readState, withLock, type RuntimeState } from "../state/state.js";
@@ -41,6 +43,8 @@ const MAX_CONTEXT_MESSAGES = 20;
 export interface ChatOptions {
   /** Model to chat with; defaults to the active served model. */
   readonly model?: string | undefined;
+  /** Route the prompt through a managed chat harness instead of the local backend. */
+  readonly harness?: HarnessName | undefined;
 }
 
 /** One recorded exchange handed to the capture layer. */
@@ -55,6 +59,7 @@ export interface ChatDeps {
   readonly loadCatalog: () => Catalog;
   readonly readState: (config: Config) => RuntimeState;
   readonly registry: BackendRegistry;
+  readonly harnessRegistry: HarnessRegistry;
   readonly openMemoryStore: (config: Config, modelId: string) => MemoryStore;
   readonly captureExchange: (
     config: Config,
@@ -124,6 +129,7 @@ const createDefaultDeps = (): ChatDeps => ({
   loadCatalog: () => loadCatalog(),
   readState,
   registry: createDefaultRegistry(),
+  harnessRegistry: createDefaultHarnessRegistry(),
   openMemoryStore,
   captureExchange,
   withLock,
@@ -142,6 +148,70 @@ export async function runChat(
   options: ChatOptions,
   deps: ChatDeps = createDefaultDeps(),
 ): Promise<void> {
+  const requestedHarness = options.harness !== undefined ? parseHarnessName(options.harness) : "local";
+
+  if (requestedHarness !== "local") {
+    const harness = deps.harnessRegistry.get(requestedHarness);
+    const available = await harness.isAvailable();
+    if (!available) {
+      throw new ValidationError(harness.unavailableHint);
+    }
+    const modelId = options.model ?? "";
+    if (modelId.length === 0) {
+      throw new ValidationError(`--model is required when using the ${requestedHarness} harness`);
+    }
+    const store = deps.openMemoryStore(deps.config, `${requestedHarness}:${modelId}`);
+    const memoryModelId = `${requestedHarness}:${modelId}`;
+    const messages: ChatMessage[] = [];
+    const captureOptions: {
+      now?: (() => Date) | undefined;
+      embedder?: CaptureEmbedder | undefined;
+      embeddingUnsupported?: boolean | undefined;
+    } = {
+      ...(deps.now !== undefined ? { now: deps.now } : {}),
+    };
+
+    deps.log(`Chatting with ${stripControl(modelId)} using ${stripControl(requestedHarness)}. End input to exit.\n`);
+
+    for (;;) {
+      const turn = await deps.readTurn();
+      if (turn === null) {
+        break;
+      }
+      if (turn.trim().length === 0) {
+        continue;
+      }
+
+      messages.push({ role: "user", content: turn });
+      const context = messages.slice(-MAX_CONTEXT_MESSAGES);
+      const reply = await harness.chatSync({
+        model: modelId,
+        messages: context.map((message) => ({
+          role: message.role,
+          content: message.content,
+        })),
+      });
+
+      deps.write(`${stripControl(reply)}\n`);
+      messages.push({ role: "assistant", content: reply });
+
+      try {
+        await deps.withLock(deps.config, async () => {
+          await deps.captureExchange(
+            deps.config,
+            store,
+            { user: turn, assistant: reply },
+            captureOptions,
+          );
+        });
+      } catch (error) {
+        const message = error instanceof Error ? stripControl(error.message) : "unknown error";
+        deps.log(`failed to record memory for ${memoryModelId}: ${message}\n`);
+      }
+    }
+    return;
+  }
+
   const active = deps.readState(deps.config).active;
   if (active === null) {
     throw new ValidationError("no active server. Run `local-llmup up <model>` first.");

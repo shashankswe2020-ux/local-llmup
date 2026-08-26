@@ -24,6 +24,7 @@ chat across four supported backends.
 
 - **Runnability verdicts.** `yes / slow / no` with binding reason and est. tok/s — **before** any download.
 - **Interactive TUI.** Rich terminal interface with search, filtering, keyboard navigation, and screen-reader accessible mode. Falls back gracefully to plain text when not in a TTY.
+- **Browser GUI.** A loopback-only local AI workspace — pick a recommended model, bring one online, and chat, all managed by `local-llmup`.
 - **4 backends.** Ollama, llama.cpp, MLX (Apple Silicon), and LM Studio — auto-selected or user-chosen.
 - **AI Hardware Score (0–100).** Diagnose your machine's bottleneck in one command.
 - **Context-window sizing.** KV-cache-aware memory estimates with GQA-correct attention geometry.
@@ -47,6 +48,7 @@ chat across four supported backends.
     - [Keyboard Shortcuts](#keyboard-shortcuts)
     - [Screenshots](#screenshots)
     - [Modes](#modes)
+  - [Browser GUI](#browser-gui)
   - [Commands](#commands)
     - [Global Options](#global-options)
     - [Machine-Readable Output](#machine-readable-output)
@@ -184,6 +186,41 @@ The UI auto-selects the best mode for your terminal:
 
 ---
 
+## Browser GUI
+
+Prefer a point-and-click workflow? `local-llmup gui` launches a local AI
+workspace in your browser — a Maka-inspired, local-first interface that reuses
+the same `recommend`, `up`, and `ls` internals as the CLI. Bring your own model
+by picking a recommended local model for your machine, or start one directly,
+then chat with it — no data leaves your machine.
+
+```bash
+local-llmup gui                 # serve on 127.0.0.1 and open the browser
+local-llmup gui --port 4173     # choose a port
+local-llmup gui --no-open       # start the server without opening a browser
+```
+
+<div align="center">
+<img src="assets/gui-out.gif" alt="local-llmup browser workspace demo" width="800" />
+</div>
+
+The **Models** view ranks models that fit your hardware with the same
+`yes / slow / no` verdicts and estimated tok/s as the CLI, and a **Start** button
+brings your chosen model online through the verified `up` lifecycle:
+
+<div align="center">
+<img src="assets/screenshot-gui.png" alt="local-llmup browser workspace \u2014 recommended models" width="800" />
+</div>
+
+- **Loopback-only.** The server binds `127.0.0.1`, validates the `Host` header,
+  and refuses path traversal — nothing is exposed to the network.
+- **Managed by local-llmup.** Recommendations, integrity-verified installs, and
+  active-server state all flow through the same deterministic engine as the CLI.
+- **Pluggable harnesses.** Chat runs against the local backend by default, with
+  `claude`, `openai`, and `openai-compatible` harnesses available.
+
+---
+
 ## Commands
 
 | Command | Usage | Purpose |
@@ -193,6 +230,7 @@ The UI auto-selects the best mode for your terminal:
 | `doctor` | `local-llmup doctor [--json]` | Hardware + backend diagnostics |
 | `up` | `local-llmup up <model> [--port <p>] [--backend <b>]` | Pull, verify, serve |
 | `chat` | `local-llmup chat [-m <model>]` | Interactive chat with memory |
+| `gui` | `local-llmup gui [--port <p>] [--harness <h>] [--no-open]` | Launch the browser workspace |
 | `ls` | `local-llmup ls` | Show active server |
 | `switch` | `local-llmup switch <model>` | Change active model |
 | `down` | `local-llmup down [model]` | Stop server |

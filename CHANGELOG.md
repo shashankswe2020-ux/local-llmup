@@ -1,5 +1,52 @@
 # Changelog
 
+## 0.8.0 - 2026-08-26
+
+**In-browser model management + neobrutalist site redesign.**
+
+### New Features
+
+- The browser GUI can now manage models end to end: pick a recommended model for
+  your hardware or start one directly, then chat — all driven by the same
+  `recommend`, `up`, and `ls` engine as the CLI.
+- Added a `GuiModelManager` bridge with `GET /api/models/recommended`,
+  `GET /api/models/active`, and `POST /api/models/up` routes. Requests are
+  Zod-validated and models are brought online through the verified `up`
+  lifecycle (integrity checks and active-server state included).
+- The Models view surfaces the same yes/slow/no verdicts and est. tok/s as the
+  CLI, with a Start button that serves a chosen model on `127.0.0.1`.
+
+### Documentation
+
+- Recorded a real browser GUI demo GIF and Models-view screenshot; added a
+  Browser GUI section to the README.
+- Redesigned the marketing site with a neobrutalist theme (thick borders, hard
+  offset shadows, cream paper, colored icon tiles) documenting every feature,
+  the full 11-command surface, and the new Browser GUI.
+
+### Validation
+
+- Added GUI model-management unit coverage and server route tests.
+- Verified with the project’s full typecheck, lint, build, and test gates.
+
+## 0.7.0 - 2026-08-26
+
+**Browser GUI + pluggable chat harness adapters.**
+
+### New Features
+
+- Added a loopback-only browser GUI for interactive chat sessions.
+- Added a pluggable chat harness registry for `local`, `claude`, `openai`, and `openai-compatible` providers.
+- `llmup gui` now starts a browser-backed local/cloud chat server with safe host validation and JSON output mode.
+- `llmup chat --harness <name>` routes non-local prompts through the selected provider without disturbing the default local backend path.
+- Cloud harness availability checks fail closed when required credentials or runtime configuration are missing.
+
+### Validation
+
+- Added harness unit coverage, GUI server coverage, and chat regression tests for the non-local harness path.
+- Verified the feature with the project’s full test, typecheck, build, and lint gates.
+- Refreshed the release demo assets to match the current command surface.
+
 ## 0.6.1 - 2026-08-10
 
 **Documentation patch.**

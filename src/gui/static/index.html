@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>local-llmup Workspace</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="workspace-app">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-mark">L</div>
+          <div>
+            <div class="brand-name">local-llmup</div>
+            <div class="brand-subtitle">Local AI Workspace</div>
+          </div>
+        </div>
+
+        <nav class="nav-group">
+          <div class="nav-heading">Workspace</div>
+          <button class="nav-item active" type="button" data-view="chat">Chat</button>
+          <button class="nav-item" type="button" data-view="models">Models</button>
+          <button class="nav-item" type="button" data-view="tools">Tools</button>
+        </nav>
+
+        <div class="nav-group">
+          <div class="nav-heading">Sessions</div>
+          <ul id="session-list" class="session-list">
+            <li class="session-item active">Current session</li>
+            <li class="session-item">Previous run</li>
+            <li class="session-item">Memory</li>
+          </ul>
+        </div>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Workspace</p>
+            <h1>Current session</h1>
+          </div>
+
+          <div class="toolbar">
+            <label>
+              <span>Model</span>
+              <select id="model-select">
+                <option value="qwen2.5:1.5b">qwen2.5:1.5b</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Harness</span>
+              <select id="harness-select"></select>
+            </label>
+
+            <button id="refresh-status" type="button">Refresh</button>
+          </div>
+        </header>
+
+        <section class="status-strip">
+          <div class="status-card">
+            <div class="status-label">Backend</div>
+            <div id="backend-status" class="status-value">local</div>
+          </div>
+          <div class="status-card">
+            <div class="status-label">Endpoint</div>
+            <div id="endpoint-status" class="status-value">127.0.0.1:11434</div>
+          </div>
+          <div class="status-card">
+            <div class="status-label">Turns</div>
+            <div id="turn-count" class="status-value">0</div>
+          </div>
+        </section>
+
+        <section id="view-chat" class="chat-panel view active">
+          <div id="messages" class="messages" aria-live="polite"></div>
+
+          <form id="chat-form" class="composer">
+            <textarea id="prompt" rows="3" placeholder="Ask the local model to inspect the workspace or summarize a task..."></textarea>
+            <button type="submit">Send</button>
+          </form>
+        </section>
+
+        <section id="view-models" class="models-panel view">
+          <div class="models-header">
+            <div>
+              <h2>Models</h2>
+              <p class="models-subtitle">Bring your own model — pick a recommended local model for this machine, or start one directly. Managed by local-llmup.</p>
+            </div>
+            <button id="refresh-models" type="button">Refresh</button>
+          </div>
+
+          <div id="active-model-banner" class="active-model-banner" hidden></div>
+
+          <div id="model-error" class="model-error" hidden></div>
+          <div id="recommended-list" class="recommended-list" aria-live="polite">
+            <div class="recommended-empty">Loading recommendations…</div>
+          </div>
+        </section>
+
+        <section id="view-tools" class="tools-panel view">
+          <div class="panel-block">
+            <div class="panel-title">Built-in runtime</div>
+            <ul class="tool-list">
+              <li>Local backend (Ollama)</li>
+              <li>Conversation memory capture</li>
+              <li>Loopback-only bind (127.0.0.1)</li>
+              <li>Integrity-verified model pulls</li>
+            </ul>
+          </div>
+        </section>
+      </main>
+
+      <aside class="details-panel">
+        <div class="panel-block">
+          <div class="panel-title">Active model</div>
+          <div id="model-card" class="metric-box">No model running</div>
+          <div id="active-ownership" class="ownership-badge" hidden></div>
+        </div>
+
+        <div class="panel-block">
+          <div class="panel-title">Runtime</div>
+          <ul class="tool-list">
+            <li>Local backend</li>
+            <li>Memory capture</li>
+            <li>Loopback-only bind</li>
+          </ul>
+        </div>
+
+        <div class="panel-block">
+          <div class="panel-title">Context</div>
+          <ul class="tool-list">
+            <li>Workspace ready</li>
+            <li>Session history enabled</li>
+            <li>Safe local access</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+
+    <script src="/static/chat.js"></script>
+  </body>
+</html>

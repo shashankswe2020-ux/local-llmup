@@ -1,6 +1,6 @@
 {
   "name": "local-llmup",
-  "version": "0.6.1",
+  "version": "0.8.0",
   "description": "Hardware-aware CLI that scores your machine and tells you which local LLMs will run (yes/slow/no + tok/s) before recommending, installing, serving, and migrating them.",
   "repository": {
     "type": "git",
@@ -36,7 +36,7 @@
     "data"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && mkdir -p dist/gui && cp -R src/gui/static dist/gui/",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",

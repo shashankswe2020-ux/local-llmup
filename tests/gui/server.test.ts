@@ -1,0 +1,311 @@
+import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { request as httpRequest } from "node:http";
+import { afterEach, describe, expect, it } from "vitest";
+import { ValidationError } from "../../src/errors.js";
+import { GuiServer, resolveGuiRootDir } from "../../src/gui/server.js";
+
+describe("GuiServer", () => {
+  const servers: GuiServer[] = [];
+
+  afterEach(async () => {
+    await Promise.all(servers.splice(0).map(async (server) => server.stop()));
+  });
+
+  it("binds to loopback and serves the workspace shell", async () => {
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const response = await fetch(`http://127.0.0.1:${port}/`, {
+      headers: { Host: `127.0.0.1:${port}` },
+    });
+
+    expect(response.status).toBe(200);
+    const html = await response.text();
+    expect(html).toContain("<html");
+    expect(html).toContain("Workspace");
+    expect(html).toContain("Sessions");
+    expect(html).toContain("Model");
+    expect(server.url).toBe(`http://127.0.0.1:${port}`);
+  });
+
+  it("rejects host header mismatches and path traversal", async () => {
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const badHost = await new Promise<{ statusCode: number; body: string }>((resolve, reject) => {
+      const req = httpRequest(
+        {
+          host: "127.0.0.1",
+          port,
+          path: "/api/status",
+          method: "GET",
+          headers: { Host: "localhost:3000" },
+        },
+        (response) => {
+          const chunks: Buffer[] = [];
+          response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+          response.on("end", () => resolve({ statusCode: response.statusCode ?? 0, body: Buffer.concat(chunks).toString("utf8") }));
+        },
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    const traversal = await new Promise<{ statusCode: number; body: string }>((resolve, reject) => {
+      const req = httpRequest(
+        {
+          host: "127.0.0.1",
+          port,
+          path: "/static/../outside.txt",
+          method: "GET",
+          headers: { Host: `127.0.0.1:${port}` },
+        },
+        (response) => {
+          const chunks: Buffer[] = [];
+          response.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+          response.on("end", () => resolve({ statusCode: response.statusCode ?? 0, body: Buffer.concat(chunks).toString("utf8") }));
+        },
+      );
+      req.on("error", reject);
+      req.end();
+    });
+
+    expect(badHost.statusCode).toBe(400);
+    expect(traversal.statusCode).toBe(400);
+  });
+
+  it("limits oversized chat bodies", async () => {
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const huge = "x".repeat(70 * 1024);
+    const response = await fetch(`http://127.0.0.1:${port}/api/chat`, {
+      method: "POST",
+      headers: {
+        Host: `127.0.0.1:${port}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model: "demo", messages: [{ role: "user", content: huge }] }),
+    });
+
+    expect(response.status).toBe(413);
+  });
+
+  it("resolves the static asset root from source when dist assets are absent", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "local-llmup-gui-"));
+    const srcStatic = path.join(root, "src", "gui", "static");
+    mkdirSync(srcStatic, { recursive: true });
+    writeFileSync(path.join(srcStatic, "index.html"), "<html></html>");
+
+    const resolved = resolveGuiRootDir(new URL(`file://${path.join(root, "dist", "gui", "server.js")}`));
+    expect(path.resolve(fileURLToPath(resolved))).toBe(path.resolve(srcStatic));
+  });
+
+  it("opens an SSE stream for a valid chat request", async () => {
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+      sendChat: async () => ["hello", " world"],
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const response = await fetch(`http://127.0.0.1:${port}/api/chat`, {
+      method: "POST",
+      headers: {
+        Host: `127.0.0.1:${port}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "demo-model",
+        messages: [{ role: "user", content: "hi" }],
+        harness: "local",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/event-stream");
+
+    const text = await response.text();
+    expect(text).toContain('"type":"delta"');
+    expect(text).toContain('"type":"done"');
+  });
+
+  it("streams the real backend error when chat execution throws synchronously", async () => {
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+      sendChat: () => {
+        throw new Error("listener ownership is untrusted");
+      },
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const response = await fetch(`http://127.0.0.1:${port}/api/chat`, {
+      method: "POST",
+      headers: {
+        Host: `127.0.0.1:${port}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "demo-model",
+        messages: [{ role: "user", content: "hi" }],
+        harness: "local",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toContain("text/event-stream");
+
+    const text = await response.text();
+    expect(text).toContain("listener ownership is untrusted");
+    expect(text).not.toContain("internal server error");
+  });
+
+  it("lists recommended models for the workspace", async () => {
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+      modelManager: {
+        recommended: async () => [
+          {
+            id: "qwen2.5:1.5b",
+            family: "qwen2.5",
+            params: "1.5B",
+            verdict: "yes",
+            quant: "Q4_K_M",
+            diskBytes: 1_000_000,
+            throughput: { known: true, lowTokPerSec: 40, highTokPerSec: 60 },
+            backends: ["ollama"],
+          },
+        ],
+        active: () => null,
+        up: async () => {
+          throw new Error("not used");
+        },
+      },
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const response = await fetch(`http://127.0.0.1:${port}/api/models/recommended`, {
+      headers: { Host: `127.0.0.1:${port}` },
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { models: { id: string }[] };
+    expect(body.models[0]?.id).toBe("qwen2.5:1.5b");
+  });
+
+  it("reports the active workspace model", async () => {
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+      modelManager: {
+        recommended: async () => [],
+        active: () => ({
+          modelId: "qwen2.5:1.5b",
+          backend: "ollama",
+          endpoint: "http://127.0.0.1:11434",
+          port: 11434,
+          ownership: "attached",
+        }),
+        up: async () => {
+          throw new Error("not used");
+        },
+      },
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const response = await fetch(`http://127.0.0.1:${port}/api/models/active`, {
+      headers: { Host: `127.0.0.1:${port}` },
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { active: { modelId: string } | null };
+    expect(body.active?.modelId).toBe("qwen2.5:1.5b");
+  });
+
+  it("brings a chosen model up through the manager", async () => {
+    const upCalls: { model: string; port?: number }[] = [];
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+      modelManager: {
+        recommended: async () => [],
+        active: () => null,
+        up: async (request) => {
+          upCalls.push(request);
+          return {
+            modelId: request.model,
+            backend: "ollama",
+            endpoint: "http://127.0.0.1:11434",
+            port: 11434,
+            ownership: "owned",
+          };
+        },
+      },
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const response = await fetch(`http://127.0.0.1:${port}/api/models/up`, {
+      method: "POST",
+      headers: {
+        Host: `127.0.0.1:${port}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model: "qwen2.5:1.5b" }),
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { active: { modelId: string } };
+    expect(body.active.modelId).toBe("qwen2.5:1.5b");
+    expect(upCalls).toEqual([{ model: "qwen2.5:1.5b" }]);
+  });
+
+  it("returns a 400 with a clean message when up fails", async () => {
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+      modelManager: {
+        recommended: async () => [],
+        active: () => null,
+        up: async () => {
+          throw new ValidationError("no model matches \"bogus\"");
+        },
+      },
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const response = await fetch(`http://127.0.0.1:${port}/api/models/up`, {
+      method: "POST",
+      headers: {
+        Host: `127.0.0.1:${port}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ model: "bogus" }),
+    });
+
+    expect(response.status).toBe(400);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toContain("no model matches");
+  });
+});

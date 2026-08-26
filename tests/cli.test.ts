@@ -68,6 +68,7 @@ const EXPECTED_COMMANDS: CommandName[] = [
   "can-run",
   "up",
   "chat",
+  "gui",
   "down",
   "switch",
   "migrate",

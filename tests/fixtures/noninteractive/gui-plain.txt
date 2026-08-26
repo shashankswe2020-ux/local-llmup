@@ -1,0 +1,11 @@
+local-llmup/0.6.1
+
+Usage:
+  $ local-llmup gui
+
+Options:
+  --port <port>     Port to bind on 127.0.0.1 (default: 4000) 
+  --harness <name>  Start with this chat harness active 
+  --no-open         Do not open the browser automatically (default: true)
+  --json            Print the server URL as JSON instead of opening the browser 
+  -h, --help        Display this message 

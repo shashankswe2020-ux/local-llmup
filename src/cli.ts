@@ -13,6 +13,8 @@ import { runDown } from "./commands/down.js";
 import { runLs } from "./commands/ls.js";
 import { runSwitch } from "./commands/switch.js";
 import { runChat } from "./commands/chat.js";
+import { parseHarnessName } from "./harness/adapter.js";
+import { runGui } from "./commands/gui.js";
 import { runMigrate } from "./commands/migrate.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runCatalog } from "./commands/catalog.js";
@@ -25,6 +27,7 @@ export type CommandName =
   | "can-run"
   | "up"
   | "chat"
+  | "gui"
   | "down"
   | "switch"
   | "migrate"
@@ -57,6 +60,7 @@ export const COMMANDS: readonly CommandSpec[] = [
     description: "Install (if needed) and start a local server for <model>.",
   },
   { name: "chat", args: "", description: "Interactive/piped chat that records memory." },
+  { name: "gui", args: "", description: "Launch the browser GUI for local/cloud chat harnesses." },
   {
     name: "down",
     args: "[model]",
@@ -369,12 +373,47 @@ function registerSwitch(command: Command): void {
 function registerChat(command: Command): void {
   command
     .option("-m, --model <model>", "Model to chat with (defaults to the active model)")
-    .action(async (options: { model?: string }) => {
+    .option("--harness <name>", "Route the chat through a chat harness instead of the active backend")
+    .action(async (options: { model?: string; harness?: string }) => {
       try {
-        await runChat(options.model !== undefined ? { model: options.model } : {});
+        await runChat({
+          ...(options.model !== undefined ? { model: options.model } : {}),
+          ...(options.harness !== undefined ? { harness: parseHarnessName(options.harness) } : {}),
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         process.stderr.write(`chat: ${stripControl(message)}\n`);
+        process.exitCode = 1;
+      }
+    });
+}
+
+/** Wire the `gui` action onto its cac command. */
+function registerGui(command: Command): void {
+  command
+    .option("--port <port>", "Port to bind on 127.0.0.1 (default: 4000)")
+    .option("--harness <name>", "Start with this chat harness active")
+    .option("--no-open", "Do not open the browser automatically")
+    .option("--json", "Print the server URL as JSON instead of opening the browser")
+    .action(async (options: { port?: string | number; harness?: string; noOpen?: boolean; json?: boolean }) => {
+      try {
+        const port = options.port === undefined ? undefined : Number(options.port);
+        if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
+          process.stderr.write(
+            `gui: invalid --port ${JSON.stringify(options.port)} (expected an integer in 1..65535)\n`,
+          );
+          process.exitCode = 1;
+          return;
+        }
+        await runGui({
+          ...(port !== undefined ? { port } : {}),
+          ...(options.harness !== undefined ? { harness: options.harness } : {}),
+          ...(options.noOpen === true ? { noOpen: true } : {}),
+          ...(options.json === true ? { json: true } : {}),
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        process.stderr.write(`gui: ${stripControl(message)}\n`);
         process.exitCode = 1;
       }
     });
@@ -590,6 +629,8 @@ export function buildCli(): ReturnType<typeof cac> {
       registerSwitch(command);
     } else if (spec.name === "chat") {
       registerChat(command);
+    } else if (spec.name === "gui") {
+      registerGui(command);
     } else if (spec.name === "migrate") {
       registerMigrate(command);
     } else if (spec.name === "doctor") {

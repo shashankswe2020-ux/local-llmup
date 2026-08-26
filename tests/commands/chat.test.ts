@@ -6,6 +6,7 @@ import { loadConfig, type Config } from "../../src/config.js";
 import { ValidationError } from "../../src/errors.js";
 import { runChat, type ChatDeps } from "../../src/commands/chat.js";
 import { createRegistry } from "../../src/backend/registry.js";
+import { createRegistry as createHarnessRegistry } from "../../src/harness/registry.js";
 import type { BackendAdapter, ChatRequest, ChatResult } from "../../src/backend/adapter.js";
 import type { MemoryStore } from "../../src/memory/store.js";
 import { STATE_SCHEMA_VERSION, type RuntimeState } from "../../src/state/state.js";
@@ -308,6 +309,40 @@ describe("runChat", () => {
     await runChat({}, deps);
 
     expect((chat.mock.calls[0]?.[0] as ChatRequest).model).toBe("qwen2.5:7b");
+  });
+
+  it("routes through a non-local harness and stores memory under the harness-prefixed model key", async () => {
+    const claudeHarness = {
+      name: "claude",
+      unavailableHint: "Set ANTHROPIC_API_KEY to use the Claude harness.",
+      isAvailable: vi.fn(async () => true),
+      chat: vi.fn(async function* () {
+        yield "hello from claude";
+      }),
+      chatSync: vi.fn(async () => "hello from claude"),
+    };
+    const { deps, capture, openStore } = harness({
+      turns: ["hi"],
+      replies: ["ignored"],
+      state: { schemaVersion: STATE_SCHEMA_VERSION, active: null },
+    });
+
+    await runChat({ model: "gpt-4o-mini", harness: "claude" }, {
+      ...deps,
+      harnessRegistry: createHarnessRegistry([claudeHarness]),
+    });
+
+    expect(claudeHarness.chatSync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    );
+    expect(openStore).toHaveBeenCalledWith(config, "claude:gpt-4o-mini");
+    expect(capture).toHaveBeenCalledWith(config, expect.any(Object), {
+      user: "hi",
+      assistant: "hello from claude",
+    }, { now });
   });
 
   it("passes the active custom endpoint to the adapter", async () => {

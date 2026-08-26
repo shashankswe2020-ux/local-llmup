@@ -29,11 +29,25 @@ export default tseslint.config(
     },
   },
   {
-    files: ["site/**/*.js"],
+    files: ["site/**/*.js", "src/gui/static/**/*.js"],
     languageOptions: {
       globals: {
         document: "readonly",
         IntersectionObserver: "readonly",
+        navigator: "readonly",
+        setTimeout: "readonly",
+      },
+    },
+  },
+  {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        Buffer: "readonly",
+        console: "readonly",
+        process: "readonly",
+        fetch: "readonly",
+        WebSocket: "readonly",
       },
     },
   },

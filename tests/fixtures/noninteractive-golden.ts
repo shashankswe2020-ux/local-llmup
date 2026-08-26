@@ -17,6 +17,7 @@ export const PLAIN_NONINTERACTIVE_FIXTURES: Readonly<Record<CommandName, string>
   "can-run": "can-run-plain.txt",
   up: "up-plain.txt",
   chat: "chat-plain.txt",
+  gui: "gui-plain.txt",
   down: "down-plain.txt",
   switch: "switch-plain.txt",
   migrate: "migrate-plain.txt",
@@ -28,6 +29,7 @@ export const PLAIN_NONINTERACTIVE_FIXTURES: Readonly<Record<CommandName, string>
 export const JSON_NONINTERACTIVE_FIXTURES = {
   recommend: "recommend-json.json",
   "can-run": "can-run-json.json",
+  gui: "gui-json.json",
   doctor: "doctor-json.json",
 } as const satisfies Partial<Record<CommandName, string>>;
 

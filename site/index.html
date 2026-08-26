@@ -4,11 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>local-llmup — Hardware-aware CLI for local LLMs</title>
-    <meta name="description" content="Know which local LLMs will run on your machine — yes/slow/no + est. tok/s — before you download anything. Interactive TUI, 4 backends, integrity-verified installs." />
+    <meta name="description" content="Know which local LLMs will run on your machine — yes/slow/no + est. tok/s — before you download anything. Browser GUI, interactive TUI, 4 backends, integrity-verified installs." />
     <meta property="og:title" content="local-llmup" />
-    <meta property="og:description" content="Hardware-aware CLI for local LLMs. Interactive TUI, runnability verdicts, 4 backends, portable memory." />
+    <meta property="og:description" content="Hardware-aware CLI for local LLMs. Browser GUI, interactive TUI, runnability verdicts, 4 backends, portable memory." />
     <meta property="og:type" content="website" />
-    <meta name="theme-color" content="#f7f6f2" />
+    <meta name="theme-color" content="#f5f2e9" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -22,6 +22,7 @@
         <nav class="nav">
           <a class="wordmark" href="./">local-llmup</a>
           <div class="nav-links">
+            <a class="opt" href="#gui">GUI</a>
             <a class="opt" href="#tui">TUI</a>
             <a class="opt" href="#commands">Commands</a>
             <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
@@ -35,10 +36,13 @@
 
     <!-- Hero -->
     <section class="hero">
+      <span class="sticker s1"></span>
+      <span class="sticker s2"></span>
+      <span class="sticker s3"></span>
       <div class="frame">
         <div class="hero-badge">
-          <span>v0.6.1</span>
-          &middot; Interactive TUI &middot; 4 Backends &middot; 1 459 tests
+          <span>v0.7.0</span>
+          &middot; Browser GUI &middot; Interactive TUI &middot; 4 Backends &middot; 1 500+ tests
         </div>
         <h1>Which local LLMs will<br />run on <em>your machine</em>?</h1>
         <p class="hero-sub">
@@ -89,35 +93,79 @@
         <p class="section-sub">From hardware profiling to integrity-verified installs, interactive TUI to portable memory &mdash; a complete local-LLM workflow in one CLI.</p>
         <div class="features reveal">
           <article class="feature">
-            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 26h7l4-12 6 26 6-32 4 18h7"/></svg>
+            <div class="ficon-tile c-terracotta"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 26h7l4-12 6 26 6-32 4 18h7"/></svg></div>
             <h3>Hardware-accurate verdicts</h3>
             <p>An AI Hardware Score (0&ndash;100) names your bottleneck. Every model in the catalog gets a <strong>yes / slow / no</strong> verdict with est. tok/s &mdash; before any download. Unknown figures render as <code>unknown</code>, never fabricated.</p>
           </article>
           <article class="feature">
-            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="6" y="8" width="36" height="30" rx="2"/><path d="M14 20l6 4-6 4M26 28h8"/></svg>
+            <div class="ficon-tile c-purple"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="10" width="36" height="28" rx="1"/><path d="M14 22l6 4-6 4M26 30h8"/></svg></div>
+            <h3>Browser GUI workspace</h3>
+            <p>Run <code>local-llmup gui</code> for a loopback-only local AI workspace &mdash; a Maka-inspired interface that reuses the same <code>recommend</code>, <code>up</code>, and <code>ls</code> internals. Pick a recommended model, bring one online, and chat &mdash; all in your browser.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon-tile c-blue"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="8" width="36" height="30" rx="1"/><path d="M14 20l6 4-6 4M26 28h8"/></svg></div>
             <h3>Interactive terminal UI</h3>
             <p>A full Ink-rendered TUI activates automatically in capable terminals &mdash; searchable model list, keyboard navigation, doctor dashboard, real-time lifecycle progress. Falls back to plain text in CI or piped mode.</p>
           </article>
           <article class="feature">
-            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="16" width="40" height="18" rx="2"/><path d="M4 24h40M12 16V8M24 16V8M36 16V8"/></svg>
+            <div class="ficon-tile c-gold"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="16" width="40" height="18" rx="1"/><path d="M4 24h40M12 16V8M24 16V8M36 16V8"/></svg></div>
             <h3>4 backends</h3>
             <p>Ollama, llama.cpp, MLX (Apple Silicon), and LM Studio &mdash; auto-selected or user-chosen. All bind <code>127.0.0.1</code> only. Override with <code>--backend</code>.</p>
           </article>
           <article class="feature">
-            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="11" y="22" width="26" height="20" rx="1"/><path d="M16 22v-7a8 8 0 0 1 16 0v7"/><circle cx="24" cy="31" r="2.5"/><path d="M24 33.5V37"/></svg>
+            <div class="ficon-tile c-green"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="11" y="22" width="26" height="20" rx="1"/><path d="M16 22v-7a8 8 0 0 1 16 0v7"/><circle cx="24" cy="31" r="2.5"/><path d="M24 33.5V37"/></svg></div>
             <h3>Integrity-verified installs</h3>
             <p>SHA-256 digest checks on every pull. The <code>up</code> and <code>switch</code> commands fail closed on any mismatch &mdash; no silently corrupt weights.</p>
           </article>
           <article class="feature">
-            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 24a16 16 0 0 1 32 0"/><path d="M14 31a12 12 0 0 1 20 0"/><circle cx="24" cy="36" r="3"/></svg>
+            <div class="ficon-tile c-red"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 24a16 16 0 0 1 32 0"/><path d="M14 31a12 12 0 0 1 20 0"/><circle cx="24" cy="36" r="3"/></svg></div>
             <h3>Context-window sizing</h3>
             <p>KV-cache-aware memory math with GQA-correct attention geometry. Pass <code>--context&nbsp;N</code> to re-rank at a given window, or <code>--max-context</code> for each model&rsquo;s ceiling.</p>
           </article>
-          <article class="feature">
-            <svg class="ficon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 36V22a12 12 0 0 1 24 0v14"/><path d="M8 36h32M20 36v6M28 36v6"/></svg>
-            <h3>Portable memory</h3>
-            <p>Chat sessions stored locally and migrate with you. Use <code>migrate --from a --to b</code> when switching models &mdash; conversational continuity without cloud.</p>
-          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Browser GUI -->
+    <section class="section" id="gui">
+      <div class="frame">
+        <div class="section-label">Browser GUI &mdash; new in v0.7</div>
+        <h2 class="section-title">Your local AI workspace, in the browser</h2>
+        <p class="section-sub">Prefer point-and-click? <code>local-llmup gui</code> launches a Maka-inspired, local-first workspace on <code>127.0.0.1</code> &mdash; and manages models through the very same engine as the CLI. Bring your own model by picking a recommended local model for your machine, or start one directly, then chat. Nothing leaves your machine.</p>
+
+        <div class="demo-wrap reveal" style="margin-top:3rem;">
+          <img src="assets/gui-out.gif" alt="local-llmup browser workspace demo — chat, recommended models, and composer" width="900" loading="lazy" />
+        </div>
+
+        <div class="screenshots">
+          <div class="screenshot-block reverse reveal" style="margin-top:3.5rem;">
+            <div class="screenshot-meta">
+              <span class="screenshot-tag">gui &middot; models</span>
+              <h3>Pick a recommended model &mdash; then start it</h3>
+              <p>The Models view ranks models that fit your hardware with the same <strong>yes / slow / no</strong> verdicts and est. tok/s as the CLI. A <strong>Start</strong> button brings your chosen model online through the verified <code>up</code> lifecycle &mdash; recommendations, integrity checks, and active-server state all flow through the same deterministic engine.</p>
+              <div class="screenshot-keys">
+                <span class="key">loopback-only</span>
+                <span class="key">host-header checked</span>
+                <span class="key">managed by local-llmup</span>
+                <span class="key">pluggable harnesses</span>
+              </div>
+            </div>
+            <div class="screenshot-img">
+              <img src="assets/screenshot-gui.png" alt="local-llmup browser workspace showing recommended models with verdicts" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Manifesto band -->
+    <section class="band">
+      <div class="frame">
+        <h2>Run models<br />locally.<br />Keep control.</h2>
+        <p>Advice commands make zero network calls and use a curated, cited, offline dataset. Servers bind <code>127.0.0.1</code>. Weights are integrity-verified and fail closed. Your conversations stay on your machine.</p>
+        <div class="hero-actions" style="margin-bottom:0;">
+          <a class="btn btn-primary" href="#quickstart">Get started &rarr;</a>
+          <a class="btn btn-secondary" href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
         </div>
       </div>
     </section>
@@ -237,7 +285,7 @@
     <section class="section" id="commands">
       <div class="frame">
         <div class="section-label">Commands</div>
-        <h2 class="section-title">10 commands, full lifecycle</h2>
+        <h2 class="section-title">11 commands, full lifecycle</h2>
         <p class="section-sub">Every command supports <code>--json</code> for machine-readable output and <code>--help</code> for usage. Advice commands make zero network calls.</p>
         <div class="cmd-grid reveal">
           <div class="cmd-row cmd-head"><div class="cmd-name">command</div><div class="cmd-desc">what it does</div></div>
@@ -245,6 +293,7 @@
           <div class="cmd-row"><div class="cmd-name">can-run</div><div class="cmd-desc">Yes/slow/no for one model with binding reason and est. tok/s. Exits non-zero only on <em>no</em> &mdash; scripts cleanly.</div></div>
           <div class="cmd-row"><div class="cmd-name">doctor</div><div class="cmd-desc">AI Hardware Score (0&ndash;100), bottleneck diagnosis, backend status, and actionable environment checks.</div></div>
           <div class="cmd-row"><div class="cmd-name">catalog</div><div class="cmd-desc">Browse the curated model catalog with quantization, size, context lengths, and backend availability.</div></div>
+          <div class="cmd-row"><div class="cmd-name">gui</div><div class="cmd-desc">Launch the loopback-only browser workspace &mdash; pick a recommended model, bring one online, and chat, all managed by local-llmup.</div></div>
           <div class="cmd-row"><div class="cmd-name">up</div><div class="cmd-desc">Pull a model (SHA-256 integrity-verified), then bring up the loopback-only server endpoint.</div></div>
           <div class="cmd-row"><div class="cmd-name">chat</div><div class="cmd-desc">Interactive TUI chat with streaming responses, multi-line input (Ctrl+J), and session memory.</div></div>
           <div class="cmd-row"><div class="cmd-name">ls</div><div class="cmd-desc">Show the currently active model and server endpoint.</div></div>
@@ -305,6 +354,7 @@
             <tr><td>AI Hardware Score (0&ndash;100)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
             <tr><td>Context-window sizing (KV-cache aware)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
             <tr><td>Interactive terminal UI</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>Browser GUI (loopback-only workspace)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
             <tr><td>Accessible mode (screen readers)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
             <tr><td>Multi-backend (4 runtimes)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
             <tr><td>SHA-256 integrity verification</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
@@ -321,7 +371,7 @@
         <div class="footer">
           <div>
             <div class="footer-mark">local-llmup</div>
-            <div class="footer-meta">MIT License &middot; v0.6.1 &middot; Node.js 18+</div>
+            <div class="footer-meta">MIT License &middot; v0.7.0 &middot; Node.js 18+</div>
           </div>
           <nav class="footer-links">
             <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
