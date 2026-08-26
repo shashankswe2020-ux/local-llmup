@@ -48,6 +48,84 @@ const BOOTSTRAP_GGUF_SOURCES: Readonly<
     file: "Qwen3-32B-Q4_K_M.gguf",
     sha256: "efd971561896866f0e910cce52761ca77b1b138090c7f15fe284676d57d1f689",
   },
+  "qwen2.5:0.5b": {
+    repo: "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+    revision: "9217f5db79a29953eb74d5343926648285ec7e67",
+    file: "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+    sha256: "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db",
+  },
+};
+
+/**
+ * Curated pinned MLX repository manifests for Apple-silicon `mlx-lm`/LM Studio
+ * pulls (B15). Every file is sha256-verified during acquisition, so reruns
+ * reproduce `data/models.json` exactly and unverified weights are refused.
+ */
+const BOOTSTRAP_MLX_SOURCES: Readonly<
+  Record<
+    string,
+    {
+      readonly repo: string;
+      readonly revision: string;
+      readonly files: readonly {
+        readonly file: string;
+        readonly sha256: string;
+        readonly bytes: number;
+      }[];
+    }
+  >
+> = {
+  "qwen2.5:0.5b-mlx": {
+    repo: "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+    revision: "a5339a4131f135d0fdc6a5c8b5bbed2753bbe0f3",
+    files: [
+      {
+        file: "config.json",
+        sha256: "b045e57ea90b8f1b35f89f954b176a5c1faa02bd0af2c89bcec191239d66cef4",
+        bytes: 783,
+      },
+      {
+        file: "model.safetensors",
+        sha256: "ddffab9cbc7bf6dde941c6724841eeca8981fcfa81ca20ff8efff1396326d153",
+        bytes: 278064920,
+      },
+      {
+        file: "model.safetensors.index.json",
+        sha256: "54001cb4c11197119c206dde28e7be08e5872aab6c6d271aed339ec77e84f870",
+        bytes: 44209,
+      },
+      {
+        file: "tokenizer.json",
+        sha256: "a8506e7111b80c6d8635951a02eab0f4e1a8e4e5772da83846579e97b16f61bf",
+        bytes: 7031673,
+      },
+      {
+        file: "tokenizer_config.json",
+        sha256: "f7c61e32b7a17d19bf8e7037dcb74079a833e53ea9801f24008cac68458f03b7",
+        bytes: 7308,
+      },
+      {
+        file: "special_tokens_map.json",
+        sha256: "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+        bytes: 613,
+      },
+      {
+        file: "vocab.json",
+        sha256: "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+        bytes: 2776833,
+      },
+      {
+        file: "merges.txt",
+        sha256: "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+        bytes: 1671853,
+      },
+      {
+        file: "added_tokens.json",
+        sha256: "58b54bbe36fc752f79a24a271ef66a0a0830054b4dfad94bde757d851968060b",
+        bytes: 605,
+      },
+    ],
+  },
 };
 
 /** Frozen clock for the v1 bootstrap; also caps the future-date guard. */
@@ -124,6 +202,7 @@ export const KV_BYTES_PER_TOKEN_FP16: Readonly<Record<string, number>> = {
   "llama3.2:3b": 114_688, //  28 L × 8 kv × 128 hd
   // Qwen2.5 — GQA, head-dim 128 (0.5B uses head-dim 64).
   "qwen2.5:0.5b": 12_288, //  24 L × 2 kv ×  64 hd
+  "qwen2.5:0.5b-mlx": 12_288, // 24 L × 2 kv × 64 hd (mlx-community 4bit)
   "qwen2.5:1.5b": 28_672, //  28 L × 2 kv × 128 hd
   "qwen2.5:3b": 36_864, //    36 L × 2 kv × 128 hd
   "qwen2.5:7b": 57_344, //    28 L × 4 kv × 128 hd
@@ -208,11 +287,13 @@ export function buildBootstrapCatalog(snapshot: readonly RawRegistryModel[], now
   const models = catalog.models.map((model) => {
     const kv = KV_BYTES_PER_TOKEN_FP16[model.id];
     const gguf = BOOTSTRAP_GGUF_SOURCES[model.id];
+    const mlx = BOOTSTRAP_MLX_SOURCES[model.id];
     return {
       ...model,
       source: {
         ...model.source,
         ...(gguf !== undefined ? { gguf } : {}),
+        ...(mlx !== undefined ? { mlx } : {}),
       },
       ...(kv !== undefined ? { kvBytesPerToken: kv } : {}),
       benchmarkProxy: deriveBenchmarkProxy(model),

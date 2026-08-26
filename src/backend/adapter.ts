@@ -164,6 +164,16 @@ export interface ServeHandle {
   readonly modelPath?: string | undefined;
 }
 
+/** Options controlling how {@link BackendAdapter.stop} terminates a server. */
+export interface StopOptions {
+  /**
+   * Allow stopping a daemon this process did not spawn (`ownedByUs: false`).
+   * Only bypasses the ownership gate — the endpoint, pid, executable, and
+   * process-identity verification still run before any signal is sent.
+   */
+  readonly allowForeign?: boolean | undefined;
+}
+
 /** Inputs for the readiness probe. */
 export interface ReadinessOptions {
   readonly endpoint: string;
@@ -183,8 +193,28 @@ export interface ReadinessOptions {
 
 /** A single chat turn in an OpenAI-compatible request. */
 export interface ChatMessage {
-  readonly role: "system" | "user" | "assistant";
+  readonly role: "system" | "user" | "assistant" | "tool";
   readonly content: string;
+  /** Tool calls an assistant turn requested (replayed back to the model). */
+  readonly toolCalls?: readonly ChatToolCall[] | undefined;
+  /** For `role: "tool"` result turns, the tool whose output this carries. */
+  readonly toolName?: string | undefined;
+}
+
+/** A tool (function) definition advertised to a tool-capable model. */
+export interface ChatTool {
+  readonly name: string;
+  readonly description: string;
+  /** JSON Schema for the tool's arguments. */
+  readonly parameters: Record<string, unknown>;
+}
+
+/** A tool invocation the model requested in its response. */
+export interface ChatToolCall {
+  /** Provider-assigned call id, when the backend supplies one. */
+  readonly id?: string | undefined;
+  readonly name: string;
+  readonly arguments: Record<string, unknown>;
 }
 
 /** Persisted process instance expected to own an active inference endpoint. */
@@ -200,6 +230,8 @@ export interface ChatRequest {
   readonly endpoint?: string | undefined;
   readonly model: string;
   readonly messages: readonly ChatMessage[];
+  /** Tools to advertise for this turn; backends that lack tool support ignore it. */
+  readonly tools?: readonly ChatTool[] | undefined;
   readonly signal?: AbortSignal | undefined;
   /** Optional for legacy/daemon callers; required by MLX inference. */
   readonly expectedProcess?: ExpectedProcessIdentity | undefined;
@@ -211,6 +243,19 @@ export interface ChatRequest {
 /** Result of a chat completion. */
 export interface ChatResult {
   readonly content: string;
+  /** Tool calls the model requested, when it chose to call tools instead of replying. */
+  readonly toolCalls?: readonly ChatToolCall[] | undefined;
+}
+
+/**
+ * Inputs for a streaming chat completion. Identical to {@link ChatRequest} plus
+ * an `onDelta` sink that receives content fragments as the model produces them.
+ * The returned {@link ChatResult} still carries the fully-accumulated content
+ * (and any tool calls), so callers can ignore streaming and use the result.
+ */
+export interface ChatStreamRequest extends ChatRequest {
+  /** Called with each content fragment as it arrives, in order. */
+  readonly onDelta: (chunk: string) => void;
 }
 
 /** Inputs for an embedding request. */
@@ -266,11 +311,22 @@ export interface BackendAdapter {
   /** Resolve once the server passes its readiness probe; throw on timeout. */
   waitUntilReady(options: ReadinessOptions): Promise<void>;
 
-  /** Stop a server this process owns; a no-op for attached daemons. */
-  stop(handle: ServeHandle): Promise<void>;
+  /**
+   * Stop a server. By default this is a no-op for attached (foreign) daemons;
+   * pass `allowForeign` to let an identity-verified foreign daemon be stopped.
+   * All other safety checks (endpoint/pid/executable ownership) always apply.
+   */
+  stop(handle: ServeHandle, options?: StopOptions): Promise<void>;
 
   /** Run a non-streaming chat completion (used by `chat` and `migrate`). */
   chat(request: ChatRequest): Promise<ChatResult>;
+
+  /**
+   * Optionally run a streaming chat completion, invoking `onDelta` with content
+   * fragments as they arrive. Backends that cannot stream omit this method;
+   * callers must fall back to {@link BackendAdapter.chat}.
+   */
+  chatStream?(request: ChatStreamRequest): Promise<ChatResult>;
 
   /** Produce embeddings for the given inputs. */
   embed(request: EmbedRequest): Promise<EmbedResult>;

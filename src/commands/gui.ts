@@ -1,10 +1,18 @@
 /** Start the browser GUI server for interactive chat. */
 import { execFile } from "node:child_process";
+import { mkdirSync } from "node:fs";
 import { createServer as createNetServer } from "node:net";
 import { promisify } from "node:util";
 import { createDefaultRegistry, type HarnessRegistry } from "../harness/registry.js";
+import { createDefaultRegistry as createDefaultBackendRegistry } from "../backend/registry.js";
 import { GuiServer, type GuiServerOptions } from "../gui/server.js";
 import { createDefaultModelManager, type GuiModelManager } from "../gui/management.js";
+import { createRuntimeController, type RuntimeController } from "../gui/runtime.js";
+import { createDefaultHardwareProvider, type HardwareProvider } from "../gui/hardware.js";
+import { createDefaultMcpManager, type McpManager } from "../mcp/manager.js";
+import { createActiveBackendChat } from "../gui/agent.js";
+import { createLibraryService, type LibraryService } from "../library/service.js";
+import { DIR_MODE, loadConfig } from "../config.js";
 import { ValidationError } from "../errors.js";
 
 const execFileAsync = promisify(execFile);
@@ -45,6 +53,10 @@ export interface GuiDeps {
   readonly log: (text: string) => void;
   readonly env: NodeJS.ProcessEnv;
   readonly modelManager?: GuiModelManager | undefined;
+  readonly mcpManager?: McpManager | undefined;
+  readonly runtimeController?: RuntimeController | undefined;
+  readonly hardwareProvider?: HardwareProvider | undefined;
+  readonly library?: LibraryService | undefined;
   readonly createGuiServer?: ((options: GuiServerOptions) => GuiServerLike) | undefined;
 }
 
@@ -124,10 +136,22 @@ export async function runGui(
   await probePort(port, deps.createServer);
 
   const modelManager = deps.modelManager ?? createDefaultModelManager();
+  const mcpManager = deps.mcpManager ?? createDefaultMcpManager();
+  const runtimeController = deps.runtimeController ?? createRuntimeController(createDefaultBackendRegistry());
+  const hardwareProvider = deps.hardwareProvider ?? createDefaultHardwareProvider();
+  const library = deps.library ?? createLibraryService();
+  const artifactsDir = loadConfig().artifactsDir;
+  mkdirSync(artifactsDir, { recursive: true, mode: DIR_MODE });
   const createGuiServer = deps.createGuiServer ?? ((serverOptions) => new GuiServer(serverOptions));
   const server = createGuiServer({
     registry: deps.registry,
     modelManager,
+    mcpManager,
+    runtimeController,
+    hardwareProvider,
+    agentChat: createActiveBackendChat(),
+    library,
+    artifactsDir,
   });
   server.session.activeHarnessName = harnessName;
   await server.start(port);
@@ -148,6 +172,8 @@ export async function runGui(
     deps.write("Stopped.\n");
     return payload;
   } finally {
+    await mcpManager.shutdown();
+    await runtimeController.shutdown();
     await server.stop();
   }
 }

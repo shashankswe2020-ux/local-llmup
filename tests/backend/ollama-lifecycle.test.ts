@@ -380,6 +380,28 @@ describe("OllamaAdapter.stop", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("stops an attached (foreign) daemon when allowForeign is set", async () => {
+    const killed: Array<{ pid: number; signal: NodeJS.Signals | 0 | undefined }> = [];
+    const kill: KillFn = (pid, signal) => {
+      killed.push({ pid, signal });
+      if (signal === 0) {
+        throw Object.assign(new Error("kill ESRCH"), { code: "ESRCH" });
+      }
+    };
+    const fetch = trustedOllamaFetch();
+    const adapter = ownedOllamaAdapter(fetch, kill);
+
+    await adapter.stop(
+      { endpoint: ENDPOINT, pid: 9001, port: 11434, ownedByUs: false },
+      { allowForeign: true },
+    );
+
+    expect(killed).toEqual([
+      { pid: 9001, signal: "SIGTERM" },
+      { pid: 9001, signal: 0 },
+    ]);
+  });
+
   it("signals SIGTERM and waits for process exit for a daemon we own", async () => {
     const killed: Array<{ pid: number; signal: NodeJS.Signals | 0 | undefined }> = [];
     const kill: KillFn = (pid, signal) => {

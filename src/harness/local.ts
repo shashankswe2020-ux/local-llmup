@@ -1,5 +1,5 @@
 /** Local harness: bridge chat requests to the currently active local backend. */
-import type { BackendAdapter, ChatMessage } from "../backend/adapter.js";
+import type { BackendAdapter, ChatMessage, ExpectedProcessIdentity } from "../backend/adapter.js";
 import type { BackendRegistry } from "../backend/registry.js";
 import { ValidationError } from "../errors.js";
 import type { Config } from "../config.js";
@@ -18,6 +18,15 @@ export interface LocalHarnessDeps {
     readonly flag?: string | undefined;
     readonly envBackend?: string | undefined;
   }) => Promise<{ readonly adapter: BackendAdapter }>;
+  /**
+   * Capture the authoritative, *live* listener process identity for the active
+   * server. When provided, it supersedes the recorded-state fallback so that
+   * attached backends (e.g. LM Studio) — which require process identity for
+   * fail-closed inference — receive a freshly verified PID/executable/start.
+   */
+  readonly captureLiveProcessIdentity?: (
+    active: NonNullable<RuntimeState["active"]>,
+  ) => Promise<{ readonly expectedProcess: ExpectedProcessIdentity }>;
 }
 
 function normalizeMessages(messages: readonly HarnessMessage[]): readonly ChatMessage[] {
@@ -67,7 +76,10 @@ export function createLocalHarness(deps: LocalHarnessDeps): ChatHarness {
         registry: deps.registry,
         activeBackend: active.backend,
       });
-      const expectedProcess = buildExpectedProcess(active);
+      const expectedProcess =
+        deps.captureLiveProcessIdentity !== undefined
+          ? (await deps.captureLiveProcessIdentity(active)).expectedProcess
+          : buildExpectedProcess(active);
       const result = await selected.adapter.chat({
         endpoint: active.endpoint,
         model: request.model,

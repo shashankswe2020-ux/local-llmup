@@ -186,10 +186,15 @@ export async function runChat(
       const context = messages.slice(-MAX_CONTEXT_MESSAGES);
       const reply = await harness.chatSync({
         model: modelId,
-        messages: context.map((message) => ({
-          role: message.role,
-          content: message.content,
-        })),
+        messages: context
+          .filter(
+            (message): message is ChatMessage & { role: "system" | "user" | "assistant" } =>
+              message.role !== "tool",
+          )
+          .map((message) => ({
+            role: message.role,
+            content: message.content,
+          })),
       });
 
       deps.write(`${stripControl(reply)}\n`);

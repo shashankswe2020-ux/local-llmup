@@ -7,9 +7,13 @@
 import { z } from "zod";
 import { ValidationError } from "../errors.js";
 import { collectLs, type LsResult } from "../commands/ls.js";
-import { collectRecommendation, type RecommendationResult } from "../commands/recommend.js";
+import {
+  collectRecommendation,
+  type RecommendationResult,
+  type RecommendOptions,
+} from "../commands/recommend.js";
 import { runUp, type UpOptions } from "../commands/up.js";
-import type { Runnable } from "../types.js";
+import { BACKEND_NAMES, type BackendName, type Runnable } from "../types.js";
 
 /** A compact, UI-facing view of one recommended model. */
 export interface ManagedModelSummary {
@@ -40,12 +44,24 @@ export interface ActiveModelSummary {
 export interface GuiUpRequest {
   readonly model: string;
   readonly port?: number;
+  /** Force a specific backend; omitted → auto-detect the first servable one. */
+  readonly backend?: BackendName;
+}
+
+/** Options for scoping a recommendation query from the GUI. */
+export interface RecommendedOptions {
+  /** Cap the number of returned models (default 8). */
+  readonly limit?: number;
+  /** Scope the throughput estimate to this inference runtime (default `ollama`). */
+  readonly runtime?: BackendName;
 }
 
 /** The management surface the GUI server depends on. */
 export interface GuiModelManager {
-  /** Ranked, fitting models for this machine (limited to `limit`, default 8). */
-  recommended(limit?: number): Promise<readonly ManagedModelSummary[]>;
+  /** Ranked, fitting models for this machine, scoped to an optional runtime. */
+  recommended(options?: RecommendedOptions): Promise<readonly ManagedModelSummary[]>;
+  /** The inference runtimes the advisor can score throughput for. */
+  runtimes(): readonly BackendName[];
   /** The active local server, or `null` when nothing is running. */
   active(): ActiveModelSummary | null;
   /** Bring `request.model` online and return the resulting active server. */
@@ -54,7 +70,7 @@ export interface GuiModelManager {
 
 /** Injectable command-layer side effects, so the manager is testable with fakes. */
 export interface ModelManagerDeps {
-  readonly collectRecommendation: () => Promise<RecommendationResult>;
+  readonly collectRecommendation: (options?: RecommendOptions) => Promise<RecommendationResult>;
   readonly runUp: (options: UpOptions) => Promise<void>;
   readonly collectLs: () => LsResult;
 }
@@ -65,6 +81,7 @@ const GUI_UP_REQUEST_SCHEMA = z
   .object({
     model: z.string().trim().min(1).max(256),
     port: z.number().int().min(1).max(65535).optional(),
+    backend: z.enum(BACKEND_NAMES).optional(),
   })
   .strict();
 
@@ -74,9 +91,12 @@ export function parseGuiUpRequest(input: unknown): GuiUpRequest {
   if (!parsed.success) {
     throw new ValidationError(`invalid up payload: ${parsed.error.issues[0]?.message ?? "bad request"}`);
   }
-  return parsed.data.port !== undefined
-    ? { model: parsed.data.model, port: parsed.data.port }
-    : { model: parsed.data.model };
+  const request: GuiUpRequest = { model: parsed.data.model };
+  return {
+    ...request,
+    ...(parsed.data.port !== undefined ? { port: parsed.data.port } : {}),
+    ...(parsed.data.backend !== undefined ? { backend: parsed.data.backend } : {}),
+  };
 }
 
 function toActiveSummary(result: LsResult): ActiveModelSummary | null {
@@ -95,8 +115,11 @@ function toActiveSummary(result: LsResult): ActiveModelSummary | null {
 /** Build a model manager over explicit command-layer dependencies. */
 export function createModelManager(deps: ModelManagerDeps): GuiModelManager {
   return {
-    async recommended(limit = DEFAULT_RECOMMEND_LIMIT): Promise<readonly ManagedModelSummary[]> {
-      const result = await deps.collectRecommendation();
+    async recommended(options: RecommendedOptions = {}): Promise<readonly ManagedModelSummary[]> {
+      const limit = options.limit ?? DEFAULT_RECOMMEND_LIMIT;
+      const recommendOptions: RecommendOptions =
+        options.runtime !== undefined ? { backend: options.runtime } : {};
+      const result = await deps.collectRecommendation(recommendOptions);
       return result.entries.slice(0, limit).map((entry) => ({
         id: entry.model.id,
         family: entry.model.family,
@@ -112,12 +135,18 @@ export function createModelManager(deps: ModelManagerDeps): GuiModelManager {
         backends: [...entry.backends],
       }));
     },
+    runtimes(): readonly BackendName[] {
+      return [...BACKEND_NAMES];
+    },
     active(): ActiveModelSummary | null {
       return toActiveSummary(deps.collectLs());
     },
     async up(request: GuiUpRequest): Promise<ActiveModelSummary> {
-      const options: UpOptions =
-        request.port !== undefined ? { model: request.model, port: request.port } : { model: request.model };
+      const options: UpOptions = {
+        model: request.model,
+        ...(request.port !== undefined ? { port: request.port } : {}),
+        ...(request.backend !== undefined ? { backend: request.backend } : {}),
+      };
       await deps.runUp(options);
       const active = toActiveSummary(deps.collectLs());
       if (active === null) {
@@ -131,7 +160,7 @@ export function createModelManager(deps: ModelManagerDeps): GuiModelManager {
 /** Build the production model manager wired to the real command internals. */
 export function createDefaultModelManager(): GuiModelManager {
   return createModelManager({
-    collectRecommendation: () => collectRecommendation(),
+    collectRecommendation: (options) => collectRecommendation(options),
     runUp: (options) => runUp(options),
     collectLs: () => collectLs(),
   });

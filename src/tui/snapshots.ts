@@ -15,6 +15,7 @@ import { isSafeModelId } from "../backend/net.js";
 import { assertLoopbackEndpoint } from "../backend/adapter.js";
 import type { ExpectedProcessIdentity } from "../backend/adapter.js";
 import {
+  isPythonInterpreter,
   matchesExpectedExecutable,
   probeListenerIdentity,
   type ListenerIdentity,
@@ -387,7 +388,7 @@ export interface LiveProcessIdentityDeps {
 function isBackendExecutable(backend: BackendName, identity: ListenerIdentity): boolean {
   if (backend === "ollama") return matchesExpectedExecutable(identity, "ollama");
   if (backend === "llamacpp") return matchesExpectedExecutable(identity, "llama-server");
-  if (backend === "mlx") return matchesExpectedExecutable(identity, "python3");
+  if (backend === "mlx") return isPythonInterpreter(identity);
   return isDefaultTrustedLmStudioExecutable(identity.executable);
 }
 

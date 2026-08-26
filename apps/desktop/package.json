@@ -1,0 +1,64 @@
+{
+  "name": "@local-llmup/desktop",
+  "version": "0.8.1",
+  "private": true,
+  "description": "Desktop shell for local-llmup — a thin Electron surface over the loopback Runtime Host (the same GUI server the CLI serves).",
+  "type": "module",
+  "main": "dist/main.js",
+  "author": "local-llmup",
+  "license": "MIT",
+  "scripts": {
+    "build:cli": "npm --prefix ../.. run build && rm -rf node_modules/local-llmup && npm install --no-audit --no-fund",
+    "build:main": "tsc -p tsconfig.json",
+    "build": "npm run build:cli && npm run build:main",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "npm run build:main && electron .",
+    "start": "electron .",
+    "package": "npm run build && electron-builder",
+    "package:mac": "npm run build && electron-builder --mac",
+    "package:win": "npm run build && electron-builder --win",
+    "package:linux": "npm run build && electron-builder --linux"
+  },
+  "dependencies": {
+    "local-llmup": "file:../.."
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "electron": "^43.4.1",
+    "electron-builder": "^24.13.3",
+    "typescript": "^5.5.0"
+  },
+  "build": {
+    "appId": "org.localllmup.desktop",
+    "productName": "local-llmup",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development",
+      "maintainer": "local-llmup"
+    }
+  }
+}

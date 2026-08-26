@@ -76,6 +76,17 @@ describe("parseGuiUpRequest", () => {
   it("rejects an out-of-range port", () => {
     expect(() => parseGuiUpRequest({ model: "x", port: 70000 })).toThrow(ValidationError);
   });
+
+  it("accepts an optional backend from the known set", () => {
+    expect(parseGuiUpRequest({ model: "qwen2.5:0.5b", backend: "llamacpp" })).toEqual({
+      model: "qwen2.5:0.5b",
+      backend: "llamacpp",
+    });
+  });
+
+  it("rejects an unknown backend", () => {
+    expect(() => parseGuiUpRequest({ model: "x", backend: "vllm" })).toThrow(ValidationError);
+  });
 });
 
 describe("createModelManager", () => {
@@ -111,8 +122,28 @@ describe("createModelManager", () => {
       collectLs: () => ({ type: "empty" }),
     });
 
-    const models = await manager.recommended(2);
+    const models = await manager.recommended({ limit: 2 });
     expect(models).toHaveLength(2);
+  });
+
+  it("scopes the recommendation to the requested runtime and exposes the runtime list", async () => {
+    const seen: unknown[] = [];
+    const manager = createModelManager({
+      collectRecommendation: async (options) => {
+        seen.push(options);
+        return makeRecommendation();
+      },
+      runUp: async () => undefined,
+      collectLs: () => ({ type: "empty" }),
+    });
+
+    await manager.recommended({ runtime: "llamacpp" });
+    expect(seen).toEqual([{ backend: "llamacpp" }]);
+
+    await manager.recommended();
+    expect(seen[1]).toEqual({});
+
+    expect(manager.runtimes()).toEqual(["ollama", "llamacpp", "mlx", "lmstudio"]);
   });
 
   it("returns the active model summary or null", () => {
@@ -161,6 +192,18 @@ describe("createModelManager", () => {
 
     await manager.up({ model: "qwen2.5:1.5b", port: 11500 });
     expect(runUp).toHaveBeenCalledWith({ model: "qwen2.5:1.5b", port: 11500 });
+  });
+
+  it("propagates a backend to runUp when provided", async () => {
+    const runUp = vi.fn(async () => undefined);
+    const manager = createModelManager({
+      collectRecommendation: async () => makeRecommendation(),
+      runUp,
+      collectLs: () => makeActive(),
+    });
+
+    await manager.up({ model: "qwen2.5:0.5b", backend: "llamacpp" });
+    expect(runUp).toHaveBeenCalledWith({ model: "qwen2.5:0.5b", backend: "llamacpp" });
   });
 
   it("throws when up completes but no active model is recorded", async () => {

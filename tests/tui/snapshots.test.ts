@@ -162,6 +162,37 @@ describe("confirmation identity hashes", () => {
     ).rejects.toThrow("PID does not match");
   });
 
+  it("approves an mlx server running under a macOS framework Python", async () => {
+    const frameworkPython =
+      "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python";
+    const mlxActive: NonNullable<RuntimeState["active"]> = {
+      backend: "mlx",
+      modelId: "qwen2.5:0.5b-mlx",
+      endpoint: "http://127.0.0.1:8080",
+      port: 8080,
+      ownedByUs: true,
+      pid: 68594,
+      processExecutable: frameworkPython,
+      processStartedAt: "2026-08-09T00:00:00.000Z",
+    };
+    const observed = {
+      pid: 68594,
+      process: "Python",
+      executable: frameworkPython,
+      started: "2026-08-09T00:00:00.000Z",
+      localAddress: "127.0.0.1",
+    };
+    // Default isBackendExecutable (no override): must approve framework Python.
+    const identity = await captureLiveProcessIdentity(mlxActive, {
+      probeListenerIdentity: async () => observed,
+    });
+    expect(identity.expectedProcess).toEqual({
+      pid: 68594,
+      executable: frameworkPython,
+      started: "2026-08-09T00:00:00.000Z",
+    });
+  });
+
   it("hashes complete logical memory data independent of object key insertion order", () => {
     const first = hashMemoryStoreIdentity({ meta, source });
     const reorderedMeta: MemoryMeta = {

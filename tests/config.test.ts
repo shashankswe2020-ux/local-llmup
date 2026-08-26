@@ -39,6 +39,9 @@ describe("loadConfig", () => {
     expect(config.lockFile).toBe("/tmp/custom-llmup/lock");
     expect(config.memoryDir).toBe("/tmp/custom-llmup/memory");
     expect(config.stagingDir).toBe("/tmp/custom-llmup/.staging");
+    expect(config.agentsDir).toBe("/tmp/custom-llmup/agents");
+    expect(config.skillsDir).toBe("/tmp/custom-llmup/skills");
+    expect(config.artifactsDir).toBe("/tmp/custom-llmup/artifacts");
   });
 
   it("reads process.env by default", () => {

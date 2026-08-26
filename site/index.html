@@ -23,6 +23,8 @@
           <a class="wordmark" href="./">local-llmup</a>
           <div class="nav-links">
             <a class="opt" href="#gui">GUI</a>
+            <a class="opt" href="#agents">Agents</a>
+            <a class="opt" href="#connectors">Connectors</a>
             <a class="opt" href="#tui">TUI</a>
             <a class="opt" href="#commands">Commands</a>
             <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
@@ -41,8 +43,8 @@
       <span class="sticker s3"></span>
       <div class="frame">
         <div class="hero-badge">
-          <span>v0.8.1</span>
-          &middot; Browser GUI &middot; Interactive TUI &middot; 4 Backends &middot; 1 500+ tests
+          <span>v0.9.0</span>
+          &middot; Browser GUI &middot; Agents &amp; Skills &middot; MCP Tools &middot; 4 Backends
         </div>
         <h1>Which local LLMs will<br />run on <em>your machine</em>?</h1>
         <p class="hero-sub">
@@ -64,7 +66,7 @@
 
         <!-- Demo GIF -->
         <div class="demo-wrap reveal">
-          <img src="assets/demo.gif" alt="local-llmup end-to-end demo — install, recommend TUI, doctor, can-run" width="900" loading="lazy" />
+          <img src="assets/screenshot-workspace.png" alt="local-llmup browser workspace — the Chat view with model, harness, runtime, and agent selectors, loopback endpoint, and skills" width="900" loading="eager" />
         </div>
 
         <!-- Verdict pills -->
@@ -122,6 +124,21 @@
             <h3>Context-window sizing</h3>
             <p>KV-cache-aware memory math with GQA-correct attention geometry. Pass <code>--context&nbsp;N</code> to re-rank at a given window, or <code>--max-context</code> for each model&rsquo;s ceiling.</p>
           </article>
+          <article class="feature">
+            <div class="ficon-tile c-purple"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="24" cy="14" r="6"/><path d="M12 40c0-7 5-12 12-12s12 5 12 12"/><path d="M24 20v8"/></svg></div>
+            <h3>Agents &amp; skills</h3>
+            <p>Build reusable <strong>agents</strong> (personas / system prompts) and <strong>skills</strong> (instruction blocks) right in the workspace &mdash; stored locally as markdown. Bundle skills into an agent and load them per message from a dropdown.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon-tile c-blue"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="12" width="34" height="24" rx="1"/><path d="M14 22l5 2-5 2M24 28h9"/></svg></div>
+            <h3>MCP connectors &amp; tools</h3>
+            <p>Attach <strong>Model Context Protocol</strong> servers &mdash; local stdio commands or loopback HTTP/SSE &mdash; to give the chat real tools. Enable, disable, and inspect each connector&rsquo;s tools; the model calls them in an agentic loop.</p>
+          </article>
+          <article class="feature">
+            <div class="ficon-tile c-gold"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="10" width="36" height="28" rx="1"/><path d="M6 30l9-8 6 5 8-9 7 7"/><circle cx="17" cy="18" r="2.5"/></svg></div>
+            <h3>Inline images &amp; graphs</h3>
+            <p>Let an agent run code in your workspace and render the result &mdash; the chat panel displays generated <strong>images and graphs inline</strong>, served safely from a loopback-only artifacts endpoint.</p>
+          </article>
         </div>
       </div>
     </section>
@@ -132,10 +149,6 @@
         <div class="section-label">Browser GUI &mdash; new in v0.8</div>
         <h2 class="section-title">Your local AI workspace, in the browser</h2>
         <p class="section-sub">Prefer point-and-click? <code>local-llmup gui</code> launches a Maka-inspired, local-first workspace on <code>127.0.0.1</code> &mdash; and manages models through the very same engine as the CLI. Bring your own model by picking a recommended local model for your machine, or start one directly, then chat. Nothing leaves your machine.</p>
-
-        <div class="demo-wrap reveal" style="margin-top:3rem;">
-          <img src="assets/gui-out.gif" alt="local-llmup browser workspace demo — chat, recommended models, and composer" width="900" loading="lazy" />
-        </div>
 
         <div class="screenshots">
           <div class="screenshot-block reverse reveal" style="margin-top:3.5rem;">
@@ -154,6 +167,51 @@
               <img src="assets/screenshot-gui.png" alt="local-llmup browser workspace showing recommended models with verdicts" loading="lazy" />
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Agents, Skills & Tools -->
+    <section class="section" id="agents">
+      <div class="frame">
+        <div class="section-label">Agents, Skills &amp; Tools &mdash; new</div>
+        <h2 class="section-title">Agents that use skills &amp; run tools</h2>
+        <p class="section-sub">Build an <strong>agent</strong> (a persona / system prompt), give it reusable <strong>skills</strong>, and connect <strong>tools</strong> that run code in your workspace. Select the agent in chat and its skills load automatically &mdash; here it solves a quadratic with SymPy, plots it with Matplotlib, and renders the graph right in the panel. Everything stays on <code>127.0.0.1</code>.</p>
+
+        <div class="demo-wrap reveal" style="margin-top:3rem;">
+          <img src="assets/equation-solver-graph.gif" alt="Equation Solver agent solving x^2-5x+6=0 with a code tool and rendering the graph inline in the chat" width="900" loading="lazy" />
+        </div>
+
+        <div class="screenshots">
+          <div class="screenshot-block reveal" style="margin-top:3.5rem;">
+            <div class="screenshot-meta">
+              <span class="screenshot-tag">library &middot; agents + skills</span>
+              <h3>Create, bundle, and load per message</h3>
+              <p>Author agents and skills in the workspace &mdash; each is stored locally as markdown with YAML frontmatter, the same convention Claude Code and Codex use. Full create / edit / enable / delete. An agent can <strong>bundle</strong> the skills it always needs, and any skill can be toggled per message from a chip bar.</p>
+              <div class="screenshot-keys">
+                <span class="key">local markdown</span>
+                <span class="key">per-message skills</span>
+                <span class="key">bundled skills</span>
+                <span class="key">system-prompt compose</span>
+              </div>
+            </div>
+            <div class="screenshot-img">
+              <img src="assets/equation-solver-graph.gif" alt="Agents and skills library with an Equation Solver agent" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Connectors (MCP) -->
+    <section class="section" id="connectors">
+      <div class="frame">
+        <div class="section-label">Connectors &mdash; new</div>
+        <h2 class="section-title">Give the chat real tools with MCP</h2>
+        <p class="section-sub">Attach <strong>Model Context Protocol</strong> servers to the workspace &mdash; local <code>stdio</code> commands or loopback HTTP/SSE only. Enable a connector and its tools become available to the model, which calls them in an agentic loop. Below: a WHOOP connector is added, toggled on, and its health tools are used live in chat.</p>
+
+        <div class="demo-wrap reveal" style="margin-top:3rem;">
+          <img src="assets/connectors.gif" alt="Adding an MCP connector, enabling it, and using its tools in chat" width="900" loading="lazy" />
         </div>
       </div>
     </section>
@@ -336,6 +394,27 @@
             <span class="backend-badge badge-attach">Attach-only</span>
           </div>
         </div>
+
+        <h3 style="margin-top:3.5rem; font-size:1.35rem; font-weight:800; letter-spacing:-.02em; text-transform:uppercase;">Chat with any runtime &mdash; from the workspace</h3>
+        <p class="section-sub" style="margin-top:.6rem;">A backend picker in the workspace lets you reach every runtime directly &mdash; the same model chatting locally through Ollama, llama.cpp, MLX, and LM Studio.</p>
+        <div class="demo-gallery reveal">
+          <figure class="demo-gallery-item">
+            <img src="assets/ollama.gif" alt="Chatting with a model served by Ollama" loading="lazy" />
+            <figcaption class="demo-gallery-cap">Ollama &middot; 127.0.0.1:11434</figcaption>
+          </figure>
+          <figure class="demo-gallery-item">
+            <img src="assets/llamacpp.gif" alt="Chatting with a model served by llama.cpp" loading="lazy" />
+            <figcaption class="demo-gallery-cap">llama.cpp &middot; owned server</figcaption>
+          </figure>
+          <figure class="demo-gallery-item">
+            <img src="assets/mlx.gif" alt="Chatting with a model served by MLX on Apple Silicon" loading="lazy" />
+            <figcaption class="demo-gallery-cap">MLX &middot; Apple Silicon</figcaption>
+          </figure>
+          <figure class="demo-gallery-item">
+            <img src="assets/lmstudio.gif" alt="Chatting with a model served by LM Studio" loading="lazy" />
+            <figcaption class="demo-gallery-cap">LM Studio &middot; attach-only</figcaption>
+          </figure>
+        </div>
       </div>
     </section>
 
@@ -355,6 +434,9 @@
             <tr><td>Context-window sizing (KV-cache aware)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
             <tr><td>Interactive terminal UI</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
             <tr><td>Browser GUI (loopback-only workspace)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>Agents &amp; skills library</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>MCP connectors &amp; tools</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            <tr><td>Inline images &amp; graphs in chat</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
             <tr><td>Accessible mode (screen readers)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
             <tr><td>Multi-backend (4 runtimes)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
             <tr><td>SHA-256 integrity verification</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
@@ -371,7 +453,7 @@
         <div class="footer">
           <div>
             <div class="footer-mark">local-llmup</div>
-            <div class="footer-meta">MIT License &middot; v0.8.1 &middot; Node.js 18+</div>
+            <div class="footer-meta">MIT License &middot; v0.9.0 &middot; Node.js 18+</div>
           </div>
           <nav class="footer-links">
             <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>

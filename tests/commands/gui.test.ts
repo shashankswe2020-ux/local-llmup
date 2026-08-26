@@ -83,6 +83,7 @@ describe("runGui", () => {
     const deps = createDeps();
     const modelManager = {
       recommended: vi.fn(async () => []),
+      runtimes: vi.fn(() => ["ollama", "llamacpp", "mlx", "lmstudio"]),
       active: vi.fn(() => null),
       up: vi.fn(async () => {
         throw new Error("unused");

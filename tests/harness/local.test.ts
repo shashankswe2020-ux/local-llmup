@@ -138,4 +138,64 @@ describe("createLocalHarness", () => {
       harness.chatSync({ model: "llama3.2", messages: [{ role: "user", content: "hello" }] }),
     ).rejects.toBeInstanceOf(ValidationError);
   });
+
+  it("supplies live process identity for an attached backend (e.g. LM Studio)", async () => {
+    const adapter = {
+      name: "lmstudio",
+      capabilities: {
+        canPull: false,
+        canEmbed: false,
+        openAiCompatible: true,
+        formats: ["gguf"],
+        defaultPort: 1234,
+      },
+      isInstalled: async () => true,
+      installHint: () => "install LM Studio",
+      chat: vi.fn(async () => ({ content: "ok" })),
+      pull: vi.fn(),
+      serve: vi.fn(),
+      waitUntilReady: vi.fn(),
+      stop: vi.fn(),
+      embed: vi.fn(),
+    };
+    const expectedProcess = {
+      pid: 48827,
+      executable: "/Applications/LM Studio.app/Contents/MacOS/LM Studio",
+      started: "2026-08-26 20:02:41",
+    };
+    const captureLiveProcessIdentity = vi.fn(async () => ({ expectedProcess }) as never);
+
+    const harness = createLocalHarness({
+      config: { stateFile: "/tmp/local-llmup-state.json" } as never,
+      readState: () =>
+        makeRuntimeState({
+          backend: "lmstudio",
+          modelId: "qwen2.5:0.5b",
+          endpoint: "http://127.0.0.1:1234",
+          port: 1234,
+          modelPath: "Qwen/Qwen2.5-0.5B-Instruct-GGUF/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+          ownedByUs: false,
+          pid: 48827,
+          processExecutable: "/Applications/LM Studio.app/Contents/MacOS/LM Studio",
+          processStartedAt: "2026-08-26 20:02:41",
+        }),
+      registry: createDefaultBackendRegistry(),
+      select: vi.fn(async () => ({ adapter })),
+      captureLiveProcessIdentity,
+    });
+
+    await expect(
+      harness.chatSync({ model: "qwen2.5:0.5b", messages: [{ role: "user", content: "hi" }] }),
+    ).resolves.toBe("ok");
+
+    expect(captureLiveProcessIdentity).toHaveBeenCalledOnce();
+    expect(adapter.chat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: "http://127.0.0.1:1234",
+        model: "qwen2.5:0.5b",
+        expectedModelPath: "Qwen/Qwen2.5-0.5B-Instruct-GGUF/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+        expectedProcess,
+      }),
+    );
+  });
 });

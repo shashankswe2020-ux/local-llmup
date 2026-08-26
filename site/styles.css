@@ -224,6 +224,23 @@ h1 em {
 }
 .demo-wrap img { display: block; width: 100%; height: auto; }
 
+/* ── Demo gallery (runtime chat GIFs) ─────────────────────────── */
+.demo-gallery {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 1.4rem; margin-top: 3rem;
+}
+.demo-gallery-item {
+  border: var(--border-w) solid var(--ink);
+  box-shadow: var(--shadow); background: var(--ink);
+}
+.demo-gallery-item img { display: block; width: 100%; height: auto; }
+.demo-gallery-cap {
+  font-family: var(--mono); font-size: .74rem; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--paper); background: var(--ink);
+  padding: .5rem .85rem; border-top: var(--border-w) solid var(--ink);
+}
+
 .verdicts {
   display: flex; justify-content: center;
   gap: 1.5rem; padding: 3.5rem 0 0; flex-wrap: wrap;
@@ -469,6 +486,7 @@ footer { border-top: var(--border-w) solid var(--ink); background: var(--ink); c
 @media (max-width: 900px) {
   .features { grid-template-columns: repeat(2,1fr); }
   .backends { grid-template-columns: repeat(2,1fr); }
+  .demo-gallery { grid-template-columns: 1fr; }
   .quickstart { grid-template-columns: repeat(2,1fr); }
   .screenshot-block { grid-template-columns: 1fr; direction: ltr !important; }
   .compare-table th, .compare-table td { padding: .65rem .75rem; }

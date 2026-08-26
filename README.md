@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/tests-1459%20passing-brightgreen.svg)](#development)
+[![Tests](https://img.shields.io/badge/tests-1600%2B%20passing-brightgreen.svg)](#development)
 [![Backends](https://img.shields.io/badge/backends-Ollama%20%7C%20llama.cpp%20%7C%20MLX%20%7C%20LM%20Studio-000000.svg)](#supported-backends)
 
 > **Know which local LLMs will actually run on your machine — before you download anything.**
@@ -25,6 +25,9 @@ chat across four supported backends.
 - **Runnability verdicts.** `yes / slow / no` with binding reason and est. tok/s — **before** any download.
 - **Interactive TUI.** Rich terminal interface with search, filtering, keyboard navigation, and screen-reader accessible mode. Falls back gracefully to plain text when not in a TTY.
 - **Browser GUI.** A loopback-only local AI workspace — pick a recommended model, bring one online, and chat, all managed by `local-llmup`.
+- **Agents & skills.** Author reusable agents (personas) and skills, stored locally as markdown; bundle skills into an agent and load them per message.
+- **MCP connectors & tools.** Attach Model Context Protocol servers (local stdio or loopback HTTP/SSE) to give the chat real tools, called in an agentic loop.
+- **Inline images & graphs.** Let an agent run code in your workspace and render the result — images and graphs display inline in the chat panel.
 - **4 backends.** Ollama, llama.cpp, MLX (Apple Silicon), and LM Studio — auto-selected or user-chosen.
 - **AI Hardware Score (0–100).** Diagnose your machine's bottleneck in one command.
 - **Context-window sizing.** KV-cache-aware memory estimates with GQA-correct attention geometry.
@@ -201,12 +204,13 @@ local-llmup gui --no-open       # start the server without opening a browser
 ```
 
 <div align="center">
-<img src="assets/gui-out.gif" alt="local-llmup browser workspace demo" width="800" />
+<img src="assets/screenshot-workspace.png" alt="local-llmup browser workspace" width="800" />
 </div>
 
 The **Models** view ranks models that fit your hardware with the same
-`yes / slow / no` verdicts and estimated tok/s as the CLI, and a **Start** button
-brings your chosen model online through the verified `up` lifecycle:
+`yes / slow / no` verdicts and estimated tok/s as the CLI, a per-model **runtime
+picker** for reaching any backend directly, and a **Start** button that brings
+your chosen model online through the verified `up` lifecycle:
 
 <div align="center">
 <img src="assets/screenshot-gui.png" alt="local-llmup browser workspace \u2014 recommended models" width="800" />
@@ -218,6 +222,28 @@ brings your chosen model online through the verified `up` lifecycle:
   active-server state all flow through the same deterministic engine as the CLI.
 - **Pluggable harnesses.** Chat runs against the local backend by default, with
   `claude`, `openai`, and `openai-compatible` harnesses available.
+
+### Agents, skills & tools
+
+Build an **agent** (a persona / system prompt), give it reusable **skills**, and
+attach **tools** via MCP connectors — then let it work. Agents and skills are
+stored locally as markdown with YAML frontmatter (the Claude Code / Codex
+convention); an agent bundles the skills it always loads, and any skill can be
+toggled per message. When a connector's tools are available, chat turns run as a
+short agentic loop, and generated **images and graphs render inline** in the
+panel (served from a validated, loopback-only artifacts endpoint).
+
+<div align="center">
+<img src="assets/equation-solver-graph.gif" alt="An Equation Solver agent solving a quadratic with a code tool and rendering the graph inline" width="800" />
+</div>
+
+Attach **Model Context Protocol** servers under **Connectors** — local `stdio`
+commands or loopback HTTP/SSE only. Enable a connector and its tools become
+available to the model:
+
+<div align="center">
+<img src="assets/connectors.gif" alt="Adding an MCP connector, enabling it, and using its tools in chat" width="800" />
+</div>
 
 ---
 

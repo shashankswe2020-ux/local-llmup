@@ -5,3 +5,6 @@ coverage/
 .DS_Store
 .env
 .env.*
+
+# Local experiment, not part of the package
+whoop-test.mjs

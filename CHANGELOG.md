@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.9.0 - 2026-08-27
+
+**Agentic browser workspace: connectors, agents & skills, tools, and inline graphs.**
+
+### New Features
+
+- **MCP connectors.** Attach Model Context Protocol servers to the workspace —
+  local `stdio` commands or loopback HTTP/SSE only. Add, enable, disable, and
+  remove connectors; each connector's tools become available to the chat, which
+  the model calls in an agentic tool loop.
+- **Agents & skills library.** Author reusable **agents** (persona / system
+  prompts) and **skills** (instruction blocks), stored locally as markdown with
+  YAML frontmatter (the Claude Code / Codex convention). Full create / edit /
+  enable / disable / delete. An agent can bundle the skills it always loads, and
+  any skill can be toggled per message; the selection is composed into a single
+  system prompt server-side.
+- **Inline images & graphs in chat.** The chat panel now renders generated
+  images and graphs inline, served from a validated, loopback-only artifacts
+  endpoint (`GET /api/images/:name`) — basename-only, image-extension allowlist,
+  no traversal.
+- **Backend picker in the workspace.** Recommendation cards expose a per-model
+  runtime selector so every backend (Ollama, llama.cpp, MLX, LM Studio) is
+  reachable directly from the browser, not just the auto-selected default.
+
+### Fixes
+
+- **MLX executable check** now recognizes macOS framework Python
+  (`.../Python.framework/.../Python`), so MLX chat works on Homebrew Python
+  instead of being rejected as an unapproved backend executable.
+- **Local chat harness** captures the live listener process identity, so
+  fail-closed inference works for attached backends (e.g. LM Studio) instead of
+  refusing to run without process/model-path identity.
+- The Runtime pill in the chat header reflects the active backend instead of the
+  dropdown default.
+
+### Catalog
+
+- Added small, fast validation models to the catalog and bootstrap sources
+  (`qwen2.5:0.5b` across Ollama/HF/GGUF and `qwen2.5:0.5b-mlx`).
+
+### Documentation
+
+- Recorded new workspace demos (agents + skills + tools solving and plotting a
+  quadratic with an inline graph, and the MCP connector lifecycle) and refreshed
+  the site and README with the current UI.
+
 ## 0.8.1 - 2026-08-26
 
 **Browser GUI bug fixes.**

@@ -114,6 +114,7 @@ describe("bootstrap catalog generation", () => {
       "llama3.2:1b": [16, 8, 64],
       "llama3.2:3b": [28, 8, 128],
       "qwen2.5:0.5b": [24, 2, 64],
+      "qwen2.5:0.5b-mlx": [24, 2, 64],
       "qwen2.5:1.5b": [28, 2, 128],
       "qwen2.5:3b": [36, 2, 128],
       "qwen2.5:7b": [28, 4, 128],

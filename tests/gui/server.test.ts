@@ -194,6 +194,7 @@ describe("GuiServer", () => {
             backends: ["ollama"],
           },
         ],
+        runtimes: () => ["ollama", "llamacpp", "mlx", "lmstudio"],
         active: () => null,
         up: async () => {
           throw new Error("not used");
@@ -212,12 +213,75 @@ describe("GuiServer", () => {
     expect(body.models[0]?.id).toBe("qwen2.5:1.5b");
   });
 
+  it("lists the available inference runtimes", async () => {
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+      modelManager: {
+        recommended: async () => [],
+        runtimes: () => ["ollama", "llamacpp", "mlx", "lmstudio"],
+        active: () => null,
+        up: async () => {
+          throw new Error("not used");
+        },
+      },
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const response = await fetch(`http://127.0.0.1:${port}/api/runtimes`, {
+      headers: { Host: `127.0.0.1:${port}` },
+    });
+
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { runtimes: string[] };
+    expect(body.runtimes).toContain("ollama");
+    expect(body.runtimes).toContain("llamacpp");
+  });
+
+  it("scopes recommendations to a validated runtime query", async () => {
+    const seen: (string | undefined)[] = [];
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+      modelManager: {
+        recommended: async (options) => {
+          seen.push(options?.runtime);
+          return [];
+        },
+        runtimes: () => ["ollama", "llamacpp", "mlx", "lmstudio"],
+        active: () => null,
+        up: async () => {
+          throw new Error("not used");
+        },
+      },
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const ok = await fetch(`http://127.0.0.1:${port}/api/models/recommended?runtime=llamacpp`, {
+      headers: { Host: `127.0.0.1:${port}` },
+    });
+    expect(ok.status).toBe(200);
+    const okBody = (await ok.json()) as { runtime: string | null };
+    expect(okBody.runtime).toBe("llamacpp");
+    expect(seen).toEqual(["llamacpp"]);
+
+    const bad = await fetch(`http://127.0.0.1:${port}/api/models/recommended?runtime=bogus`, {
+      headers: { Host: `127.0.0.1:${port}` },
+    });
+    expect(bad.status).toBe(400);
+    const badBody = (await bad.json()) as { error: string };
+    expect(badBody.error).toContain("unknown runtime");
+  });
+
   it("reports the active workspace model", async () => {
     const server = new GuiServer({
       rootDir: new URL("../../src/gui/static", import.meta.url),
       registry: undefined,
       modelManager: {
         recommended: async () => [],
+        runtimes: () => ["ollama", "llamacpp", "mlx", "lmstudio"],
         active: () => ({
           modelId: "qwen2.5:1.5b",
           backend: "ollama",
@@ -249,6 +313,7 @@ describe("GuiServer", () => {
       registry: undefined,
       modelManager: {
         recommended: async () => [],
+        runtimes: () => ["ollama", "llamacpp", "mlx", "lmstudio"],
         active: () => null,
         up: async (request) => {
           upCalls.push(request);
@@ -286,6 +351,7 @@ describe("GuiServer", () => {
       registry: undefined,
       modelManager: {
         recommended: async () => [],
+        runtimes: () => ["ollama", "llamacpp", "mlx", "lmstudio"],
         active: () => null,
         up: async () => {
           throw new ValidationError("no model matches \"bogus\"");

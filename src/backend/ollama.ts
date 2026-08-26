@@ -24,6 +24,7 @@ import {
   type BackendAdapter,
   type ChatRequest,
   type ChatResult,
+  type ChatStreamRequest,
   type EmbedRequest,
   type EmbedResult,
   type PullOptions,
@@ -32,6 +33,7 @@ import {
   type ReadinessOptions,
   type ServeHandle,
   type ServeOptions,
+  type StopOptions,
 } from "./adapter.js";
 import { assertSafeModelId } from "./net.js";
 import {
@@ -210,6 +212,16 @@ const defaultFetch: FetchFn = (url, init) => {
 const OllamaChatResponseSchema = z.object({
   message: z.object({
     content: z.string(),
+    tool_calls: z
+      .array(
+        z.object({
+          function: z.object({
+            name: z.string(),
+            arguments: z.record(z.string(), z.unknown()).default({}),
+          }),
+        }),
+      )
+      .optional(),
   }),
 });
 
@@ -217,6 +229,30 @@ const OllamaEmbedResponseSchema = z.object({
   embeddings: z.array(z.array(z.number().finite()).min(1)).min(1),
 });
 const OllamaEmbedInputsSchema = z.array(z.string().min(1)).min(1).max(1_024);
+
+/**
+ * One NDJSON chunk from a streamed `/api/chat` response. Content arrives
+ * incrementally in `message.content`; `tool_calls` (if any) and the terminal
+ * `done: true` flag appear on later chunks.
+ */
+const OllamaChatStreamChunkSchema = z.object({
+  message: z
+    .object({
+      content: z.string().default(""),
+      tool_calls: z
+        .array(
+          z.object({
+            function: z.object({
+              name: z.string(),
+              arguments: z.record(z.string(), z.unknown()).default({}),
+            }),
+          }),
+        )
+        .optional(),
+    })
+    .optional(),
+  done: z.boolean().optional(),
+});
 
 const defaultSleep: SleepFn = (ms, signal) =>
   new Promise<void>((resolve, reject) => {
@@ -365,6 +401,15 @@ function lineConsumer(onLine: (line: string) => void): (chunk: string) => void {
       buffer = buffer.slice(buffer.length - MAX_LINE_BUFFER_BYTES);
     }
   };
+}
+
+/** Parse a JSON line, returning `undefined` on malformed input (lenient NDJSON). */
+function safeParseJson(line: string): unknown {
+  try {
+    return JSON.parse(line);
+  } catch {
+    return undefined;
+  }
 }
 
 function wrapSpawnError(binary: string, error: Error): BackendError {
@@ -1005,12 +1050,14 @@ export class OllamaAdapter implements BackendAdapter {
   }
 
   /**
-   * Stop a daemon. Only processes this adapter spawned (`ownedByUs`) are ever
-   * signalled; an attached (foreign) daemon is left running. A process that has
-   * already exited (`ESRCH`) is treated as a successful, idempotent stop.
+   * Stop a daemon. By default only processes this adapter spawned (`ownedByUs`)
+   * are signalled; pass `allowForeign` to also stop an identity-verified daemon
+   * this process merely attached to. Either way, the endpoint/pid/executable and
+   * process-identity checks below must pass before any signal is sent. A process
+   * that has already exited (`ESRCH`) is treated as a successful, idempotent stop.
    */
-  async stop(handle: ServeHandle): Promise<void> {
-    if (!handle.ownedByUs) return;
+  async stop(handle: ServeHandle, options?: StopOptions): Promise<void> {
+    if (!handle.ownedByUs && options?.allowForeign !== true) return;
     assertLoopbackEndpoint(handle.endpoint);
     // Refuse non-positive pids: `kill(0)`/`kill(-n)` would signal a whole process
     // group rather than the single daemon we own (handles round-trip through the
@@ -1140,39 +1187,8 @@ export class OllamaAdapter implements BackendAdapter {
   }
 
   async chat(request: ChatRequest): Promise<ChatResult> {
-    assertSafeModelId(request.model);
+    const { endpoint, expectedListener, response } = await this.sendChatRequest(request, false);
 
-    const endpoint = assertLoopbackEndpoint(
-      request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, DEFAULT_OLLAMA_PORT),
-    );
-    const expectedListener = await this.captureExpectedInferenceListener(
-      endpoint,
-      request.expectedProcess,
-    );
-    await this.assertTrustedInferenceEndpoint(endpoint, request.signal);
-    const url = `${endpoint}/api/chat`;
-
-    let response: FetchResponseLike;
-    try {
-      response = await this.fetch(url, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          model: request.model,
-          messages: request.messages,
-          stream: false,
-        }),
-        signal: request.signal,
-      });
-    } catch (error) {
-      throw new BackendError(`ollama chat request failed for ${request.model}`, {
-        cause: error instanceof Error ? error : new Error(String(error)),
-      });
-    }
-
-    if (!response.ok) {
-      throw new BackendError(`ollama chat failed for ${request.model} (status ${response.status})`);
-    }
     if (typeof response.json !== "function") {
       throw new BackendError("ollama chat returned a malformed response body");
     }
@@ -1195,7 +1211,152 @@ export class OllamaAdapter implements BackendAdapter {
 
     await this.assertInferenceListenerUnchanged(endpoint, expectedListener);
 
+    const toolCalls = parsed.data.message.tool_calls?.map((call) => ({
+      name: call.function.name,
+      arguments: call.function.arguments,
+    }));
+    if (toolCalls && toolCalls.length > 0) {
+      return { content: parsed.data.message.content, toolCalls };
+    }
     return { content: parsed.data.message.content };
+  }
+
+  async chatStream(request: ChatStreamRequest): Promise<ChatResult> {
+    const { endpoint, expectedListener, response } = await this.sendChatRequest(request, true);
+
+    const body = response.body;
+    if (body === undefined || body === null) {
+      throw new BackendError("ollama chat stream returned no response body");
+    }
+
+    let content = "";
+    const toolCalls: { name: string; arguments: Record<string, unknown> }[] = [];
+    const consume = lineConsumer((line) => {
+      const parsed = OllamaChatStreamChunkSchema.safeParse(safeParseJson(line));
+      if (!parsed.success) {
+        return;
+      }
+      const message = parsed.data.message;
+      if (message === undefined) {
+        return;
+      }
+      if (message.content.length > 0) {
+        content += message.content;
+        request.onDelta(message.content);
+      }
+      if (message.tool_calls) {
+        for (const call of message.tool_calls) {
+          toolCalls.push({ name: call.function.name, arguments: call.function.arguments });
+        }
+      }
+    });
+
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) {
+          break;
+        }
+        if (value !== undefined) {
+          consume(decoder.decode(value, { stream: true }));
+        }
+      }
+    } catch (error) {
+      throw new BackendError(`ollama chat stream failed for ${request.model}`, {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    } finally {
+      reader.releaseLock();
+    }
+
+    await this.assertInferenceListenerUnchanged(endpoint, expectedListener);
+
+    if (toolCalls.length > 0) {
+      return { content, toolCalls };
+    }
+    return { content };
+  }
+
+  /**
+   * Shared setup for {@link chat} and {@link chatStream}: validate the endpoint,
+   * capture the expected listener identity, assert trust, and POST the request.
+   * Returns the live response plus the captured listener so the caller can
+   * revalidate the socket owner after consuming the body.
+   */
+  private async sendChatRequest(
+    request: ChatRequest,
+    stream: boolean,
+  ): Promise<{
+    endpoint: string;
+    expectedListener: Awaited<ReturnType<OllamaAdapter["captureExpectedInferenceListener"]>>;
+    response: FetchResponseLike;
+  }> {
+    assertSafeModelId(request.model);
+
+    const endpoint = assertLoopbackEndpoint(
+      request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, DEFAULT_OLLAMA_PORT),
+    );
+    const expectedListener = await this.captureExpectedInferenceListener(
+      endpoint,
+      request.expectedProcess,
+    );
+    await this.assertTrustedInferenceEndpoint(endpoint, request.signal);
+    const url = `${endpoint}/api/chat`;
+
+    const messages = request.messages.map((message) => {
+      const serialized: Record<string, unknown> = {
+        role: message.role,
+        content: message.content,
+      };
+      if (message.toolCalls && message.toolCalls.length > 0) {
+        serialized.tool_calls = message.toolCalls.map((call) => ({
+          function: { name: call.name, arguments: call.arguments },
+        }));
+      }
+      if (message.toolName !== undefined) {
+        serialized.tool_name = message.toolName;
+      }
+      return serialized;
+    });
+
+    const tools =
+      request.tools && request.tools.length > 0
+        ? request.tools.map((tool) => ({
+            type: "function",
+            function: {
+              name: tool.name,
+              description: tool.description,
+              parameters: tool.parameters,
+            },
+          }))
+        : undefined;
+
+    let response: FetchResponseLike;
+    try {
+      response = await this.fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          model: request.model,
+          messages,
+          stream,
+          ...(tools !== undefined ? { tools } : {}),
+        }),
+        signal: request.signal,
+      });
+    } catch (error) {
+      throw new BackendError(`ollama chat request failed for ${request.model}`, {
+        cause: error instanceof Error ? error : new Error(String(error)),
+      });
+    }
+
+    if (!response.ok) {
+      throw new BackendError(`ollama chat failed for ${request.model} (status ${response.status})`);
+    }
+
+    return { endpoint, expectedListener, response };
   }
 
   async embed(request: EmbedRequest): Promise<EmbedResult> {

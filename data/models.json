@@ -11,7 +11,11 @@
       "license": "modified-mit",
       "openWeight": true,
       "contextLength": 262144,
-      "capabilities": ["chat", "reasoning", "tools"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools"
+      ],
       "releaseDate": "2025-11-06",
       "source": {
         "hf": "moonshotai/Kimi-K2-Thinking"
@@ -35,7 +39,10 @@
       "license": "modified-mit",
       "openWeight": true,
       "contextLength": 262144,
-      "capabilities": ["chat", "reasoning"],
+      "capabilities": [
+        "chat",
+        "reasoning"
+      ],
       "releaseDate": "2025-10-30",
       "source": {
         "hf": "moonshotai/Kimi-Linear-48B-A3B-Instruct"
@@ -59,7 +66,10 @@
       "license": "modified-mit",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code"],
+      "capabilities": [
+        "chat",
+        "code"
+      ],
       "releaseDate": "2025-07-11",
       "source": {
         "hf": "moonshotai/Kimi-K2-Base"
@@ -83,7 +93,12 @@
       "license": "modified-mit",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "tools", "code"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
       "releaseDate": "2025-07-11",
       "source": {
         "ollama": "kimi-k2:instruct",
@@ -107,7 +122,11 @@
       "license": "modified-mit",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["code", "chat", "reasoning"],
+      "capabilities": [
+        "code",
+        "chat",
+        "reasoning"
+      ],
       "releaseDate": "2025-06-16",
       "source": {
         "hf": "moonshotai/Kimi-Dev-72B"
@@ -130,7 +149,12 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "tools", "code"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
       "releaseDate": "2025-04-28",
       "source": {
         "ollama": "qwen3:14b",
@@ -161,7 +185,12 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "tools", "code"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
       "releaseDate": "2025-04-28",
       "source": {
         "ollama": "qwen3:235b-a22b",
@@ -186,7 +215,12 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "tools", "code"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
       "releaseDate": "2025-04-28",
       "source": {
         "ollama": "qwen3:30b-a3b",
@@ -216,7 +250,12 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "tools", "code"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
       "releaseDate": "2025-04-28",
       "source": {
         "ollama": "qwen3:32b",
@@ -246,7 +285,12 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "tools", "code"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
       "releaseDate": "2025-04-28",
       "source": {
         "ollama": "qwen3:8b",
@@ -270,7 +314,10 @@
       "license": "mit",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "tools"],
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
       "releaseDate": "2025-04-14",
       "source": {
         "ollama": "glm4:9b",
@@ -295,7 +342,10 @@
       "license": "modified-mit",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "vision"],
+      "capabilities": [
+        "chat",
+        "vision"
+      ],
       "releaseDate": "2025-04-10",
       "source": {
         "hf": "moonshotai/Kimi-VL-A3B-Instruct"
@@ -318,7 +368,11 @@
       "license": "gemma",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "vision", "code"],
+      "capabilities": [
+        "chat",
+        "vision",
+        "code"
+      ],
       "releaseDate": "2025-03-12",
       "source": {
         "ollama": "gemma3:12b",
@@ -342,7 +396,12 @@
       "license": "gemma",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "vision", "code", "reasoning"],
+      "capabilities": [
+        "chat",
+        "vision",
+        "code",
+        "reasoning"
+      ],
       "releaseDate": "2025-03-12",
       "source": {
         "ollama": "gemma3:27b",
@@ -366,7 +425,10 @@
       "license": "gemma",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "vision"],
+      "capabilities": [
+        "chat",
+        "vision"
+      ],
       "releaseDate": "2025-03-12",
       "source": {
         "ollama": "gemma3:4b",
@@ -390,7 +452,11 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 32768,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2025-01-30",
       "source": {
         "ollama": "mistral-small:24b",
@@ -415,7 +481,11 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "code"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "code"
+      ],
       "releaseDate": "2025-01-20",
       "source": {
         "ollama": "deepseek-r1:14b",
@@ -439,7 +509,11 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "code"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "code"
+      ],
       "releaseDate": "2025-01-20",
       "source": {
         "ollama": "deepseek-r1:32b",
@@ -464,7 +538,11 @@
       "license": "mit",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["reasoning", "chat", "code"],
+      "capabilities": [
+        "reasoning",
+        "chat",
+        "code"
+      ],
       "releaseDate": "2025-01-20",
       "source": {
         "ollama": "deepseek-r1:671b",
@@ -488,7 +566,11 @@
       "license": "llama-3.3-community",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "code"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "code"
+      ],
       "releaseDate": "2025-01-20",
       "source": {
         "ollama": "deepseek-r1:70b",
@@ -512,7 +594,11 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "code"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "code"
+      ],
       "releaseDate": "2025-01-20",
       "source": {
         "ollama": "deepseek-r1:7b",
@@ -536,7 +622,11 @@
       "license": "llama-3.1-community",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "reasoning", "code"],
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "code"
+      ],
       "releaseDate": "2025-01-20",
       "source": {
         "ollama": "deepseek-r1:8b",
@@ -561,7 +651,11 @@
       "license": "deepseek",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2024-12-26",
       "source": {
         "ollama": "deepseek-v3",
@@ -585,7 +679,10 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "tools"],
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
       "releaseDate": "2024-12-18",
       "source": {
         "ollama": "granite3.1-dense:2b",
@@ -609,7 +706,11 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2024-12-18",
       "source": {
         "ollama": "granite3.1-dense:8b",
@@ -633,7 +734,11 @@
       "license": "mit",
       "openWeight": true,
       "contextLength": 16384,
-      "capabilities": ["chat", "code", "reasoning"],
+      "capabilities": [
+        "chat",
+        "code",
+        "reasoning"
+      ],
       "releaseDate": "2024-12-12",
       "source": {
         "ollama": "phi4:14b",
@@ -657,7 +762,12 @@
       "license": "llama-3.3-community",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code", "tools", "reasoning"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools",
+        "reasoning"
+      ],
       "releaseDate": "2024-12-06",
       "source": {
         "ollama": "llama3.3:70b",
@@ -682,7 +792,10 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 4096,
-      "capabilities": ["chat", "code"],
+      "capabilities": [
+        "chat",
+        "code"
+      ],
       "releaseDate": "2024-11-26",
       "source": {
         "ollama": "olmo2:13b",
@@ -706,7 +819,9 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 4096,
-      "capabilities": ["chat"],
+      "capabilities": [
+        "chat"
+      ],
       "releaseDate": "2024-11-26",
       "source": {
         "ollama": "olmo2:7b",
@@ -730,7 +845,11 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["code", "chat", "tools"],
+      "capabilities": [
+        "code",
+        "chat",
+        "tools"
+      ],
       "releaseDate": "2024-11-12",
       "source": {
         "ollama": "qwen2.5-coder:32b",
@@ -755,7 +874,11 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["code", "chat", "tools"],
+      "capabilities": [
+        "code",
+        "chat",
+        "tools"
+      ],
       "releaseDate": "2024-11-12",
       "source": {
         "ollama": "qwen2.5-coder:7b",
@@ -780,7 +903,10 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 8192,
-      "capabilities": ["chat", "tools"],
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
       "releaseDate": "2024-11-01",
       "source": {
         "ollama": "smollm2:1.7b",
@@ -804,7 +930,9 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 8192,
-      "capabilities": ["chat"],
+      "capabilities": [
+        "chat"
+      ],
       "releaseDate": "2024-11-01",
       "source": {
         "ollama": "smollm2:135m",
@@ -828,7 +956,9 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 8192,
-      "capabilities": ["chat"],
+      "capabilities": [
+        "chat"
+      ],
       "releaseDate": "2024-11-01",
       "source": {
         "ollama": "smollm2:360m",
@@ -853,7 +983,10 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 4096,
-      "capabilities": ["chat", "tools"],
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
       "releaseDate": "2024-10-21",
       "source": {
         "ollama": "granite3-moe:3b",
@@ -877,7 +1010,10 @@
       "license": "llama-3.2-community",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "tools"],
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
       "releaseDate": "2024-09-25",
       "source": {
         "ollama": "llama3.2:1b",
@@ -902,7 +1038,10 @@
       "license": "llama-3.2-community",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "tools"],
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
       "releaseDate": "2024-09-25",
       "source": {
         "ollama": "llama3.2:3b",
@@ -927,11 +1066,19 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 32768,
-      "capabilities": ["chat"],
+      "capabilities": [
+        "chat"
+      ],
       "releaseDate": "2024-09-19",
       "source": {
         "ollama": "qwen2.5:0.5b",
-        "hf": "Qwen/Qwen2.5-0.5B-Instruct"
+        "hf": "Qwen/Qwen2.5-0.5B-Instruct",
+        "gguf": {
+          "repo": "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+          "revision": "9217f5db79a29953eb74d5343926648285ec7e67",
+          "file": "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+          "sha256": "74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db"
+        }
       },
       "quantizations": [
         {
@@ -945,6 +1092,83 @@
       "benchmarkProxy": 0.18
     },
     {
+      "id": "qwen2.5:0.5b-mlx",
+      "family": "qwen2.5",
+      "params": "0.5B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 32768,
+      "capabilities": [
+        "chat"
+      ],
+      "releaseDate": "2024-09-19",
+      "source": {
+        "hf": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+        "mlx": {
+          "repo": "mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+          "revision": "a5339a4131f135d0fdc6a5c8b5bbed2753bbe0f3",
+          "files": [
+            {
+              "file": "config.json",
+              "sha256": "b045e57ea90b8f1b35f89f954b176a5c1faa02bd0af2c89bcec191239d66cef4",
+              "bytes": 783
+            },
+            {
+              "file": "model.safetensors",
+              "sha256": "ddffab9cbc7bf6dde941c6724841eeca8981fcfa81ca20ff8efff1396326d153",
+              "bytes": 278064920
+            },
+            {
+              "file": "model.safetensors.index.json",
+              "sha256": "54001cb4c11197119c206dde28e7be08e5872aab6c6d271aed339ec77e84f870",
+              "bytes": 44209
+            },
+            {
+              "file": "tokenizer.json",
+              "sha256": "a8506e7111b80c6d8635951a02eab0f4e1a8e4e5772da83846579e97b16f61bf",
+              "bytes": 7031673
+            },
+            {
+              "file": "tokenizer_config.json",
+              "sha256": "f7c61e32b7a17d19bf8e7037dcb74079a833e53ea9801f24008cac68458f03b7",
+              "bytes": 7308
+            },
+            {
+              "file": "special_tokens_map.json",
+              "sha256": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
+              "bytes": 613
+            },
+            {
+              "file": "vocab.json",
+              "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
+              "bytes": 2776833
+            },
+            {
+              "file": "merges.txt",
+              "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
+              "bytes": 1671853
+            },
+            {
+              "file": "added_tokens.json",
+              "sha256": "58b54bbe36fc752f79a24a271ef66a0a0830054b4dfad94bde757d851968060b",
+              "bytes": 605
+            }
+          ]
+        }
+      },
+      "quantizations": [
+        {
+          "name": "4bit",
+          "diskBytes": 289598797,
+          "minRamBytes": 333038617,
+          "minVramBytes": 333038617
+        }
+      ],
+      "kvBytesPerToken": 12288,
+      "benchmarkProxy": 0.18
+    },
+    {
       "id": "qwen2.5:1.5b",
       "family": "qwen2.5",
       "params": "1.5B",
@@ -952,7 +1176,10 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 32768,
-      "capabilities": ["chat", "tools"],
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
       "releaseDate": "2024-09-19",
       "source": {
         "ollama": "qwen2.5:1.5b",
@@ -977,7 +1204,11 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2024-09-19",
       "source": {
         "ollama": "qwen2.5:14b",
@@ -1002,7 +1233,11 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2024-09-19",
       "source": {
         "ollama": "qwen2.5:32b",
@@ -1027,7 +1262,10 @@
       "license": "qwen",
       "openWeight": true,
       "contextLength": 32768,
-      "capabilities": ["chat", "tools"],
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
       "releaseDate": "2024-09-19",
       "source": {
         "ollama": "qwen2.5:3b",
@@ -1052,7 +1290,11 @@
       "license": "qwen",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2024-09-19",
       "source": {
         "ollama": "qwen2.5:72b",
@@ -1077,7 +1319,11 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2024-09-19",
       "source": {
         "ollama": "qwen2.5:7b",
@@ -1102,7 +1348,11 @@
       "license": "mit",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2024-08-20",
       "source": {
         "ollama": "phi3.5:3.8b",
@@ -1126,7 +1376,9 @@
       "license": "gemma",
       "openWeight": true,
       "contextLength": 8192,
-      "capabilities": ["chat"],
+      "capabilities": [
+        "chat"
+      ],
       "releaseDate": "2024-07-31",
       "source": {
         "ollama": "gemma2:2b",
@@ -1150,7 +1402,11 @@
       "license": "llama-3.1-community",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2024-07-23",
       "source": {
         "ollama": "llama3.1:70b",
@@ -1175,7 +1431,11 @@
       "license": "llama-3.1-community",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2024-07-23",
       "source": {
         "ollama": "llama3.1:8b",
@@ -1200,7 +1460,11 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2024-07-18",
       "source": {
         "ollama": "mistral-nemo:12b",
@@ -1225,7 +1489,10 @@
       "license": "gemma",
       "openWeight": true,
       "contextLength": 8192,
-      "capabilities": ["chat", "code"],
+      "capabilities": [
+        "chat",
+        "code"
+      ],
       "releaseDate": "2024-06-27",
       "source": {
         "ollama": "gemma2:27b",
@@ -1249,7 +1516,10 @@
       "license": "gemma",
       "openWeight": true,
       "contextLength": 8192,
-      "capabilities": ["chat", "code"],
+      "capabilities": [
+        "chat",
+        "code"
+      ],
       "releaseDate": "2024-06-27",
       "source": {
         "ollama": "gemma2:9b",
@@ -1273,7 +1543,10 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 4096,
-      "capabilities": ["chat", "code"],
+      "capabilities": [
+        "chat",
+        "code"
+      ],
       "releaseDate": "2024-05-12",
       "source": {
         "ollama": "yi:34b",
@@ -1297,7 +1570,9 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 4096,
-      "capabilities": ["chat"],
+      "capabilities": [
+        "chat"
+      ],
       "releaseDate": "2024-05-12",
       "source": {
         "ollama": "yi:6b",
@@ -1321,7 +1596,10 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 4096,
-      "capabilities": ["chat", "code"],
+      "capabilities": [
+        "chat",
+        "code"
+      ],
       "releaseDate": "2024-05-12",
       "source": {
         "ollama": "yi:9b",
@@ -1345,7 +1623,10 @@
       "license": "mit",
       "openWeight": true,
       "contextLength": 131072,
-      "capabilities": ["chat", "code"],
+      "capabilities": [
+        "chat",
+        "code"
+      ],
       "releaseDate": "2024-04-23",
       "source": {
         "ollama": "phi3:mini",
@@ -1370,7 +1651,11 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 65536,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2024-04-17",
       "source": {
         "ollama": "mixtral:8x22b",
@@ -1395,7 +1680,11 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 32768,
-      "capabilities": ["chat", "code", "tools"],
+      "capabilities": [
+        "chat",
+        "code",
+        "tools"
+      ],
       "releaseDate": "2023-12-11",
       "source": {
         "ollama": "mixtral:8x7b",
@@ -1419,7 +1708,10 @@
       "license": "apache-2.0",
       "openWeight": true,
       "contextLength": 32768,
-      "capabilities": ["chat", "code"],
+      "capabilities": [
+        "chat",
+        "code"
+      ],
       "releaseDate": "2023-09-27",
       "source": {
         "ollama": "mistral:7b",

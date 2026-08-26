@@ -154,4 +154,193 @@ describe("OllamaAdapter.chat", () => {
     ).rejects.toBeInstanceOf(ValidationError);
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it("advertises tools and serializes tool_calls and tool-role messages", async () => {
+    const { fetch, adapter } = trustedAdapter(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ message: { content: "final" } }),
+      }),
+    );
+
+    await adapter.chat({
+      model: "llama3.1:8b",
+      messages: [
+        { role: "user", content: "recovery?" },
+        {
+          role: "assistant",
+          content: "",
+          toolCalls: [{ name: "get_recovery", arguments: { days: 7 } }],
+        },
+        { role: "tool", content: "recovery=55", toolName: "get_recovery" },
+      ],
+      tools: [
+        {
+          name: "get_recovery",
+          description: "Get recovery data",
+          parameters: { type: "object", properties: {} },
+        },
+      ],
+    });
+
+    const chatCall = fetch.mock.calls.find(([url]) => url.endsWith("/api/chat"));
+    const body = JSON.parse(chatCall?.[1]?.body as string) as Record<string, unknown>;
+    expect(body.tools).toEqual([
+      {
+        type: "function",
+        function: {
+          name: "get_recovery",
+          description: "Get recovery data",
+          parameters: { type: "object", properties: {} },
+        },
+      },
+    ]);
+    expect(body.messages).toEqual([
+      { role: "user", content: "recovery?" },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [{ function: { name: "get_recovery", arguments: { days: 7 } } }],
+      },
+      { role: "tool", content: "recovery=55", tool_name: "get_recovery" },
+    ]);
+  });
+
+  it("returns tool calls when the model requests them", async () => {
+    const { adapter } = trustedAdapter(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            message: {
+              content: "",
+              tool_calls: [{ function: { name: "get_recovery", arguments: { days: 7 } } }],
+            },
+          }),
+      }),
+    );
+
+    const result = await adapter.chat({
+      model: "llama3.1:8b",
+      messages: [{ role: "user", content: "recovery?" }],
+      tools: [
+        {
+          name: "get_recovery",
+          description: "Get recovery data",
+          parameters: { type: "object", properties: {} },
+        },
+      ],
+    });
+
+    expect(result).toEqual({
+      content: "",
+      toolCalls: [{ name: "get_recovery", arguments: { days: 7 } }],
+    });
+  });
+
+  it("omits the tools field when no tools are provided", async () => {
+    const { fetch, adapter } = trustedAdapter(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ message: { content: "ok" } }),
+      }),
+    );
+
+    await adapter.chat({ model: "llama3.1:8b", messages: [{ role: "user", content: "hi" }] });
+
+    const chatCall = fetch.mock.calls.find(([url]) => url.endsWith("/api/chat"));
+    const body = JSON.parse(chatCall?.[1]?.body as string) as Record<string, unknown>;
+    expect(body).not.toHaveProperty("tools");
+  });
+});
+
+/** Build a response whose body streams the given NDJSON lines. */
+function streamingResponse(lines: readonly string[]): FetchResponseLike {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const line of lines) {
+        controller.enqueue(encoder.encode(`${line}\n`));
+      }
+      controller.close();
+    },
+  });
+  return { ok: true, status: 200, body };
+}
+
+describe("OllamaAdapter.chatStream", () => {
+  it("streams content fragments in order and returns the full result", async () => {
+    const { fetch, adapter } = trustedAdapter(() =>
+      Promise.resolve(
+        streamingResponse([
+          JSON.stringify({ message: { content: "Hello" }, done: false }),
+          JSON.stringify({ message: { content: ", " }, done: false }),
+          JSON.stringify({ message: { content: "world" }, done: false }),
+          JSON.stringify({ message: { content: "" }, done: true }),
+        ]),
+      ),
+    );
+
+    const chunks: string[] = [];
+    const result = await adapter.chatStream({
+      model: "llama3.1:8b",
+      messages: [{ role: "user", content: "hi" }],
+      onDelta: (chunk) => chunks.push(chunk),
+    });
+
+    expect(chunks).toEqual(["Hello", ", ", "world"]);
+    expect(result).toEqual({ content: "Hello, world" });
+
+    const chatCall = fetch.mock.calls.find(([url]) => url.endsWith("/api/chat"));
+    const body = JSON.parse(chatCall?.[1]?.body as string) as { stream: boolean };
+    expect(body.stream).toBe(true);
+  });
+
+  it("collects tool calls emitted mid-stream", async () => {
+    const { adapter } = trustedAdapter(() =>
+      Promise.resolve(
+        streamingResponse([
+          JSON.stringify({
+            message: {
+              content: "",
+              tool_calls: [{ function: { name: "get_recovery", arguments: { days: 7 } } }],
+            },
+            done: false,
+          }),
+          JSON.stringify({ message: { content: "" }, done: true }),
+        ]),
+      ),
+    );
+
+    const chunks: string[] = [];
+    const result = await adapter.chatStream({
+      model: "llama3.1:8b",
+      messages: [{ role: "user", content: "recovery?" }],
+      tools: [
+        { name: "get_recovery", description: "Get recovery data", parameters: { type: "object" } },
+      ],
+      onDelta: (chunk) => chunks.push(chunk),
+    });
+
+    expect(chunks).toEqual([]);
+    expect(result).toEqual({
+      content: "",
+      toolCalls: [{ name: "get_recovery", arguments: { days: 7 } }],
+    });
+  });
+
+  it("throws BackendError when the stream response has no body", async () => {
+    const { adapter } = trustedAdapter(() => Promise.resolve({ ok: true, status: 200 }));
+
+    await expect(
+      adapter.chatStream({
+        model: "llama3.1:8b",
+        messages: [{ role: "user", content: "hi" }],
+        onDelta: () => {},
+      }),
+    ).rejects.toBeInstanceOf(BackendError);
+  });
 });

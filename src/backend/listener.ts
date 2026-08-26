@@ -139,6 +139,28 @@ export function matchesExpectedExecutable(identity: ListenerIdentity, binary: st
   );
 }
 
+/**
+ * Recognize a CPython interpreter across the interpreter names and layouts seen
+ * on real machines. A canonical `python3` match is preferred, but macOS
+ * framework builds run the process as `.../Python.framework/.../MacOS/Python`
+ * (comm name `Python`) — a path that never equals the realpath of a `python3`
+ * symlink on `PATH`. Accepting `python`-family basenames, the framework path,
+ * and the reported comm name keeps the mlx executable check honest without
+ * rejecting the interpreter that legitimately hosts the server.
+ */
+export function isPythonInterpreter(identity: ListenerIdentity): boolean {
+  if (
+    matchesExpectedExecutable(identity, "python3") ||
+    matchesExpectedExecutable(identity, "python")
+  ) {
+    return true;
+  }
+  const isPythonName = (name: string): boolean => /^python[0-9.]*$/i.test(name);
+  if (isPythonName(basename(identity.executable))) return true;
+  if (isPythonName(identity.process)) return true;
+  return /\/Python\.framework\//.test(identity.executable);
+}
+
 export function sameListenerProcess(a: ListenerIdentity, b: ListenerIdentity): boolean {
   return a.pid === b.pid && a.executable === b.executable && a.started === b.started;
 }

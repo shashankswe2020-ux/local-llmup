@@ -4,6 +4,7 @@ import { select } from "../backend/select.js";
 import { loadConfig } from "../config.js";
 import { ValidationError } from "../errors.js";
 import { readState } from "../state/state.js";
+import { captureLiveProcessIdentity } from "../tui/snapshots.js";
 import { createClaudeHarness } from "./claude.js";
 import { createLocalHarness } from "./local.js";
 import { createOpenAICompatibleHarness } from "./openai-compatible.js";
@@ -70,6 +71,7 @@ export function createDefaultRegistry(): HarnessRegistry {
       readState,
       registry: createDefaultBackendRegistry(),
       select,
+      captureLiveProcessIdentity,
     }),
     createClaudeHarness(),
     createOpenAIHarness(),

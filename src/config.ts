@@ -26,6 +26,14 @@ export interface Config {
   readonly memoryDir: string;
   /** Owner-only staging directory (same filesystem as `homeDir`) for atomic writes. */
   readonly stagingDir: string;
+  /** Persisted MCP connector definitions (`~/.local-llmup/connectors.json`). */
+  readonly connectorsFile: string;
+  /** Directory of agent (persona/system-prompt) markdown files (`~/.local-llmup/agents`). */
+  readonly agentsDir: string;
+  /** Directory of skill packages, each a `SKILL.md` (`~/.local-llmup/skills`). */
+  readonly skillsDir: string;
+  /** Directory of generated chat artifacts (images/graphs) servable to the GUI. */
+  readonly artifactsDir: string;
 }
 
 /**
@@ -42,6 +50,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     lockFile: join(homeDir, "lock"),
     memoryDir: join(homeDir, "memory"),
     stagingDir: join(homeDir, ".staging"),
+    connectorsFile: join(homeDir, "connectors.json"),
+    agentsDir: join(homeDir, "agents"),
+    skillsDir: join(homeDir, "skills"),
+    artifactsDir: join(homeDir, "artifacts"),
   });
 }
 
