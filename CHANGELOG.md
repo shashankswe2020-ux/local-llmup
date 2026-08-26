@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.9.1 - 2026-08-27
+
+**Desktop app icon, one-click installers, and a green release pipeline.**
+
+### New Features
+
+- **Desktop app icon.** The Electron app and site now use the brand silver
+  diamond mark (matching the GUI rail), wired into the window, the macOS Dock,
+  and electron-builder for all platforms.
+- **Direct desktop downloads.** The site's Desktop section links straight to the
+  packaged installers (macOS `.dmg`, Windows `.exe`, Linux `.AppImage`).
+- **Release CI builds installers.** The release workflow now builds and publishes
+  the desktop installers for macOS, Windows, and Linux on every tagged release.
+
+### Fixes
+
+- Make the release workflow pass reliably: build before test so dist-dependent
+  tests have `dist/bin.js`, poll for a stable rendered frame in TUI tests to end
+  first-paint races on slower CI runners, and refresh the noninteractive goldens.
+
 ## 0.9.0 - 2026-08-27
 
 **Agentic browser workspace: connectors, agents & skills, tools, and inline graphs.**

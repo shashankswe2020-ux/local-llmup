@@ -12,7 +12,7 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { assertLoopbackMcpUrl, type McpConnector } from "./schema.js";
 
 /** Our own client identity announced to MCP servers during the handshake. */
-const CLIENT_INFO = { name: "local-llmup", version: "0.9.0" } as const;
+const CLIENT_INFO = { name: "local-llmup", version: "0.9.1" } as const;
 
 /** A discovered tool exposed by a connected MCP server. */
 export interface McpToolInfo {
