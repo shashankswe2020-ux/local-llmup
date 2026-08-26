@@ -36,6 +36,13 @@
       "output": "release",
       "buildResources": "build"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "shashankswe2020-ux",
+        "repo": "local-llmup"
+      }
+    ],
     "files": [
       "dist/**/*",
       "package.json"

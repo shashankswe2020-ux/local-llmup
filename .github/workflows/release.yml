@@ -100,3 +100,56 @@ jobs:
             ${{ steps.pack.outputs.package_file }}
             tui-production-sbom.json
           fail_on_unmatched_files: true
+
+  desktop:
+    name: Desktop installer (${{ matrix.os }})
+    needs: release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Build every platform even if one fails, so partial releases still ship.
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            flag: "--mac"
+          - os: windows-latest
+            flag: "--win"
+          - os: ubuntu-latest
+            flag: "--linux"
+    defaults:
+      run:
+        # Git Bash on the Windows runner lets the Unix-y npm build scripts run.
+        shell: bash
+    env:
+      # Make npm run package scripts through bash on Windows too.
+      npm_config_script_shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/desktop/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install desktop dependencies
+        working-directory: apps/desktop
+        run: npm ci
+
+      - name: Build and publish installer
+        working-directory: apps/desktop
+        # `npm run build` rebuilds the CLI + main; electron-builder uploads the
+        # installer to the release whose tag matches the desktop package version.
+        run: npm run build && npx --no-install electron-builder ${{ matrix.flag }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
