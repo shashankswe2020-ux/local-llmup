@@ -265,30 +265,52 @@ h1 em {
   font-family: var(--mono); font-size: .74rem; font-weight: 700;
   letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3);
 }
-.desktop-downloads { display: flex; flex-direction: column; gap: 1rem; }
-.dl-btn {
-  display: flex; align-items: baseline; gap: .8rem; flex-wrap: wrap;
-  border: var(--border-w) solid var(--ink); background: var(--paper);
-  box-shadow: var(--shadow-sm); padding: .95rem 1.2rem;
-  color: var(--ink); text-decoration: none;
-  transition: transform .08s ease, box-shadow .08s ease;
+.desktop-downloads { display: flex; flex-direction: column; gap: 1.1rem; }
+.installer { display: flex; flex-direction: column; gap: 1.1rem; }
+.installer-bar {
+  position: relative; display: inline-flex; align-self: flex-start;
+  border: var(--border-w) solid var(--ink); box-shadow: var(--shadow);
+  background: var(--ink);
 }
-.dl-btn:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow); }
-.dl-btn:active { transform: translate(0, 0); box-shadow: var(--shadow-sm); }
-.dl-os {
-  font-weight: 800; font-size: 1rem; letter-spacing: -.01em;
-  text-transform: uppercase; min-width: 5.5rem;
+.installer-main {
+  display: flex; align-items: center; gap: .85rem;
+  padding: .9rem 1.3rem; color: var(--paper); text-decoration: none;
+  transition: background .1s ease;
 }
-.dl-file { font-family: var(--mono); font-size: .82rem; color: var(--ink-2); }
-.dl-file code { font-size: .82rem; }
-.dl-tag {
-  margin-left: auto; font-family: var(--mono); font-size: .72rem; font-weight: 700;
-  letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3);
-  border: 1.5px solid var(--ink); padding: .18rem .5rem; white-space: nowrap;
-  align-self: center;
+.installer-main:hover { background: #211d15; }
+.os-ic { display: inline-grid; place-items: center; width: 26px; height: 26px; flex: none; }
+.os-ic svg { width: 22px; height: 22px; }
+.installer-main-text { display: flex; flex-direction: column; line-height: 1.15; }
+.installer-main-title {
+  font-weight: 800; font-size: 1rem; letter-spacing: -.01em; text-transform: uppercase;
 }
-.dl-tag.dl-ready { background: var(--terracotta); color: #fff; border-color: var(--ink); }
-.dl-note { font-size: .88rem; color: var(--ink-2); line-height: 1.6; margin-top: .4rem; }
+.installer-main-sub { font-family: var(--mono); font-size: .74rem; color: var(--ink-3); margin-top: .12rem; }
+.installer-toggle {
+  display: grid; place-items: center; width: 54px;
+  border: 0; border-left: var(--border-w) solid var(--paper);
+  background: var(--terracotta); color: #fff; cursor: pointer;
+  transition: background .1s ease;
+}
+.installer-toggle:hover { background: var(--terracotta-d); }
+.installer-toggle .caret { width: 20px; height: 20px; transition: transform .15s ease; }
+.installer-toggle[aria-expanded="true"] .caret { transform: rotate(180deg); }
+.installer-menu {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 20;
+  min-width: 320px; background: var(--paper);
+  border: var(--border-w) solid var(--ink); box-shadow: var(--shadow);
+}
+.installer-item {
+  display: flex; align-items: center; gap: .9rem; padding: .8rem 1rem;
+  color: var(--ink); text-decoration: none; border-bottom: 1.5px solid var(--ink);
+}
+.installer-item:last-child { border-bottom: 0; }
+.installer-item:hover { background: var(--paper-2); }
+.installer-item-text { display: flex; flex-direction: column; line-height: 1.2; }
+.installer-item-text b { font-size: .9rem; text-transform: uppercase; letter-spacing: -.01em; }
+.installer-item-text span { font-family: var(--mono); font-size: .76rem; color: var(--ink-2); margin-top: .1rem; }
+.installer-item-text code { font-size: .76rem; }
+.dl-note { font-size: .88rem; color: var(--ink-2); line-height: 1.6; margin-top: .2rem; max-width: 62ch; }
+.dl-note a { color: var(--terracotta-d); }
 .dl-code {
   border: var(--border-w) solid var(--ink); background: var(--ink);
   box-shadow: var(--shadow-sm); padding: 1rem 1.2rem; overflow-x: auto; margin: 0;
@@ -298,6 +320,12 @@ h1 em {
   color: var(--paper); background: none; border: 0; padding: 0; white-space: pre;
 }
 .dl-cmt { color: var(--ink-3); }
+.agents-note { max-width: 62ch; margin: 2.6rem auto 0; text-align: center; }
+.agents-note h3 {
+  font-size: 1.35rem; font-weight: 800; letter-spacing: -.02em;
+  text-transform: uppercase; color: var(--ink); margin-bottom: .8rem;
+}
+.agents-note p { font-size: .95rem; color: var(--ink-2); line-height: 1.65; margin-bottom: 1.2rem; }
 @media (max-width: 720px) {
   .desktop-layout { grid-template-columns: 1fr; }
 }
