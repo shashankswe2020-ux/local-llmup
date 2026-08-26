@@ -47,18 +47,10 @@ function hasRenderedFrame(chunks: readonly string[]): boolean {
 
 async function settle(): Promise<void> {
   const start = Date.now();
-  let previous = activeChunks.join("");
-  let lastChange = Date.now();
-  while (Date.now() - start < 2000) {
+  while (Date.now() - start < 1500 && !hasRenderedFrame(activeChunks)) {
     await new Promise<void>((resolve) => setTimeout(resolve, 10));
-    const current = activeChunks.join("");
-    if (current !== previous) {
-      previous = current;
-      lastChange = Date.now();
-    } else if (hasRenderedFrame(activeChunks) && Date.now() - lastChange >= 40) {
-      return;
-    }
   }
+  await new Promise<void>((resolve) => setTimeout(resolve, 40));
 }
 
 describe("read-only model picker", () => {

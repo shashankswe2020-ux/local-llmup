@@ -50,18 +50,10 @@ let activeChunks: readonly string[] = [];
 // where a fixed delay produced empty output and flaked the release build.
 async function settle(): Promise<void> {
   const start = Date.now();
-  let previous = latest(activeChunks);
-  let lastChange = Date.now();
-  while (Date.now() - start < 2000) {
+  while (Date.now() - start < 1500 && latest(activeChunks).length === 0) {
     await new Promise<void>((resolve) => setTimeout(resolve, 10));
-    const current = latest(activeChunks);
-    if (current !== previous) {
-      previous = current;
-      lastChange = Date.now();
-    } else if (current.length > 0 && Date.now() - lastChange >= 40) {
-      return;
-    }
   }
+  await new Promise<void>((resolve) => setTimeout(resolve, 40));
 }
 
 // Poll until rendered output contains `text`, so assertions don't race Ink's

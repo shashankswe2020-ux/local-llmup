@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
     environment: "node",
+    setupFiles: ["tests/setup/interactive-ink.ts"],
     clearMocks: true,
     restoreMocks: true,
     coverage: {
