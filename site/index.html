@@ -221,7 +221,7 @@
                 </div>
               </div>
             </div>
-            <p class="dl-note">Installers build for macOS, Windows &amp; Linux on every release via CI. They're unsigned &mdash; on first launch right-click&nbsp;&#9656;&nbsp;Open (macOS) or choose &ldquo;More&nbsp;info&nbsp;&#9656;&nbsp;Run&nbsp;anyway&rdquo; (Windows). Prefer source? Build any target:</p>
+            <p class="dl-note">Installers build for macOS, Windows &amp; Linux on every release via CI. They're ad-hoc signed, not notarized: on macOS right-click&nbsp;&#9656;&nbsp;Open (or if it's blocked, clear quarantine with <code>xattr&nbsp;-dr&nbsp;com.apple.quarantine&nbsp;/Applications/local-llmup.app</code>); on Windows choose &ldquo;More&nbsp;info&nbsp;&#9656;&nbsp;Run&nbsp;anyway&rdquo;. Prefer source? Build any target:</p>
             <pre class="dl-code"><code>git clone https://github.com/shashankswe2020-ux/local-llmup
 cd local-llmup/apps/desktop
 npm install &amp;&amp; npm start          <span class="dl-cmt"># run the app</span>
