@@ -281,6 +281,13 @@ h1 em {
 }
 .dl-file { font-family: var(--mono); font-size: .82rem; color: var(--ink-2); }
 .dl-file code { font-size: .82rem; }
+.dl-tag {
+  margin-left: auto; font-family: var(--mono); font-size: .72rem; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3);
+  border: 1.5px solid var(--ink); padding: .18rem .5rem; white-space: nowrap;
+  align-self: center;
+}
+.dl-tag.dl-ready { background: var(--terracotta); color: #fff; border-color: var(--ink); }
 .dl-note { font-size: .88rem; color: var(--ink-2); line-height: 1.6; margin-top: .4rem; }
 .dl-code {
   border: var(--border-w) solid var(--ink); background: var(--ink);
