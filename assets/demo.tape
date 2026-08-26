@@ -1,4 +1,4 @@
-# Full end-to-end demo: install 0.7.0 → recommend (TUI) → doctor (TUI) → can-run
+# Full end-to-end demo: install 0.8.0 → recommend (TUI) → doctor (TUI) → can-run
 Output assets/demo.gif
 
 Set Shell "zsh"
@@ -11,7 +11,7 @@ Set TypingSpeed 40ms
 Set PlaybackSpeed 1.5
 
 # Install from npm
-Type "npm install -g local-llmup@0.7.0"
+Type "npm install -g local-llmup@0.8.0"
 Enter
 Sleep 4s
 
