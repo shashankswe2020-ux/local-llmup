@@ -14,6 +14,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const modelError = document.querySelector("#model-error");
   const activeBanner = document.querySelector("#active-model-banner");
   const refreshModels = document.querySelector("#refresh-models");
+  const sessionCurrent = document.querySelector("#session-current");
+  const sessionTurns = document.querySelector("#session-turns");
   const navItems = document.querySelectorAll(".nav-item[data-view]");
   const views = document.querySelectorAll(".view");
 
@@ -33,17 +35,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (backendStatus) {
       backendStatus.textContent = status.harness ?? "local";
     }
-    if (endpointStatus) {
-      endpointStatus.textContent = status.endpoint ?? "127.0.0.1:11434";
+    if (endpointStatus && status.endpoint) {
+      endpointStatus.textContent = String(status.endpoint).replace(/^https?:\/\//, "");
     }
+    const turns = status.memory?.turns ?? 0;
     if (turnCount) {
-      turnCount.textContent = String(status.memory?.turns ?? 0);
+      turnCount.textContent = String(turns);
     }
-    if (modelCard && status.model) {
-      modelCard.textContent = status.model;
-    }
-    if (modelSelect && status.model) {
-      modelSelect.value = status.model;
+    if (sessionTurns) {
+      sessionTurns.textContent = `${turns} ${turns === 1 ? "turn" : "turns"}`;
     }
   }
 
@@ -172,6 +172,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
         if (event.type === "done") {
+          await loadStatus();
           return;
         }
         if (event.type === "error") {
@@ -200,8 +201,17 @@ document.addEventListener("DOMContentLoaded", () => {
   if (refreshStatus) {
     refreshStatus.addEventListener("click", async () => {
       await loadStatus();
+      await loadActive();
       await loadHistory();
       await loadHarnesses();
+    });
+  }
+
+  if (sessionCurrent) {
+    sessionCurrent.addEventListener("click", async () => {
+      switchView("chat");
+      await loadHistory();
+      await loadStatus();
     });
   }
 
@@ -272,6 +282,9 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         activeBanner.hidden = true;
       }
+    }
+    if (active && endpointStatus && active.endpoint) {
+      endpointStatus.textContent = String(active.endpoint).replace(/^https?:\/\//, "");
     }
     if (active) {
       ensureModelOption(active.modelId);

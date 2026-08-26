@@ -25,11 +25,14 @@
         </nav>
 
         <div class="nav-group">
-          <div class="nav-heading">Sessions</div>
+          <div class="nav-heading">Session</div>
           <ul id="session-list" class="session-list">
-            <li class="session-item active">Current session</li>
-            <li class="session-item">Previous run</li>
-            <li class="session-item">Memory</li>
+            <li>
+              <button id="session-current" class="session-item active" type="button">
+                <span class="session-item-title">Current session</span>
+                <span id="session-turns" class="session-item-sub">0 turns</span>
+              </button>
+            </li>
           </ul>
         </div>
       </aside>

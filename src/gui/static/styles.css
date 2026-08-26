@@ -116,11 +116,27 @@ textarea {
 }
 
 .session-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
   padding: 0.7rem 0.8rem;
   border-radius: 0.7rem;
   color: var(--muted);
   background: rgba(148, 163, 184, 0.04);
   border: 1px solid transparent;
+}
+
+.session-item-title {
+  display: block;
+}
+
+.session-item-sub {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  color: var(--muted);
 }
 
 .session-item.active {

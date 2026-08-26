@@ -30,7 +30,7 @@ describe("GuiServer", () => {
     const html = await response.text();
     expect(html).toContain("<html");
     expect(html).toContain("Workspace");
-    expect(html).toContain("Sessions");
+    expect(html).toContain("Current session");
     expect(html).toContain("Model");
     expect(server.url).toBe(`http://127.0.0.1:${port}`);
   });
