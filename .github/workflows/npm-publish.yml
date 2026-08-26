@@ -43,11 +43,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Test
-        run: npm test
-
       - name: Build
         run: npm run build
+
+      - name: Test
+        run: npm test
 
       - name: Enforce package budgets
         run: npm run tui:package-budget

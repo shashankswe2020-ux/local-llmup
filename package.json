@@ -1,6 +1,6 @@
 {
   "name": "local-llmup",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "Hardware-aware CLI that scores your machine and tells you which local LLMs will run (yes/slow/no + tok/s) before recommending, installing, serving, and migrating them.",
   "repository": {
     "type": "git",

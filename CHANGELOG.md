@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.10.0 - 2026-08-27
+
+**Intel Arc/Xe GPU detection.**
+
+### New Features
+
+- **Intel GPU detection.** Hardware detection now recognizes Intel Arc (discrete)
+  and Xe (integrated) GPUs. A discrete Arc's dedicated VRAM counts toward fit and
+  the yes/slow/no verdict; integrated Xe stays conservative (shared memory isn't
+  credited). With no sourced Intel performance profile, throughput stays
+  `unknown` rather than guessing (honesty gate). (#223)
+
+### Fixes
+
+- macOS desktop app is ad-hoc signed so Apple Silicon no longer reports it as
+  “damaged”.
+- Desktop installers (macOS / Windows / Linux) now attach to the published
+  GitHub Release on every release.
+- Site: OS-aware installer bar with a platform dropdown and per-OS icons.
+
 ## 0.9.1 - 2026-08-27
 
 **Desktop app icon, one-click installers, and a green release pipeline.**
