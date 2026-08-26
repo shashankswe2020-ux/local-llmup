@@ -32,6 +32,7 @@ function inputStream(): TestInput {
 
 function outputStream(): { readonly stream: NodeJS.WriteStream; readonly chunks: string[] } {
   const chunks: string[] = [];
+  activeChunks = chunks;
   const stream = new PassThrough() as PassThrough & Partial<NodeJS.WriteStream>;
   stream.isTTY = true;
   stream.columns = 100;
@@ -40,8 +41,43 @@ function outputStream(): { readonly stream: NodeJS.WriteStream; readonly chunks:
   return { stream: stream as NodeJS.WriteStream, chunks };
 }
 
+// Tracks the most recently created output stream so `settle()` can wait on the
+// stream Ink is actively rendering to. Tests run sequentially within the file.
+let activeChunks: readonly string[] = [];
+
+// Wait until the active screen has rendered a real frame that stays stable for a
+// short quiet period. Polling avoids racing Ink's first paint on slow CI runners,
+// where a fixed delay produced empty output and flaked the release build.
 async function settle(): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 40));
+  const start = Date.now();
+  let previous = latest(activeChunks);
+  let lastChange = Date.now();
+  while (Date.now() - start < 2000) {
+    await new Promise<void>((resolve) => setTimeout(resolve, 10));
+    const current = latest(activeChunks);
+    if (current !== previous) {
+      previous = current;
+      lastChange = Date.now();
+    } else if (current.length > 0 && Date.now() - lastChange >= 40) {
+      return;
+    }
+  }
+}
+
+// Poll until rendered output contains `text`, so assertions don't race Ink's
+// first paint on slower CI runners where a fixed delay is unreliable.
+async function waitForText(
+  chunks: readonly string[],
+  text: string,
+  timeoutMs = 3000,
+): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (chunks.join("").includes(text)) {
+      return;
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 10));
+  }
 }
 
 function latest(chunks: readonly string[]): string {
@@ -181,6 +217,7 @@ describe("read-only Ink screens", () => {
       explicit: true,
     });
     await settle();
+    await waitForText(stderr.chunks, "Up/Down Navigate · Home/End Jump");
     expect(stderr.chunks.join("")).toContain("Up/Down Navigate · Home/End Jump");
     stdin.write("\u001b");
     await settle();
@@ -188,6 +225,7 @@ describe("read-only Ink screens", () => {
     await settle();
     stdin.write("\r");
     await settle();
+    await waitForText(stderr.chunks, "Evidence / deepseek-r1:14b");
     expect(stderr.chunks.join("")).toContain("Evidence / deepseek-r1:14b");
     stdin.write("q");
     await session.waitUntilExit();

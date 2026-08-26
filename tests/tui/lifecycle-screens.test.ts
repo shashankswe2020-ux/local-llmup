@@ -29,12 +29,24 @@ function inputStream(): TestInput {
 
 function outputStream(): { readonly stream: NodeJS.WriteStream; readonly chunks: string[] } {
   const chunks: string[] = [];
+  activeChunks = chunks;
   const stream = new PassThrough() as PassThrough & Partial<NodeJS.WriteStream>;
   stream.isTTY = true;
   stream.columns = 100;
   stream.rows = 24;
   stream.on("data", (chunk: Buffer) => chunks.push(chunk.toString("utf8")));
   return { stream: stream as NodeJS.WriteStream, chunks };
+}
+
+// Tracks the most recently created output stream so `settle()` can wait on the
+// stream Ink is actively rendering to. Tests run sequentially within the file.
+let activeChunks: readonly string[] = [];
+
+// True once a real (non cursor-only) frame has been rendered.
+function hasRenderedFrame(chunks: readonly string[]): boolean {
+  return chunks.some(
+    (chunk) => chunk !== "\u001b[?25l" && chunk !== "\u001b[?25h" && chunk.trim().length > 0,
+  );
 }
 
 const review: LifecycleReviewViewModel = {
@@ -51,7 +63,19 @@ const review: LifecycleReviewViewModel = {
 };
 
 async function settle(): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 60));
+  const start = Date.now();
+  let previous = activeChunks.join("");
+  let lastChange = Date.now();
+  while (Date.now() - start < 2000) {
+    await new Promise<void>((resolve) => setTimeout(resolve, 10));
+    const current = activeChunks.join("");
+    if (current !== previous) {
+      previous = current;
+      lastChange = Date.now();
+    } else if (hasRenderedFrame(activeChunks) && Date.now() - lastChange >= 40) {
+      return;
+    }
+  }
 }
 
 describe("lifecycle screens", () => {
