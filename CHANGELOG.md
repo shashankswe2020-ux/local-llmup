@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.1 - 2026-08-26
+
+**Browser GUI bug fixes.**
+
+### Fixes
+
+- Made the Session sidebar functional: the "Current session" button now reloads
+  chat history and switches to the chat view (was dead, non-functional UI).
+- Removed misleading static "Previous run"/"Memory" placeholders that had no
+  backing store.
+- The turn count now refreshes after a successful chat instead of going stale
+  until a manual refresh.
+- The status strip reflects the real active-model endpoint instead of a
+  hardcoded `127.0.0.1:11434`; `/api/models/active` now owns the active-model
+  card, fixing a race that could overwrite it with the session placeholder.
+
 ## 0.8.0 - 2026-08-26
 
 **In-browser model management + neobrutalist site redesign.**
