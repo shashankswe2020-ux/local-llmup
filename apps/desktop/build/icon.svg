@@ -1,19 +1,17 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#f7f2e7" />
-      <stop offset="1" stop-color="#ede5d3" />
+    <linearGradient id="silver" x1="0.12" y1="0" x2="0.72" y2="1">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.45" stop-color="#fafafa" />
+      <stop offset="1" stop-color="#b6b6bd" />
     </linearGradient>
-    <linearGradient id="gem" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#e07a4f" />
-      <stop offset="1" stop-color="#c04f2c" />
+    <linearGradient id="diamond" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#26262b" />
+      <stop offset="1" stop-color="#0b0b0d" />
     </linearGradient>
   </defs>
-  <rect x="196" y="212" width="712" height="712" rx="168" fill="#14110d" />
-  <rect x="150" y="150" width="712" height="712" rx="168" fill="url(#card)" stroke="#14110d" stroke-width="30" />
-  <g transform="translate(506,506) rotate(45)">
-    <rect x="-176" y="-176" width="352" height="352" rx="46" fill="url(#gem)" stroke="#14110d" stroke-width="30" />
+  <rect x="64" y="64" width="896" height="896" rx="216" fill="url(#silver)" />
+  <g transform="translate(512,512) rotate(45)">
+    <rect x="-156" y="-156" width="312" height="312" rx="30" fill="url(#diamond)" />
   </g>
-  <path d="M 506 404 L 610 556 L 550 556 L 550 636 L 462 636 L 462 556 L 402 556 Z"
-        fill="#f7f2e7" stroke="#14110d" stroke-width="22" stroke-linejoin="round" />
 </svg>
