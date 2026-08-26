@@ -12,7 +12,9 @@ export const APPROVED_TUI_DEPENDENCIES = {
 } as const;
 
 export const TUI_PACKED_DELTA_LIMIT_BYTES = 250 * 1024;
-export const TUI_INSTALL_DELTA_LIMIT_BYTES = 15 * 1024 * 1024;
+// Production install delta vs the pre-TUI baseline. Covers ink/react/yoga plus
+// the MCP SDK added in 0.9.0; measured ~19.5 MiB on CI, so budget with headroom.
+export const TUI_INSTALL_DELTA_LIMIT_BYTES = 24 * 1024 * 1024;
 
 const RUNTIME_ROOTS = ["ink", "react", "string-width"] as const;
 const ALLOWED_LICENSES = new Set(["MIT", "ISC", "(MIT OR CC0-1.0)"]);
