@@ -9,11 +9,16 @@
  * so it needs zero Node integration and no preload bridge.
  */
 import { createServer as createNetServer } from "node:net";
-import { app, BrowserWindow, shell } from "electron";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { app, BrowserWindow, nativeImage, shell } from "electron";
 import { runGui, type GuiDeps } from "local-llmup/dist/commands/gui.js";
 import { createDefaultRegistry } from "local-llmup/dist/harness/registry.js";
 
 const WINDOW_BACKGROUND = "#050506";
+
+/** Neobrutalist brand icon, bundled under `build/icon.png` next to `dist/`. */
+const APP_ICON_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "build", "icon.png");
 
 let mainWindow: BrowserWindow | null = null;
 let serverUrl: string | null = null;
@@ -60,6 +65,7 @@ function createWindow(url: string): void {
     minHeight: 620,
     backgroundColor: WINDOW_BACKGROUND,
     title: "local-llmup",
+    icon: APP_ICON_PATH,
     show: false,
     webPreferences: {
       contextIsolation: true,
@@ -116,6 +122,15 @@ async function bootRuntimeHost(): Promise<void> {
 
 app.whenReady().then(
   () => {
+    // On macOS the Dock icon comes from the app bundle when packaged, but in dev
+    // (`npm start`) there is no bundle — set it explicitly so the Dock matches.
+    if (process.platform === "darwin" && app.dock !== undefined) {
+      const dockIcon = nativeImage.createFromPath(APP_ICON_PATH);
+      if (!dockIcon.isEmpty()) {
+        app.dock.setIcon(dockIcon);
+      }
+    }
+
     bootRuntimeHost().catch((error: unknown) => {
       console.error("[local-llmup] failed to start Runtime Host:", error);
       app.quit();

@@ -23,6 +23,7 @@
           <a class="wordmark" href="./">local-llmup</a>
           <div class="nav-links">
             <a class="opt" href="#gui">GUI</a>
+            <a class="opt" href="#desktop">Desktop</a>
             <a class="opt" href="#agents">Agents</a>
             <a class="opt" href="#connectors">Connectors</a>
             <a class="opt" href="#tui">TUI</a>
@@ -166,6 +167,45 @@
             <div class="screenshot-img">
               <img src="assets/screenshot-gui.png" alt="local-llmup browser workspace showing recommended models with verdicts" loading="lazy" />
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Desktop app -->
+    <section class="section" id="desktop">
+      <div class="frame">
+        <div class="section-label">Desktop app &mdash; new</div>
+        <h2 class="section-title">Or install it as a native app</h2>
+        <p class="section-sub">Prefer an app in your Dock over a browser tab? The desktop build wraps the <strong>exact same</strong> loopback Runtime Host in a hardened, native window. It boots the same GUI server the CLI serves, binds <code>127.0.0.1</code> only, ships zero Node integration in the renderer, and blocks any navigation off-loopback. Same engine, same verdicts, same privacy &mdash; now one click away.</p>
+
+        <div class="desktop-layout reveal">
+          <figure class="desktop-icon-card">
+            <img src="assets/app-icon.png" alt="local-llmup desktop app icon" width="176" height="176" loading="lazy" />
+            <figcaption>
+              <span class="desktop-icon-name">local-llmup</span>
+              <span class="desktop-icon-meta">Electron &middot; loopback-only</span>
+            </figcaption>
+          </figure>
+
+          <div class="desktop-downloads">
+            <a class="dl-btn" href="https://github.com/shashankswe2020-ux/local-llmup/releases/latest">
+              <span class="dl-os">macOS</span>
+              <span class="dl-file">Apple&nbsp;Silicon &amp; Intel &middot; <code>.dmg</code></span>
+            </a>
+            <a class="dl-btn" href="https://github.com/shashankswe2020-ux/local-llmup/releases/latest">
+              <span class="dl-os">Windows</span>
+              <span class="dl-file">x64 installer &middot; <code>.exe</code></span>
+            </a>
+            <a class="dl-btn" href="https://github.com/shashankswe2020-ux/local-llmup/releases/latest">
+              <span class="dl-os">Linux</span>
+              <span class="dl-file">AppImage &middot; <code>.deb</code></span>
+            </a>
+            <p class="dl-note">Downloads open the latest GitHub release. No prebuilt binary for your platform yet? Build it from source in a couple of commands:</p>
+            <pre class="dl-code"><code>git clone https://github.com/shashankswe2020-ux/local-llmup
+cd local-llmup/apps/desktop
+npm install &amp;&amp; npm start          <span class="dl-cmt"># run the app</span>
+npm run package:mac              <span class="dl-cmt"># or :win / :linux</span></code></pre>
           </div>
         </div>
       </div>

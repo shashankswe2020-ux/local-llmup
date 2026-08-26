@@ -241,6 +241,60 @@ h1 em {
   padding: .5rem .85rem; border-top: var(--border-w) solid var(--ink);
 }
 
+/* Desktop app download section */
+.desktop-layout {
+  display: grid; grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 2.2rem; margin-top: 3rem; align-items: start;
+}
+.desktop-icon-card {
+  display: flex; flex-direction: column; align-items: center; gap: 1.1rem;
+  border: var(--border-w) solid var(--ink); background: var(--paper-2);
+  box-shadow: var(--shadow); padding: 2.2rem 1.5rem; margin: 0;
+}
+.desktop-icon-card img {
+  display: block; width: 176px; height: 176px; image-rendering: -webkit-optimize-contrast;
+}
+.desktop-icon-card figcaption {
+  display: flex; flex-direction: column; align-items: center; gap: .3rem; text-align: center;
+}
+.desktop-icon-name {
+  font-weight: 800; font-size: 1.05rem; letter-spacing: -.01em;
+  text-transform: uppercase; color: var(--ink);
+}
+.desktop-icon-meta {
+  font-family: var(--mono); font-size: .74rem; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3);
+}
+.desktop-downloads { display: flex; flex-direction: column; gap: 1rem; }
+.dl-btn {
+  display: flex; align-items: baseline; gap: .8rem; flex-wrap: wrap;
+  border: var(--border-w) solid var(--ink); background: var(--paper);
+  box-shadow: var(--shadow-sm); padding: .95rem 1.2rem;
+  color: var(--ink); text-decoration: none;
+  transition: transform .08s ease, box-shadow .08s ease;
+}
+.dl-btn:hover { transform: translate(-2px, -2px); box-shadow: var(--shadow); }
+.dl-btn:active { transform: translate(0, 0); box-shadow: var(--shadow-sm); }
+.dl-os {
+  font-weight: 800; font-size: 1rem; letter-spacing: -.01em;
+  text-transform: uppercase; min-width: 5.5rem;
+}
+.dl-file { font-family: var(--mono); font-size: .82rem; color: var(--ink-2); }
+.dl-file code { font-size: .82rem; }
+.dl-note { font-size: .88rem; color: var(--ink-2); line-height: 1.6; margin-top: .4rem; }
+.dl-code {
+  border: var(--border-w) solid var(--ink); background: var(--ink);
+  box-shadow: var(--shadow-sm); padding: 1rem 1.2rem; overflow-x: auto; margin: 0;
+}
+.dl-code code {
+  font-family: var(--mono); font-size: .82rem; line-height: 1.7;
+  color: var(--paper); background: none; border: 0; padding: 0; white-space: pre;
+}
+.dl-cmt { color: var(--ink-3); }
+@media (max-width: 720px) {
+  .desktop-layout { grid-template-columns: 1fr; }
+}
+
 .verdicts {
   display: flex; justify-content: center;
   gap: 1.5rem; padding: 3.5rem 0 0; flex-wrap: wrap;

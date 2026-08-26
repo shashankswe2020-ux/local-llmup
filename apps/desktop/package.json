@@ -1,6 +1,6 @@
 {
   "name": "@local-llmup/desktop",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "private": true,
   "description": "Desktop shell for local-llmup — a thin Electron surface over the loopback Runtime Host (the same GUI server the CLI serves).",
   "type": "module",
@@ -45,18 +45,21 @@
         "dmg",
         "zip"
       ],
+      "icon": "build/icon.icns",
       "category": "public.app-category.developer-tools"
     },
     "win": {
       "target": [
         "nsis"
-      ]
+      ],
+      "icon": "build/icon.png"
     },
     "linux": {
       "target": [
         "AppImage",
         "deb"
       ],
+      "icon": "build/icon.png",
       "category": "Development",
       "maintainer": "local-llmup"
     }
