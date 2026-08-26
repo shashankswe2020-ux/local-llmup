@@ -23,7 +23,7 @@ function primeOk(
     arch?: string;
     platform?: string;
     memData?: Partial<Awaited<ReturnType<typeof mem>>>;
-    controllers?: Array<{ vendor: string; vram: number | null }>;
+    controllers?: Array<{ vendor: string; vram: number | null; vramDynamic?: boolean | null }>;
     fs?: Array<{ mount: string; available: number }>;
   } = {},
 ): void {
@@ -89,7 +89,20 @@ describe("detectHardware", () => {
   it("treats an integrated GPU with null VRAM as a zero-VRAM device", async () => {
     primeOk({ controllers: [{ vendor: "Intel Corporation", vram: null }] });
     const profile = await detectHardware();
-    expect(profile.gpu).toEqual([{ vendor: "none", vramBytes: 0 }]);
+    expect(profile.gpu).toEqual([{ vendor: "intel", vramBytes: 0 }]);
+  });
+
+  it("counts a discrete Intel Arc's dedicated VRAM", async () => {
+    primeOk({ controllers: [{ vendor: "Intel Corporation", vram: 16384, vramDynamic: false }] });
+    const profile = await detectHardware();
+    expect(profile.gpu).toEqual([{ vendor: "intel", vramBytes: 16384 * MIB }]);
+  });
+
+  it("zeroes VRAM for an integrated Intel Xe that shares system memory", async () => {
+    // Dynamic (shared) VRAM must not route system RAM into the dedicated-VRAM path.
+    primeOk({ controllers: [{ vendor: "Intel Corporation", vram: 2048, vramDynamic: true }] });
+    const profile = await detectHardware();
+    expect(profile.gpu).toEqual([{ vendor: "intel", vramBytes: 0 }]);
   });
 
   it("maps Apple and AMD vendors", async () => {
@@ -107,8 +120,8 @@ describe("detectHardware", () => {
   });
 
   it("zeroes VRAM for an unrecognized adapter that reports shared memory", async () => {
-    // An iGPU reporting shared memory as `vram` must not hijack the VRAM path.
-    primeOk({ controllers: [{ vendor: "Intel Iris", vram: 128 }] });
+    // An unknown iGPU reporting shared memory as `vram` must not hijack the VRAM path.
+    primeOk({ controllers: [{ vendor: "VMware SVGA II", vram: 128 }] });
     const profile = await detectHardware();
     expect(profile.gpu).toEqual([{ vendor: "none", vramBytes: 0 }]);
   });

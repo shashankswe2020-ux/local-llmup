@@ -103,6 +103,20 @@ describe("evaluateVerdict", () => {
     expect(v.quant?.name).toBe("Q4_K_M");
   });
 
+  it("counts a discrete Intel Arc's VRAM but keeps throughput unknown (honesty gate)", () => {
+    // Discrete Arc VRAM is credited so the model fits (not vram-bound), but there
+    // is no seeded Intel perf profile, so throughput is unknown → cannot claim `yes`.
+    const v = evaluateVerdict(
+      model("7B"),
+      hw({ gpu: [{ vendor: "intel", vramBytes: 16 * GIB }] }),
+      perf,
+    );
+    expect(v.runnable).toBe("slow");
+    expect(v.reason).not.toBe("vram-bound");
+    expect(v.throughput.known).toBe(false);
+    expect(v.quant?.name).toBe("Q4_K_M");
+  });
+
   it("is pure — identical inputs yield an identical verdict", () => {
     expect(evaluateVerdict(model("7B"), hw(), perf)).toEqual(
       evaluateVerdict(model("7B"), hw(), perf),

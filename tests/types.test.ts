@@ -14,7 +14,7 @@ describe("shared enums", () => {
   it("declares the recognized arch/platform/gpu/architecture values", () => {
     expect(ARCHS).toEqual(["x64", "arm64"]);
     expect(PLATFORMS).toEqual(["darwin", "linux", "win32"]);
-    expect(GPU_VENDORS).toEqual(["apple", "nvidia", "amd", "none"]);
+    expect(GPU_VENDORS).toEqual(["apple", "nvidia", "amd", "intel", "none"]);
     expect(MODEL_ARCHITECTURES).toEqual(["dense", "moe"]);
   });
 

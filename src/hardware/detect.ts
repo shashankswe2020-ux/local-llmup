@@ -60,7 +60,10 @@ function normalizeVendor(vendor: string): GpuVendor {
     /\bati\b/.test(v)
   )
     return "amd";
-  return "none"; // integrated Intel / unknown → no dedicated VRAM
+  // Intel Arc (discrete) and Xe (integrated) both report as "Intel …"; the
+  // discrete/integrated split is resolved by VRAM handling, not the vendor.
+  if (v.includes("intel") || /\barc\b/.test(v)) return "intel";
+  return "none"; // unknown adapter → no dedicated VRAM
 }
 
 async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -86,7 +89,27 @@ function conservativeDefault(): HardwareProfile {
   };
 }
 
-function mapGpus(controllers: ReadonlyArray<{ vendor: string; vram: number | null }>): Array<{
+/**
+ * Bytes of *dedicated* VRAM to credit an adapter. Only a recognized dedicated
+ * GPU contributes; "none" (unknown) is always 0 so it never routes usable memory
+ * into the small-VRAM branch. Intel is split: a discrete Arc has real dedicated
+ * VRAM, but integrated Xe shares system RAM, so Intel only counts when
+ * systeminformation reports the VRAM as non-dynamic (dedicated). Round so a
+ * fractional MB reading can't fail int validation and nuke the profile.
+ */
+function dedicatedVramBytes(
+  vendor: GpuVendor,
+  vramMib: number,
+  vramDynamic: boolean | null | undefined,
+): number {
+  if (vendor === "none") return 0;
+  if (vendor === "intel" && vramDynamic !== false) return 0;
+  return Math.round(vramMib * 1024 ** 2);
+}
+
+function mapGpus(
+  controllers: ReadonlyArray<{ vendor: string; vram: number | null; vramDynamic?: boolean | null }>,
+): Array<{
   vendor: GpuVendor;
   vramBytes: number;
 }> {
@@ -94,12 +117,7 @@ function mapGpus(controllers: ReadonlyArray<{ vendor: string; vram: number | nul
     const vendor = normalizeVendor(c.vendor ?? "");
     const vramMib =
       typeof c.vram === "number" && Number.isFinite(c.vram) && c.vram > 0 ? c.vram : 0;
-    // Enforce the invariant memory-math relies on: only a *recognized* dedicated
-    // GPU contributes VRAM. An adapter mapped to "none" (integrated/unknown) must
-    // report 0 so it never routes usable memory to the small VRAM branch. Round
-    // so a fractional MB reading can't fail int validation and nuke the profile.
-    const vramBytes = vendor === "none" ? 0 : Math.round(vramMib * 1024 ** 2);
-    return { vendor, vramBytes };
+    return { vendor, vramBytes: dedicatedVramBytes(vendor, vramMib, c.vramDynamic) };
   });
 }
 

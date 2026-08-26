@@ -435,7 +435,7 @@ export const HardwareProfileSchema = z.object({
   freeRamBytes: z.number().int().positive(),
   gpu: z
     .object({
-      vendor: z.enum(["apple", "nvidia", "amd", "none"]),
+      vendor: z.enum(["apple", "nvidia", "amd", "intel", "none"]),
       vramBytes: z.number().int().nonnegative(),
     })
     .array(),

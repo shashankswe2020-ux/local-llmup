@@ -286,7 +286,10 @@ interface Pool {
  */
 function poolOf(hw: HardwareProfile): Pool {
   const discrete = hw.gpu
-    .filter((g) => (g.vendor === "nvidia" || g.vendor === "amd") && g.vramBytes > 0)
+    .filter(
+      (g) =>
+        (g.vendor === "nvidia" || g.vendor === "amd" || g.vendor === "intel") && g.vramBytes > 0,
+    )
     .sort((a, b) => b.vramBytes - a.vramBytes)[0];
   if (discrete) {
     return { vendor: discrete.vendor, kind: "discrete", bytes: discrete.vramBytes };

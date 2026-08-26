@@ -15,7 +15,7 @@ export const PLATFORMS = ["darwin", "linux", "win32"] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
 /** GPU vendors recognized for VRAM accounting. */
-export const GPU_VENDORS = ["apple", "nvidia", "amd", "none"] as const;
+export const GPU_VENDORS = ["apple", "nvidia", "amd", "intel", "none"] as const;
 export type GpuVendor = (typeof GPU_VENDORS)[number];
 
 /** Model architectures; drives memory sizing (MoE keeps all experts resident). */
