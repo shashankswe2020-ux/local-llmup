@@ -155,10 +155,15 @@ The `llmup` binary is located by checking in order:
 2. `~/.local-llmup/bin/llmup` (future managed install path).
 3. `which llmup` / `where llmup` (PATH lookup via `std::process::Command`).
 4. Common homebrew paths: `/opt/homebrew/bin/llmup`, `/usr/local/bin/llmup`.
-5. `npx --no-install local-llmup` (fallback when not globally installed).
 
-On failure → show a friendly "Install local-llmup first" dialog with the npm
-install command, a copy button, and a link to the README.
+If steps 1–4 fail, transition directly to a friendly "Install local-llmup first"
+dialog with the npm install command, a copy button, and a link to the README.
+
+`npx` is explicitly excluded from discovery: it is not a validated absolute
+binary path and may resolve or download packages, introducing network and
+supply-chain behavior at this security boundary. Any download-and-run flow is
+out of scope and requires a separate security review before specification or
+implementation.
 
 ### 3.4 Shutdown sequence
 
@@ -286,9 +291,9 @@ URL after the server starts (via `window.navigate(url)`).
 }
 ```
 
-`shell:allow-execute` is **scoped** to the `llmup` binary and the `npx` fallback
-only — Tauri v2's shell scope prevents the WebView from spawning arbitrary
-processes.
+`shell:allow-execute` is **scoped** to the discovered, validated absolute
+`llmup` binary path only — Tauri v2's shell scope prevents the WebView from
+spawning arbitrary processes.
 
 ---
 
@@ -513,6 +518,9 @@ by `tests/workflows/workflow-policy.test.ts`).
   - Must be an absolute path (no relative path traversal).
   - Must exist and be executable (`std::fs::metadata` check).
   - Must not contain shell metacharacters (strict allowlist: `[a-zA-Z0-9._/\\ :-]`).
+- Package runners such as `npx` are not discovery or execution fallbacks; they
+  do not satisfy the validated absolute-path requirement and may perform
+  package resolution or network downloads.
 - The port argument is range-validated (1–65535) before being passed.
 - No shell interpolation — the binary is spawned with `Command::new(path).arg(...)`
   directly (no `sh -c`).
@@ -575,7 +583,8 @@ These require a display server (Xvfb on Linux CI).
 
 **D1 — Binary discovery:**
 - [ ] App starts successfully when `llmup` is on PATH.
-- [ ] App shows install dialog when `llmup` is not found (no PATH, no homebrew, no env).
+- [ ] App transitions directly to the install dialog when lookup steps 1–4 fail
+  (no PATH, no homebrew, no env), without invoking `npx` or another package runner.
 - [ ] `LLMUP_BIN=/path/to/custom/binary` overrides all discovery.
 
 **D2 — Lifecycle:**
@@ -638,7 +647,8 @@ Deliverables:
 **Files:** `desktop/src-tauri/src/lifecycle.rs`, `commands.rs`, `lib.rs`
 
 Deliverables:
-- `discover_binary()` — all five discovery paths tested.
+- `discover_binary()` — all four discovery paths and direct install-dialog
+  failure transition tested; package runners are never invoked.
 - `spawn_gui_server(port)` — spawns `llmup gui --port --no-open --json`,
   reads stdout until JSON, returns URL. Times out at 5 s.
 - `shutdown_server()` — SIGTERM → wait 3 s → SIGKILL.
@@ -722,6 +732,8 @@ Deliverables:
 
 **Never:**
 - Use `shell: true` or string interpolation when spawning the `llmup` binary.
+- Use `npx` or another package runner as a discovery fallback, or download and
+  run a binary without a separately security-reviewed design.
 - Bundle or log API keys, signing keys, or tokens.
 - Disable CSP or use `unsafe-eval` / `unsafe-inline` for scripts.
 - Ship a release binary that is not code-signed on macOS or Windows.
