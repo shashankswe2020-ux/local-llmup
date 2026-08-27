@@ -9,7 +9,7 @@ import type { EnrichDiff } from "./enrich.js";
 import type { Catalog } from "../types.js";
 
 /** Days after which the committed catalog is considered stale and should be refreshed. */
-export const CATALOG_STALE_AFTER_DAYS = 30;
+export const CATALOG_STALE_AFTER_DAYS = 7;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

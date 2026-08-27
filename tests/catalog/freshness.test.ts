@@ -48,10 +48,10 @@ describe("evaluateCatalogFreshness", () => {
     const report = evaluateCatalogFreshness({
       catalog: catalog(JAN1),
       diff: diff(),
-      now: new Date("2026-01-10T00:00:00.000Z"),
+      now: new Date("2026-01-06T00:00:00.000Z"),
     });
     expect(report.status).toBe("fresh");
-    expect(report.ageDays).toBe(9);
+    expect(report.ageDays).toBe(5);
     expect(report.hasDrift).toBe(false);
     expect(report.needsAttention).toBe(false);
     expect(report.reasons).toEqual([]);
