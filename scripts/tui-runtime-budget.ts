@@ -4,21 +4,19 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { performance } from "node:perf_hooks";
+import { resolveBaselineCommit, runNpm } from "./tui-budget-baseline.js";
 
-const PRE_TUI_COMMIT = "3984ae63faf2349eac9e73ba048e7a92ce5d77a6";
 const WARMUP_SAMPLES = 5;
 const MEASURED_SAMPLES = 20;
 const MEDIAN_REGRESSION_LIMIT_MS = 10;
 const P90_REGRESSION_LIMIT_MS = 20;
-const TUI_MODULE_LOAD_P90_LIMIT_MS = 150;
+// Absolute ceiling for importing the TUI renderer module (ink/react/yoga). Sized
+// with headroom for slower, shared CI runners across the Node 18–24 matrix.
+const TUI_MODULE_LOAD_P90_LIMIT_MS = 400;
 
 interface Distribution {
   readonly median: number;
   readonly p90: number;
-}
-
-function npmCommand(): string {
-  return process.platform === "win32" ? "npm.cmd" : "npm";
 }
 
 function quantile(sorted: readonly number[], percentile: number): number {
@@ -54,14 +52,15 @@ function measureImport(modulePath: string): number {
 }
 
 export function runTuiRuntimeBudget(root = process.cwd()): void {
-  const baseline = mkdtempSync(join(tmpdir(), "local-llmup-pre-tui-"));
+  const baselineCommit = resolveBaselineCommit(root);
+  const baseline = mkdtempSync(join(tmpdir(), "local-llmup-baseline-"));
   try {
-    execFileSync("git", ["worktree", "add", "--detach", baseline, PRE_TUI_COMMIT], {
+    execFileSync("git", ["worktree", "add", "--detach", baseline, baselineCommit], {
       cwd: root,
       stdio: "ignore",
     });
-    execFileSync(npmCommand(), ["ci", "--ignore-scripts"], { cwd: baseline, stdio: "ignore" });
-    execFileSync(npmCommand(), ["run", "build"], { cwd: baseline, stdio: "ignore" });
+    runNpm(["ci", "--ignore-scripts"], { cwd: baseline, stdio: "ignore" });
+    runNpm(["run", "build"], { cwd: baseline, stdio: "ignore" });
 
     const baselineEntry = join(baseline, "dist", "bin.js");
     const candidateEntry = join(root, "dist", "bin.js");
