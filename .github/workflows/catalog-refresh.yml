@@ -59,26 +59,28 @@ jobs:
           npm run build
           npm test
 
-      - name: Open or update the catalog refresh PR
+      - name: Open the catalog refresh PR
         if: steps.diff.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          BRANCH="catalog/auto-refresh"
+          # A fresh branch per run (from current main) → a normal push, so the
+          # branch-protection ruleset that blocks force-pushes is never tripped.
+          BRANCH="catalog/auto-refresh-${GITHUB_RUN_ID}"
+          TITLE="chore(catalog): weekly automated refresh"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -B "$BRANCH"
+          git checkout -b "$BRANCH"
           git add data/models.json
-          git commit -m "chore(catalog): weekly automated refresh"
-          git push --force origin "$BRANCH"
+          git commit -m "$TITLE"
+          git push origin "$BRANCH"
 
           BODY=$(node -e "
             const r = require('./catalog-freshness.json');
             const lines = [
-              'Automated weekly refresh of \`data/models.json\` from the committed registry snapshot.',
+              'Automated weekly refresh of \`data/models.json\` — quant disk sizes and content digests refreshed from the live registry (curated fields untouched).',
               '',
               '- generated: ' + r.generatedAt,
-              '- drift: added=' + r.drift.added + ' updated=' + r.drift.updated + ' removed=' + r.drift.removed,
               '',
               'Typecheck, lint, build, and the full test suite passed on this branch. Review the model changes before merging.',
               '',
@@ -87,13 +89,12 @@ jobs:
             process.stdout.write(lines.join('\n'));
           ")
 
-          if gh pr view "$BRANCH" --json state --jq '.state' 2>/dev/null | grep -q OPEN; then
-            echo "PR already open for $BRANCH — branch updated."
-          else
-            gh pr create --base main --head "$BRANCH" \
-              --title "chore(catalog): weekly automated refresh" \
-              --body "$BODY"
-          fi
+          # Supersede any previous open auto-refresh PR so only the latest stands.
+          for number in $(gh pr list --state open --search "$TITLE in:title" --json number --jq '.[].number'); do
+            gh pr close "$number" --comment "Superseded by a newer automated refresh." --delete-branch || true
+          done
+
+          gh pr create --base main --head "$BRANCH" --title "$TITLE" --body "$BODY"
 
       - name: Alert when the catalog is stale but in sync
         if: steps.diff.outputs.changed == 'false'

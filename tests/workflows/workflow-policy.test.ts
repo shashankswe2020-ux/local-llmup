@@ -174,12 +174,14 @@ describe("T30 workflow hardening", () => {
     }
 
     // Refreshed catalog lands on a dedicated branch and merges through a PR;
-    // there is never a direct push to the protected default branch.
+    // there is never a direct push to the protected default branch, and never a
+    // force-push (a branch-protection ruleset forbids it).
     expect(refresh).toContain("npm run catalog:refresh");
     expect(refresh).toContain("gh pr create");
-    expect(refresh).toContain('BRANCH="catalog/auto-refresh"');
+    expect(refresh).toContain("catalog/auto-refresh");
     expect(refresh).toMatch(/git push[^\n]*"\$BRANCH"/u);
     expect(refresh).not.toMatch(/git push[^\n]*\bmain\b/u);
+    expect(refresh).not.toMatch(/git push\s+--force/u);
     // The refreshed catalog is validated before the PR is opened.
     expect(refresh).toContain("npm test");
   });
