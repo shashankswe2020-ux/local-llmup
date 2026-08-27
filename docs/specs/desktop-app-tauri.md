@@ -515,7 +515,14 @@ by `tests/workflows/workflow-policy.test.ts`).
 ### 12.2 Binary execution
 
 - The `llmup` binary path is validated before spawn:
+  - On Windows, the first validation step rejects any raw path beginning with
+    two backslashes (`\\`) unconditionally as a UNC path. This guard returns a
+    typed binary-path validation `AppError` before path canonicalization, any
+    filesystem metadata/existence lookup, or any other validation, so the app
+    never resolves a network share.
   - Must be an absolute path (no relative path traversal).
+    Absolute Windows drive paths such as `C:\Program Files\llmup\llmup.exe`
+    remain permitted subject to all other checks.
   - Must exist and be executable (`std::fs::metadata` check).
   - Must not contain shell metacharacters (strict allowlist: `[a-zA-Z0-9._/\\ :-]`).
 - Package runners such as `npx` are not discovery or execution fallbacks; they
@@ -556,7 +563,8 @@ Covered:
 - `lifecycle::probe_free_port()` — returns a valid port.
 - `lifecycle::parse_server_json()` — valid JSON, malformed JSON, timeout.
 - `commands::get_version()` — returns a semver string.
-- Binary path validation — metacharacter rejection, non-absolute rejection.
+- Binary path validation — Windows UNC rejection before filesystem lookup,
+  metacharacter rejection, non-absolute rejection.
 
 ### 13.2 TypeScript IPC tests (desktop frontend)
 
@@ -600,6 +608,8 @@ These require a display server (Xvfb on Linux CI).
 
 **D4 — Security:**
 - [ ] WebView `connect-src` allows `127.0.0.1:*` only.
+- [ ] On Windows, a UNC binary path beginning with `\\` is rejected before any
+  filesystem lookup or spawn; absolute local drive paths remain eligible.
 - [ ] Binary path with `../` is rejected before spawn.
 - [ ] Binary path with `;` or `&&` metacharacters is rejected before spawn.
 - [ ] CSP blocks `eval()` in the WebView.
@@ -716,8 +726,9 @@ Deliverables:
 ## 16. Boundaries
 
 **Always:**
-- Validate the `llmup` binary path before every spawn (absolute, executable,
-  no metacharacters).
+- Validate the `llmup` binary path before every spawn (reject Windows UNC paths
+  before filesystem lookup; require an absolute, executable, metacharacter-free
+  local path).
 - Use `Command::new(path)` with discrete args — never `sh -c` interpolation.
 - Enforce the WebView CSP — no `unsafe-eval`, `connect-src` loopback only.
 - Pin all GitHub Actions `uses:` to full 40-character SHAs.
