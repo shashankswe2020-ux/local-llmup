@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { BackendError, ValidationError } from "../../src/errors.js";
 import {
+  isDefaultTrustedLmStudioExecutable,
   LmStudioAdapter,
   type LmsCommandFn,
   type LmsCommandResult,
@@ -721,5 +722,344 @@ describe("LmStudioAdapter — OpenAI-compatible inference", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("LmStudioAdapter — error-path branch coverage", () => {
+  const EXPECTED = {
+    pid: listener.pid,
+    executable: listener.executable,
+    started: listener.started,
+  };
+  const loadedPs: LmsCommandFn = (args) =>
+    commandResult(
+      args[0] === "server"
+        ? JSON.stringify({ running: true, port: 1234 })
+        : JSON.stringify([{ identifier: "qwen3:14b", path: "Qwen/model.gguf" }]),
+    );
+
+  function inferenceFetch(
+    extra?: (path: string, init?: Parameters<FetchFn>[1]) => FetchResponseLike | undefined,
+  ): FetchFn {
+    return (url, init) => {
+      const path = new URL(url).pathname;
+      if (path === "/lmstudio-greeting")
+        return Promise.resolve(jsonResponse(true, 200, { lmstudio: true }));
+      if (path === "/v1/models")
+        return Promise.resolve(
+          jsonResponse(true, 200, { object: "list", data: [{ id: "qwen3:14b" }] }),
+        );
+      return Promise.resolve(extra?.(path, init) ?? jsonResponse(false, 404, {}));
+    };
+  }
+
+  function inferenceAdapter(fetchFn: FetchFn, runCommand: LmsCommandFn = loadedPs): LmStudioAdapter {
+    return new LmStudioAdapter({
+      platform: "darwin",
+      fetch: fetchFn,
+      runCommand,
+      listenerProbe: () => Promise.resolve(listener),
+    });
+  }
+
+  const baseChat = {
+    endpoint: "http://127.0.0.1:1234",
+    model: "qwen3:14b",
+    messages: [{ role: "user" as const, content: "hi" }],
+    expectedProcess: EXPECTED,
+    expectedModelPath: "Qwen/model.gguf",
+  };
+  const baseEmbed = {
+    endpoint: "http://127.0.0.1:1234",
+    model: "qwen3:14b",
+    input: ["a", "b"],
+    expectedProcess: EXPECTED,
+    expectedModelPath: "Qwen/model.gguf",
+  };
+
+  it("refuses chat without process and model-path identity", async () => {
+    const adapter = inferenceAdapter(inferenceFetch());
+    await expect(
+      adapter.chat({ endpoint: baseChat.endpoint, model: baseChat.model, messages: baseChat.messages }),
+    ).rejects.toThrow(/without process and model-path identity/i);
+    await expect(
+      adapter.chat({ ...baseChat, expectedModelPath: undefined }),
+    ).rejects.toThrow(/without process and model-path identity/i);
+  });
+
+  it("refuses inference when the listener identity is unavailable", async () => {
+    const adapter = new LmStudioAdapter({
+      platform: "darwin",
+      fetch: inferenceFetch(),
+      runCommand: loadedPs,
+      listenerProbe: () => Promise.resolve(null),
+    });
+    await expect(adapter.chat(baseChat)).rejects.toThrow(/listener identity is unavailable/i);
+  });
+
+  it("refuses inference when the listener executable is untrusted", async () => {
+    const adapter = new LmStudioAdapter({
+      platform: "darwin",
+      fetch: inferenceFetch(),
+      runCommand: loadedPs,
+      listenerProbe: () => Promise.resolve({ ...listener, executable: "/tmp/LM Studio" }),
+    });
+    await expect(adapter.chat(baseChat)).rejects.toThrow(/not a trusted/i);
+  });
+
+  it("refuses inference when the expected process identity does not match", async () => {
+    const adapter = inferenceAdapter(inferenceFetch());
+    await expect(
+      adapter.chat({ ...baseChat, expectedProcess: { ...EXPECTED, pid: EXPECTED.pid + 1 } }),
+    ).rejects.toThrow(/process identity changed/i);
+  });
+
+  it("refuses inference when the greeting is not an authoritative LM Studio", async () => {
+    const fetch: FetchFn = (url) => {
+      const path = new URL(url).pathname;
+      if (path === "/lmstudio-greeting")
+        return Promise.resolve(jsonResponse(true, 200, { lmstudio: false }));
+      return Promise.resolve(
+        jsonResponse(true, 200, { object: "list", data: [{ id: "qwen3:14b" }] }),
+      );
+    };
+    const adapter = inferenceAdapter(fetch);
+    await expect(adapter.chat(baseChat)).rejects.toThrow(/process identity changed/i);
+  });
+
+  it("refuses inference when the model is not available", async () => {
+    const fetch: FetchFn = (url) => {
+      const path = new URL(url).pathname;
+      if (path === "/lmstudio-greeting")
+        return Promise.resolve(jsonResponse(true, 200, { lmstudio: true }));
+      return Promise.resolve(jsonResponse(true, 200, { object: "list", data: [] }));
+    };
+    const adapter = inferenceAdapter(fetch);
+    await expect(adapter.chat(baseChat)).rejects.toThrow(/is not available/i);
+  });
+
+  it("refuses inference when the loaded-model query fails or mismatches", async () => {
+    const psFails = inferenceAdapter(inferenceFetch(), (args) =>
+      commandResult(args[0] === "server" ? JSON.stringify({ running: true, port: 1234 }) : "", 1),
+    );
+    await expect(psFails.chat(baseChat)).rejects.toThrow(/failed to query loaded/i);
+
+    const psWrongPath = inferenceAdapter(inferenceFetch(), (args) =>
+      commandResult(
+        args[0] === "server"
+          ? JSON.stringify({ running: true, port: 1234 })
+          : JSON.stringify([{ identifier: "qwen3:14b", path: "Other/model.gguf" }]),
+      ),
+    );
+    await expect(psWrongPath.chat(baseChat)).rejects.toThrow(/not loaded from the exact/i);
+  });
+
+  it("refuses inference when the listener changes during validation", async () => {
+    const adapter = new LmStudioAdapter({
+      platform: "darwin",
+      fetch: inferenceFetch(),
+      runCommand: loadedPs,
+      listenerProbe: vi
+        .fn<() => Promise<ListenerIdentity | null>>()
+        .mockResolvedValueOnce(listener)
+        .mockResolvedValue({ ...listener, pid: listener.pid + 5 }),
+    });
+    await expect(adapter.chat(baseChat)).rejects.toThrow(/listener changed during validation/i);
+  });
+
+  it("rejects an oversized chat request body", async () => {
+    const adapter = inferenceAdapter(inferenceFetch());
+    await expect(
+      adapter.chat({
+        ...baseChat,
+        messages: [{ role: "user", content: "x".repeat(4 * 1024 * 1024 + 16) }],
+      }),
+    ).rejects.toThrow(/request exceeds byte limit/i);
+  });
+
+  it("rejects a chat HTTP error, malformed JSON, and oversized content", async () => {
+    const httpError = inferenceAdapter(
+      inferenceFetch((path) =>
+        path === "/v1/chat/completions" ? jsonResponse(false, 503, {}) : undefined,
+      ),
+    );
+    await expect(httpError.chat(baseChat)).rejects.toThrow(/HTTP 503/i);
+
+    const malformed = inferenceAdapter(
+      inferenceFetch((path) =>
+        path === "/v1/chat/completions" ? jsonResponse(true, 200, { nope: 1 }) : undefined,
+      ),
+    );
+    await expect(malformed.chat(baseChat)).rejects.toThrow(/malformed JSON/i);
+
+    const oversized = inferenceAdapter(
+      inferenceFetch((path) =>
+        path === "/v1/chat/completions"
+          ? jsonResponse(true, 200, {
+              choices: [{ message: { content: "y".repeat(1024 * 1024 + 16) } }],
+            })
+          : undefined,
+      ),
+    );
+    await expect(oversized.chat(baseChat)).rejects.toThrow(/invalid content/i);
+  });
+
+  it("rejects invalid embedding input counts and oversized bodies", async () => {
+    const adapter = inferenceAdapter(inferenceFetch());
+    await expect(adapter.embed({ ...baseEmbed, input: [] })).rejects.toThrow(/input count is invalid/i);
+    await expect(
+      adapter.embed({ ...baseEmbed, input: Array.from({ length: 1025 }, () => "a") }),
+    ).rejects.toThrow(/input count is invalid/i);
+    await expect(
+      adapter.embed({ ...baseEmbed, input: ["z".repeat(4 * 1024 * 1024 + 16)] }),
+    ).rejects.toThrow(/request exceeds byte limit/i);
+  });
+
+  it("rejects embedding HTTP errors, length mismatches, and inconsistent vectors", async () => {
+    const httpError = inferenceAdapter(
+      inferenceFetch((path) =>
+        path === "/v1/embeddings" ? jsonResponse(false, 500, {}) : undefined,
+      ),
+    );
+    await expect(httpError.embed(baseEmbed)).rejects.toThrow(/HTTP 500/i);
+
+    const lengthMismatch = inferenceAdapter(
+      inferenceFetch((path) =>
+        path === "/v1/embeddings"
+          ? jsonResponse(true, 200, { data: [{ index: 0, embedding: [0.1, 0.2] }] })
+          : undefined,
+      ),
+    );
+    await expect(lengthMismatch.embed(baseEmbed)).rejects.toThrow(/malformed JSON/i);
+
+    const inconsistent = inferenceAdapter(
+      inferenceFetch((path) =>
+        path === "/v1/embeddings"
+          ? jsonResponse(true, 200, {
+              data: [
+                { index: 0, embedding: [0.1, 0.2] },
+                { index: 1, embedding: [0.3] },
+              ],
+            })
+          : undefined,
+      ),
+    );
+    await expect(inconsistent.embed(baseEmbed)).rejects.toThrow(/inconsistent vectors/i);
+  });
+
+  it("rejects a failed or mismatched LM Studio server status during attach", async () => {
+    const statusFails = new LmStudioAdapter({
+      platform: "darwin",
+      fetch: inferenceFetch(),
+      runCommand: (args) =>
+        commandResult(args[0] === "server" ? JSON.stringify({ running: true, port: 1234 }) : "", 1),
+      listenerProbe: () => Promise.resolve(listener),
+    });
+    await expect(
+      statusFails.serve({ port: 1234, modelId: "qwen3:14b", modelPath: "Qwen/model.gguf" }),
+    ).rejects.toThrow(/failed to query LM Studio server status/i);
+
+    const portMismatch = new LmStudioAdapter({
+      platform: "darwin",
+      fetch: inferenceFetch(),
+      runCommand: (args) =>
+        commandResult(
+          args[0] === "server"
+            ? JSON.stringify({ running: true, port: 9999 })
+            : JSON.stringify([{ identifier: "qwen3:14b", path: "Qwen/model.gguf" }]),
+        ),
+      listenerProbe: () => Promise.resolve(listener),
+    });
+    await expect(
+      portMismatch.serve({ port: 1234, modelId: "qwen3:14b", modelPath: "Qwen/model.gguf" }),
+    ).rejects.toThrow(/reports port 9999/i);
+  });
+
+  it("requires the exact delegated model path when attaching to a loaded model", async () => {
+    const adapter = inferenceAdapter(inferenceFetch());
+    await expect(adapter.serve({ port: 1234, modelId: "qwen3:14b" })).rejects.toThrow(
+      /requires the exact delegated model path/i,
+    );
+  });
+
+  it("rejects an attach whose loaded model path does not match exactly", async () => {
+    const adapter = inferenceAdapter(inferenceFetch(), (args) =>
+      commandResult(
+        args[0] === "server"
+          ? JSON.stringify({ running: true, port: 1234 })
+          : JSON.stringify([{ identifier: "qwen3:14b", path: "Other/model.gguf" }]),
+      ),
+    );
+    await expect(
+      adapter.serve({ port: 1234, modelId: "qwen3:14b", modelPath: "Qwen/model.gguf" }),
+    ).rejects.toThrow(/not loaded from the exact/i);
+  });
+
+  it("rejects an attach when the listener changes during model validation", async () => {
+    const adapter = new LmStudioAdapter({
+      platform: "darwin",
+      fetch: inferenceFetch(),
+      runCommand: loadedPs,
+      listenerProbe: vi
+        .fn<() => Promise<ListenerIdentity | null>>()
+        .mockResolvedValueOnce(listener)
+        .mockResolvedValueOnce(listener)
+        .mockResolvedValue({ ...listener, pid: listener.pid + 9 }),
+    });
+    await expect(
+      adapter.serve({ port: 1234, modelId: "qwen3:14b", modelPath: "Qwen/model.gguf" }),
+    ).rejects.toThrow(/identity changed during model validation/i);
+  });
+
+  it("fails a delegated pull when the LM Studio listing command errors", async () => {
+    const adapter = new LmStudioAdapter({ runCommand: () => commandResult("", 1) });
+    await expect(
+      adapter.pull({
+        modelId: "qwen3:14b",
+        source: {
+          repo: "Qwen/Qwen3-14B-GGUF",
+          revision: "a".repeat(40),
+          file: "model.gguf",
+          sha256: "b".repeat(64),
+        },
+      }),
+    ).rejects.toThrow(/failed to list downloaded/i);
+  });
+
+  it("reports a null version when the probe exits non-zero or overflows", async () => {
+    await expect(new LmStudioAdapter({ spawn: probeSpawn(1) }).version?.()).resolves.toBeNull();
+    await expect(
+      new LmStudioAdapter({ spawn: probeSpawn(0, "x".repeat(9000)) }).version?.(),
+    ).resolves.toBeNull();
+    await expect(new LmStudioAdapter({ spawn: probeSpawn(0, "   ") }).version?.()).resolves.toBeNull();
+  });
+
+  it("requires full identity for readiness", async () => {
+    const adapter = new LmStudioAdapter({ platform: "darwin" });
+    await expect(
+      adapter.waitUntilReady({
+        endpoint: "http://127.0.0.1:1234",
+        modelId: "qwen3:14b",
+        expectedModelPath: "Qwen/model.gguf",
+      }),
+    ).rejects.toThrow(/requires process, model, and delegated path identity/i);
+  });
+
+  it("classifies default trusted LM Studio executables by platform", () => {
+    expect(
+      isDefaultTrustedLmStudioExecutable(
+        "/Applications/LM Studio.app/Contents/MacOS/LM Studio",
+        "darwin",
+      ),
+    ).toBe(true);
+    expect(isDefaultTrustedLmStudioExecutable("/tmp/rogue", "darwin")).toBe(false);
+    expect(
+      isDefaultTrustedLmStudioExecutable(
+        "C:\\Program Files\\LM Studio\\LM Studio.exe",
+        "win32",
+        {},
+      ),
+    ).toBe(true);
+    expect(isDefaultTrustedLmStudioExecutable("/usr/bin/llmster", "linux", {})).toBe(true);
   });
 });

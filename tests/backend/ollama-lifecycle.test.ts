@@ -279,7 +279,12 @@ describe("OllamaAdapter.serve", () => {
   it("escalates cleanup to SIGKILL when SIGTERM does not stop the spawned daemon", async () => {
     const { spawn, state } = fakeServeSpawn({ exitOnSignal: "SIGKILL" });
     const fetch = vi.fn<FetchFn>(() => Promise.resolve(notFound));
-    const adapter = new OllamaAdapter({ fetch, spawn, sleep: immediateSleep });
+    const adapter = new OllamaAdapter({
+      fetch,
+      spawn,
+      sleep: immediateSleep,
+      listenerProbe: async () => null,
+    });
 
     await expect(adapter.serve({ port: 12011 })).rejects.toBeInstanceOf(BackendError);
     expect(state.killSignals).toEqual(["SIGTERM", "SIGKILL"]);
@@ -288,7 +293,12 @@ describe("OllamaAdapter.serve", () => {
   it("kills and fails when the spawned daemon reports no pid", async () => {
     const { spawn, state } = fakeServeSpawn({ noPid: true });
     const fetch = vi.fn<FetchFn>(() => Promise.resolve(notFound));
-    const adapter = new OllamaAdapter({ fetch, spawn, sleep: immediateSleep });
+    const adapter = new OllamaAdapter({
+      fetch,
+      spawn,
+      sleep: immediateSleep,
+      listenerProbe: async () => null,
+    });
 
     await expect(adapter.serve()).rejects.toBeInstanceOf(BackendError);
     expect(state.kills).toBe(1);
@@ -334,7 +344,12 @@ describe("OllamaAdapter.serve", () => {
   it("kills and fails when the spawned daemon reports a non-positive pid", async () => {
     const { spawn, state } = fakeServeSpawn({ pid: 0 });
     const fetch = vi.fn<FetchFn>(() => Promise.resolve(notFound));
-    const adapter = new OllamaAdapter({ fetch, spawn, sleep: immediateSleep });
+    const adapter = new OllamaAdapter({
+      fetch,
+      spawn,
+      sleep: immediateSleep,
+      listenerProbe: async () => null,
+    });
 
     await expect(adapter.serve()).rejects.toBeInstanceOf(BackendError);
     expect(state.kills).toBe(1);
@@ -347,6 +362,7 @@ describe("OllamaAdapter.serve", () => {
       fetch: notReachableThenHanging(recorded),
       spawn,
       sleep: immediateSleep,
+      listenerProbe: async () => null,
     });
 
     await expect(adapter.serve()).rejects.toBeInstanceOf(BackendError);

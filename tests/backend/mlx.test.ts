@@ -814,3 +814,149 @@ describe("MlxAdapter — chat and embeddings", () => {
     await expect(adapter.embed({ model: "m", input: ["x"] })).rejects.toBeInstanceOf(BackendError);
   });
 });
+
+describe("MlxAdapter — serve/stop error-path branch coverage", () => {
+  const ownedHandle = {
+    endpoint: "http://127.0.0.1:18081",
+    pid: 4321,
+    port: 18081,
+    ownedByUs: true as const,
+    processExecutable: "/usr/bin/python3",
+    processStartedAt: "2026-08-08T00:00:00.000Z",
+  };
+
+  it("refuses to serve off Apple Silicon", async () => {
+    const adapter = new MlxAdapter({
+      platform: "linux",
+      arch: "arm64",
+      modelDirectoryVerifier: () => {},
+    });
+    await expect(adapter.serve({ port: 18081, modelPath: "/cache/m" })).rejects.toThrow(
+      /Apple Silicon/i,
+    );
+  });
+
+  it("refuses to serve once the caller signal is already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const adapter = new MlxAdapter({
+      platform: "darwin",
+      arch: "arm64",
+      modelDirectoryVerifier: () => {},
+    });
+    await expect(
+      adapter.serve({ port: 18081, modelPath: "/cache/m", signal: controller.signal }),
+    ).rejects.toThrow(/serve aborted/i);
+  });
+
+  it("requires an absolute verified model path", async () => {
+    const adapter = new MlxAdapter({
+      platform: "darwin",
+      arch: "arm64",
+      modelDirectoryVerifier: () => {},
+    });
+    await expect(adapter.serve({ port: 18081 })).rejects.toThrow(/absolute model path/i);
+    await expect(adapter.serve({ port: 18081, modelPath: "relative/m" })).rejects.toThrow(
+      /absolute model path/i,
+    );
+  });
+
+  it("refuses a health-reachable endpoint that has no authoritative listener", async () => {
+    const adapter = new MlxAdapter({
+      platform: "darwin",
+      arch: "arm64",
+      modelDirectoryVerifier: () => {},
+      listenerProbe: () => Promise.resolve(null),
+      fetch: () => Promise.resolve(jsonResponse(true, 200, { status: "ok" })),
+    });
+    await expect(adapter.serve({ port: 18081, modelPath: "/cache/m" })).rejects.toThrow(
+      /occupied MLX endpoint/i,
+    );
+  });
+
+  it("rejects an invalid generated session token before spawning", async () => {
+    const spawn = vi.fn<SpawnFn>();
+    const adapter = new MlxAdapter({
+      platform: "darwin",
+      arch: "arm64",
+      modelDirectoryVerifier: () => {},
+      listenerProbe: () => Promise.resolve(null),
+      fetch: () => Promise.reject(new Error("ECONNREFUSED")),
+      authTokenFactory: () => "not-a-valid-token",
+      spawn,
+    });
+    await expect(adapter.serve({ port: 18081, modelPath: "/cache/m" })).rejects.toThrow(
+      /invalid token/i,
+    );
+    expect(spawn).not.toHaveBeenCalled();
+  });
+
+  it("wraps a spawn failure as a run error", async () => {
+    const adapter = new MlxAdapter({
+      platform: "darwin",
+      arch: "arm64",
+      modelDirectoryVerifier: () => {},
+      listenerProbe: () => Promise.resolve(null),
+      fetch: () => Promise.reject(new Error("ECONNREFUSED")),
+      authTokenFactory: () => "a".repeat(64),
+      spawn: () => {
+        throw new Error("boom");
+      },
+    });
+    await expect(adapter.serve({ port: 18081, modelPath: "/cache/m" })).rejects.toThrow(
+      /failed to run/i,
+    );
+  });
+
+  it("fails when the spawned MLX process reports no usable pid", async () => {
+    const spawn: SpawnFn = () => {
+      const closeListeners: Array<(code: number | null) => void> = [];
+      return {
+        pid: undefined,
+        stdout: null,
+        stderr: null,
+        onClose: (l) => closeListeners.push(l),
+        onError: () => {},
+        kill: () => {
+          queueMicrotask(() => {
+            for (const l of closeListeners) l(null);
+          });
+        },
+      };
+    };
+    const adapter = new MlxAdapter({
+      platform: "darwin",
+      arch: "arm64",
+      modelDirectoryVerifier: () => {},
+      listenerProbe: () => Promise.resolve(null),
+      fetch: () => Promise.reject(new Error("ECONNREFUSED")),
+      authTokenFactory: () => "a".repeat(64),
+      sleep: noSleep,
+      spawn,
+    });
+    await expect(adapter.serve({ port: 18081, modelPath: "/cache/m" })).rejects.toThrow(
+      /usable pid/i,
+    );
+  });
+
+  it("refuses to stop an owned process without complete identity", async () => {
+    const kill = vi.fn<KillFn>();
+    const adapter = new MlxAdapter({ kill, platform: "darwin", arch: "arm64" });
+    await expect(
+      adapter.stop({ endpoint: "http://127.0.0.1:18081", pid: 4321, port: 18081, ownedByUs: true }),
+    ).rejects.toThrow(/complete identity/i);
+    expect(kill).not.toHaveBeenCalled();
+  });
+
+  it("refuses to stop when the listener identity is gone", async () => {
+    const kill = vi.fn<KillFn>();
+    const adapter = new MlxAdapter({
+      kill,
+      platform: "darwin",
+      arch: "arm64",
+      listenerProbe: () => Promise.resolve(null),
+    });
+    await expect(adapter.stop(ownedHandle)).rejects.toThrow(/listener identity changed/i);
+    expect(kill).not.toHaveBeenCalled();
+  });
+});
