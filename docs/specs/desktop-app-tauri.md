@@ -263,14 +263,19 @@ URL after the server starts (via `window.navigate(url)`).
 ```json
 {
   "security": {
-    "csp": "default-src 'self' http://127.0.0.1:* 'unsafe-inline'; connect-src http://127.0.0.1:*; img-src 'self' data:"
+    "csp": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src http://127.0.0.1:*; img-src 'self' data:; font-src 'self'; frame-src 'none'; base-uri 'none'; object-src 'none'; form-action 'none'"
   }
 }
 ```
 
+- `default-src 'none'` fails closed for any resource type without an explicit
+  directive.
 - `connect-src` is restricted to `http://127.0.0.1:*` — no external network
   from the WebView.
-- `script-src 'self'` — no inline scripts injected by model output can execute.
+- `script-src 'self'` permits only same-origin script files; inline scripts and
+  string-to-code evaluation are not permitted.
+- Inline styles remain allowed for the existing UI, while frames, base URL
+  changes, plugins, and form submissions are disabled.
 - Model-generated content is rendered as text, not HTML (enforced by the JS UI
   layer from the GUI spec).
 
@@ -504,7 +509,8 @@ by `tests/workflows/workflow-policy.test.ts`).
 
 - **CSP** restricts `connect-src` to `127.0.0.1` — the WebView cannot reach
   cloud APIs directly. All cloud harness calls go through the Node.js server.
-- **No `unsafe-eval`** in CSP — no `eval()` or `Function()` possible in the
+- **Script policy** is explicitly `script-src 'self'`; it does not inherit from
+  `default-src`, permit inline scripts, or permit `eval()` / `Function()` in the
   WebView context.
 - **Tauri capability allowlist** restricts IPC to the four declared commands.
   The WebView cannot invoke shell, fs, or any other Tauri API not in the
@@ -583,6 +589,8 @@ A separate `desktop-smoke.test.ts` (run only in CI, gated by `TAURI_SMOKE=1`):
 - Launches the app binary with `LLMUP_BIN=<fake-echo-server>`.
 - Asserts the window title is "local-llmup".
 - Asserts the tray icon is registered.
+- Attempts string-to-code evaluation and inline-script injection, and asserts
+  the CSP blocks both without executing their payloads.
 - Sends SIGTERM and asserts clean exit.
 
 These require a display server (Xvfb on Linux CI).
@@ -612,7 +620,9 @@ These require a display server (Xvfb on Linux CI).
   filesystem lookup or spawn; absolute local drive paths remain eligible.
 - [ ] Binary path with `../` is rejected before spawn.
 - [ ] Binary path with `;` or `&&` metacharacters is rejected before spawn.
-- [ ] CSP blocks `eval()` in the WebView.
+- [ ] CSP tests prove that `eval()` and `Function()` are blocked in the WebView.
+- [ ] CSP tests prove that inline scripts are blocked and the effective
+  `script-src` is exactly `'self'`, with no inline-script or eval exceptions.
 
 **D5 — Platform:**
 - [ ] `.dmg` installer mounts and installs on macOS arm64.
@@ -730,7 +740,8 @@ Deliverables:
   before filesystem lookup; require an absolute, executable, metacharacter-free
   local path).
 - Use `Command::new(path)` with discrete args — never `sh -c` interpolation.
-- Enforce the WebView CSP — no `unsafe-eval`, `connect-src` loopback only.
+- Enforce the WebView CSP — no eval or inline-script exceptions; `connect-src`
+  loopback only.
 - Pin all GitHub Actions `uses:` to full 40-character SHAs.
 - Never store code-signing credentials in source code.
 
@@ -746,6 +757,6 @@ Deliverables:
 - Use `npx` or another package runner as a discovery fallback, or download and
   run a binary without a separately security-reviewed design.
 - Bundle or log API keys, signing keys, or tokens.
-- Disable CSP or use `unsafe-eval` / `unsafe-inline` for scripts.
+- Disable CSP or add eval or inline-script exceptions.
 - Ship a release binary that is not code-signed on macOS or Windows.
 - Access cloud APIs directly from the Tauri Rust backend.
