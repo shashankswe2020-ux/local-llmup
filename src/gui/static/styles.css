@@ -734,6 +734,41 @@ input {
   max-width: 52ch;
 }
 
+.section-note {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+
+.model-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+.context-control {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.context-control span {
+  color: var(--muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.context-control select {
+  min-width: 9rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--stroke-strong);
+  border-radius: 10px;
+  background: var(--glass-strong);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
 /* Banners */
 .banner {
   padding: 0.7rem 0.9rem;
@@ -1256,6 +1291,20 @@ input {
   }
   .pills {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .section-head,
+  .model-toolbar {
+    flex-wrap: wrap;
+  }
+  .model-toolbar {
+    width: 100%;
+  }
+  .context-control {
+    flex: 1 1 10rem;
+  }
+  .context-control select {
+    width: 100%;
+    min-width: 0;
   }
 }
 

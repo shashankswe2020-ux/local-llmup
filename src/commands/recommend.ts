@@ -21,6 +21,7 @@ import { backendsForModel } from "../catalog/backends.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import { renderJson, renderTable, type Column } from "../output.js";
 import {
+  contextTokensForModel,
   rankModels,
   type RankOptions,
   type RankScores,
@@ -106,6 +107,8 @@ export interface RecommendOptions {
   readonly json?: boolean | undefined;
   /** Size the KV cache at this explicit context (tokens); re-ranks and re-verdicts. */
   readonly context?: number | undefined;
+  /** Size each model at a percentage of its advertised context (GUI presets). */
+  readonly contextPercent?: 25 | 50 | 75 | 100 | undefined;
   /** Report the largest context each model can hold on this hardware. */
   readonly maxContext?: boolean | undefined;
   /** Scope the throughput estimate to this runtime (default `ollama`). */
@@ -215,25 +218,38 @@ export function buildRecommendation(
   registry: BackendRegistry = createDefaultRegistry(),
   availableBackendNames?: readonly string[],
 ): RecommendationResult {
+  const sizingModes = [
+    options.context !== undefined,
+    options.contextPercent !== undefined,
+    options.maxContext === true,
+  ].filter(Boolean).length;
+  if (sizingModes > 1) {
+    throw new ValidationError("context, contextPercent, and maxContext are mutually exclusive");
+  }
   const rankOptions: RankOptions = {
     ...(options.task !== undefined ? { task: options.task } : {}),
     ...(options.context !== undefined ? { context: options.context } : {}),
+    ...(options.contextPercent !== undefined ? { contextPercent: options.contextPercent } : {}),
   };
   const ranking = rankModels(catalog, hardware, rankOptions);
   const usableBytes = usableMemoryBytes(hardware);
   const throughputBackend = options.backend ?? DEFAULT_THROUGHPUT_BACKEND;
 
   let entries: RecommendationEntry[] = ranking.ranked.map((ranked, index) => {
+    const contextTokens =
+      options.contextPercent !== undefined
+        ? contextTokensForModel(ranked.model, options.contextPercent)
+        : options.context;
     const verdict = evaluateVerdict(
       ranked.model,
       hardware,
       perf,
-      options.context,
+      contextTokens,
       throughputBackend,
     );
     const contextSizing =
-      options.context !== undefined
-        ? buildContextSizing(ranked.model, ranked.quant, options.context)
+      contextTokens !== undefined
+        ? buildContextSizing(ranked.model, ranked.quant, contextTokens)
         : undefined;
     const maxContext =
       options.maxContext === true

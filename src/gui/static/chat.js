@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const modelError = document.querySelector("#model-error");
   const activeBanner = document.querySelector("#active-model-banner");
   const refreshModels = document.querySelector("#refresh-models");
+  const contextWindow = document.querySelector("#context-window");
   const sessionCurrent = document.querySelector("#session-current");
   const sessionTurns = document.querySelector("#session-turns");
   const connectorForm = document.querySelector("#connector-form");
@@ -51,6 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const skillCancel = document.querySelector("#skill-cancel");
   const navItems = document.querySelectorAll(".rail-item[data-view]");
   const views = document.querySelectorAll(".view");
+  let modelsRequestSequence = 0;
 
   if (!form || !prompt || !messages) {
     return;
@@ -815,6 +817,10 @@ document.addEventListener("DOMContentLoaded", () => {
     return `${throughput.lowTokPerSec}–${throughput.highTokPerSec} tok/s`;
   }
 
+  function formatTokens(tokens) {
+    return Number.isInteger(tokens) && tokens > 0 ? tokens.toLocaleString() : "unknown";
+  }
+
   function ensureModelOption(id) {
     if (!modelSelect || !id) {
       return;
@@ -941,7 +947,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const meta = document.createElement("div");
       meta.className = "model-card-meta";
-      meta.textContent = `${model.params} · ${model.quant} · ${formatSize(model.diskBytes)} · ${formatThroughput(model.throughput)}`;
+      const context = model.contextTokens
+        ? model.contextFitKnown === false
+          ? ` · ${formatTokens(model.contextTokens)} context tokens · context fit unknown`
+          : ` · ${formatTokens(model.contextTokens)} context tokens`
+        : "";
+      meta.textContent = `${model.params} · ${model.quant} · ${formatSize(model.diskBytes)} · ${formatThroughput(model.throughput)}${context}`;
 
       const actions = document.createElement("div");
       actions.className = "model-card-actions";
@@ -983,39 +994,65 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function loadActive() {
+  async function loadActive(render = true) {
     try {
       const response = await globalThis.fetch("/api/models/active");
       if (!response.ok) {
-        return null;
+        return undefined;
       }
       const data = await response.json();
-      renderActive(data.active);
+      if (render) {
+        renderActive(data.active);
+      }
       return data.active;
     } catch {
-      return null;
+      return undefined;
     }
   }
 
   async function loadModels() {
+    const requestSequence = ++modelsRequestSequence;
     if (modelError) {
       modelError.hidden = true;
     }
-    const active = await loadActive();
+    const active = await loadActive(false);
+    if (requestSequence !== modelsRequestSequence) {
+      return;
+    }
+    if (active === undefined) {
+      if (modelError) {
+        modelError.hidden = false;
+        modelError.textContent = "Could not load active model status.";
+      }
+      return;
+    }
+    renderActive(active);
     if (!recommendedList) {
       return;
     }
     try {
       const runtime = selectedRuntime();
-      const query = runtime ? `?runtime=${encodeURIComponent(runtime)}` : "";
-      const response = await globalThis.fetch(`/api/models/recommended${query}`);
+      const params = new globalThis.URLSearchParams();
+      if (runtime) {
+        params.set("runtime", runtime);
+      }
+      if (contextWindow && contextWindow.value) {
+        params.set("context", contextWindow.value);
+      }
+      const response = await globalThis.fetch(`/api/models/recommended?${params.toString()}`);
       if (!response.ok) {
         throw new Error(`request failed (${response.status})`);
       }
       const data = await response.json();
+      if (requestSequence !== modelsRequestSequence) {
+        return;
+      }
       const models = Array.isArray(data.models) ? data.models : [];
       renderRecommended(models, active);
     } catch (error) {
+      if (requestSequence !== modelsRequestSequence) {
+        return;
+      }
       recommendedList.innerHTML = "";
       const empty = document.createElement("div");
       empty.className = "recommended-empty";
@@ -1026,6 +1063,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (refreshModels) {
     refreshModels.addEventListener("click", () => loadModels());
+  }
+
+  if (contextWindow) {
+    contextWindow.addEventListener("change", () => loadModels());
   }
 
   if (refreshRuntime) {

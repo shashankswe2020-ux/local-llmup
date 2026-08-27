@@ -9,7 +9,11 @@ import { stripControl } from "../sanitize.js";
 import { appendConversation, createSession, type GuiSession } from "./session.js";
 import { MAX_REQUEST_BYTES, parseGuiChatRequest, parseHarnessSwitch, parseRuntimeQuery, readJsonBody, validateHost } from "./handlers.js";
 import { readStaticAsset } from "./static.js";
-import { parseGuiUpRequest, type GuiModelManager } from "./management.js";
+import {
+  parseContextWindowPreset,
+  parseGuiUpRequest,
+  type GuiModelManager,
+} from "./management.js";
 import { toHardwareSummary, type HardwareProvider } from "./hardware.js";
 import type { RuntimeController } from "./runtime.js";
 import type { McpManager } from "../mcp/manager.js";
@@ -203,10 +207,16 @@ export class GuiServer {
       if (req.method === "GET" && pathname === "/api/models/recommended") {
         const manager = this.requireModelManager();
         const runtime = parseRuntimeQuery(url.searchParams.get("runtime"));
-        const models = runtime !== undefined
-          ? await manager.recommended({ runtime })
-          : await manager.recommended();
-        this.writeJson(res, 200, { models, runtime: runtime ?? null });
+        const contextPreset = parseContextWindowPreset(url.searchParams.get("context"));
+        const models = await manager.recommended({
+          ...(runtime !== undefined ? { runtime } : {}),
+          ...(contextPreset !== undefined ? { contextPreset } : {}),
+        });
+        this.writeJson(res, 200, {
+          models,
+          runtime: runtime ?? null,
+          contextPreset: contextPreset ?? null,
+        });
         return;
       }
 
