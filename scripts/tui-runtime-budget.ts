@@ -10,9 +10,10 @@ const WARMUP_SAMPLES = 5;
 const MEASURED_SAMPLES = 20;
 const MEDIAN_REGRESSION_LIMIT_MS = 10;
 const P90_REGRESSION_LIMIT_MS = 20;
-// Absolute ceiling for importing the TUI renderer module (ink/react/yoga). Sized
-// with headroom for slower, shared CI runners across the Node 18–24 matrix.
-const TUI_MODULE_LOAD_P90_LIMIT_MS = 400;
+// Absolute ceiling for importing the TUI renderer module (ink/react/yoga).
+// Sized for the slowest matrix combo (Windows + Node 18 measures ~540ms p90);
+// still catches a catastrophic multi-second import regression.
+const TUI_MODULE_LOAD_P90_LIMIT_MS = 1000;
 
 interface Distribution {
   readonly median: number;
