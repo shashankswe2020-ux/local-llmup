@@ -46,6 +46,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "catalog:refresh:dry-run": "tsx scripts/catalog-refresh-dry-run.ts",
+    "catalog:freshness": "tsx scripts/catalog-freshness.ts",
     "bootstrap": "tsx scripts/bootstrap-catalog.ts",
     "tui:dependency-policy": "tsx scripts/tui-dependency-policy.ts",
     "tui:package-budget": "tsx scripts/tui-package-budget.ts",

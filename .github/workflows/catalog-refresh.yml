@@ -1,16 +1,18 @@
-name: Catalog Refresh Dry Run
+name: Catalog Freshness
 
 on:
   schedule:
+    # Every Monday 03:17 UTC.
     - cron: "17 3 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
-  catalog-refresh:
-    name: Incremental Catalog Refresh (dry-run)
+  freshness:
+    name: Weekly catalog freshness
     runs-on: ubuntu-latest
 
     steps:
@@ -26,8 +28,50 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run incremental enrich dry-run
-        run: npm run catalog:refresh:dry-run
+      - name: Determinism guard (enrich makes no catalog writes)
+        run: |
+          npm run catalog:refresh:dry-run
+          git diff --exit-code -- data/models.json
 
-      - name: Assert zero writes
-        run: git diff --exit-code -- data/models.json
+      - name: Catalog freshness report
+        run: npm run --silent catalog:freshness
+
+      - name: Open or update a freshness issue when attention is needed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NEEDS=$(node -e "process.stdout.write(String(require('./catalog-freshness.json').needsAttention))")
+          if [ "$NEEDS" != "true" ]; then
+            echo "Catalog is fresh and in sync — no issue needed."
+            exit 0
+          fi
+
+          TITLE="Catalog freshness: refresh needed"
+          BODY=$(node -e "
+            const r = require('./catalog-freshness.json');
+            const lines = [
+              'The weekly catalog freshness check flagged \`data/models.json\` for review.',
+              '',
+              '- generated: ' + r.generatedAt,
+              '- age: ' + r.ageDays + ' day(s) (stale after ' + r.staleAfterDays + ')',
+              '- status: ' + r.status,
+              '- drift: added=' + r.drift.added + ' updated=' + r.drift.updated + ' removed=' + r.drift.removed,
+              '',
+              'Reasons:',
+              ...(r.reasons.length ? r.reasons.map(x => '- ' + x) : ['- (none)']),
+              '',
+              'Refresh the catalog (bootstrap/enrich pipeline) and open a PR updating \`data/models.json\`.',
+              '',
+              '_Filed automatically by the Catalog Freshness workflow._',
+            ];
+            process.stdout.write(lines.join('\n'));
+          ")
+
+          EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            echo "Updating existing issue #$EXISTING"
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            echo "Creating a new freshness issue"
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi

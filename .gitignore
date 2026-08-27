@@ -6,5 +6,8 @@ coverage/
 .env
 .env.*
 
+# Transient report from the catalog freshness pipeline
+catalog-freshness.json
+
 # Local experiment, not part of the package
 whoop-test.mjs

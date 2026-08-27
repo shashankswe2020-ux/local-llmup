@@ -159,7 +159,9 @@ describe("T30 workflow hardening", () => {
     expect(refresh).toMatch(/cron:\s*['"][^'"]+['"]/u);
 
     const permissions = parseTopLevelPermissions(refresh);
-    expect(permissions).toEqual({ contents: "read" });
+    // Least privilege: read the repo, plus open/update a freshness issue. It
+    // never gets `contents: write`, so it cannot push to a protected branch.
+    expect(permissions).toEqual({ contents: "read", issues: "write" });
 
     const refs = extractUsesRefs(refresh);
     expect(refs.length).toBeGreaterThan(0);
