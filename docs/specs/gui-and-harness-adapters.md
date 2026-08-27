@@ -1,7 +1,7 @@
 # Spec: Browser GUI for Chat + Pluggable Chat Harness Adapters
 
 > Status: **Draft (v0.1)** — pending sub-agent review and human approval.
-> Last updated: 2026-08-10
+> Last updated: 2026-08-27
 > Related: [local-llmup.md](./local-llmup.md),
 > [pluggable-inference-backends.md](./pluggable-inference-backends.md),
 > [terminal-user-interface.md](./terminal-user-interface.md)
@@ -123,7 +123,12 @@ Inherited from the project (no changes):
 Additional rules for this spec:
 
 - All strings received from cloud API responses pass `stripControl()` before
-  display or storage.
+  display or storage. `stripControl()` only removes control characters; it is
+  not an HTML sanitizer, and its output remains untrusted plain text.
+- Assistant response content is rendered only with DOM text APIs
+  (`textContent` or `append(document.createTextNode(chunk))` for streaming).
+  It must never reach `innerHTML`, `insertAdjacentHTML`, or an unsanitized
+  HTML/Markdown renderer.
 - `assertSafeFetchUrl()` validates every cloud API endpoint before the first
   fetch (blocks SSRF, javascript:, file:, and private IP ranges).
 - The GUI HTTP server refuses all requests except those to its own origin
@@ -297,7 +302,8 @@ export type HarnessName = (typeof HARNESS_NAMES)[number];
 - Delegates to `registry.get(active.backend).chat(...)` — uses the
   `BackendAdapter` chain, not a direct HTTP call.
 - `chatSync()` calls `adapter.chat()` (already non-streaming in the adapter contract).
-- `chat()` async iterator: yields the full reply as a single string chunk.
+- `chat()` async iterator: yields the full reply as a single plain-text string
+  chunk with no implicit HTML or Markdown semantics.
 
 ### 4.4 GUI server (`src/gui/`)
 
@@ -358,9 +364,15 @@ data: {"type":"done","turnsAppended":1,"factsExtracted":0,"vectorsEmbedded":0}
 data: {"type":"error","message":"Harness unavailable"}
 ```
 
-All `content` strings are `stripControl()`-sanitized before inclusion in the
-SSE data. The `done` event includes the capture result so the UI can show
-memory recording status.
+All SSE `content` values are plain text with no implicit HTML or Markdown
+semantics. They are processed with `stripControl()` before inclusion in SSE,
+but that operation is control-character removal, not HTML sanitization. The
+browser treats every assistant delta as untrusted text: create the message
+element with DOM APIs and set `textContent`, or append each streaming delta
+with `document.createTextNode()`. Assistant content must never be passed to
+`innerHTML`, `insertAdjacentHTML`, or an HTML-backed Markdown renderer unless a
+separately approved sanitizer and policy are specified. The `done` event
+includes the capture result so the UI can show memory recording status.
 
 **Host header validation:**
 
@@ -469,6 +481,7 @@ mitigations below address the additional attack surface.
 | SSRF via user-supplied `OPENAI_COMPAT_BASE_URL` | `assertSafeFetchUrl()` on the runtime value |
 | API key leakage in error messages | Keys never interpolated in error strings or response bodies |
 | Prompt injection via API response content | `stripControl()` before storage and before SSE emission |
+| DOM XSS via model-generated HTML | SSE content is plain text and the browser inserts it only through `textContent` or text nodes; HTML insertion APIs are prohibited |
 | Path traversal via static file requests | Whitelist-only static paths; `path.resolve()` + `isWithin()` containment check |
 | Oversized request body | 64 KiB request body cap on all `POST` endpoints |
 | Replay / cross-site request forgery | Same-origin SSE + Host header guard (no cookies, no tokens in v1) |
@@ -569,6 +582,10 @@ function resolveStaticPath(root: string, request: string): string {
 - [ ] `GET /static/../outside.txt` returns HTTP 400 (path traversal blocked).
 - [ ] `POST /api/chat` body > 64 KiB returns HTTP 413.
 - [ ] `POST /api/chat` with valid body opens an SSE stream.
+- [ ] A browser/DOM-level test streams HTML tags plus script and event-handler
+  payloads (for example, `<img src=x onerror=...>`); the payload displays
+  as inert literal text, creates no attacker-controlled elements, and
+  executes no script or handler.
 - [ ] SSE `done` event includes `turnsAppended`, `factsExtracted`, `vectorsEmbedded`.
 - [ ] Server stops cleanly on SIGINT without leaving the port open.
 
@@ -666,6 +683,9 @@ Deliverables:
 - All HTTP routes specified in §4.4.
 - Host header guard (DNS rebinding defense).
 - SSE streaming with `delta` / `done` / `error` events.
+- Plain-text-only assistant rendering via `textContent` or text-node append
+  semantics; no assistant chunk reaches an HTML insertion API or unsanitized
+  HTML/Markdown renderer.
 - Path-safe static file server from `src/gui/static/`.
 - `src/gui/static/` with functional chat UI (input, message list, harness
   selector, memory stats, copy-to-clipboard, keyboard shortcut to send).
@@ -746,5 +766,7 @@ Deliverables:
 - Call cloud APIs from advice commands (`recommend`, `can-run`, `catalog`, `doctor`).
 - Invent throughput or cost estimates for cloud harnesses.
 - Store API keys in `state.json`, `config.json`, or memory files.
+- Render assistant content with `innerHTML`, `insertAdjacentHTML`, or an
+  unsanitized HTML/Markdown renderer.
 - Allow path traversal in the static file server.
 - Disable the Host header validation.
