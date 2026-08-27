@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-04T00:00:00.000Z",
+  "generatedAt": "2026-08-27T16:22:46.679Z",
   "models": [
     {
       "id": "kimi-k2-thinking",
@@ -169,9 +169,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 9001752960,
-          "minRamBytes": 10352015904,
-          "minVramBytes": 10352015904
+          "diskBytes": 9276184896,
+          "minRamBytes": 10667612631,
+          "minVramBytes": 10667612631,
+          "sha256": "a8cc1361f3145dc01f6d77c6c82c9116b9ffe3c97b34716fe20418455876c40e"
         }
       ],
       "benchmarkProxy": 0.62
@@ -199,9 +200,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 142000000000,
-          "minRamBytes": 163300000000,
-          "minVramBytes": 163300000000
+          "diskBytes": 142154073664,
+          "minRamBytes": 163477184714,
+          "minVramBytes": 163477184714,
+          "sha256": "791d5d11998e006548d6b58c31756562ea61446ebc7d19686608402a797ecc82"
         }
       ],
       "benchmarkProxy": 0.95
@@ -235,9 +237,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 18556685824,
-          "minRamBytes": 21340188698,
-          "minVramBytes": 21340188698
+          "diskBytes": 18556685856,
+          "minRamBytes": 21340188735,
+          "minVramBytes": 21340188735,
+          "sha256": "58574f2e94b99fb9e4391408b57e5aeaaaec10f6384e9a699fc2cb43a5c8eabf"
         }
       ],
       "benchmarkProxy": 0.74
@@ -270,9 +273,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 19762149024,
-          "minRamBytes": 22726471378,
-          "minVramBytes": 22726471378
+          "diskBytes": 20201240160,
+          "minRamBytes": 23231426184,
+          "minVramBytes": 23231426184,
+          "sha256": "3291abe70f16ee9682de7bfae08db5373ea9d6497e614aaad63340ad421d6312"
         }
       ],
       "benchmarkProxy": 0.74
@@ -299,9 +303,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 5200000000,
-          "minRamBytes": 5980000000,
-          "minVramBytes": 5980000000
+          "diskBytes": 5225374496,
+          "minRamBytes": 6009180671,
+          "minVramBytes": 6009180671,
+          "sha256": "a3de86cd1c132c822487ededd47a324c50491393e6565cd14bafa40d0b8e686f"
         }
       ],
       "benchmarkProxy": 0.54
@@ -326,9 +331,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 5500000000,
-          "minRamBytes": 6325000000,
-          "minVramBytes": 6325000000
+          "diskBytes": 5455319040,
+          "minRamBytes": 6273616896,
+          "minVramBytes": 6273616896,
+          "sha256": "b506a070d1152798d435ec4e7687336567ae653b3106f73b7b4ac7be1cbc4449"
         }
       ],
       "benchmarkProxy": 0.49
@@ -381,9 +387,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 7300000000,
-          "minRamBytes": 8395000000,
-          "minVramBytes": 8395000000
+          "diskBytes": 8149180896,
+          "minRamBytes": 9371558031,
+          "minVramBytes": 9371558031,
+          "sha256": "e8ad13eff07a78d89926e9e8b882317d082ef5bf9768ad7b50fcdbbcd63748de"
         }
       ],
       "benchmarkProxy": 0.58
@@ -410,9 +417,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 16000000000,
-          "minRamBytes": 18400000000,
-          "minVramBytes": 18400000000
+          "diskBytes": 17396927584,
+          "minRamBytes": 20006466722,
+          "minVramBytes": 20006466722,
+          "sha256": "e796792eba26c4d3b04b0ac5adb01a453dd9ec2dfd83b6c59cbf6fe5f30b0f68"
         }
       ],
       "benchmarkProxy": 0.7
@@ -437,9 +445,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 2500000000,
-          "minRamBytes": 2875000000,
-          "minVramBytes": 2875000000
+          "diskBytes": 3338792448,
+          "minRamBytes": 3839611316,
+          "minVramBytes": 3839611316,
+          "sha256": "aeda25e63ebd698fab8638ffb778e68bed908b960d39d0becc650fa981609d25"
         }
       ],
       "benchmarkProxy": 0.42
@@ -465,9 +474,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 14000000000,
-          "minRamBytes": 16215000000,
-          "minVramBytes": 16215000000
+          "diskBytes": 14333908384,
+          "minRamBytes": 16483994642,
+          "minVramBytes": 16483994642,
+          "sha256": "102a747c137683e81d431dab05d8f2158df4ab6f162f8f9019425a43d51e0e9f"
         }
       ],
       "kvBytesPerToken": 163840,
@@ -494,9 +504,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 9000000000,
-          "minRamBytes": 10350000000,
-          "minVramBytes": 10350000000
+          "diskBytes": 8988109952,
+          "minRamBytes": 10336326445,
+          "minVramBytes": 10336326445,
+          "sha256": "6e9f90f02bb3b39b59e81916e8cfce9deb45aeaeb9a54a5be4414486b907dc1e"
         }
       ],
       "benchmarkProxy": 0.64
@@ -522,9 +533,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 19500000000,
-          "minRamBytes": 22425000000,
-          "minVramBytes": 22425000000
+          "diskBytes": 19851335552,
+          "minRamBytes": 22829035885,
+          "minVramBytes": 22829035885,
+          "sha256": "6150cb382311b69f09cc0f9a1b69fc029cbd742b66bb8ec531aa5ecf5c613e93"
         }
       ],
       "benchmarkProxy": 0.76
@@ -551,9 +563,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 404000000000,
-          "minRamBytes": 464600000000,
-          "minVramBytes": 464600000000
+          "diskBytes": 404430186848,
+          "minRamBytes": 465094714876,
+          "minVramBytes": 465094714876,
+          "sha256": "439dd1a5e05286918f54941f49f9b56118c757440f6333f67f1cd5cbb5c8520b"
         }
       ],
       "benchmarkProxy": 0.97
@@ -579,9 +592,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 42000000000,
-          "minRamBytes": 48300000000,
-          "minVramBytes": 48300000000
+          "diskBytes": 42520395616,
+          "minRamBytes": 48898454959,
+          "minVramBytes": 48898454959,
+          "sha256": "4cd576d9aa16961244012223abf01445567b061f1814b57dfef699e4cf8df339"
         }
       ],
       "benchmarkProxy": 0.82
@@ -607,9 +621,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4700000000,
-          "minRamBytes": 5405000000,
-          "minVramBytes": 5405000000
+          "diskBytes": 4683073184,
+          "minRamBytes": 5385534162,
+          "minVramBytes": 5385534162,
+          "sha256": "96c415656d377afbff962f6cdb2394ab092ccbcbaab4b82525bc4ca800fe8a49"
         }
       ],
       "benchmarkProxy": 0.56
@@ -635,9 +650,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4900000000,
-          "minRamBytes": 5635000000,
-          "minVramBytes": 5635000000
+          "diskBytes": 5225373760,
+          "minRamBytes": 6009179824,
+          "minVramBytes": 6009179824,
+          "sha256": "e6a7edc1a4d7d9b2de136a221a57336b76316cfe53a252aeba814496c5ae439d"
         }
       ],
       "benchmarkProxy": 0.56
@@ -664,9 +680,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 404000000000,
-          "minRamBytes": 464600000000,
-          "minVramBytes": 464600000000
+          "diskBytes": 404430186016,
+          "minRamBytes": 465094713919,
+          "minVramBytes": 465094713919,
+          "sha256": "d83c18fb2a2ccca56d641920f01e6fe533dfb3fcf4b77c007c931497cd24a517"
         }
       ],
       "benchmarkProxy": 0.95
@@ -691,9 +708,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 1500000000,
-          "minRamBytes": 1725000000,
-          "minVramBytes": 1725000000
+          "diskBytes": 1569676320,
+          "minRamBytes": 1805127768,
+          "minVramBytes": 1805127768,
+          "sha256": "5c56bb0256a2c402e95282a29bb5cb747bb805eda0e14a84b1f6c594a297ec1a"
         }
       ],
       "benchmarkProxy": 0.31
@@ -719,9 +737,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4900000000,
-          "minRamBytes": 5635000000,
-          "minVramBytes": 5635000000
+          "diskBytes": 4991620512,
+          "minRamBytes": 5740363589,
+          "minVramBytes": 5740363589,
+          "sha256": "44d19d212d76a6f3fc442e8411fdb44ea6b67ceccfb00be4b4345c9a4cf813e8"
         }
       ],
       "benchmarkProxy": 0.47
@@ -747,9 +766,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 9000000000,
-          "minRamBytes": 10350000000,
-          "minVramBytes": 10350000000
+          "diskBytes": 9053114464,
+          "minRamBytes": 10411081634,
+          "minVramBytes": 10411081634,
+          "sha256": "fd7b6731c33c57f61767612f56517460ec2d1e2e5a3f0163e0eb3d8d8cb5df20"
         }
       ],
       "benchmarkProxy": 0.64
@@ -776,9 +796,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 42000000000,
-          "minRamBytes": 48300000000,
-          "minVramBytes": 48300000000
+          "diskBytes": 42520398528,
+          "minRamBytes": 48898458308,
+          "minVramBytes": 48898458308,
+          "sha256": "4824460d29f2058aaf6e1118a63a7a197a09bed509f0e7d4e2efb1ee273b447d"
         }
       ],
       "kvBytesPerToken": 327680,
@@ -804,9 +825,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 7900000000,
-          "minRamBytes": 9085000000,
-          "minVramBytes": 9085000000
+          "diskBytes": 8354349536,
+          "minRamBytes": 9607501967,
+          "minVramBytes": 9607501967,
+          "sha256": "cd836509a1a051178be134eba84115eb3a6653a1bd58473a706bf8ee4ab3a764"
         }
       ],
       "benchmarkProxy": 0.54
@@ -830,9 +852,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4300000000,
-          "minRamBytes": 4945000000,
-          "minVramBytes": 4945000000
+          "diskBytes": 4472020256,
+          "minRamBytes": 5142823295,
+          "minVramBytes": 5142823295,
+          "sha256": "ea89e3927d5ef671159a1359a22cdd418856c4baa2098e665f1c6eed59973968"
         }
       ],
       "benchmarkProxy": 0.46
@@ -858,9 +881,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 19500000000,
-          "minRamBytes": 22425000000,
-          "minVramBytes": 22425000000
+          "diskBytes": 19851336384,
+          "minRamBytes": 22829036842,
+          "minVramBytes": 22829036842,
+          "sha256": "ac3d1ba8aa77755dab3806d9024e9c385ea0d5b412d6bdf9157f8a4a7e9fc0d9"
         }
       ],
       "kvBytesPerToken": 262144,
@@ -887,9 +911,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4700000000,
-          "minRamBytes": 5405000000,
-          "minVramBytes": 5405000000
+          "diskBytes": 4683074048,
+          "minRamBytes": 5385535156,
+          "minVramBytes": 5385535156,
+          "sha256": "60e05f2100071479f596b964f89f510f057ce397ea22f2833a0cfe029bfc2463"
         }
       ],
       "kvBytesPerToken": 57344,
@@ -915,9 +940,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 1100000000,
-          "minRamBytes": 1265000000,
-          "minVramBytes": 1265000000
+          "diskBytes": 1820414656,
+          "minRamBytes": 2093476855,
+          "minVramBytes": 2093476855,
+          "sha256": "4d2396b16114669389d7555c15a1592aad584750310f648edad5ca8c4eccda17"
         }
       ],
       "benchmarkProxy": 0.2
@@ -941,9 +967,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 110000000,
-          "minRamBytes": 126500000,
-          "minVramBytes": 126500000
+          "diskBytes": 270885952,
+          "minRamBytes": 311518845,
+          "minVramBytes": 311518845,
+          "sha256": "f535f83ec568d040f88ddc04a199fa6da90923bbb41d4dcaed02caa924d6ef57"
         }
       ],
       "benchmarkProxy": 0.05
@@ -967,9 +994,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 270000000,
-          "minRamBytes": 310500000,
-          "minVramBytes": 310500000
+          "diskBytes": 725553792,
+          "minRamBytes": 834386861,
+          "minVramBytes": 834386861,
+          "sha256": "7d23be4097d67c5c43c3df62ebc19609a25f483c7d0b77d3989e1d94e36ccab6"
         }
       ],
       "benchmarkProxy": 0.05
@@ -995,9 +1023,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 2000000000,
-          "minRamBytes": 2300000000,
-          "minVramBytes": 2300000000
+          "diskBytes": 2059355712,
+          "minRamBytes": 2368259069,
+          "minVramBytes": 2368259069,
+          "sha256": "2c931bb3b330f26b3d4bd0ee56b828196750c244b3c40450dfc8e4074962e215"
         }
       ],
       "benchmarkProxy": 0.3
@@ -1022,9 +1051,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 800000000,
-          "minRamBytes": 920000000,
-          "minVramBytes": 920000000
+          "diskBytes": 1321082688,
+          "minRamBytes": 1519245092,
+          "minVramBytes": 1519245092,
+          "sha256": "74701a8c35f6c8d9a4b91f3f3497643001d63e0c7a84e085bed452548fa88d45"
         }
       ],
       "kvBytesPerToken": 32768,
@@ -1050,9 +1080,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 2000000000,
-          "minRamBytes": 2300000000,
-          "minVramBytes": 2300000000
+          "diskBytes": 2019377376,
+          "minRamBytes": 2322283983,
+          "minVramBytes": 2322283983,
+          "sha256": "dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff"
         }
       ],
       "kvBytesPerToken": 114688,
@@ -1083,9 +1114,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 400000000,
-          "minRamBytes": 460000000,
-          "minVramBytes": 460000000
+          "diskBytes": 397807936,
+          "minRamBytes": 457479127,
+          "minVramBytes": 457479127,
+          "sha256": "c5396e06af294bd101b30dce59131a76d2b773e76950acc870eda801d3ab0515"
         }
       ],
       "kvBytesPerToken": 12288,
@@ -1188,9 +1220,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 1000000000,
-          "minRamBytes": 1150000000,
-          "minVramBytes": 1150000000
+          "diskBytes": 986048512,
+          "minRamBytes": 1133955789,
+          "minVramBytes": 1133955789,
+          "sha256": "183715c435899236895da3869489cc30ac241476b4971a20285b1a462818a5b4"
         }
       ],
       "kvBytesPerToken": 28672,
@@ -1217,9 +1250,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 9000000000,
-          "minRamBytes": 10350000000,
-          "minVramBytes": 10350000000
+          "diskBytes": 8988110688,
+          "minRamBytes": 10336327292,
+          "minVramBytes": 10336327292,
+          "sha256": "2049f5674b1e92b4464e5729975c9689fcfbf0b0e4443ccf10b5339f370f9a54"
         }
       ],
       "kvBytesPerToken": 196608,
@@ -1246,9 +1280,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 19500000000,
-          "minRamBytes": 22425000000,
-          "minVramBytes": 22425000000
+          "diskBytes": 19851336288,
+          "minRamBytes": 22829036732,
+          "minVramBytes": 22829036732,
+          "sha256": "eabc98a9bcbfce7fd70f3e07de599f8fda98120fefed5881934161ede8bd1a41"
         }
       ],
       "kvBytesPerToken": 262144,
@@ -1274,9 +1309,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 1900000000,
-          "minRamBytes": 2185000000,
-          "minVramBytes": 2185000000
+          "diskBytes": 1929903008,
+          "minRamBytes": 2219388460,
+          "minVramBytes": 2219388460,
+          "sha256": "5ee4f07cdb9beadbbb293e85803c569b01bd37ed059d2715faa7bb405f31caa6"
         }
       ],
       "kvBytesPerToken": 36864,
@@ -1303,9 +1339,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 43000000000,
-          "minRamBytes": 49450000000,
-          "minVramBytes": 49450000000
+          "diskBytes": 47415715200,
+          "minRamBytes": 54528072480,
+          "minVramBytes": 54528072480,
+          "sha256": "6e7fdda508e91cb0f63de5c15ff79ac63a1584ccafd751c07ca12b7f442101b8"
         }
       ],
       "kvBytesPerToken": 327680,
@@ -1332,9 +1369,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4700000000,
-          "minRamBytes": 5405000000,
-          "minVramBytes": 5405000000
+          "diskBytes": 4683073952,
+          "minRamBytes": 5385535045,
+          "minVramBytes": 5385535045,
+          "sha256": "2bada8a7450677000f678be90653b85d364de7db25eb5ea54136ada5f3933730"
         }
       ],
       "kvBytesPerToken": 57344,
@@ -1361,9 +1399,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 2300000000,
-          "minRamBytes": 2645000000,
-          "minVramBytes": 2645000000
+          "diskBytes": 2176177152,
+          "minRamBytes": 2567375000,
+          "minVramBytes": 2567375000,
+          "sha256": "b5374915da534cb93df39f03bd4f2cd5a0c533df0d5e21957dc9556c260be9eb"
         }
       ],
       "benchmarkProxy": 0.36
@@ -1387,9 +1426,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 1700000000,
-          "minRamBytes": 1955000000,
-          "minVramBytes": 1955000000
+          "diskBytes": 1629509152,
+          "minRamBytes": 1873935525,
+          "minVramBytes": 1873935525,
+          "sha256": "7462734796d67c40ecec2ca98eddf970e171dbb6b370e43fd633ee75b69abe1b"
         }
       ],
       "benchmarkProxy": 0.32
@@ -1415,9 +1455,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 42000000000,
-          "minRamBytes": 48300000000,
-          "minVramBytes": 48300000000
+          "diskBytes": 42520398176,
+          "minRamBytes": 48898457903,
+          "minVramBytes": 48898457903,
+          "sha256": "de20d2cf2dc430b1717a8b07a9df029d651f3895dbffec4729a3902a6fe344c9"
         }
       ],
       "kvBytesPerToken": 327680,
@@ -1444,9 +1485,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4900000000,
-          "minRamBytes": 5635000000,
-          "minVramBytes": 5635000000
+          "diskBytes": 4920738944,
+          "minRamBytes": 5658849786,
+          "minVramBytes": 5658849786,
+          "sha256": "667b0c1932bc6ffc593ed1d03f895bf2dc8dc6df21db3042284a6f4416b06a29"
         }
       ],
       "kvBytesPerToken": 131072,
@@ -1473,9 +1515,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 7100000000,
-          "minRamBytes": 8165000000,
-          "minVramBytes": 8165000000
+          "diskBytes": 7071700672,
+          "minRamBytes": 8132455773,
+          "minVramBytes": 8132455773,
+          "sha256": "b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94"
         }
       ],
       "kvBytesPerToken": 163840,
@@ -1501,9 +1544,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 16000000000,
-          "minRamBytes": 18400000000,
-          "minVramBytes": 18400000000
+          "diskBytes": 15628378336,
+          "minRamBytes": 18241875000,
+          "minVramBytes": 18241875000,
+          "sha256": "d7e4b00a7d7a8d03d4eed9b0f3f61a427e9f0fc5dea6aeb414e41dee23dc8ecc"
         }
       ],
       "benchmarkProxy": 0.68
@@ -1528,9 +1572,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 5400000000,
-          "minRamBytes": 6210000000,
-          "minVramBytes": 6210000000
+          "diskBytes": 5443143296,
+          "minRamBytes": 6259614791,
+          "minVramBytes": 6259614791,
+          "sha256": "ff1d1fc78170d787ee1201778e2dd65ea211654ca5fb7d69b5a2e7b123a50373"
         }
       ],
       "benchmarkProxy": 0.48
@@ -1555,9 +1600,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 20500000000,
-          "minRamBytes": 23575000000,
-          "minVramBytes": 23575000000
+          "diskBytes": 19466529344,
+          "minRamBytes": 22971250000,
+          "minVramBytes": 22971250000,
+          "sha256": "648f108f6a1ef7e12c33003d2308028ec98356d4ebda894d7db541f9e8c11aeb"
         }
       ],
       "benchmarkProxy": 0.67
@@ -1581,9 +1627,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 3600000000,
-          "minRamBytes": 4140000000,
-          "minVramBytes": 4140000000
+          "diskBytes": 3479326560,
+          "minRamBytes": 4053750000,
+          "minVramBytes": 4053750000,
+          "sha256": "3502ee168c97b13ce3966acea684973e73c22f0ede62ca05f886b009b43b2f09"
         }
       ],
       "benchmarkProxy": 0.39
@@ -1608,9 +1655,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 5300000000,
-          "minRamBytes": 6095000000,
-          "minVramBytes": 6095000000
+          "diskBytes": 5036994816,
+          "minRamBytes": 6080625000,
+          "minVramBytes": 6080625000,
+          "sha256": "59b1e2a78cb0a5b8f7ba25e459ee17788242cd996e1f62a295dcbd65e5344b11"
         }
       ],
       "benchmarkProxy": 0.47
@@ -1635,9 +1683,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 2300000000,
-          "minRamBytes": 2645000000,
-          "minVramBytes": 2645000000
+          "diskBytes": 2176177120,
+          "minRamBytes": 2567375000,
+          "minVramBytes": 2567375000,
+          "sha256": "633fc5be925f9a484b61d6f9b9a78021eeb462100bd557309f01ba84cac26adf"
         }
       ],
       "benchmarkProxy": 0.34
@@ -1664,9 +1713,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 85000000000,
-          "minRamBytes": 97750000000,
-          "minVramBytes": 97750000000
+          "diskBytes": 79521266688,
+          "minRamBytes": 95263125000,
+          "minVramBytes": 95263125000,
+          "sha256": "94e70a590f93b8f12eb2bc6ddb2e48b3f2fab0bc577fee4b1cb42305ba590916"
         }
       ],
       "benchmarkProxy": 0.83
@@ -1693,9 +1743,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 26000000000,
+          "diskBytes": 26443590560,
           "minRamBytes": 31754375000,
-          "minVramBytes": 31754375000
+          "minVramBytes": 31754375000,
+          "sha256": "f2dc41fa964b42bfe34e9fb09c0acdcfbfd6e52f1332930b4eacc9d6ad1c6cd2"
         }
       ],
       "benchmarkProxy": 0.75
@@ -1720,9 +1771,10 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4400000000,
-          "minRamBytes": 5060000000,
-          "minVramBytes": 5060000000
+          "diskBytes": 4372811712,
+          "minRamBytes": 5028733469,
+          "minVramBytes": 5028733469,
+          "sha256": "f5074b1221da0f5a2910d33b642efa5b9eb58cfdddca1c79e16d7ad28aa2b31f"
         }
       ],
       "kvBytesPerToken": 131072,
