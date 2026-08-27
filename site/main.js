@@ -27,6 +27,41 @@ const observer = new IntersectionObserver(
 );
 document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
 
+// Compact navigation for touch devices and narrower windows
+(() => {
+  const toggle = document.querySelector(".nav-toggle");
+  const links = document.getElementById("site-nav");
+  if (!toggle || !links) return;
+
+  const closeMenu = () => {
+    links.classList.remove("is-open");
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", "Open navigation");
+  };
+
+  toggle.addEventListener("click", () => {
+    const willOpen = toggle.getAttribute("aria-expanded") !== "true";
+    links.classList.toggle("is-open", willOpen);
+    toggle.setAttribute("aria-expanded", String(willOpen));
+    toggle.setAttribute("aria-label", willOpen ? "Close navigation" : "Open navigation");
+  });
+  links.addEventListener("click", (event) => {
+    if (event.target.closest("a")) closeMenu();
+  });
+  document.addEventListener("click", (event) => {
+    if (!links.contains(event.target) && !toggle.contains(event.target)) closeMenu();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeMenu();
+      toggle.focus();
+    }
+  });
+  globalThis.addEventListener("resize", () => {
+    if (globalThis.innerWidth > 1100) closeMenu();
+  });
+})();
+
 // Desktop installer: platform dropdown + OS-aware primary button
 (() => {
   const toggle = document.getElementById("dl-toggle");

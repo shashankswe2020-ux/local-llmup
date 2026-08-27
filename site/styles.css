@@ -120,6 +120,7 @@ kbd {
   transform: rotate(-8deg);
 }
 .nav-links { display: flex; align-items: center; gap: 1.6rem; }
+.nav-toggle { display: none; }
 .nav-links a {
   color: var(--ink); font-size: .82rem; font-weight: 600;
   text-transform: uppercase; letter-spacing: .04em; transition: color .15s;
@@ -243,9 +244,10 @@ h1 em {
 
 /* Desktop app download section */
 .desktop-layout {
-  display: grid; grid-template-columns: minmax(220px, 300px) 1fr;
+  display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
   gap: 2.2rem; margin-top: 3rem; align-items: start;
 }
+.desktop-layout > * { min-width: 0; }
 .desktop-icon-card {
   display: flex; flex-direction: column; align-items: center; gap: 1.1rem;
   border: var(--border-w) solid var(--ink); background: var(--paper-2);
@@ -453,6 +455,7 @@ h1 em {
   display: grid; grid-template-columns: repeat(3,1fr);
   gap: 1.4rem; margin-top: 3rem;
 }
+.quickstart > * { min-width: 0; }
 .qs-card {
   background: var(--paper);
   border: var(--border-w) solid var(--ink); box-shadow: var(--shadow);
@@ -528,10 +531,11 @@ h1 em {
 .badge-attach { background: var(--slow-bg); color: var(--slow-fg); }
 
 /* ── Compare table ─────────────────────────────────────────────── */
+.compare-scroll { margin-top: 3rem; }
 .compare-table {
   width: 100%; border-collapse: separate; border-spacing: 0;
   border: var(--border-w) solid var(--ink); box-shadow: var(--shadow);
-  margin-top: 3rem; font-size: .9rem; background: var(--paper);
+  font-size: .9rem; background: var(--paper);
 }
 .compare-table th, .compare-table td {
   padding: .8rem 1.1rem; text-align: start;
@@ -572,6 +576,35 @@ footer { border-top: var(--border-w) solid var(--ink); background: var(--ink); c
 }
 
 /* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .nav { height: 62px; }
+  .nav-toggle {
+    display: grid; place-content: center; gap: 5px;
+    width: 44px; height: 44px; margin-left: auto;
+    border: var(--border-w) solid var(--ink); background: var(--paper);
+    box-shadow: var(--shadow-sm); color: var(--ink); cursor: pointer;
+  }
+  .nav-toggle span {
+    display: block; width: 20px; height: 2px; background: currentColor;
+    transition: transform .15s ease, opacity .15s ease;
+  }
+  .nav-toggle[aria-expanded="true"] span:first-child { transform: translateY(7px) rotate(45deg); }
+  .nav-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+  .nav-toggle[aria-expanded="true"] span:last-child { transform: translateY(-7px) rotate(-45deg); }
+  .nav-links {
+    display: none; position: absolute; inset: 62px 0 auto;
+    max-height: calc(100dvh - 62px); overflow-y: auto;
+    padding: .75rem max(1.25rem, calc((100vw - 1180px) / 2 + 2rem)) 1.25rem;
+    background: var(--paper); border-bottom: var(--border-w) solid var(--ink);
+    box-shadow: 0 5px 0 var(--ink);
+  }
+  .nav-links.is-open { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+  .nav-links a {
+    display: flex; align-items: center; min-height: 44px; padding: .65rem .75rem;
+    border: 1.5px solid var(--ink); background: var(--paper-2);
+  }
+  .nav-links .nav-cta { grid-column: 1 / -1; justify-content: center; margin-top: .25rem; }
+}
 @media (max-width: 900px) {
   .features { grid-template-columns: repeat(2,1fr); }
   .backends { grid-template-columns: repeat(2,1fr); }
@@ -583,13 +616,59 @@ footer { border-top: var(--border-w) solid var(--ink); background: var(--ink); c
   .sticker { display: none; }
 }
 @media (max-width: 620px) {
-  .nav-links .opt { display: none; }
+  .frame { padding: 0 1rem; }
+  .wordmark { font-size: 1.08rem; }
+  .wordmark::before { width: 20px; height: 20px; }
+  .nav-links { padding-inline: 1rem; }
+  .nav-links.is-open { grid-template-columns: 1fr; }
+  .nav-links .nav-cta { grid-column: auto; }
   .features { grid-template-columns: 1fr; }
   .backends { grid-template-columns: 1fr; }
-  .quickstart { grid-template-columns: 1fr; }
+  .quickstart { grid-template-columns: minmax(0, 1fr); }
   .cmd-row { grid-template-columns: 1fr; }
   .cmd-name { border-right: none; border-bottom: var(--border-w) solid var(--ink); }
-  .hero { padding: 3rem 0 2.5rem; }
-  .verdicts { gap: 1rem; }
-  .frame { padding: 0 1.25rem; }
+  .cmd-head { display: none; }
+  .hero { padding: 2.5rem 0 2rem; }
+  .hero-badge { display: flex; text-align: left; line-height: 1.5; margin-bottom: 1.5rem; }
+  h1 { font-size: clamp(2.15rem, 11vw, 3rem); line-height: .98; }
+  h1 br { display: none; }
+  h1 em { text-shadow: 3px 3px 0 var(--ink); }
+  .hero-actions { align-items: stretch; }
+  .hero-actions .btn { justify-content: center; flex: 1 1 140px; min-height: 48px; }
+  .install-strip { display: flex; width: 100%; min-width: 0; font-size: .8rem; text-align: left; }
+  .install-strip > span:nth-child(2) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .copy-btn { width: 44px; height: 44px; }
+  .demo-wrap, .screenshot-img { box-shadow: var(--shadow); }
+  .verdicts { display: grid; gap: .75rem; padding-top: 2.5rem; }
+  .verdict-pill { min-width: 0; width: 100%; padding: .9rem; }
+  .section { padding: 3.25rem 0; }
+  .section-title { font-size: 1.85rem; line-height: 1.08; }
+  .screenshots { gap: 3rem; margin-top: 2.5rem; }
+  .screenshot-block { gap: 1.5rem; }
+  .feature, .qs-card, .backend-card { padding: 1.35rem 1.2rem; }
+  .desktop-icon-card { padding: 1.5rem 1rem; }
+  .desktop-icon-card img { width: 140px; height: 140px; }
+  .installer-bar { display: flex; width: 100%; }
+  .installer-main { min-width: 0; flex: 1; padding: .8rem; }
+  .installer-main-title { font-size: .85rem; }
+  .installer-menu { min-width: 0; width: 100%; }
+  .dl-code { padding: .85rem; }
+  .compare-scroll {
+    width: 100%; max-width: 100%; overflow: hidden;
+    margin-top: 2.5rem; padding: 0 0 .5rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .compare-table { width: 100%; table-layout: fixed; box-shadow: none; }
+  .compare-table th:first-child { width: 52%; }
+  .compare-table th:nth-child(2) { width: 19%; }
+  .compare-table th:nth-child(3) { width: 29%; }
+  .compare-table th, .compare-table td { padding: .55rem .35rem; overflow-wrap: anywhere; }
+  .compare-table thead th { font-size: .61rem; letter-spacing: 0; }
+  .band { padding: 3.5rem 0; }
+  .footer { align-items: flex-start; }
+  .footer-links { gap: .6rem 1rem; }
+}
+@media (hover: none) and (pointer: coarse) {
+  .btn:hover, .feature:hover { transform: none; }
+  .btn, .nav-cta, .feature, .demo-wrap, .screenshot-img { box-shadow: var(--shadow-sm); }
 }
