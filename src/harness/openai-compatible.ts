@@ -1,6 +1,7 @@
 /** OpenAI-compatible chat harness. */
 import { z } from "zod";
-import { assertSafeFetchUrl } from "../backend/net.js";
+import { assertSafeExternalUrl } from "../backend/net.js";
+import type { ExternalUrlLookup } from "../backend/net.js";
 import { ValidationError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
 import type { ChatHarness, HarnessChatRequest } from "./adapter.js";
@@ -31,6 +32,7 @@ export interface OpenAICompatibleHarnessDeps {
   readonly baseUrl?: string | undefined;
   readonly model?: string | undefined;
   readonly maxResponseBytes?: number | undefined;
+  readonly lookup?: ExternalUrlLookup | undefined;
 }
 
 function removeTrailingNewlines(value: string): string {
@@ -197,11 +199,11 @@ export function createOpenAICompatibleHarness(
     return parsed.data;
   };
 
-  const assertSafeEndpoint = (): URL => {
+  const assertSafeEndpoint = async (): Promise<URL> => {
     try {
-      const url = new URL(getBaseUrl());
-      const host = url.hostname;
-      return assertSafeFetchUrl(url.toString(), { allowedHosts: [host] });
+      return await assertSafeExternalUrl(getBaseUrl(), {
+        ...(deps.lookup !== undefined ? { lookup: deps.lookup } : {}),
+      });
     } catch (error) {
       if (error instanceof ValidationError) {
         throw error;
@@ -217,14 +219,14 @@ export function createOpenAICompatibleHarness(
     unavailableHint: "Set OPENAI_COMPAT_BASE_URL to use the OpenAI-compatible harness.",
     async isAvailable(): Promise<boolean> {
       try {
-        assertSafeEndpoint();
+        await assertSafeEndpoint();
         return true;
       } catch {
         return false;
       }
     },
     async *chat(request: HarnessChatRequest): AsyncIterable<string> {
-      const url = assertSafeEndpoint();
+      const url = await assertSafeEndpoint();
       const apiKey = getApiKey();
       const messages = request.messages.map((message) => ({
         role: message.role,
@@ -233,6 +235,7 @@ export function createOpenAICompatibleHarness(
 
       const response = await fetchFn(url.toString(), {
         method: "POST",
+        redirect: "error",
         headers: {
           "content-type": "application/json",
           ...(apiKey !== undefined ? { Authorization: `Bearer ${apiKey}` } : {}),

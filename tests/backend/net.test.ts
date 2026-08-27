@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ValidationError } from "../../src/errors.js";
 import {
+  assertSafeExternalUrl,
   assertSafeFetchUrl,
   assertSafeModelId,
   DEFAULT_ALLOWED_FETCH_HOSTS,
@@ -128,5 +129,82 @@ describe("fetch URL SSRF guard", () => {
     expect(() =>
       assertSafeFetchUrl("https://huggingface.co/x", { allowedHosts: ["example.com"] }),
     ).toThrow(ValidationError);
+  });
+});
+
+describe("external URL SSRF guard", () => {
+  const publicLookup = async (): Promise<readonly { address: string }[]> => [
+    { address: "93.184.216.34" },
+  ];
+
+  it("accepts HTTPS endpoints without a hostname allow-list", async () => {
+    const parsed = await assertSafeExternalUrl("https://api.example.com/v1/chat/completions", {
+      lookup: publicLookup,
+    });
+
+    expect(parsed.href).toBe("https://api.example.com/v1/chat/completions");
+  });
+
+  it.each(["https://93.184.216.34/v1", "https://[2606:4700:4700::1111]/v1"])(
+    "accepts the globally routable IP literal %s",
+    async (rawUrl) => {
+      await expect(
+        assertSafeExternalUrl(rawUrl, { lookup: publicLookup }),
+      ).resolves.toBeInstanceOf(URL);
+    },
+  );
+
+  it("rejects the HTTP cloud metadata endpoint", async () => {
+    await expect(
+      assertSafeExternalUrl("http://169.254.169.254/latest/meta-data", {
+        lookup: publicLookup,
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it.each([
+    ["credentials", "https://user:pass@example.com/v1"],
+    ["a non-standard port", "https://example.com:8443/v1"],
+    ["a loopback literal", "https://127.0.0.1/v1"],
+    ["an unspecified IPv4 literal", "https://0.0.0.0/v1"],
+    ["a private IPv4 literal", "https://10.0.0.1/v1"],
+    ["a link-local metadata literal", "https://169.254.169.254/v1"],
+    ["an IPv4 multicast literal", "https://224.0.0.1/v1"],
+    ["a reserved IPv4 literal", "https://192.0.2.1/v1"],
+    ["an IPv6 loopback literal", "https://[::1]/v1"],
+    ["an unspecified IPv6 literal", "https://[::]/v1"],
+    ["a unique-local IPv6 literal", "https://[fd00::1]/v1"],
+    ["a link-local IPv6 literal", "https://[fe80::1]/v1"],
+    ["an IPv6 multicast literal", "https://[ff02::1]/v1"],
+    ["a reserved IPv6 literal", "https://[2001:db8::1]/v1"],
+  ])("rejects %s", async (_label, rawUrl) => {
+    await expect(
+      assertSafeExternalUrl(rawUrl, { lookup: publicLookup }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("rejects a hostname when any DNS answer is private", async () => {
+    const lookup = async (): Promise<readonly { address: string }[]> => [
+      { address: "93.184.216.34" },
+      { address: "10.0.0.7" },
+    ];
+
+    await expect(
+      assertSafeExternalUrl("https://api.example.com/v1", { lookup }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("fails closed when hostname resolution fails or returns no addresses", async () => {
+    const failedLookup = async (): Promise<readonly { address: string }[]> => {
+      throw new Error("DNS unavailable");
+    };
+    const emptyLookup = async (): Promise<readonly { address: string }[]> => [];
+
+    await expect(
+      assertSafeExternalUrl("https://api.example.com/v1", { lookup: failedLookup }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      assertSafeExternalUrl("https://api.example.com/v1", { lookup: emptyLookup }),
+    ).rejects.toBeInstanceOf(ValidationError);
   });
 });

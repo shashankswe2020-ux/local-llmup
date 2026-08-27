@@ -9,6 +9,8 @@
  *    policy (HTTPS only, no credentials, standard port, no private/loopback/
  *    link-local targets) and a host allow-list.
  */
+import { lookup as dnsLookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import { ValidationError } from "../errors.js";
 
 /**
@@ -50,6 +52,19 @@ export interface FetchUrlOptions {
   readonly allowedHosts?: readonly string[] | undefined;
 }
 
+/** One address returned while resolving a user-configurable external host. */
+export interface ResolvedAddress {
+  readonly address: string;
+}
+
+/** Injectable DNS lookup used by {@link assertSafeExternalUrl}. */
+export type ExternalUrlLookup = (hostname: string) => Promise<readonly ResolvedAddress[]>;
+
+/** Options controlling {@link assertSafeExternalUrl}. */
+export interface ExternalUrlOptions {
+  readonly lookup?: ExternalUrlLookup | undefined;
+}
+
 /**
  * Validate an outbound fetch URL against the anti-SSRF policy and host
  * allow-list, returning the parsed {@link URL}. Throws {@link ValidationError}
@@ -82,6 +97,64 @@ export function assertSafeFetchUrl(rawUrl: string, options: FetchUrlOptions = {}
     throw new ValidationError(`fetch host not allow-listed: ${host}`);
   }
   return url;
+}
+
+/**
+ * Validate a user-configurable external endpoint without imposing a hostname
+ * allow-list. In addition to lexical URL checks, every current DNS answer must
+ * be a globally routable address; lookup failures and empty results fail closed.
+ * Callers must repeat this check immediately before each fetch and redirect.
+ */
+export async function assertSafeExternalUrl(
+  rawUrl: string,
+  options: ExternalUrlOptions = {},
+): Promise<URL> {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch (error) {
+    throw new ValidationError("invalid external URL", { cause: error });
+  }
+
+  if (url.protocol !== "https:") {
+    throw new ValidationError(`refusing non-HTTPS external URL: ${redact(url)}`);
+  }
+  if (url.username !== "" || url.password !== "") {
+    throw new ValidationError(`refusing credentialed external URL: ${redact(url)}`);
+  }
+  if (url.port !== "") {
+    throw new ValidationError(`refusing non-standard port on external URL: ${redact(url)}`);
+  }
+
+  const host = normalizeHost(url.hostname);
+  if (host === "localhost" || host.endsWith(".localhost")) {
+    throw new ValidationError(`refusing loopback external host: ${host}`);
+  }
+
+  if (isIP(host) !== 0) {
+    assertGloballyRoutableAddress(host);
+    return url;
+  }
+
+  const lookup = options.lookup ?? lookupAllAddresses;
+  let addresses: readonly ResolvedAddress[];
+  try {
+    addresses = await lookup(host);
+  } catch (error) {
+    throw new ValidationError(`unable to safely resolve external host: ${host}`, { cause: error });
+  }
+  if (addresses.length === 0) {
+    throw new ValidationError(`external host resolved to no addresses: ${host}`);
+  }
+  for (const result of addresses) {
+    assertGloballyRoutableAddress(normalizeHost(result.address));
+  }
+
+  return url;
+}
+
+async function lookupAllAddresses(hostname: string): Promise<readonly ResolvedAddress[]> {
+  return dnsLookup(hostname, { all: true, verbatim: true });
 }
 
 function redact(url: URL): string {
@@ -137,6 +210,48 @@ function isPrivateOrLoopbackV6(host: string): boolean {
   // to hex (e.g. ::ffff:127.0.0.1 -> ::ffff:7f00:1). Decode and apply v4 policy.
   const embedded = embeddedV4FromV6(host);
   return embedded !== null && isPrivateOrLoopbackV4(embedded);
+}
+
+function assertGloballyRoutableAddress(address: string): void {
+  const family = isIP(address);
+  if (family === 4 && isGloballyRoutableV4(address)) {
+    return;
+  }
+  if (family === 6 && isGloballyRoutableV6(address)) {
+    return;
+  }
+  throw new ValidationError(`refusing non-public external address: ${address}`);
+}
+
+function isGloballyRoutableV4(address: string): boolean {
+  if (!isIpV4(address)) return false;
+  const [a, b, c] = address.split(".").map(Number) as [number, number, number, number];
+
+  if (a === 0 || a === 10 || a === 127) return false;
+  if (a === 100 && b >= 64 && b <= 127) return false; // shared address space
+  if (a === 169 && b === 254) return false; // link-local / metadata
+  if (a === 172 && b >= 16 && b <= 31) return false;
+  if (a === 192 && b === 168) return false;
+  if (a === 192 && b === 0 && c === 0) return false;
+  if (a === 192 && b === 0 && c === 2) return false; // documentation
+  if (a === 198 && (b === 18 || b === 19)) return false; // benchmarking
+  if (a === 198 && b === 51 && c === 100) return false; // documentation
+  if (a === 203 && b === 0 && c === 113) return false; // documentation
+  if (a >= 224) return false; // multicast, reserved, limited broadcast
+  return true;
+}
+
+function isGloballyRoutableV6(address: string): boolean {
+  const embedded = embeddedV4FromV6(address);
+  if (embedded !== null) return isGloballyRoutableV4(embedded);
+
+  const [firstRaw = "", secondRaw = ""] = address.split(":");
+  const first = Number.parseInt(firstRaw, 16);
+  const second = Number.parseInt(secondRaw, 16);
+  if (!Number.isFinite(first) || first < 0x2000 || first > 0x3fff) return false;
+  if (first === 0x2001 && Number.isFinite(second) && second < 0x0200) return false;
+  if (address.startsWith("2001:db8:")) return false; // documentation
+  return true;
 }
 
 function embeddedV4FromV6(host: string): string | null {

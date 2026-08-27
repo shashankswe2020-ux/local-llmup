@@ -129,8 +129,15 @@ Additional rules for this spec:
   (`textContent` or `append(document.createTextNode(chunk))` for streaming).
   It must never reach `innerHTML`, `insertAdjacentHTML`, or an unsanitized
   HTML/Markdown renderer.
-- `assertSafeFetchUrl()` validates every cloud API endpoint before the first
-  fetch (blocks SSRF, javascript:, file:, and private IP ranges).
+- Static cloud endpoints use `assertSafeFetchUrl()` with an explicit provider
+  allow-list (`api.anthropic.com` or `api.openai.com`) before the first fetch.
+  The default allow-list is catalog-specific and does not contain either host.
+- User-configurable cloud endpoints use `await assertSafeExternalUrl()` before
+  every fetch. This guard deliberately has no hostname allow-list, but requires
+  HTTPS with no URL credentials or non-standard port and rejects non-public IP
+  literals and hostnames when any DNS answer is private, loopback, link-local
+  (including metadata), unspecified, multicast, or reserved. DNS failure and
+  an empty answer set fail closed; redirects are disabled or revalidated.
 - The GUI HTTP server refuses all requests except those to its own origin
   (`Host` header validation).
 - Request bodies from the browser are validated with Zod before processing.
@@ -275,9 +282,9 @@ export type HarnessName = (typeof HARNESS_NAMES)[number];
 - Default model: `claude-3-5-haiku-20241022` (overridable in `HarnessChatRequest`).
 - Request body validated with Zod before send; response validated before yield.
 - Streaming via `anthropic-version: 2023-06-01` + `stream: true` SSE parsing.
-- `assertSafeFetchUrl("https://api.anthropic.com/v1/messages")` called at module
-  init — this is a static constant so it always passes, but the call forces the
-  security gate to be exercised in tests.
+- Calls `assertSafeFetchUrl("https://api.anthropic.com/v1/messages", {
+  allowedHosts: ["api.anthropic.com"] })` before fetch. The explicit allow-list
+  is required because the catalog-oriented defaults do not include this host.
 - Injectable: `FetchFn` seam for tests; never hits the real API in tests.
 - Response body byte cap: 16 MiB abort (consistent with existing acquire module).
 
@@ -286,12 +293,17 @@ export type HarnessName = (typeof HARNESS_NAMES)[number];
 - Reads `OPENAI_API_KEY` from env at call time.
 - Default model: `gpt-4o-mini`.
 - OpenAI streaming SSE (`data: {...}` lines, `data: [DONE]` terminator).
+- Calls `assertSafeFetchUrl()` with `allowedHosts: ["api.openai.com"]` before
+  fetch; it does not rely on the default catalog host allow-list.
 - Same security constraints as Claude harness.
 
 **`OpenAiCompatibleHarness` (`src/harness/openai-compatible.ts`)**
 
 - Reads `OPENAI_COMPAT_BASE_URL` and `OPENAI_COMPAT_API_KEY` from env.
-- `assertSafeFetchUrl()` called on the runtime value — SSRF guard is active.
+- `await assertSafeExternalUrl()` is called on the runtime value immediately
+  before each fetch. The guard resolves hostnames and rejects the endpoint if
+  any returned address is non-public; lookup failures fail closed. Automatic
+  redirects are disabled so they cannot bypass validation.
 - Model must be supplied in every request (no default — the correct model is
   unknown without the endpoint).
 
@@ -478,7 +490,7 @@ mitigations below address the additional attack surface.
 | Threat | Mitigation |
 |---|---|
 | DNS rebinding (external page → localhost API) | Host header exact-match validation on every request |
-| SSRF via user-supplied `OPENAI_COMPAT_BASE_URL` | `assertSafeFetchUrl()` on the runtime value |
+| SSRF via user-supplied `OPENAI_COMPAT_BASE_URL` | `assertSafeExternalUrl()` requires credential-free standard-port HTTPS, validates every DNS answer as globally routable immediately before fetch, fails closed on DNS errors, and disables automatic redirects |
 | API key leakage in error messages | Keys never interpolated in error strings or response bodies |
 | Prompt injection via API response content | `stripControl()` before storage and before SSE emission |
 | DOM XSS via model-generated HTML | SSE content is plain text and the browser inserts it only through `textContent` or text nodes; HTML insertion APIs are prohibited |
@@ -559,7 +571,8 @@ function resolveStaticPath(root: string, request: string): string {
 
 **G3 — `ClaudeHarness`:**
 - [ ] `isAvailable()` returns false when `ANTHROPIC_API_KEY` is not set.
-- [ ] `chatSync()` calls `assertSafeFetchUrl` then posts to the Anthropic endpoint.
+- [ ] `chatSync()` calls `assertSafeFetchUrl` with
+  `allowedHosts: ["api.anthropic.com"]`, then posts to the Anthropic endpoint.
 - [ ] API key is not present in any thrown error message.
 - [ ] SSE stream is correctly parsed; delta chunks are yielded in order.
 - [ ] Response body is `stripControl()`-sanitized before yield.
@@ -567,13 +580,23 @@ function resolveStaticPath(root: string, request: string): string {
 
 **G4 — `OpenAiHarness`:**
 - [ ] `isAvailable()` returns false when `OPENAI_API_KEY` is not set.
+- [ ] The static endpoint calls `assertSafeFetchUrl` with
+  `allowedHosts: ["api.openai.com"]`; it does not rely on default hosts.
 - [ ] OpenAI SSE `[DONE]` terminator ends the stream cleanly.
 - [ ] Same key/sanitize/cap tests as G3.
 
 **G5 — `OpenAiCompatibleHarness`:**
 - [ ] `isAvailable()` returns false when `OPENAI_COMPAT_BASE_URL` is not set.
-- [ ] `assertSafeFetchUrl()` is called on the runtime URL value.
-- [ ] Private IP in `OPENAI_COMPAT_BASE_URL` (e.g., `http://192.168.1.1`) throws `ValidationError`.
+- [ ] `await assertSafeExternalUrl()` is called on the runtime URL value
+  immediately before every fetch, without a broad hostname allow-list.
+- [ ] `assertSafeExternalUrl("http://169.254.169.254")` throws `ValidationError`.
+- [ ] Private, loopback, link-local/metadata, unspecified, multicast, and
+  reserved IPv4 and IPv6 literals throw `ValidationError`.
+- [ ] A hostname fails closed when DNS resolution errors, returns no addresses,
+  or returns any unsafe address (including mixed public/private answers).
+- [ ] HTTPS URL credentials and explicit non-standard ports throw
+  `ValidationError`; automatic redirects are disabled or each target is
+  revalidated before follow.
 
 **G6 — GUI server:**
 - [ ] Server binds `127.0.0.1:<port>` and not `0.0.0.0`.
@@ -671,7 +694,8 @@ Deliverables:
 
 Deliverables:
 - Configurable `OPENAI_COMPAT_BASE_URL` + optional key.
-- SSRF guard on the runtime URL value.
+- DNS-aware `assertSafeExternalUrl()` guard on the runtime URL value, with no
+  hostname allow-list and fail-closed redirect handling.
 
 ### G6 — GUI HTTP server
 
@@ -748,7 +772,9 @@ Deliverables:
 
 **Always:**
 - Validate all external input (HTTP request bodies, cloud API responses, env vars) with Zod.
-- Call `assertSafeFetchUrl()` on every cloud API endpoint before the first fetch.
+- Call `assertSafeFetchUrl()` with the provider's explicit hostname allow-list
+  for static cloud endpoints. Call `await assertSafeExternalUrl()` immediately
+  before every user-configurable endpoint fetch, and fail closed on redirects.
 - Call `stripControl()` on every string received from a cloud API before storing or displaying.
 - Bind the GUI server to `127.0.0.1` only.
 - Validate the `Host` header on every GUI HTTP request.
