@@ -9,6 +9,21 @@ import { DEFAULT_CATALOG_PATH, loadCatalog } from "../../src/catalog/load.js";
 import { REGISTRY_SNAPSHOT } from "../../src/catalog/registry-snapshot.js";
 import { CatalogSchema } from "../../src/catalog/schema.js";
 import { LICENSE_ALLOWLIST } from "../../src/types.js";
+import type { Catalog } from "../../src/types.js";
+
+// The curated skeleton the snapshot fully controls. Quant `diskBytes`/`sha256`
+// are refreshed live from the registry by the weekly enrich pipeline, and
+// `generatedAt` records that refresh, so only this skeleton is guaranteed
+// reproducible from the committed snapshot.
+function curatedSkeleton(cat: Catalog): unknown {
+  return {
+    schemaVersion: cat.schemaVersion,
+    models: cat.models.map((model) => ({
+      ...model,
+      quantizations: model.quantizations.map((quant) => ({ name: quant.name })),
+    })),
+  };
+}
 
 describe("bootstrap catalog generation", () => {
   const catalog = buildBootstrapCatalog(REGISTRY_SNAPSHOT, BOOTSTRAP_CLOCK);
@@ -81,9 +96,11 @@ describe("bootstrap catalog generation", () => {
     expect(again).toEqual(catalog);
   });
 
-  it("reproduces the committed data/models.json exactly", () => {
+  it("reproduces the committed catalog's curated content from the snapshot", () => {
+    // Registry-refreshed quant sizes/digests and `generatedAt` are excluded — the
+    // snapshot guarantees the curated skeleton, the enrich pipeline the live facts.
     const committed = loadCatalog(DEFAULT_CATALOG_PATH);
-    expect(committed).toEqual(catalog);
+    expect(curatedSkeleton(committed)).toEqual(curatedSkeleton(catalog));
   });
 
   it("has unique model ids", () => {
