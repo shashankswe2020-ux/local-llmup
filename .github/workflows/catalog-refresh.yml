@@ -6,18 +6,23 @@ on:
     - cron: "17 3 * * 1"
   workflow_dispatch:
 
+# Write the refreshed catalog to a dedicated branch and merge it through a
+# reviewed PR — never a direct push to the protected default branch.
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
   issues: write
 
 jobs:
-  freshness:
-    name: Weekly catalog freshness
+  refresh:
+    name: Weekly catalog refresh
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
@@ -28,21 +33,73 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Determinism guard (enrich makes no catalog writes)
-        run: |
-          npm run catalog:refresh:dry-run
-          git diff --exit-code -- data/models.json
+      - name: Refresh catalog from the registry snapshot
+        run: npm run catalog:refresh
 
       - name: Catalog freshness report
         run: npm run --silent catalog:freshness
 
-      - name: Open or update a freshness issue when attention is needed
+      - name: Detect catalog changes
+        id: diff
+        run: |
+          if git diff --quiet -- data/models.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Validate the refreshed catalog
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run build
+          npm test
+
+      - name: Open or update the catalog refresh PR
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="catalog/auto-refresh"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH"
+          git add data/models.json
+          git commit -m "chore(catalog): weekly automated refresh"
+          git push --force origin "$BRANCH"
+
+          BODY=$(node -e "
+            const r = require('./catalog-freshness.json');
+            const lines = [
+              'Automated weekly refresh of \`data/models.json\` from the committed registry snapshot.',
+              '',
+              '- generated: ' + r.generatedAt,
+              '- drift: added=' + r.drift.added + ' updated=' + r.drift.updated + ' removed=' + r.drift.removed,
+              '',
+              'Typecheck, lint, build, and the full test suite passed on this branch. Review the model changes before merging.',
+              '',
+              '_Opened automatically by the Catalog Freshness workflow._',
+            ];
+            process.stdout.write(lines.join('\n'));
+          ")
+
+          if gh pr view "$BRANCH" --json state --jq '.state' 2>/dev/null | grep -q OPEN; then
+            echo "PR already open for $BRANCH — branch updated."
+          else
+            gh pr create --base main --head "$BRANCH" \
+              --title "chore(catalog): weekly automated refresh" \
+              --body "$BODY"
+          fi
+
+      - name: Alert when the catalog is stale but in sync
+        if: steps.diff.outputs.changed == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           NEEDS=$(node -e "process.stdout.write(String(require('./catalog-freshness.json').needsAttention))")
           if [ "$NEEDS" != "true" ]; then
-            echo "Catalog is fresh and in sync — no issue needed."
+            echo "Catalog is fresh and in sync — nothing to do."
             exit 0
           fi
 
@@ -50,17 +107,13 @@ jobs:
           BODY=$(node -e "
             const r = require('./catalog-freshness.json');
             const lines = [
-              'The weekly catalog freshness check flagged \`data/models.json\` for review.',
+              'The catalog is stale but the committed registry snapshot yields no drift — a maintainer needs to add newer entries to the snapshot.',
               '',
               '- generated: ' + r.generatedAt,
               '- age: ' + r.ageDays + ' day(s) (stale after ' + r.staleAfterDays + ')',
               '- status: ' + r.status,
-              '- drift: added=' + r.drift.added + ' updated=' + r.drift.updated + ' removed=' + r.drift.removed,
               '',
-              'Reasons:',
-              ...(r.reasons.length ? r.reasons.map(x => '- ' + x) : ['- (none)']),
-              '',
-              'Refresh the catalog (bootstrap/enrich pipeline) and open a PR updating \`data/models.json\`.',
+              'Update \`src/catalog/registry-snapshot.ts\` with new pinned model entries; the next weekly run will open a refresh PR.',
               '',
               '_Filed automatically by the Catalog Freshness workflow._',
             ];

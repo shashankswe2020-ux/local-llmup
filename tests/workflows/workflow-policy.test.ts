@@ -152,16 +152,20 @@ describe("T30 workflow hardening", () => {
     }
   });
 
-  it("defines weekly + manual catalog refresh with minimal permissions and no protected-branch push", () => {
+  it("defines a weekly + manual catalog refresh that writes via a reviewed PR, never pushing to main", () => {
     const refresh = readWorkflow("catalog-refresh.yml");
     expect(refresh).toContain("workflow_dispatch:");
     expect(refresh).toContain("schedule:");
     expect(refresh).toMatch(/cron:\s*['"][^'"]+['"]/u);
 
     const permissions = parseTopLevelPermissions(refresh);
-    // Least privilege: read the repo, plus open/update a freshness issue. It
-    // never gets `contents: write`, so it cannot push to a protected branch.
-    expect(permissions).toEqual({ contents: "read", issues: "write" });
+    // Least privilege for a write pipeline: push a branch, open a PR, file an
+    // issue. It never runs anything on the default branch directly.
+    expect(permissions).toEqual({
+      contents: "write",
+      "pull-requests": "write",
+      issues: "write",
+    });
 
     const refs = extractUsesRefs(refresh);
     expect(refs.length).toBeGreaterThan(0);
@@ -169,8 +173,14 @@ describe("T30 workflow hardening", () => {
       expect(ref).toMatch(/@[0-9a-f]{40}$/u);
     }
 
-    expect(refresh).not.toMatch(/\bgit\s+push\b/u);
-    expect(refresh).toContain("npm run catalog:refresh:dry-run");
-    expect(refresh).toContain("git diff --exit-code -- data/models.json");
+    // Refreshed catalog lands on a dedicated branch and merges through a PR;
+    // there is never a direct push to the protected default branch.
+    expect(refresh).toContain("npm run catalog:refresh");
+    expect(refresh).toContain("gh pr create");
+    expect(refresh).toContain('BRANCH="catalog/auto-refresh"');
+    expect(refresh).toMatch(/git push[^\n]*"\$BRANCH"/u);
+    expect(refresh).not.toMatch(/git push[^\n]*\bmain\b/u);
+    // The refreshed catalog is validated before the PR is opened.
+    expect(refresh).toContain("npm test");
   });
 });
