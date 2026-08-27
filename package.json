@@ -36,7 +36,7 @@
     "data"
   ],
   "scripts": {
-    "build": "tsc && mkdir -p dist/gui && cp -R src/gui/static dist/gui/",
+    "build": "tsc && node -e \"require('fs').cpSync('src/gui/static','dist/gui/static',{recursive:true})\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
