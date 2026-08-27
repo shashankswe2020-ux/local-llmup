@@ -36,6 +36,9 @@ jobs:
       - name: Refresh catalog from the registry snapshot
         run: npm run catalog:refresh
 
+      - name: Enrich catalog quant sizes + digests from the live registry
+        run: npm run catalog:enrich
+
       - name: Catalog freshness report
         run: npm run --silent catalog:freshness
 

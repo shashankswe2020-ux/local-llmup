@@ -36,6 +36,7 @@ export interface FetchResponseLike {
 export interface FetchInit {
   readonly redirect?: "follow" | "manual" | "error";
   readonly signal?: AbortSignal;
+  readonly headers?: Readonly<Record<string, string>>;
 }
 
 /** The subset of the `fetch` contract the pipeline depends on. */
