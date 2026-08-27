@@ -14,12 +14,7 @@ import { pathToFileURL } from "node:url";
 import {
   validateTuiPackageBudget,
 } from "./tui-dependency-policy.js";
-
-const PRE_TUI_COMMIT = "3984ae63faf2349eac9e73ba048e7a92ce5d77a6";
-
-function npmCommand(): string {
-  return process.platform === "win32" ? "npm.cmd" : "npm";
-}
+import { resolveBaselineCommit, runNpm } from "./tui-budget-baseline.js";
 
 function directoryBytes(directory: string): number {
   let bytes = 0;
@@ -36,14 +31,10 @@ function directoryBytes(directory: string): number {
 }
 
 function candidatePackedBytes(root: string): number {
-  const output = execFileSync(
-    npmCommand(),
-    ["pack", "--ignore-scripts", "--json", "--dry-run"],
-    {
+  const output = runNpm(["pack", "--ignore-scripts", "--json", "--dry-run"], {
     cwd: root,
     encoding: "utf8",
-    },
-  );
+  });
   const parsed: unknown = JSON.parse(output);
   if (!Array.isArray(parsed) || typeof parsed[0] !== "object" || parsed[0] === null) {
     throw new Error("npm pack returned an invalid manifest");
@@ -60,7 +51,7 @@ export function runTuiPackageBudget(root = process.cwd()): void {
   const baselineCache = join(temporaryRoot, "baseline-cache");
   const candidateCache = join(temporaryRoot, "candidate-cache");
   try {
-    execFileSync("git", ["worktree", "add", "--detach", baseline, PRE_TUI_COMMIT], {
+    execFileSync("git", ["worktree", "add", "--detach", baseline, resolveBaselineCommit(root)], {
       cwd: root,
       stdio: "ignore",
     });
@@ -79,31 +70,29 @@ export function runTuiPackageBudget(root = process.cwd()): void {
       cpSync(join(root, directory), join(candidate, directory), { recursive: true });
     }
 
-    execFileSync(
-      npmCommand(),
-      ["ci", "--omit=dev", "--ignore-scripts", "--cache", baselineCache],
-      { cwd: baseline, stdio: "ignore" },
-    );
-    execFileSync(
-      npmCommand(),
-      ["ci", "--omit=dev", "--ignore-scripts", "--cache", candidateCache],
-      { cwd: candidate, stdio: "ignore" },
-    );
+    runNpm(["ci", "--omit=dev", "--ignore-scripts", "--cache", baselineCache], {
+      cwd: baseline,
+      stdio: "ignore",
+    });
+    runNpm(["ci", "--omit=dev", "--ignore-scripts", "--cache", candidateCache], {
+      cwd: candidate,
+      stdio: "ignore",
+    });
     const baselineInstallBytes = directoryBytes(join(baseline, "node_modules"));
     const candidateInstallBytes = directoryBytes(join(candidate, "node_modules"));
 
     rmSync(join(baseline, "node_modules"), { recursive: true, force: true });
     rmSync(join(candidate, "node_modules"), { recursive: true, force: true });
-    execFileSync(npmCommand(), ["ci", "--ignore-scripts", "--cache", baselineCache], {
+    runNpm(["ci", "--ignore-scripts", "--cache", baselineCache], {
       cwd: baseline,
       stdio: "ignore",
     });
-    execFileSync(npmCommand(), ["run", "build"], { cwd: baseline, stdio: "ignore" });
-    execFileSync(npmCommand(), ["ci", "--ignore-scripts", "--cache", candidateCache], {
+    runNpm(["run", "build"], { cwd: baseline, stdio: "ignore" });
+    runNpm(["ci", "--ignore-scripts", "--cache", candidateCache], {
       cwd: candidate,
       stdio: "ignore",
     });
-    execFileSync(npmCommand(), ["run", "build"], { cwd: candidate, stdio: "ignore" });
+    runNpm(["run", "build"], { cwd: candidate, stdio: "ignore" });
     const baselinePacked = candidatePackedBytes(baseline);
     const candidatePacked = candidatePackedBytes(candidate);
     validateTuiPackageBudget({
