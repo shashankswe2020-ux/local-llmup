@@ -21,7 +21,12 @@
       <div class="frame">
         <nav class="nav">
           <a class="wordmark" href="./">local-llmup</a>
-          <div class="nav-links">
+          <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open navigation">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+          <div class="nav-links" id="site-nav">
             <a class="opt" href="#gui">GUI</a>
             <a class="opt" href="#desktop">Desktop</a>
             <a class="opt" href="#agents">Agents</a>
@@ -476,26 +481,28 @@ npm run package:mac              <span class="dl-cmt"># or :win / :linux</span><
         <div class="section-label">Comparison</div>
         <h2 class="section-title">local-llmup vs. Ollama</h2>
         <p class="section-sub">Ollama is an excellent runtime. local-llmup adds the hardware-aware intelligence layer on top of it (and three other runtimes).</p>
-        <table class="compare-table reveal">
-          <thead><tr><th>Feature</th><th>Ollama</th><th>local-llmup</th></tr></thead>
-          <tbody>
-            <tr><td>Run inference</td><td class="yes-mark">&#10003;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>Hardware-aware model recommendations</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>yes / slow / no verdicts + est. tok/s</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>AI Hardware Score (0&ndash;100)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>Context-window sizing (KV-cache aware)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>Interactive terminal UI</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>Browser GUI (loopback-only workspace)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>Agents &amp; skills library</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>MCP connectors &amp; tools</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>Inline images &amp; graphs in chat</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>Accessible mode (screen readers)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>Multi-backend (4 runtimes)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>SHA-256 integrity verification</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>Portable memory migration</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-            <tr><td>Offline deterministic advice</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
-          </tbody>
-        </table>
+        <div class="compare-scroll reveal" role="region" aria-label="Feature comparison">
+          <table class="compare-table">
+            <thead><tr><th>Feature</th><th>Ollama</th><th>local-llmup</th></tr></thead>
+            <tbody>
+              <tr><td>Run inference</td><td class="yes-mark">&#10003;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>Hardware-aware model recommendations</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>yes / slow / no verdicts + est. tok/s</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>AI Hardware Score (0&ndash;100)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>Context-window sizing (KV-cache aware)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>Interactive terminal UI</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>Browser GUI (loopback-only workspace)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>Agents &amp; skills library</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>MCP connectors &amp; tools</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>Inline images &amp; graphs in chat</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>Accessible mode (screen readers)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>Multi-backend (4 runtimes)</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>SHA-256 integrity verification</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>Portable memory migration</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+              <tr><td>Offline deterministic advice</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
