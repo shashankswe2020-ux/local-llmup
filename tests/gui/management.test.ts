@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { ValidationError } from "../../src/errors.js";
-import { createModelManager, parseGuiUpRequest } from "../../src/gui/management.js";
+import {
+  createModelManager,
+  parseContextWindowPreset,
+  parseGuiUpRequest,
+} from "../../src/gui/management.js";
 import type { RecommendationResult } from "../../src/commands/recommend.js";
 import type { LsResult } from "../../src/commands/ls.js";
 
@@ -89,6 +93,22 @@ describe("parseGuiUpRequest", () => {
   });
 });
 
+describe("parseContextWindowPreset", () => {
+  it("accepts the four context-window presets and an absent value", () => {
+    expect(["low", "mid", "high", "max"].map(parseContextWindowPreset)).toEqual([
+      "low",
+      "mid",
+      "high",
+      "max",
+    ]);
+    expect(parseContextWindowPreset(null)).toBeUndefined();
+  });
+
+  it("rejects unknown context-window presets", () => {
+    expect(() => parseContextWindowPreset("extreme")).toThrow(ValidationError);
+  });
+});
+
 describe("createModelManager", () => {
   it("maps recommendation entries to compact summaries", async () => {
     const manager = createModelManager({
@@ -144,6 +164,45 @@ describe("createModelManager", () => {
     expect(seen[1]).toEqual({});
 
     expect(manager.runtimes()).toEqual(["ollama", "llamacpp", "mlx", "lmstudio"]);
+  });
+
+  it.each([
+    ["low", 25],
+    ["mid", 50],
+    ["high", 75],
+    ["max", 100],
+  ] as const)("maps the %s GUI preset to %i%% model-relative sizing", async (contextPreset, contextPercent) => {
+    const collectRecommendation = vi.fn(async () => makeRecommendation());
+    const manager = createModelManager({
+      collectRecommendation,
+      runUp: async () => undefined,
+      collectLs: () => ({ type: "empty" }),
+    });
+
+    await manager.recommended({ runtime: "ollama", contextPreset });
+
+    expect(collectRecommendation).toHaveBeenCalledWith({ backend: "ollama", contextPercent });
+  });
+
+  it("preserves an unknown context-fit result for honest UI rendering", async () => {
+    const recommendation = makeRecommendation();
+    const manager = createModelManager({
+      collectRecommendation: async () => ({
+        ...recommendation,
+        entries: [
+          {
+            ...recommendation.entries[0]!,
+            contextSizing: { tokens: 4096, weightsBytes: 1_000_000, kvCacheBytes: null },
+          },
+        ],
+      }),
+      runUp: async () => undefined,
+      collectLs: () => ({ type: "empty" }),
+    });
+
+    await expect(manager.recommended({ contextPreset: "low" })).resolves.toMatchObject([
+      { contextTokens: 4096, contextFitKnown: false },
+    ]);
   });
 
   it("returns the active model summary or null", () => {

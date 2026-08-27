@@ -62,6 +62,16 @@ export interface RankOptions {
    * `context-bound`. Omitted → the calibrated default footprint.
    */
   readonly context?: number | undefined;
+  /** Evaluate each model at this percentage of its advertised context length. */
+  readonly contextPercent?: 25 | 50 | 75 | 100 | undefined;
+}
+
+/** Resolve a model-relative context percentage to an integer token count. */
+export function contextTokensForModel(
+  model: CatalogModel,
+  percent: 25 | 50 | 75 | 100,
+): number {
+  return Math.max(1, Math.floor((model.contextLength * percent) / 100));
 }
 
 const MS_PER_DAY = 86_400_000;
@@ -176,9 +186,13 @@ export function rankModels(
   const wontFit: WontFitModel[] = [];
 
   for (const model of catalog.models) {
+    const contextTokens =
+      options.contextPercent !== undefined
+        ? contextTokensForModel(model, options.contextPercent)
+        : options.context;
     const fit =
-      options.context !== undefined
-        ? evaluateFitAtContext(model, hw, options.context)
+      contextTokens !== undefined
+        ? evaluateFitAtContext(model, hw, contextTokens)
         : evaluateFit(model, hw);
     if (!fit.fits) {
       wontFit.push({ model, reason: fit.reason });

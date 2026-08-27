@@ -275,6 +275,38 @@ describe("GuiServer", () => {
     expect(badBody.error).toContain("unknown runtime");
   });
 
+  it("forwards a validated context-window preset to recommendations", async () => {
+    const seen: (string | undefined)[] = [];
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+      modelManager: {
+        recommended: async (options) => {
+          seen.push(options?.contextPreset);
+          return [];
+        },
+        runtimes: () => ["ollama", "llamacpp", "mlx", "lmstudio"],
+        active: () => null,
+        up: async () => {
+          throw new Error("not used");
+        },
+      },
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const ok = await fetch(`http://127.0.0.1:${port}/api/models/recommended?context=high`, {
+      headers: { Host: `127.0.0.1:${port}` },
+    });
+    expect(ok.status).toBe(200);
+    expect(seen).toEqual(["high"]);
+
+    const bad = await fetch(`http://127.0.0.1:${port}/api/models/recommended?context=extreme`, {
+      headers: { Host: `127.0.0.1:${port}` },
+    });
+    expect(bad.status).toBe(400);
+  });
+
   it("reports the active workspace model", async () => {
     const server = new GuiServer({
       rootDir: new URL("../../src/gui/static", import.meta.url),

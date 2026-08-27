@@ -523,6 +523,23 @@ function known(id: string, diskBytes: number, kv: number, contextLength = 131072
 }
 
 describe("buildRecommendation --context", () => {
+  it("sizes each model at the requested percentage of its advertised context", () => {
+    const cat = catalog([
+      known("small-context:8b", 4_900_000_000, 1024, 8192),
+      known("large-context:8b", 4_900_000_000, 1024, 131072),
+    ]);
+    const result = build(cat, appleHw(64), { contextPercent: 25 });
+
+    expect(
+      Object.fromEntries(
+        result.entries.map((entry) => [entry.model.id, entry.contextSizing?.tokens]),
+      ),
+    ).toEqual({
+      "small-context:8b": 2048,
+      "large-context:8b": 32768,
+    });
+  });
+
   it("sizes each entry's weights and KV cache at the requested context", () => {
     const cat = catalog([known("llama3.1:8b", 4_900_000_000, LLAMA_KV)]);
     const result = build(cat, appleHw(64), { context: 8192 });
@@ -531,6 +548,16 @@ describe("buildRecommendation --context", () => {
     expect(entry.contextSizing!.tokens).toBe(8192);
     expect(entry.contextSizing!.weightsBytes).toBeGreaterThan(0);
     expect(entry.contextSizing!.kvCacheBytes).toBe(LLAMA_KV * 8192);
+  });
+
+  it("rejects conflicting context sizing modes", () => {
+    const cat = catalog([known("llama3.1:8b", 4_900_000_000, LLAMA_KV)]);
+    expect(() => build(cat, appleHw(64), { context: 8192, contextPercent: 50 })).toThrow(
+      ValidationError,
+    );
+    expect(() => build(cat, appleHw(64), { contextPercent: 50, maxContext: true })).toThrow(
+      ValidationError,
+    );
   });
 
   it("moves a model that fits at a small context but not a large one to won't-fit with a memory reason (CW4)", () => {

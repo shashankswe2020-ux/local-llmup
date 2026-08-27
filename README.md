@@ -30,7 +30,7 @@ chat across four supported backends.
 - **Inline images & graphs.** Let an agent run code in your workspace and render the result — images and graphs display inline in the chat panel.
 - **4 backends.** Ollama, llama.cpp, MLX (Apple Silicon), and LM Studio — auto-selected or user-chosen.
 - **AI Hardware Score (0–100).** Diagnose your machine's bottleneck in one command.
-- **Context-window sizing.** KV-cache-aware memory estimates with GQA-correct attention geometry.
+- **Context-window sizing.** Choose Low, Mid, High, or Max in the GUI (25%, 50%, 75%, or 100% of each model's advertised context), backed by KV-cache-aware memory estimates with GQA-correct attention geometry.
 - **Honesty gate.** Unknown figures render as `unknown` — never fabricated.
 - **Integrity-verified installs.** SHA-256 digest checks; fail-closed on mismatch.
 - **Loopback-only.** Servers bind `127.0.0.1` — nothing exposed to the network.
@@ -209,8 +209,22 @@ local-llmup gui --no-open       # start the server without opening a browser
 
 The **Models** view ranks models that fit your hardware with the same
 `yes / slow / no` verdicts and estimated tok/s as the CLI, a per-model **runtime
-picker** for reaching any backend directly, and a **Start** button that brings
-your chosen model online through the verified `up` lifecycle:
+picker** for reaching any backend directly, a **context-window picker**, and a
+**Start** button that brings your chosen model online through the verified `up`
+lifecycle. Context presets re-rank every model at a percentage of its own
+advertised maximum:
+
+| Preset | Model context used | Best for |
+|--------|--------------------|----------|
+| **Low** | 25% | Lower memory use and shorter conversations |
+| **Mid** | 50% | Balanced default |
+| **High** | 75% | Longer documents and conversations |
+| **Max** | 100% | Full advertised model context when hardware allows |
+
+The model cards show the resulting token count. When sourced attention geometry
+is unavailable, the UI reports **context fit unknown** rather than claiming the
+KV cache fits. Throughput ranges remain short-context decode estimates because
+long-context throughput is not modeled yet.
 
 <div align="center">
 <img src="assets/screenshot-gui.png" alt="local-llmup browser workspace \u2014 recommended models" width="800" />

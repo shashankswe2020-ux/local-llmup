@@ -29,6 +29,9 @@ export interface ManagedModelSummary {
     readonly highTokPerSec: number;
   };
   readonly backends: readonly string[];
+  readonly contextTokens?: number;
+  /** False when attention geometry is unknown and context fit could not be measured. */
+  readonly contextFitKnown?: boolean;
 }
 
 /** A compact, UI-facing view of the active local server. */
@@ -54,6 +57,32 @@ export interface RecommendedOptions {
   readonly limit?: number;
   /** Scope the throughput estimate to this inference runtime (default `ollama`). */
   readonly runtime?: BackendName;
+  /** Model-relative context window used for fit and ranking. */
+  readonly contextPreset?: ContextWindowPreset;
+}
+
+export const CONTEXT_WINDOW_PRESETS = ["low", "mid", "high", "max"] as const;
+export type ContextWindowPreset = (typeof CONTEXT_WINDOW_PRESETS)[number];
+
+const CONTEXT_WINDOW_PERCENT: Readonly<Record<ContextWindowPreset, 25 | 50 | 75 | 100>> = {
+  low: 25,
+  mid: 50,
+  high: 75,
+  max: 100,
+};
+
+const CONTEXT_WINDOW_PRESET_SCHEMA = z.enum(CONTEXT_WINDOW_PRESETS);
+
+/** Parse an optional model-relative context preset from the GUI query string. */
+export function parseContextWindowPreset(raw: string | null): ContextWindowPreset | undefined {
+  if (raw === null || raw.length === 0) return undefined;
+  const parsed = CONTEXT_WINDOW_PRESET_SCHEMA.safeParse(raw);
+  if (!parsed.success) {
+    throw new ValidationError(
+      `unknown context preset: ${raw.slice(0, 40)} (known: ${CONTEXT_WINDOW_PRESETS.join(", ")})`,
+    );
+  }
+  return parsed.data;
 }
 
 /** The management surface the GUI server depends on. */
@@ -117,8 +146,12 @@ export function createModelManager(deps: ModelManagerDeps): GuiModelManager {
   return {
     async recommended(options: RecommendedOptions = {}): Promise<readonly ManagedModelSummary[]> {
       const limit = options.limit ?? DEFAULT_RECOMMEND_LIMIT;
-      const recommendOptions: RecommendOptions =
-        options.runtime !== undefined ? { backend: options.runtime } : {};
+      const recommendOptions: RecommendOptions = {
+        ...(options.runtime !== undefined ? { backend: options.runtime } : {}),
+        ...(options.contextPreset !== undefined
+          ? { contextPercent: CONTEXT_WINDOW_PERCENT[options.contextPreset] }
+          : {}),
+      };
       const result = await deps.collectRecommendation(recommendOptions);
       return result.entries.slice(0, limit).map((entry) => ({
         id: entry.model.id,
@@ -133,6 +166,10 @@ export function createModelManager(deps: ModelManagerDeps): GuiModelManager {
           highTokPerSec: entry.throughput.highTokPerSec,
         },
         backends: [...entry.backends],
+        ...(entry.contextSizing !== undefined ? { contextTokens: entry.contextSizing.tokens } : {}),
+        ...(entry.contextSizing !== undefined
+          ? { contextFitKnown: entry.contextSizing.kvCacheBytes !== null }
+          : {}),
       }));
     },
     runtimes(): readonly BackendName[] {

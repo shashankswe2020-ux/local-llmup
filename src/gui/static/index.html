@@ -129,8 +129,20 @@
                 <p class="section-sub">
                   Recommendations are scored against your hardware for the selected runtime. Pick one to serve it locally.
                 </p>
+                <p class="section-note">Throughput ranges are short-context decode estimates.</p>
               </div>
-              <button id="refresh-models" class="ghost-btn" type="button">Refresh</button>
+              <div class="model-toolbar">
+                <label class="context-control" for="context-window">
+                  <span>Context window</span>
+                  <select id="context-window">
+                    <option value="low">Low · 25%</option>
+                    <option value="mid" selected>Mid · 50%</option>
+                    <option value="high">High · 75%</option>
+                    <option value="max">Max · 100%</option>
+                  </select>
+                </label>
+                <button id="refresh-models" class="ghost-btn" type="button">Refresh</button>
+              </div>
             </div>
 
             <div id="active-model-banner" class="banner" hidden></div>
