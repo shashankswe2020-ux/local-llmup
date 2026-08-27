@@ -137,11 +137,13 @@ describe("read-only Ink screens", () => {
   await settle();
     stdin.write("deepseek");
     await settle();
+  await waitForText(stderr.chunks, "Search: deepseek");
   expect(stderr.chunks.join("")).toContain("Search: deepseek");
   expect(stderr.chunks.join("")).toContain("deepseek-r1:14b");
 
     stdin.write("\r");
     await settle();
+    await waitForText(stderr.chunks, "Evidence / deepseek-r1:14b");
     expect(stderr.chunks.join("")).toContain("Evidence / deepseek-r1:14b");
     expect(stderr.chunks.join("")).toContain("License: mit");
 
@@ -159,6 +161,7 @@ describe("read-only Ink screens", () => {
   await settle();
     stdin.write("c");
     await settle();
+    await waitForText(stderr.chunks, "Compare 2 models");
     expect(stderr.chunks.join("")).toContain("Compare 2 models");
     expect(stderr.chunks.join("")).toContain("quality");
 
@@ -190,6 +193,7 @@ describe("read-only Ink screens", () => {
       expect(frame).toContain("q/Esc Quit · ? Help");
       stdin.write("?");
       await settle();
+      await waitForText(stderr.chunks, "Keyboard help");
       expect(stderr.chunks.join("")).toContain("Keyboard help");
       stdin.write("q");
       await session.waitUntilExit();
