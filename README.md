@@ -446,11 +446,13 @@ ranking; runtimes and model support change quickly.
 | [vLLM](https://github.com/vllm-project/vllm) | High-throughput, concurrent GPU serving with batching and distributed execution | Targets the single-user, hardware-constrained local workflow and can-run decisions |
 | [LocalAI](https://github.com/mudler/LocalAI) | OpenAI-compatible multi-backend server for LLM, vision, voice, and image workloads | Adds catalog-backed hardware sizing and verified model lifecycle operations |
 | [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) | Document workspaces, agents, and multi-user knowledge workflows | Adds runtime-aware model recommendations underneath the workspace layer |
+| [DeepGit](https://github.com/zamalali/DeepGit) | Semantic GitHub repository discovery, reranking, quality analysis, and hardware-aware filtering (900+ stars as of August 2026) | Complements repository research with local model fit, installation, serving, and migration workflows |
 
 **Positioning:** the major tools above optimize inference, serving, or
-application UX. `local-llmup` is the decision and lifecycle layer between a
-machine and those runtimes: measure the hardware, explain what fits, choose a
-backend, verify the weights, then serve and migrate without guessing.
+application UX, while DeepGit focuses on discovering and analyzing repositories.
+`local-llmup` is the decision and lifecycle layer between a machine and local
+inference runtimes: measure the hardware, explain what fits, choose a backend,
+verify the weights, then serve and migrate without guessing.
 
 ---
 
