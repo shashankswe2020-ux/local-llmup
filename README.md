@@ -446,7 +446,7 @@ ranking; runtimes and model support change quickly.
 | [vLLM](https://github.com/vllm-project/vllm) | High-throughput, concurrent GPU serving with batching and distributed execution | Targets the single-user, hardware-constrained local workflow and can-run decisions |
 | [LocalAI](https://github.com/mudler/LocalAI) | OpenAI-compatible multi-backend server for LLM, vision, voice, and image workloads | Adds catalog-backed hardware sizing and verified model lifecycle operations |
 | [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) | Document workspaces, agents, and multi-user knowledge workflows | Adds runtime-aware model recommendations underneath the workspace layer |
-| [DeepGit](https://github.com/zamalali/DeepGit) | Semantic GitHub repository discovery, reranking, quality analysis, and hardware-aware filtering (900+ stars as of August 2026) | Complements repository research with local model fit, installation, serving, and migration workflows |
+| [DeepGit](https://github.com/zamalali/DeepGit) | Semantic GitHub repository discovery, reranking, quality analysis, and hardware-aware filtering | Complements repository research with local model fit, installation, serving, and migration workflows |
 
 **Positioning:** the major tools above optimize inference, serving, or
 application UX, while DeepGit focuses on discovering and analyzing repositories.
@@ -499,7 +499,7 @@ src/
 - **Coverage gates.** 80% lines+branches on core modules.
 - **Runtime smoke.** Real backend processes tested separately via production builds.
 
-### Deepgit Verification (2026-08-30)
+### DeepGit Verification (2026-08-30)
 
 - Build: passed (`npm run build`)
 - Tests: **1850/1850 passed** across 129 files (`npm test`)
