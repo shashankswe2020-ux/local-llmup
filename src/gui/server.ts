@@ -9,7 +9,7 @@ import { createDefaultRegistry } from "../harness/registry.js";
 import { stripControl } from "../sanitize.js";
 import { appendConversation, createSession, type GuiSession } from "./session.js";
 import { MAX_REQUEST_BYTES, parseGuiChatRequest, parseHarnessSwitch, parseRuntimeQuery, readJsonBody, validateHost } from "./handlers.js";
-import { readStaticAsset } from "./static.js";
+import { readStaticAsset, readVendorAsset } from "./static.js";
 import {
   parseContextWindowPreset,
   parseGuiUpRequest,
@@ -22,6 +22,7 @@ import { runAgentTurn, type AgentChat, type AgentEvent, type ToolApprover, type 
 import { toolGrantKey, type ToolDecision } from "./tool-policy.js";
 import { RunCoordinator, RunConflictError, type Run } from "./run.js";
 import { SessionConflictError, type SessionRepository } from "./session-repository.js";
+import { GuiTextStreamSanitizer, sanitizeGuiText } from "./text-sanitize.js";
 import { type WorkspaceService, type LineRange } from "./workspace/service.js";
 import { EditProposalService } from "./workspace/edit-proposal.js";
 import { PatchTransactionService } from "./workspace/patch-transaction.js";
@@ -248,7 +249,10 @@ export class GuiServer {
       validateHost(hostHeader, this.port);
 
       const rawPath = req.url ?? "/";
-      if (rawPath.startsWith("/static/") && (rawPath.includes("..") || rawPath.includes("\\"))) {
+      if (
+        (rawPath.startsWith("/static/") || rawPath.startsWith("/vendor/")) &&
+        (rawPath.includes("..") || rawPath.includes("\\"))
+      ) {
         throw new ValidationError(`path traversal refused: ${rawPath}`);
       }
 
@@ -262,6 +266,11 @@ export class GuiServer {
 
       if (req.method === "GET" && pathname.startsWith("/static/")) {
         await this.serveStatic(res, pathname);
+        return;
+      }
+
+      if (req.method === "GET" && pathname.startsWith("/vendor/")) {
+        await this.serveVendor(res, pathname);
         return;
       }
 
@@ -439,12 +448,39 @@ export class GuiServer {
     const withToken = content.includes("</head>")
       ? content.replace("</head>", `  ${meta}\n  </head>`)
       : `${meta}\n${content}`;
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    const contentSecurityPolicy = [
+      "default-src 'none'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data:",
+      "connect-src 'self'",
+      "frame-src 'self'",
+      "font-src 'self'",
+      "object-src 'none'",
+      "base-uri 'none'",
+      "form-action 'none'",
+      "frame-ancestors 'none'",
+    ].join("; ");
+    res.writeHead(200, {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+      "Content-Security-Policy": contentSecurityPolicy,
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
+      "X-Frame-Options": "DENY",
+      "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    });
     res.end(withToken);
   }
 
   private async serveStatic(res: ServerResponse, pathname: string): Promise<void> {
     const entry = await readStaticAsset(this.rootDir, pathname);
+    res.writeHead(200, { "Content-Type": entry.contentType });
+    res.end(entry.content);
+  }
+
+  private async serveVendor(res: ServerResponse, pathname: string): Promise<void> {
+    const entry = await readVendorAsset(pathname);
     res.writeHead(200, { "Content-Type": entry.contentType });
     res.end(entry.content);
   }
@@ -476,10 +512,10 @@ export class GuiServer {
     // The newest user turn; prior turns come from canonical session state, not
     // from client-supplied history, so multi-turn context appears exactly once.
     const latest = request.messages.at(-1);
-    const newUserContent = stripControl(latest?.content ?? "");
+    const newUserContent = sanitizeGuiText(latest?.content ?? "");
     const priorTurns = this.session.conversationWindow.map((message) => ({
       role: message.role,
-      content: stripControl(message.content),
+      content: sanitizeGuiText(message.content),
     }));
 
     try {
@@ -529,14 +565,14 @@ export class GuiServer {
       if (request.systemPrompt !== undefined && request.systemPrompt.trim().length > 0) {
         systemMessages.push({
           role: "system",
-          content: stripControl(request.systemPrompt).slice(0, MAX_SYSTEM_PROMPT_CHARS),
+          content: sanitizeGuiText(request.systemPrompt).slice(0, MAX_SYSTEM_PROMPT_CHARS),
         });
       }
       const systemPrompt = this.library?.composeForChat(request.agentId, request.skillIds);
       if (systemPrompt !== undefined && systemPrompt.trim().length > 0) {
         systemMessages.push({
           role: "system",
-          content: stripControl(systemPrompt).slice(0, MAX_SYSTEM_PROMPT_CHARS),
+          content: sanitizeGuiText(systemPrompt).slice(0, MAX_SYSTEM_PROMPT_CHARS),
         });
       }
       if (context.text.length > 0) {
@@ -549,6 +585,7 @@ export class GuiServer {
       if (this.agentChat !== undefined && this.mcpManager !== undefined && agentTools.length > 0) {
         const mcpManager = this.mcpManager;
         let assistantText = "";
+        const assistantSanitizer = new GuiTextStreamSanitizer();
         for await (const event of runAgentTurn({
           chat: this.agentChat,
           tools: agentTools,
@@ -561,10 +598,17 @@ export class GuiServer {
           if (event.type === "tool") {
             res.write(`data: ${JSON.stringify(this.toToolFrame(event))}\n\n`);
           } else {
-            const cleaned = stripControl(event.content);
+            const cleaned = assistantSanitizer.push(event.content);
             assistantText += cleaned;
-            res.write(`data: ${JSON.stringify({ type: "delta", content: cleaned })}\n\n`);
+            if (cleaned.length > 0) {
+              res.write(`data: ${JSON.stringify({ type: "delta", content: cleaned })}\n\n`);
+            }
           }
+        }
+        const tail = assistantSanitizer.flush();
+        assistantText += tail;
+        if (tail.length > 0) {
+          res.write(`data: ${JSON.stringify({ type: "delta", content: tail })}\n\n`);
         }
         this.finishChat(res, run, newUserContent, assistantText, context.manifest);
         return;
@@ -588,11 +632,21 @@ export class GuiServer {
           }).then((content) => [content]);
 
       const chunks = await asyncChunks;
+      const assistantSanitizer = new GuiTextStreamSanitizer();
+      let assistantText = "";
       for (const chunk of chunks) {
-        const cleaned = stripControl(chunk);
-        res.write(`data: ${JSON.stringify({ type: "delta", content: cleaned })}\n\n`);
+        const cleaned = assistantSanitizer.push(chunk);
+        assistantText += cleaned;
+        if (cleaned.length > 0) {
+          res.write(`data: ${JSON.stringify({ type: "delta", content: cleaned })}\n\n`);
+        }
       }
-      this.finishChat(res, run, newUserContent, chunks.join(""), context.manifest);
+      const tail = assistantSanitizer.flush();
+      assistantText += tail;
+      if (tail.length > 0) {
+        res.write(`data: ${JSON.stringify({ type: "delta", content: tail })}\n\n`);
+      }
+      this.finishChat(res, run, newUserContent, assistantText, context.manifest);
     } catch (error) {
       // A cancellation aborts the provider call; report an error only when this
       // run is still the one that owns the stream.
@@ -670,7 +724,7 @@ export class GuiServer {
 
     for (const source of sources ?? []) {
       if (source.kind === "terminal" || source.kind === "diagnostics") {
-        const content = stripControl(source.content);
+        const content = sanitizeGuiText(source.content);
         if (content.trim().length === 0) {
           continue;
         }
@@ -838,7 +892,7 @@ export class GuiServer {
     if (!this.runs.settle(run, "completed")) {
       return;
     }
-    const cleanedAssistant = stripControl(assistantText);
+    const cleanedAssistant = sanitizeGuiText(assistantText);
     appendConversation(this.session, { role: "user", content: userContent });
     appendConversation(this.session, { role: "assistant", content: cleanedAssistant });
     if (this.sessions !== undefined) {

@@ -18,6 +18,30 @@ test.describe("accessibility and responsive", () => {
     await expect(page.locator("#a11y-status")).toHaveText("Response ready.");
   });
 
+  test("streaming announces state changes without repeating response content", async ({ page }) => {
+    const status = page.locator("#a11y-status");
+    const announcements: string[] = [];
+    await status.evaluate((element) => {
+      const values: string[] = [];
+      (globalThis as typeof globalThis & { __a11yAnnouncements?: string[] }).__a11yAnnouncements = values;
+      new MutationObserver(() => {
+        if (element.textContent) values.push(element.textContent);
+      }).observe(element, { childList: true, characterData: true, subtree: true });
+    });
+
+    await page.locator("#prompt").fill("FORMAT_MARKDOWN_STREAM");
+    await page.locator("#prompt").press("Enter");
+    await expect(status).toHaveText("Response ready.");
+    announcements.push(
+      ...(await page.evaluate(
+        () => (globalThis as typeof globalThis & { __a11yAnnouncements?: string[] }).__a11yAnnouncements ?? [],
+      )),
+    );
+
+    expect(announcements).toEqual(["Sending message.", "Response ready."]);
+    expect(announcements.join(" ")).not.toContain("Deployment result");
+  });
+
   test("core chat works at a 320px width", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 720 });
     await expect(page.getByRole("button", { name: "Send" })).toBeVisible();

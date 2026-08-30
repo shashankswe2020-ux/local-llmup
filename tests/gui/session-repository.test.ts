@@ -59,6 +59,19 @@ describe("SessionRepository", () => {
     expect(page.messages[0]?.content).toBe("How do I run this model?");
   });
 
+  it("preserves multiline message structure while removing unsafe controls", () => {
+    const repo = makeRepo();
+    const created = repo.create();
+    repo.append(created.id, {
+      role: "assistant",
+      content: "## Result\r\n\r\n```ts\rconst x = 1;\r```\t\u0000\u001b[31m\u202e",
+    });
+
+    expect(repo.readMessages(created.id).messages[0]?.content).toBe(
+      "## Result\n\n```ts\nconst x = 1;\n```\t",
+    );
+  });
+
   it("survives a restart: a fresh repository sees persisted sessions", () => {
     const created = makeRepo().create("Durable");
     makeRepo().append(created.id, { role: "user", content: "hi" });

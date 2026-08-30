@@ -24,6 +24,7 @@ import { DIR_MODE, FILE_MODE, type Config } from "../config.js";
 import { LocalLlmupError, ValidationError } from "../errors.js";
 import { readBoundedUtf8File } from "../memory/bounded-read.js";
 import { stripControl } from "../sanitize.js";
+import { sanitizeGuiText } from "./text-sanitize.js";
 
 /** Bumped when the on-disk session layout changes incompatibly. */
 export const GUI_SESSION_SCHEMA_VERSION = 1;
@@ -223,7 +224,7 @@ export class SessionRepository {
     this.assertRevision(doc, options.expectedRevision);
     const stored: StoredMessage = {
       role: message.role,
-      content: stripControl(message.content).slice(0, MAX_MESSAGE_CHARS),
+      content: sanitizeGuiText(message.content).slice(0, MAX_MESSAGE_CHARS),
       at: this.timestamp(),
       ...(message.attachments !== undefined && message.attachments.length > 0
         ? { attachments: message.attachments.slice(0, 20) }

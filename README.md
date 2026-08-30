@@ -282,7 +282,7 @@ commands or loopback HTTP/SSE only. Enable a connector and its tools become
 available to the model:
 
 <div align="center">
-<img src="assets/connectors.gif" alt="Adding an MCP connector, enabling it, and using its tools in chat" width="800" />
+<img src="assets/connectors.gif" alt="Approving two live WHOOP MCP calls and rendering an actual health briefing" width="800" />
 </div>
 
 ---

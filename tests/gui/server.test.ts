@@ -35,6 +35,83 @@ describe("GuiServer", () => {
     expect(server.url).toBe(`http://127.0.0.1:${port}`);
   });
 
+  it("hardens the main document with a restrictive content security policy", async () => {
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+    });
+    servers.push(server);
+    const port = await server.start(0);
+    const response = await fetch(`http://127.0.0.1:${port}/`, {
+      headers: { Host: `127.0.0.1:${port}` },
+    });
+
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(response.headers.get("x-frame-options")).toBe("DENY");
+    const csp = response.headers.get("content-security-policy") ?? "";
+    expect(csp).toContain("default-src 'none'");
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).toContain("style-src 'self' 'unsafe-inline'");
+    expect(csp).toContain("img-src 'self' data:");
+    expect(csp).toContain("connect-src 'self'");
+    expect(csp).toContain("frame-src 'self'");
+    expect(csp).toContain("base-uri 'none'");
+    expect(csp).toContain("form-action 'none'");
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).not.toContain("https:");
+    expect(await response.text()).toContain('id="artifact-frame"');
+    expect(await (await fetch(`http://127.0.0.1:${port}/`, { headers: { Host: `127.0.0.1:${port}` } })).text())
+      .not.toContain('sandbox="allow-scripts"');
+  });
+
+  it("serves only the approved Markdown vendor bundles from fixed routes", async () => {
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+    });
+    servers.push(server);
+    const port = await server.start(0);
+    const headers = { Host: `127.0.0.1:${port}` };
+
+    const index = await (await fetch(`http://127.0.0.1:${port}/`, { headers })).text();
+    expect(index.indexOf("/vendor/marked.min.js")).toBeLessThan(index.indexOf("/static/chat.js"));
+    expect(index.indexOf("/vendor/dompurify.min.js")).toBeLessThan(index.indexOf("/static/chat.js"));
+    expect(index.indexOf("/static/markdown.js")).toBeLessThan(index.indexOf("/static/chat.js"));
+
+    const marked = await fetch(`http://127.0.0.1:${port}/vendor/marked.min.js`, { headers });
+    expect(marked.status).toBe(200);
+    expect(marked.headers.get("content-type")).toBe("application/javascript; charset=utf-8");
+    expect(await marked.text()).toContain("marked");
+
+    const purify = await fetch(`http://127.0.0.1:${port}/vendor/dompurify.min.js`, { headers });
+    expect(purify.status).toBe(200);
+    expect(purify.headers.get("content-type")).toBe("application/javascript; charset=utf-8");
+    expect(await purify.text()).toContain("DOMPurify");
+
+    const unknown = await fetch(`http://127.0.0.1:${port}/vendor/package.json`, { headers });
+    expect(unknown.status).toBe(400);
+
+    const traversal = await new Promise<number>((resolve, reject) => {
+      const req = httpRequest(
+        {
+          host: "127.0.0.1",
+          port,
+          path: "/vendor/../package.json",
+          headers,
+        },
+        (response) => {
+          response.resume();
+          response.on("end", () => resolve(response.statusCode ?? 0));
+        },
+      );
+      req.on("error", reject);
+      req.end();
+    });
+    expect(traversal).toBe(400);
+  });
+
   it("rejects host header mismatches and path traversal", async () => {
     const server = new GuiServer({
       rootDir: new URL("../../src/gui/static", import.meta.url),

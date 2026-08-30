@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.11.1 - 2026-08-30
+
+**Readable, secure Markdown responses in the local AI workspace.**
+
+### New Features
+
+- Assistant responses now render sanitized GitHub-Flavored Markdown with
+  headings, nested and task lists, blockquotes, tables, links, code fences,
+  language labels, and persistent Copy/HTML Preview actions.
+- Streaming output is frame-batched, converges to the same final DOM regardless
+  of token fragmentation, and follows only while the reader remains near the
+  bottom.
+- Replaced the connector demo with two real, explicitly approved WHOOP tool
+  calls and an actual-value health briefing.
+
+### Security and Accessibility
+
+- Added GUI-specific multiline sanitization without weakening terminal output
+  sanitization, plus strict Marked/DOMPurify tag, attribute, link, and image
+  policies.
+- Added a deny-by-default CSP, no-store handling for token-bearing HTML,
+  MIME/referrer/frame/permissions hardening, and scriptless artifact previews.
+- Upgraded the desktop packaging toolchain to `electron-builder@26.15.3`,
+  removing the critical/high archive and credential-redirect advisories in the
+  previous builder dependency graph.
+- Added semantic browser coverage, stable accessible names, keyboard focus,
+  concise streaming announcements, hostile-input tests, and responsive checks
+  down to 320 px.
+
 ## 0.11.0 - 2026-08-30
 
 **Model performance intelligence and a complete local AI workspace.**

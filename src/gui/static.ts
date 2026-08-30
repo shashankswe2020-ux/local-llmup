@@ -1,10 +1,16 @@
 /** Safe static-file serving for the browser GUI. */
+import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ValidationError } from "../errors.js";
 
 const ALLOWED_EXTENSIONS = new Set([".html", ".css", ".js", ".map"]);
+const require = createRequire(import.meta.url);
+const VENDOR_ASSETS: Readonly<Record<string, string>> = {
+  "/vendor/marked.min.js": require.resolve("marked/marked.min.js"),
+  "/vendor/dompurify.min.js": require.resolve("dompurify/purify.min.js"),
+};
 
 export function resolveStaticPath(rootDir: URL | string, requestPath: string): string {
   const baseDir =
@@ -40,4 +46,19 @@ export async function readStaticAsset(rootDir: URL | string, requestPath: string
           ? "application/javascript; charset=utf-8"
           : "application/octet-stream";
   return { content, contentType };
+}
+
+/** Read one explicitly approved browser bundle; arbitrary package paths fail closed. */
+export async function readVendorAsset(requestPath: string): Promise<{
+  readonly content: Buffer;
+  readonly contentType: string;
+}> {
+  const resolved = VENDOR_ASSETS[requestPath];
+  if (resolved === undefined) {
+    throw new ValidationError(`unknown vendor asset: ${requestPath}`);
+  }
+  return {
+    content: await readFile(resolved),
+    contentType: "application/javascript; charset=utf-8",
+  };
 }

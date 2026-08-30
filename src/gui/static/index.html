@@ -535,10 +535,13 @@
           <span class="artifact-title">Preview</span>
           <button type="button" id="artifact-close" class="artifact-close" aria-label="Close preview">✕</button>
         </div>
-        <iframe id="artifact-frame" class="artifact-frame" title="Artifact preview" sandbox="allow-scripts"></iframe>
+        <iframe id="artifact-frame" class="artifact-frame" title="Artifact preview" sandbox></iframe>
       </div>
     </div>
 
+    <script src="/vendor/marked.min.js"></script>
+    <script src="/vendor/dompurify.min.js"></script>
+    <script src="/static/markdown.js"></script>
     <script src="/static/sse.js"></script>
     <script src="/static/run-reducer.js"></script>
     <script src="/static/chat.js"></script>
