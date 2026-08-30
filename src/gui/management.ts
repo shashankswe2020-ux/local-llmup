@@ -9,6 +9,8 @@ import { ValidationError } from "../errors.js";
 import { collectLs, type LsResult } from "../commands/ls.js";
 import {
   collectRecommendation,
+  type ContextSizing,
+  type RecommendationEntry,
   type RecommendationResult,
   type RecommendOptions,
 } from "../commands/recommend.js";
@@ -20,18 +22,35 @@ export interface ManagedModelSummary {
   readonly id: string;
   readonly family: string;
   readonly params: string;
+  readonly architecture: RecommendationEntry["model"]["architecture"];
+  readonly activeParams?: string;
+  readonly license: RecommendationEntry["model"]["license"];
+  readonly openWeight: boolean;
+  readonly contextLength: number;
+  readonly capabilities: RecommendationEntry["model"]["capabilities"];
+  readonly releaseDate: string;
+  readonly source: RecommendationEntry["model"]["source"];
+  readonly quantizations: RecommendationEntry["model"]["quantizations"];
+  readonly kvBytesPerToken?: number;
+  readonly benchmarkProxy?: number;
   readonly verdict: Runnable;
   readonly quant: string;
   readonly diskBytes: number;
+  readonly requiredBytes: number;
+  readonly usableBytes: number;
+  readonly score: number;
+  readonly scores: RecommendationEntry["scores"];
   readonly throughput: {
     readonly known: boolean;
     readonly lowTokPerSec: number;
     readonly highTokPerSec: number;
   };
+  readonly throughputEvidence: RecommendationEntry["throughputEvidence"];
   readonly backends: readonly string[];
   readonly contextTokens?: number;
   /** False when attention geometry is unknown and context fit could not be measured. */
   readonly contextFitKnown?: boolean;
+  readonly contextSizing?: ContextSizing;
 }
 
 /** A compact, UI-facing view of the active local server. */
@@ -157,18 +176,43 @@ export function createModelManager(deps: ModelManagerDeps): GuiModelManager {
         id: entry.model.id,
         family: entry.model.family,
         params: entry.model.params,
+        architecture: entry.model.architecture,
+        ...(entry.model.activeParams !== undefined
+          ? { activeParams: entry.model.activeParams }
+          : {}),
+        license: entry.model.license,
+        openWeight: entry.model.openWeight,
+        contextLength: entry.model.contextLength,
+        capabilities: [...entry.model.capabilities],
+        releaseDate: entry.model.releaseDate,
+        source: { ...entry.model.source },
+        quantizations: entry.model.quantizations.map((quantization) => ({ ...quantization })),
+        ...(entry.model.kvBytesPerToken !== undefined
+          ? { kvBytesPerToken: entry.model.kvBytesPerToken }
+          : {}),
+        ...(entry.model.benchmarkProxy !== undefined
+          ? { benchmarkProxy: entry.model.benchmarkProxy }
+          : {}),
         verdict: entry.verdict,
         quant: entry.quant.name,
         diskBytes: entry.quant.diskBytes,
+        requiredBytes: entry.requiredBytes,
+        usableBytes: entry.usableBytes,
+        score: entry.score,
+        scores: { ...entry.scores },
         throughput: {
           known: entry.throughput.known,
           lowTokPerSec: entry.throughput.lowTokPerSec,
           highTokPerSec: entry.throughput.highTokPerSec,
         },
+        throughputEvidence: { ...entry.throughputEvidence },
         backends: [...entry.backends],
         ...(entry.contextSizing !== undefined ? { contextTokens: entry.contextSizing.tokens } : {}),
         ...(entry.contextSizing !== undefined
           ? { contextFitKnown: entry.contextSizing.kvCacheBytes !== null }
+          : {}),
+        ...(entry.contextSizing !== undefined
+          ? { contextSizing: { ...entry.contextSizing } }
           : {}),
       }));
     },

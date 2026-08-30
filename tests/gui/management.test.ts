@@ -22,7 +22,22 @@ function makeRecommendation(): RecommendationResult {
           id: "qwen2.5:1.5b",
           family: "qwen2.5",
           params: "1.5B",
-        } as RecommendationResult["entries"][number]["model"],
+          architecture: "dense",
+          license: "apache-2.0",
+          openWeight: true,
+          contextLength: 32_768,
+          capabilities: ["chat"],
+          releaseDate: "2024-09-19",
+          source: { ollama: "qwen2.5:1.5b" },
+          quantizations: [
+            {
+              name: "Q4_K_M",
+              diskBytes: 986 * 1024 ** 2,
+              minRamBytes: 0,
+              minVramBytes: 0,
+            },
+          ],
+        },
         quant: {
           name: "Q4_K_M",
           diskBytes: 986 * 1024 ** 2,
@@ -128,6 +143,63 @@ describe("createModelManager", () => {
       backends: ["ollama"],
     });
     expect(models[0]?.throughput).toEqual({ known: true, lowTokPerSec: 40, highTokPerSec: 60 });
+  });
+
+  it("exposes catalog and scoring evidence for model details", async () => {
+    const recommendation = makeRecommendation();
+    const entry = recommendation.entries[0]!;
+    const manager = createModelManager({
+      collectRecommendation: async () => ({
+        ...recommendation,
+        entries: [
+          {
+            ...entry,
+            model: {
+              ...entry.model,
+              architecture: "dense",
+              license: "apache-2.0",
+              openWeight: true,
+              contextLength: 32_768,
+              capabilities: ["chat", "code"],
+              releaseDate: "2025-01-01",
+              source: { ollama: "qwen2.5:1.5b", hf: "Qwen/Qwen2.5-1.5B-Instruct" },
+              kvBytesPerToken: 49_152,
+              benchmarkProxy: 0.72,
+              quantizations: [entry.quant],
+            },
+            score: 0.9,
+            scores: { quality: 0.72, fit: 0.91, recency: 0.8, speed: 0.88, capability: 1 },
+            requiredBytes: 1_200_000_000,
+            usableBytes: 34 * 1024 ** 3,
+            contextSizing: {
+              tokens: 16_384,
+              weightsBytes: 1_000_000_000,
+              kvCacheBytes: 805_306_368,
+            },
+          },
+        ],
+      }),
+      runUp: async () => undefined,
+      collectLs: () => ({ type: "empty" }),
+    });
+
+    await expect(manager.recommended()).resolves.toMatchObject([
+      {
+        architecture: "dense",
+        license: "apache-2.0",
+        capabilities: ["chat", "code"],
+        releaseDate: "2025-01-01",
+        contextLength: 32_768,
+        requiredBytes: 1_200_000_000,
+        usableBytes: 34 * 1024 ** 3,
+        score: 0.9,
+        scores: { quality: 0.72, fit: 0.91, recency: 0.8, speed: 0.88, capability: 1 },
+        throughputEvidence: { backend: "ollama", source: "offline-estimate" },
+        source: { ollama: "qwen2.5:1.5b", hf: "Qwen/Qwen2.5-1.5B-Instruct" },
+        quantizations: [{ name: "Q4_K_M", diskBytes: 1_033_895_936 }],
+        contextSizing: { tokens: 16_384, weightsBytes: 1_000_000_000, kvCacheBytes: 805_306_368 },
+      },
+    ]);
   });
 
   it("limits the number of recommended models", async () => {

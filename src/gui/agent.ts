@@ -14,6 +14,7 @@
  */
 import { loadConfig, type Config } from "../config.js";
 import { ValidationError } from "../errors.js";
+import { randomUUID } from "node:crypto";
 import { resolveModel } from "../resolver.js";
 import { loadCatalog } from "../catalog/load.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
@@ -24,16 +25,48 @@ import type { ChatMessage, ChatResult, ChatTool } from "../backend/adapter.js";
 import type { Catalog } from "../types.js";
 import type { AgentTool } from "../mcp/manager.js";
 import type { McpToolResult } from "../mcp/client.js";
+import {
+  classifyToolRisk,
+  redactToolArgs,
+  redactToolResult,
+  type ToolDecision,
+  type ToolRisk,
+} from "./tool-policy.js";
 
 /** An event streamed from a running agent turn. */
 export type AgentEvent =
   | {
       readonly type: "tool";
+      readonly phase: "proposed" | "approval-required" | "start" | "done" | "denied";
+      readonly callId: string;
       readonly name: string;
-      readonly phase: "start" | "done";
+      readonly connector?: string | undefined;
+      readonly risk?: ToolRisk | undefined;
+      readonly arguments?: Record<string, unknown> | undefined;
+      readonly result?: string | undefined;
+      readonly resultTruncated?: boolean | undefined;
       readonly isError?: boolean | undefined;
+      readonly durationMs?: number | undefined;
     }
   | { readonly type: "delta"; readonly content: string };
+
+/** Identity and classification of one proposed tool call, for approval. */
+export interface ToolCallContext {
+  readonly callId: string;
+  readonly name: string;
+  readonly connectorId: string | undefined;
+  readonly risk: ToolRisk;
+  readonly arguments: Record<string, unknown>;
+  readonly schema: Record<string, unknown> | undefined;
+}
+
+/** Decides whether a proposed tool call may run, prompting the user if needed. */
+export interface ToolApprover {
+  /** True when a prior session grant already covers this exact tool. */
+  isPreApproved(ctx: ToolCallContext): boolean;
+  /** Resolve once the user (or policy) decides. Rejects/denies on abort. */
+  requestDecision(ctx: ToolCallContext, signal?: AbortSignal): Promise<ToolDecision>;
+}
 
 /** A single non-streaming chat call the agent can drive with tools. */
 export interface AgentChat {
@@ -42,6 +75,10 @@ export interface AgentChat {
     readonly tools: readonly ChatTool[];
     /** When provided, the backend streams content fragments here as they arrive. */
     readonly onToken?: ((chunk: string) => void) | undefined;
+    /** Cancellation signal for the in-flight provider call. */
+    readonly signal?: AbortSignal | undefined;
+    /** Optional sampling temperature forwarded to the backend when set. */
+    readonly temperature?: number | undefined;
   }): Promise<ChatResult>;
 }
 
@@ -52,6 +89,16 @@ export interface AgentTurnOptions {
   readonly callTool: (name: string, args: Record<string, unknown>) => Promise<McpToolResult>;
   readonly messages: readonly ChatMessage[];
   readonly maxSteps?: number | undefined;
+  /** When aborted, the loop stops before the next model step or tool call. */
+  readonly signal?: AbortSignal | undefined;
+  /** When set, gates every tool call behind a policy/approval decision. */
+  readonly approver?: ToolApprover | undefined;
+  /** Injectable id source for tool call ids (deterministic in tests). */
+  readonly idFactory?: (() => string) | undefined;
+  /** Injectable clock for tool durations (deterministic in tests). */
+  readonly now?: (() => number) | undefined;
+  /** Optional sampling temperature forwarded to every model step. */
+  readonly temperature?: number | undefined;
 }
 
 /** Cap on agent iterations before a final answer is forced without tools. */
@@ -88,6 +135,8 @@ async function* pumpChat(
   chat: AgentChat,
   messages: readonly ChatMessage[],
   tools: readonly ChatTool[],
+  signal?: AbortSignal | undefined,
+  temperature?: number | undefined,
 ): AsyncGenerator<AgentEvent, ChatResult & { readonly streamed: string }> {
   const queue: string[] = [];
   let streamed = "";
@@ -102,6 +151,8 @@ async function* pumpChat(
   const pending = chat({
     messages,
     tools,
+    signal,
+    ...(temperature !== undefined ? { temperature } : {}),
     onToken: (chunk) => {
       if (chunk.length === 0) {
         return;
@@ -160,10 +211,19 @@ function* emitUnstreamedRemainder(
 export async function* runAgentTurn(options: AgentTurnOptions): AsyncGenerator<AgentEvent> {
   const maxSteps = options.maxSteps ?? DEFAULT_MAX_STEPS;
   const chatTools = toChatTools(options.tools);
+  const toolsByName = new Map(options.tools.map((tool) => [tool.name, tool]));
+  const makeId = options.idFactory ?? (() => randomUUID());
+  const now = options.now ?? (() => Date.now());
   const working: ChatMessage[] = [...options.messages];
+  // A function call (not a property read) so the flag is re-evaluated each time
+  // rather than being narrowed by control flow across awaits.
+  const isAborted = (): boolean => options.signal?.aborted ?? false;
 
   for (let step = 0; step < maxSteps; step += 1) {
-    const result = yield* pumpChat(options.chat, working, chatTools);
+    if (isAborted()) {
+      return;
+    }
+    const result = yield* pumpChat(options.chat, working, chatTools, options.signal, options.temperature);
     const calls = result.toolCalls ?? [];
     if (calls.length === 0) {
       yield* emitUnstreamedRemainder(result);
@@ -172,7 +232,63 @@ export async function* runAgentTurn(options: AgentTurnOptions): AsyncGenerator<A
 
     working.push({ role: "assistant", content: result.content, toolCalls: calls });
     for (const call of calls) {
-      yield { type: "tool", name: call.name, phase: "start" };
+      if (isAborted()) {
+        return;
+      }
+      const tool = toolsByName.get(call.name);
+      const ctx: ToolCallContext = {
+        callId: makeId(),
+        name: call.name,
+        connectorId: tool?.connectorId,
+        risk: classifyToolRisk({ name: call.name, description: tool?.description }),
+        arguments: call.arguments,
+        schema: tool?.inputSchema,
+      };
+      const redactedArgs = redactToolArgs(call.arguments);
+      yield {
+        type: "tool",
+        phase: "proposed",
+        callId: ctx.callId,
+        name: ctx.name,
+        connector: ctx.connectorId,
+        risk: ctx.risk,
+        arguments: redactedArgs,
+      };
+
+      let decision: ToolDecision = "approve-once";
+      const approver = options.approver;
+      if (approver !== undefined && !approver.isPreApproved(ctx)) {
+        yield {
+          type: "tool",
+          phase: "approval-required",
+          callId: ctx.callId,
+          name: ctx.name,
+          connector: ctx.connectorId,
+          risk: ctx.risk,
+          arguments: redactedArgs,
+        };
+        try {
+          decision = await approver.requestDecision(ctx, options.signal);
+        } catch {
+          decision = "deny";
+        }
+      }
+
+      if (isAborted()) {
+        return;
+      }
+      if (decision === "deny") {
+        yield { type: "tool", phase: "denied", callId: ctx.callId, name: ctx.name };
+        working.push({
+          role: "tool",
+          content: "The user denied this tool call.",
+          toolName: ctx.name,
+        });
+        continue;
+      }
+
+      yield { type: "tool", phase: "start", callId: ctx.callId, name: ctx.name };
+      const started = now();
       let content: string;
       let isError: boolean;
       try {
@@ -183,13 +299,26 @@ export async function* runAgentTurn(options: AgentTurnOptions): AsyncGenerator<A
         content = error instanceof Error ? error.message : String(error);
         isError = true;
       }
-      yield { type: "tool", name: call.name, phase: "done", isError };
+      const redacted = redactToolResult(content);
+      yield {
+        type: "tool",
+        phase: "done",
+        callId: ctx.callId,
+        name: ctx.name,
+        isError,
+        durationMs: now() - started,
+        result: redacted.text,
+        resultTruncated: redacted.truncated,
+      };
       working.push({ role: "tool", content, toolName: call.name });
     }
   }
 
+  if (isAborted()) {
+    return;
+  }
   // Step budget exhausted: force a final answer with tools withheld.
-  const final = yield* pumpChat(options.chat, working, []);
+  const final = yield* pumpChat(options.chat, working, [], options.signal, options.temperature);
   yield* emitUnstreamedRemainder(final);
 }
 
@@ -222,7 +351,7 @@ function createDefaultActiveBackendChatDeps(): ActiveBackendChatDeps {
 export function createActiveBackendChat(
   deps: ActiveBackendChatDeps = createDefaultActiveBackendChatDeps(),
 ): AgentChat {
-  return async ({ messages, tools, onToken }) => {
+  return async ({ messages, tools, onToken, signal, temperature }) => {
     const active = deps.readState(deps.config).active;
     if (active === null) {
       throw new ValidationError("no active server. Serve a model first.");
@@ -247,6 +376,8 @@ export function createActiveBackendChat(
       model: backendModelId,
       messages,
       ...(tools.length > 0 ? { tools } : {}),
+      ...(signal !== undefined ? { signal } : {}),
+      ...(temperature !== undefined ? { temperature } : {}),
       ...(active.ownedByUs && active.authToken !== undefined
         ? { authToken: active.authToken }
         : {}),

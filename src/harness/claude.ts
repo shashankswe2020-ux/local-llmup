@@ -196,6 +196,7 @@ export function createClaudeHarness(deps: ClaudeHarnessDeps = {}): ChatHarness {
           max_tokens: 1024,
           messages,
           stream: true,
+          ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
         }),
         ...(request.signal ? { signal: request.signal } : {}),
       });

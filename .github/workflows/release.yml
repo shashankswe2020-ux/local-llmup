@@ -7,8 +7,40 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
+  container:
+    name: Publish Docker image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+
+      - name: Login to GitHub Container Registry
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
+
+      - name: Build and publish multi-platform image
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          VERSION="${RELEASE_TAG#v}"
+          docker buildx create --use
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
+            --label "org.opencontainers.image.version=${VERSION}" \
+            --tag "${IMAGE}:${RELEASE_TAG}" \
+            --tag "${IMAGE}:${VERSION}" \
+            --tag "${IMAGE}:latest" \
+            --push \
+            .
+
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
@@ -71,9 +103,9 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           # Extract the section for this version from CHANGELOG.md
           NOTES=$(awk -v ver="$VERSION" '
-            /^## \[/ {
+            /^## / {
               if (found) exit
-              if (index($0, "[" ver "]")) found=1
+              if ($0 == "## " ver || index($0, "## " ver " -") == 1) found=1
               next
             }
             found { print }
@@ -95,6 +127,8 @@ jobs:
             📦 **npm:** [`local-llmup@${{ github.ref_name }}`](https://www.npmjs.com/package/local-llmup/v/${{ steps.changelog.outputs.version }})
 
             Install: `npm install -g local-llmup` or use `npx local-llmup`
+
+            🐳 **Docker:** `docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}`
           generate_release_notes: false
           files: |
             ${{ steps.pack.outputs.package_file }}

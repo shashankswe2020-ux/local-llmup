@@ -84,6 +84,7 @@ export function createLocalHarness(deps: LocalHarnessDeps): ChatHarness {
         endpoint: active.endpoint,
         model: request.model,
         messages: normalizeMessages(request.messages),
+        ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
         ...(active.ownedByUs && active.authToken !== undefined ? { authToken: active.authToken } : {}),
         ...(active.modelPath !== undefined ? { expectedModelPath: active.modelPath } : {}),
         ...(expectedProcess !== undefined ? { expectedProcess } : {}),

@@ -34,6 +34,8 @@ export interface Config {
   readonly skillsDir: string;
   /** Directory of generated chat artifacts (images/graphs) servable to the GUI. */
   readonly artifactsDir: string;
+  /** Owner-only store of persisted GUI chat sessions (`~/.local-llmup/gui-sessions`). */
+  readonly guiSessionsDir: string;
 }
 
 /**
@@ -54,6 +56,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     agentsDir: join(homeDir, "agents"),
     skillsDir: join(homeDir, "skills"),
     artifactsDir: join(homeDir, "artifacts"),
+    guiSessionsDir: join(homeDir, "gui-sessions"),
   });
 }
 

@@ -241,6 +241,7 @@ export function createOpenAICompatibleHarness(
           model: request.model || modelName,
           messages,
           stream: true,
+          ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
         }),
         ...(request.signal ? { signal: request.signal } : {}),
       });

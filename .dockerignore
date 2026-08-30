@@ -1,0 +1,17 @@
+.git
+.github
+.vscode
+node_modules
+dist
+coverage
+apps
+assets
+demos
+docs
+site
+test-results
+tests
+*.log
+.env
+.env.*
+.DS_Store

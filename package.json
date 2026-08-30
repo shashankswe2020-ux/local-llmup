@@ -1,6 +1,6 @@
 {
   "name": "local-llmup",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Hardware-aware CLI that scores your machine and tells you which local LLMs will run (yes/slow/no + tok/s) before recommending, installing, serving, and migrating them.",
   "repository": {
     "type": "git",
@@ -33,13 +33,15 @@
   },
   "files": [
     "dist",
-    "data"
+    "data",
+    "!dist/**/*.map"
   ],
   "scripts": {
     "build": "tsc && node -e \"require('fs').cpSync('src/gui/static','dist/gui/static',{recursive:true})\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
+    "test:e2e": "playwright test",
     "test:tui-proof": "vitest run tests/tui/renderer-proof.test.ts tests/tui/dependency-policy.test.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -67,6 +69,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^20.14.0",
     "@types/react": "18.3.12",
     "@vitest/coverage-v8": "^2.0.0",

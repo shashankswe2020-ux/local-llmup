@@ -66,6 +66,26 @@ describe("OllamaAdapter.chat", () => {
     });
   });
 
+  it("forwards temperature as an ollama option when provided", async () => {
+    const response = {
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ message: { content: "ok" } }),
+    };
+    const { fetch, adapter } = trustedAdapter(() => Promise.resolve(response));
+
+    await adapter.chat({
+      model: "llama3.1:8b",
+      messages: [{ role: "user", content: "hi" }],
+      temperature: 0.2,
+      expectedProcess: { pid: 42, executable: "/nonexistent/ollama", started: "2026-08-08 00:00:00" },
+    });
+
+    const chatCall = fetch.mock.calls.find(([url]) => url.endsWith("/api/chat"));
+    const body = JSON.parse(chatCall?.[1]?.body as string) as { options?: { temperature?: number } };
+    expect(body.options).toEqual({ temperature: 0.2 });
+  });
+
   it("rejects a substituted listener before sending chat content", async () => {
     const { fetch, adapter } = trustedAdapter(() =>
       Promise.resolve({

@@ -57,4 +57,20 @@ describe("README and publish packaging", () => {
     expect(packedFiles.some((file) => file === ".env")).toBe(false);
     expect(packedFiles.some((file) => file === "tokens.json")).toBe(false);
   });
+
+  it("ships a non-root Docker image through GHCR and documents how to pull it", () => {
+    const dockerfile = readText("Dockerfile");
+    const releaseWorkflow = readText(".github/workflows/release.yml");
+    const readme = readText("README.md");
+    const site = readText("site/index.html");
+
+    expect(dockerfile).toContain("USER llmup");
+    expect(dockerfile).toContain('ENTRYPOINT ["node", "dist/bin.js"]');
+    expect(releaseWorkflow).toContain("ghcr.io/${GITHUB_REPOSITORY,,}");
+    expect(releaseWorkflow).toContain("docker buildx build");
+    expect(releaseWorkflow).toContain("packages: write");
+    expect(releaseWorkflow).toContain('index($0, "## " ver " -") == 1');
+    expect(readme).toContain("docker pull ghcr.io/shashankswe2020-ux/local-llmup");
+    expect(site).toContain("docker pull ghcr.io/shashankswe2020-ux/local-llmup");
+  });
 });
