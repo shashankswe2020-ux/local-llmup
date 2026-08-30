@@ -500,7 +500,7 @@ src/
 ### Deepgit Verification (2026-08-30)
 
 - Build: passed (`npm run build`)
-- Tests: **1850/1850 passed** across 129 files (`umask 022 npm test`)
+- Tests: **1850/1850 passed** across 129 files (`npm test`)
 - Production dependency audit: passed (0 vulnerabilities; covered by the package budget gate)
 
 ---
