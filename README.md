@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/tests-1600%2B%20passing-brightgreen.svg)](#development)
+[![Tests](https://img.shields.io/badge/tests-1800%2B%20passing-brightgreen.svg)](#development)
 [![Backends](https://img.shields.io/badge/backends-Ollama%20%7C%20llama.cpp%20%7C%20MLX%20%7C%20LM%20Studio-000000.svg)](#supported-backends)
 
 > **Know which local LLMs will actually run on your machine — before you download anything.**
@@ -459,7 +459,7 @@ backend, verify the weights, then serve and migrate without guessing.
 ```bash
 npm install          # Install dependencies
 npm run build        # Compile TypeScript
-npm test             # 1459 tests (Vitest)
+npm test             # 1850 tests (Vitest)
 npm run typecheck    # tsc --noEmit
 npm run lint         # ESLint
 npm run format       # Prettier
@@ -493,9 +493,15 @@ src/
 
 - **TDD.** Failing test → minimal implementation → refactor.
 - **All mocked.** No real network/Ollama/filesystem in Vitest tests.
-- **87 test files, 1459 assertions.** Unit > integration > e2e.
+- **129 test files, 1850 assertions.** Unit > integration > e2e.
 - **Coverage gates.** 80% lines+branches on core modules.
 - **Runtime smoke.** Real backend processes tested separately via production builds.
+
+### Deepgit Verification (2026-08-30)
+
+- Build: passed (`npm run build`)
+- Tests: **1850/1850 passed** across 129 files (`umask 022 npm test`)
+- Production dependency audit: passed (0 vulnerabilities; covered by the package budget gate)
 
 ---
 
