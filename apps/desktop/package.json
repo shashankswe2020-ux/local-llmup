@@ -32,6 +32,7 @@
   "build": {
     "appId": "org.localllmup.desktop",
     "productName": "local-llmup",
+    "executableName": "local-llmup",
     "asar": true,
     "afterPack": "build/after-pack.cjs",
     "directories": {
