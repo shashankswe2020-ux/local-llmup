@@ -3,6 +3,14 @@ import { z } from "zod";
 import { ValidationError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
 import { BACKEND_NAMES, type BackendName } from "../types.js";
+import {
+  MAX_ATTACHMENTS,
+  MAX_CONTEXT_SOURCES,
+  WorkspaceAttachmentRefSchema,
+  ContextSourceRefSchema,
+  type WorkspaceAttachmentRef,
+  type ContextSourceRef,
+} from "./contracts.js";
 
 export const MAX_REQUEST_BYTES = 64 * 1024;
 
@@ -37,6 +45,11 @@ export const GUI_CHAT_REQUEST_SCHEMA = z.object({
   messages: z.array(GUI_MESSAGE_SCHEMA).min(1).max(20),
   agentId: z.string().trim().max(64).optional(),
   skillIds: z.array(z.string().trim().max(64)).max(20).optional(),
+  systemPrompt: z.string().max(8192).optional(),
+  temperature: z.number().min(0).max(2).optional(),
+  attachments: z.array(WorkspaceAttachmentRefSchema).max(MAX_ATTACHMENTS).optional(),
+  contextSources: z.array(ContextSourceRefSchema).max(MAX_CONTEXT_SOURCES).optional(),
+  disclosureAck: z.boolean().optional(),
 });
 
 export const GUI_HARNESS_SWITCH_SCHEMA = z.object({
@@ -112,6 +125,11 @@ export function parseGuiChatRequest(input: unknown): {
   readonly messages: readonly { readonly role: "user" | "assistant"; readonly content: string }[];
   readonly agentId?: string | undefined;
   readonly skillIds?: readonly string[] | undefined;
+  readonly systemPrompt?: string | undefined;
+  readonly temperature?: number | undefined;
+  readonly attachments?: readonly WorkspaceAttachmentRef[] | undefined;
+  readonly contextSources?: readonly ContextSourceRef[] | undefined;
+  readonly disclosureAck?: boolean | undefined;
 } {
   const parsed = GUI_CHAT_REQUEST_SCHEMA.safeParse(input);
   if (!parsed.success) {
@@ -126,6 +144,11 @@ export function parseGuiChatRequest(input: unknown): {
     })),
     agentId: parsed.data.agentId,
     skillIds: parsed.data.skillIds,
+    systemPrompt: parsed.data.systemPrompt,
+    temperature: parsed.data.temperature,
+    attachments: parsed.data.attachments,
+    contextSources: parsed.data.contextSources,
+    disclosureAck: parsed.data.disclosureAck,
   };
 }
 

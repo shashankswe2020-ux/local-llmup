@@ -11,7 +11,7 @@
 import { createServer as createNetServer } from "node:net";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, nativeImage, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, shell } from "electron";
 import { runGui, type GuiDeps } from "local-llmup/dist/commands/gui.js";
 import { createDefaultRegistry } from "local-llmup/dist/harness/registry.js";
 
@@ -19,6 +19,27 @@ const WINDOW_BACKGROUND = "#050506";
 
 /** Neobrutalist brand icon, bundled under `build/icon.png` next to `dist/`. */
 const APP_ICON_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "build", "icon.png");
+
+/** The only native bridge exposed to the renderer (see `preload.cjs`). */
+const PRELOAD_PATH = join(dirname(fileURLToPath(import.meta.url)), "preload.cjs");
+
+/** Fixed IPC channel for the directory chooser; nothing else is exposed. */
+const SELECT_DIRECTORY_CHANNEL = "llmup:select-workspace-directory";
+
+/**
+ * Interpret a native open-dialog result into a single directory path, or null.
+ * Cancelling — or an empty selection — grants nothing.
+ */
+export function resolveSelectedDirectory(result: {
+  readonly canceled: boolean;
+  readonly filePaths: readonly string[];
+}): string | null {
+  if (result.canceled || result.filePaths.length === 0) {
+    return null;
+  }
+  const [first] = result.filePaths;
+  return typeof first === "string" && first.length > 0 ? first : null;
+}
 
 let mainWindow: BrowserWindow | null = null;
 let serverUrl: string | null = null;
@@ -71,6 +92,7 @@ function createWindow(url: string): void {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      preload: PRELOAD_PATH,
     },
   });
 
@@ -122,6 +144,24 @@ async function bootRuntimeHost(): Promise<void> {
 
 app.whenReady().then(
   () => {
+    // The single native bridge: open the OS directory chooser on request. The
+    // renderer only ever receives a path string (or null); it never touches the
+    // filesystem itself — the loopback server canonicalizes and policy-checks it.
+    ipcMain.handle(SELECT_DIRECTORY_CHANNEL, async () => {
+      const window = mainWindow;
+      const result =
+        window !== null
+          ? await dialog.showOpenDialog(window, {
+              title: "Choose workspace folder",
+              properties: ["openDirectory"],
+            })
+          : await dialog.showOpenDialog({
+              title: "Choose workspace folder",
+              properties: ["openDirectory"],
+            });
+      return resolveSelectedDirectory(result);
+    });
+
     // On macOS the Dock icon comes from the app bundle when packaged, but in dev
     // (`npm start`) there is no bundle — set it explicitly so the Dock matches.
     if (process.platform === "darwin" && app.dock !== undefined) {

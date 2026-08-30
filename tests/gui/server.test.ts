@@ -145,6 +145,69 @@ describe("GuiServer", () => {
     expect(text).toContain('"type":"done"');
   });
 
+  it("injects a per-chat system prompt as a system message", async () => {
+    let captured: readonly { readonly role: string; readonly content: string }[] = [];
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+      sendChat: async (request) => {
+        captured = request.messages;
+        return ["ok"];
+      },
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const response = await fetch(`http://127.0.0.1:${port}/api/chat`, {
+      method: "POST",
+      headers: {
+        Host: `127.0.0.1:${port}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "demo-model",
+        messages: [{ role: "user", content: "hi" }],
+        harness: "local",
+        systemPrompt: "You are a terse pirate.",
+      }),
+    });
+    await response.text();
+
+    const systemMessages = captured.filter((message) => message.role === "system");
+    expect(systemMessages.some((message) => message.content === "You are a terse pirate.")).toBe(true);
+  });
+
+  it("forwards a per-chat temperature to the backend", async () => {
+    let seenTemperature: number | undefined;
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+      sendChat: async (request) => {
+        seenTemperature = request.temperature;
+        return ["ok"];
+      },
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const response = await fetch(`http://127.0.0.1:${port}/api/chat`, {
+      method: "POST",
+      headers: {
+        Host: `127.0.0.1:${port}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "demo-model",
+        messages: [{ role: "user", content: "hi" }],
+        harness: "local",
+        temperature: 0.3,
+      }),
+    });
+    await response.text();
+
+    expect(seenTemperature).toBe(0.3);
+  });
+
   it("streams the real backend error when chat execution throws synchronously", async () => {
     const server = new GuiServer({
       rootDir: new URL("../../src/gui/static", import.meta.url),

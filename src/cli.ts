@@ -14,7 +14,6 @@ import { runLs } from "./commands/ls.js";
 import { runSwitch } from "./commands/switch.js";
 import { runChat } from "./commands/chat.js";
 import { parseHarnessName } from "./harness/adapter.js";
-import { runGui } from "./commands/gui.js";
 import { runMigrate } from "./commands/migrate.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runCatalog } from "./commands/catalog.js";
@@ -397,6 +396,7 @@ function registerGui(command: Command): void {
     .option("--json", "Print the server URL as JSON instead of opening the browser")
     .action(async (options: { port?: string | number; harness?: string; noOpen?: boolean; json?: boolean }) => {
       try {
+        const { runGui } = await import("./commands/gui.js");
         const port = options.port === undefined ? undefined : Number(options.port);
         if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
           process.stderr.write(

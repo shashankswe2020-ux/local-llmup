@@ -35,11 +35,24 @@
         </nav>
 
         <div class="rail-session">
-          <div class="rail-heading">Session</div>
-          <button id="session-current" class="rail-session-item active" type="button">
-            <span class="rail-session-title">Current session</span>
-            <span id="session-turns" class="rail-session-sub">0 turns</span>
-          </button>
+          <div class="rail-heading">
+            <span>Session</span>
+            <button id="session-new" class="rail-mini-btn" type="button" aria-label="New chat" title="New chat" hidden>＋</button>
+          </div>
+          <input
+            id="session-search"
+            class="rail-session-search"
+            type="search"
+            placeholder="Search chats…"
+            aria-label="Search chats"
+            hidden
+          />
+          <div id="session-list" class="rail-session-list">
+            <button id="session-current" class="rail-session-item active" type="button">
+              <span class="rail-session-title">Current session</span>
+              <span id="session-turns" class="rail-session-sub">0 turns</span>
+            </button>
+          </div>
         </div>
 
         <div class="rail-footer">
@@ -96,25 +109,114 @@
             <span class="pill-label">Turns</span>
             <span id="turn-count" class="pill-value">0</span>
           </div>
+          <div class="pill">
+            <span class="pill-label">Context</span>
+            <span id="context-usage" class="pill-value" title="Estimated tokens in this conversation (~4 chars/token).">~0 tok</span>
+          </div>
         </section>
 
         <div class="stage-body">
           <section id="view-chat" class="view chat-view active">
-            <div id="messages" class="messages" aria-live="polite">
+            <div id="a11y-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+            <div id="messages" class="messages" role="log" aria-label="Conversation">
               <div class="messages-empty">Ask the local model anything. Nothing leaves this machine.</div>
             </div>
 
             <form id="chat-form" class="composer">
+              <div class="chat-config">
+                <button
+                  type="button"
+                  id="system-prompt-toggle"
+                  class="chat-config-toggle"
+                  aria-expanded="false"
+                  aria-controls="system-prompt-panel"
+                >⚙ System prompt</button>
+                <div id="system-prompt-panel" class="system-prompt-panel" hidden>
+                  <textarea
+                    id="system-prompt-input"
+                    class="system-prompt-input"
+                    rows="3"
+                    placeholder="Steer the model for this chat, e.g. “You are a terse pirate.” Applied as a system message on every turn."
+                    spellcheck="false"
+                  ></textarea>
+                  <div class="system-prompt-temp">
+                    <label for="temperature-input">Temperature</label>
+                    <input id="temperature-input" class="temperature-input" type="range" min="0" max="2" step="0.1" value="0.7" />
+                    <output id="temperature-value" class="temperature-value">0.7</output>
+                  </div>
+                  <div class="system-prompt-row">
+                    <span id="system-prompt-note" class="system-prompt-note"></span>
+                    <button type="button" id="system-prompt-clear" class="context-extra-btn">Clear</button>
+                  </div>
+                </div>
+              </div>
               <div id="skill-bar" class="skill-bar">
                 <span class="skill-bar-label">Skills</span>
                 <div id="skill-chips" class="skill-chips">
                   <span class="chip-empty">None</span>
                 </div>
               </div>
+              <div id="context-bar" class="context-bar" hidden>
+                <div class="context-controls">
+                  <button type="button" id="context-add" class="context-add" aria-expanded="false" aria-controls="context-picker">
+                    @ Add context
+                  </button>
+                  <span id="context-empty" class="context-empty">No files attached</span>
+                </div>
+                <div id="context-chips" class="context-chips"></div>
+                <div id="context-picker" class="context-picker" hidden role="dialog" aria-modal="false" aria-label="Attach workspace context" tabindex="-1">
+                  <div id="context-root" class="context-root" hidden>
+                    <label class="context-root-label" for="context-root-path">Choose a workspace folder to enable file context.</label>
+                    <div class="context-root-row">
+                      <input id="context-root-path" class="context-root-input" type="text" placeholder="/path/to/project" autocomplete="off" spellcheck="false" />
+                      <button type="button" id="context-root-browse" class="context-root-btn" hidden>Browse…</button>
+                      <button type="button" id="context-root-add" class="context-root-btn">Add folder</button>
+                    </div>
+                    <p id="context-root-error" class="context-root-error" hidden></p>
+                  </div>
+                  <div id="context-browse" class="context-browse">
+                    <input id="context-search" class="context-search" type="text" placeholder="Search files…" autocomplete="off" spellcheck="false" aria-label="Search files" />
+                    <ul id="context-results" class="context-results" role="listbox" aria-label="File results"></ul>
+                    <div class="context-range">
+                      <label class="context-range-label" for="context-start">Optional line range</label>
+                      <div class="context-range-row">
+                        <input id="context-start" class="context-line" type="number" min="1" placeholder="start" aria-label="Start line" />
+                        <span aria-hidden="true">–</span>
+                        <input id="context-end" class="context-line" type="number" min="1" placeholder="end" aria-label="End line" />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="context-extra">
+                    <div id="context-git" class="context-git" hidden>
+                      <span class="context-extra-label">Git (read-only)</span>
+                      <div class="context-git-row">
+                        <button type="button" id="context-git-status" class="context-extra-btn">Add git status</button>
+                        <button type="button" id="context-git-diff" class="context-extra-btn">Add git diff</button>
+                      </div>
+                      <p id="context-git-note" class="context-git-note" hidden></p>
+                    </div>
+                    <div class="context-paste">
+                      <label class="context-extra-label" for="context-paste-text">Paste terminal output or diagnostics</label>
+                      <textarea id="context-paste-text" class="context-paste-text" rows="3" placeholder="Paste text here. It is attached as-is and never executed." spellcheck="false"></textarea>
+                      <div class="context-paste-row">
+                        <select id="context-paste-kind" class="context-paste-kind" aria-label="Pasted context type">
+                          <option value="terminal">Terminal output</option>
+                          <option value="diagnostics">Diagnostics</option>
+                        </select>
+                        <button type="button" id="context-paste-add" class="context-extra-btn">Attach text</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="context-picker-foot">
+                    <button type="button" id="context-close" class="context-close">Close</button>
+                  </div>
+                </div>
+              </div>
               <div class="composer-row">
                 <textarea
                   id="prompt"
                   rows="1"
+                  aria-label="Message the local model"
                   placeholder="Message the local model…"
                 ></textarea>
                 <button type="submit" class="send-btn" aria-label="Send">Send</button>
@@ -123,34 +225,41 @@
           </section>
 
           <section id="view-models" class="view panel-view">
-            <div class="section-head">
-              <div>
-                <h2>Models</h2>
-                <p class="section-sub">
-                  Recommendations are scored against your hardware for the selected runtime. Pick one to serve it locally.
-                </p>
-                <p class="section-note">Throughput ranges are short-context decode estimates.</p>
+            <div id="model-catalog-panel" class="model-catalog-panel">
+              <div class="section-head">
+                <div>
+                  <h2>Models</h2>
+                  <p class="section-sub">
+                    Recommendations are scored against your hardware for the selected runtime. Select a model for complete fit and performance evidence.
+                  </p>
+                  <p class="section-note">Throughput ranges are offline short-context decode estimates.</p>
+                </div>
+                <div class="model-toolbar">
+                  <label class="context-control" for="context-window">
+                    <span>Context window</span>
+                    <select id="context-window">
+                      <option value="low">Low · 25%</option>
+                      <option value="mid" selected>Mid · 50%</option>
+                      <option value="high">High · 75%</option>
+                      <option value="max">Max · 100%</option>
+                    </select>
+                  </label>
+                  <button id="refresh-models" class="ghost-btn" type="button">Refresh</button>
+                </div>
               </div>
-              <div class="model-toolbar">
-                <label class="context-control" for="context-window">
-                  <span>Context window</span>
-                  <select id="context-window">
-                    <option value="low">Low · 25%</option>
-                    <option value="mid" selected>Mid · 50%</option>
-                    <option value="high">High · 75%</option>
-                    <option value="max">Max · 100%</option>
-                  </select>
-                </label>
-                <button id="refresh-models" class="ghost-btn" type="button">Refresh</button>
+
+              <div id="active-model-banner" class="banner" hidden></div>
+              <div id="model-error" class="banner banner-error" hidden></div>
+
+              <div id="recommended-list" class="card-grid" aria-live="polite">
+                <div class="empty">Loading recommendations…</div>
               </div>
             </div>
 
-            <div id="active-model-banner" class="banner" hidden></div>
-            <div id="model-error" class="banner banner-error" hidden></div>
-
-            <div id="recommended-list" class="card-grid" aria-live="polite">
-              <div class="empty">Loading recommendations…</div>
-            </div>
+            <article id="model-detail" class="model-detail" aria-labelledby="model-detail-title" hidden>
+              <button id="model-detail-back" class="model-detail-back" type="button" aria-label="Back to model catalog">← Model catalog</button>
+              <div id="model-detail-content"></div>
+            </article>
           </section>
 
           <section id="view-connectors" class="view panel-view">
@@ -404,6 +513,34 @@
       </aside>
     </div>
 
+    <div id="command-palette" class="command-palette" hidden role="dialog" aria-modal="true" aria-label="Command palette">
+      <div class="command-panel" role="document">
+        <input
+          id="command-input"
+          class="command-input"
+          type="text"
+          placeholder="Type a command…"
+          aria-label="Search commands"
+          aria-controls="command-list"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <ul id="command-list" class="command-list" role="listbox" aria-label="Commands"></ul>
+      </div>
+    </div>
+
+    <div id="artifact-modal" class="artifact-modal" hidden role="dialog" aria-modal="true" aria-label="Artifact preview">
+      <div class="artifact-panel" role="document">
+        <div class="artifact-head">
+          <span class="artifact-title">Preview</span>
+          <button type="button" id="artifact-close" class="artifact-close" aria-label="Close preview">✕</button>
+        </div>
+        <iframe id="artifact-frame" class="artifact-frame" title="Artifact preview" sandbox="allow-scripts"></iframe>
+      </div>
+    </div>
+
+    <script src="/static/sse.js"></script>
+    <script src="/static/run-reducer.js"></script>
     <script src="/static/chat.js"></script>
   </body>
 </html>

@@ -42,6 +42,7 @@ describe("loadConfig", () => {
     expect(config.agentsDir).toBe("/tmp/custom-llmup/agents");
     expect(config.skillsDir).toBe("/tmp/custom-llmup/skills");
     expect(config.artifactsDir).toBe("/tmp/custom-llmup/artifacts");
+    expect(config.guiSessionsDir).toBe("/tmp/custom-llmup/gui-sessions");
   });
 
   it("reads process.env by default", () => {

@@ -238,6 +238,8 @@ export interface ChatRequest {
   /** Active server bearer secret; required by guarded MLX inference. */
   readonly authToken?: string | undefined;
   readonly expectedModelPath?: string | undefined;
+  /** Optional sampling temperature; backends that lack it ignore the value. */
+  readonly temperature?: number | undefined;
 }
 
 /** Result of a chat completion. */

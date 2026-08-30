@@ -24,6 +24,8 @@ export interface HarnessChatRequest {
   readonly model: string;
   readonly messages: readonly HarnessMessage[];
   readonly signal?: AbortSignal | undefined;
+  /** Optional sampling temperature forwarded to the provider when set. */
+  readonly temperature?: number | undefined;
 }
 
 /** A chat harness routes one prompt to a provider and yields streaming chunks. */

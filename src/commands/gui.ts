@@ -1,11 +1,14 @@
 /** Start the browser GUI server for interactive chat. */
 import { execFile } from "node:child_process";
 import { mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { createServer as createNetServer } from "node:net";
 import { promisify } from "node:util";
 import { createDefaultRegistry, type HarnessRegistry } from "../harness/registry.js";
 import { createDefaultRegistry as createDefaultBackendRegistry } from "../backend/registry.js";
 import { GuiServer, type GuiServerOptions } from "../gui/server.js";
+import { SessionRepository } from "../gui/session-repository.js";
+import { WorkspaceService } from "../gui/workspace/service.js";
 import { createDefaultModelManager, type GuiModelManager } from "../gui/management.js";
 import { createRuntimeController, type RuntimeController } from "../gui/runtime.js";
 import { createDefaultHardwareProvider, type HardwareProvider } from "../gui/hardware.js";
@@ -57,6 +60,8 @@ export interface GuiDeps {
   readonly runtimeController?: RuntimeController | undefined;
   readonly hardwareProvider?: HardwareProvider | undefined;
   readonly library?: LibraryService | undefined;
+  readonly sessions?: SessionRepository | undefined;
+  readonly workspace?: WorkspaceService | undefined;
   readonly createGuiServer?: ((options: GuiServerOptions) => GuiServerLike) | undefined;
 }
 
@@ -142,6 +147,9 @@ export async function runGui(
   const library = deps.library ?? createLibraryService();
   const artifactsDir = loadConfig().artifactsDir;
   mkdirSync(artifactsDir, { recursive: true, mode: DIR_MODE });
+  const sessions = deps.sessions ?? new SessionRepository(loadConfig());
+  const workspace = deps.workspace ?? new WorkspaceService();
+  const editRecordsDir = join(loadConfig().homeDir, "gui-edits");
   const createGuiServer = deps.createGuiServer ?? ((serverOptions) => new GuiServer(serverOptions));
   const server = createGuiServer({
     registry: deps.registry,
@@ -152,6 +160,9 @@ export async function runGui(
     agentChat: createActiveBackendChat(),
     library,
     artifactsDir,
+    sessions,
+    workspace,
+    editRecordsDir,
   });
   server.session.activeHarnessName = harnessName;
   await server.start(port);

@@ -14,6 +14,16 @@ gives you a `yes / slow / no` verdict with estimated tokens-per-second for every
 model in its curated catalog — then drives the entire lifecycle from pull through
 chat across four supported backends.
 
+<div align="center">
+<img src="assets/model-performance.png" alt="local-llmup model performance view showing recommendation score, hardware fit, estimated throughput, memory and context evidence, quantizations, and catalog sources" width="900" />
+</div>
+
+The model performance view explains every recommendation in one place: composite
+and per-dimension scores, estimated throughput with its evidence, required versus
+usable memory, context and KV-cache cost, available runtimes, quantizations,
+integrity status, capabilities, and catalog sources. Unknown inputs stay
+`unknown`; estimates are never presented as measured benchmarks.
+
 ---
 
 ## Highlights
@@ -45,6 +55,7 @@ chat across four supported backends.
   - [Highlights](#highlights)
   - [Table of Contents](#table-of-contents)
   - [Install](#install)
+    - [Docker](#docker)
   - [Quick Start](#quick-start)
   - [Terminal UI](#terminal-ui)
     - [Features](#features)
@@ -80,6 +91,21 @@ npx local-llmup
 ```
 
 **Requirements:** Node.js 18+ · No API keys · No cloud accounts
+
+### Docker
+
+Pull the multi-platform CLI image from GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/shashankswe2020-ux/local-llmup:latest
+docker run --rm ghcr.io/shashankswe2020-ux/local-llmup:latest
+```
+
+The image is published for `linux/amd64` and `linux/arm64`. Its default command
+prints JSON recommendations and advice remains offline. Hardware detection sees
+the container's resources, not necessarily the complete host, so use the native
+or npm installation for host-accurate recommendations. The browser GUI remains
+loopback-only and is not exposed from the container.
 
 For lifecycle commands (`up`, `down`, `chat`, `switch`, `migrate`), you need at
 least one backend installed:

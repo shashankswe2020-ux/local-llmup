@@ -1343,6 +1343,9 @@ export class OllamaAdapter implements BackendAdapter {
           messages,
           stream,
           ...(tools !== undefined ? { tools } : {}),
+          ...(request.temperature !== undefined
+            ? { options: { temperature: request.temperature } }
+            : {}),
         }),
         signal: request.signal,
       });

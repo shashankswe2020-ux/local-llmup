@@ -1,6 +1,6 @@
 {
   "name": "@local-llmup/desktop",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "private": true,
   "description": "Desktop shell for local-llmup — a thin Electron surface over the loopback Runtime Host (the same GUI server the CLI serves).",
   "type": "module",
@@ -10,7 +10,7 @@
   "license": "MIT",
   "scripts": {
     "build:cli": "npm --prefix ../.. run build && rm -rf node_modules/local-llmup && npm install --no-audit --no-fund",
-    "build:main": "tsc -p tsconfig.json",
+    "build:main": "tsc -p tsconfig.json && node -e \"require('fs').copyFileSync('src/preload.cjs','dist/preload.cjs')\"",
     "build": "npm run build:cli && npm run build:main",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "dev": "npm run build:main && electron .",

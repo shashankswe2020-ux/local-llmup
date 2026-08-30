@@ -197,14 +197,19 @@ h1 em {
 .btn-primary  { background: var(--ink); color: var(--paper); }
 .btn-secondary { background: var(--paper); color: var(--ink); }
 
+.install-options {
+  display: flex; flex-direction: column; align-items: center; gap: .75rem;
+}
 .install-strip {
   display: inline-flex; align-items: center; gap: .75rem;
   border: var(--border-w) solid var(--ink);
   background: var(--paper); box-shadow: var(--shadow);
   padding: .55rem .55rem .55rem 1rem;
   font-family: var(--mono); font-size: .92rem; color: var(--ink);
+  max-width: 100%;
 }
 .install-strip .prompt { color: var(--terracotta-d); font-weight: 700; user-select: none; }
+.install-strip > span:nth-child(2) { overflow-wrap: anywhere; text-align: left; }
 .copy-btn {
   display: inline-flex; align-items: center; justify-content: center;
   border: var(--border-w) solid var(--ink);
@@ -224,6 +229,12 @@ h1 em {
   background: var(--ink);
 }
 .demo-wrap img { display: block; width: 100%; height: auto; }
+#performance { margin-top: 0; }
+.hero-proof {
+  max-width: 72ch; margin: 1.5rem auto 0; color: var(--ink-2);
+  font-size: .92rem; line-height: 1.6;
+}
+.hero-proof + .hero-actions { margin-top: 2rem; }
 
 /* ── Demo gallery (runtime chat GIFs) ─────────────────────────── */
 .demo-gallery {

@@ -2,6 +2,7 @@ node_modules/
 dist/
 coverage/
 *.log
+*.tgz
 .DS_Store
 .env
 .env.*
@@ -11,3 +12,9 @@ catalog-freshness.json
 
 # Local experiment, not part of the package
 whoop-test.mjs
+
+# Playwright end-to-end test artifacts
+playwright-report/
+test-results/
+/blob-report/
+.last-run.json

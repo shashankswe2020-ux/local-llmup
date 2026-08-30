@@ -1,5 +1,57 @@
 # Changelog
 
+## 0.11.0 - 2026-08-30
+
+**Model performance intelligence and a complete local AI workspace.**
+
+### New Features
+
+- **Dedicated model performance view.** Selecting a catalog model now opens a
+  complete performance dossier with the composite recommendation score and all
+  five score dimensions, estimated throughput and provenance, memory and
+  context/KV-cache evidence, model metadata, capabilities, supported runtimes,
+  quantization sizing and integrity state, and catalog sources. Unknown values
+  remain explicitly unknown.
+- **Durable chat workspace.** Browser and desktop chat now support bounded,
+  owner-only multi-session history with create, search, rename, archive, delete,
+  export, and restart recovery.
+- **Reliable run lifecycle.** Server-owned run IDs, stop/cancellation
+  propagation, terminal-state guards, durable failures, retry, and fragmented
+  SSE handling prevent duplicate or late completions.
+- **Explicit workspace context.** Users can select a bounded workspace, attach
+  files or line ranges, paste terminal output or diagnostics, and include
+  read-only Git status/diffs. The context ledger records hashes, sizes,
+  truncation, and inclusion decisions.
+- **Safe tools and edits.** MCP calls expose locally classified risk, redacted
+  arguments/results, and approval decisions. Model edits remain inert proposals
+  until diff review and hash-guarded apply; stale or conflicting files fail
+  closed.
+- **Native folder selection.** The hardened Electron shell exposes one narrow,
+  sandbox-safe directory chooser bridge without granting renderer filesystem
+  access.
+- **Docker distribution.** A digest-pinned, non-root, multi-platform CLI image
+  is published to GitHub Container Registry for `linux/amd64` and
+  `linux/arm64`, with immutable release tags and `latest`.
+
+### Security and Privacy
+
+- Workspace roots require explicit user selection and remain containment- and
+  symlink-checked; reads are bounded and mutations are revision/hash guarded.
+- Sending workspace context to a cloud harness requires a visible disclosure
+  decision before any content leaves the machine.
+- The GUI and desktop Runtime Host remain loopback-only with strict Host,
+  Origin, content-type, and capability checks.
+
+### Documentation and Validation
+
+- README and site now lead with the model performance view and provide npm,
+  native desktop, and Docker installation choices.
+- Added deterministic browser and Electron journeys for chat, sessions,
+  cancellation, context, tools, edits, accessibility, and responsive model
+  details.
+- Added client reducer and arbitrary-fragment SSE tests plus expanded GUI,
+  workspace-policy, session-store, and release-packaging coverage.
+
 ## 0.10.0 - 2026-08-27
 
 **Intel Arc/Xe GPU detection.**
