@@ -70,6 +70,7 @@ integrity status, capabilities, and catalog sources. Unknown inputs stay
   - [How Advice Works](#how-advice-works)
   - [Scripting \& Exit Codes](#scripting--exit-codes)
   - [local-llmup vs. Ollama](#local-llmup-vs-ollama)
+  - [SOTA Landscape (August 2026)](#sota-landscape-august-2026)
   - [Development](#development)
     - [Architecture](#architecture)
     - [Testing Philosophy](#testing-philosophy)
@@ -427,6 +428,29 @@ fi
 
 > **Homebrew for local LLMs** — hardware-aware model selection with a consistent
 > workflow across runtimes.
+
+---
+
+## SOTA Landscape (August 2026)
+
+This snapshot compares `local-llmup` with the leading local inference and
+workspace tools as of **2026-08-30**. It is a capability map, not a benchmark
+ranking; runtimes and model support change quickly.
+
+| Project | Best at | How `local-llmup` complements it |
+|---------|----------|----------------------------------|
+| [Ollama](https://ollama.com) | Simple model pull, local serving, and an OpenAI-compatible API | Adds hardware-fit verdicts, throughput estimates, integrity checks, and lifecycle portability |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) | Portable, dependency-light inference across CPU/GPU backends and quantizations | Adds model selection before download and a consistent orchestration layer |
+| [MLX-LM](https://github.com/ml-explore/mlx-lm) | Apple Silicon generation, quantization, and fine-tuning | Adds cross-platform recommendations and backend selection |
+| [LM Studio](https://lmstudio.ai) | GUI-first model discovery, chat, and local API serving | Adds deterministic CLI/TUI workflows, scriptable output, and memory migration |
+| [vLLM](https://github.com/vllm-project/vllm) | High-throughput, concurrent GPU serving with batching and distributed execution | Targets the single-user, hardware-constrained local workflow and can-run decisions |
+| [LocalAI](https://github.com/mudler/LocalAI) | OpenAI-compatible multi-backend server for LLM, vision, voice, and image workloads | Adds catalog-backed hardware sizing and verified model lifecycle operations |
+| [AnythingLLM](https://github.com/Mintplex-Labs/anything-llm) | Document workspaces, agents, and multi-user knowledge workflows | Adds runtime-aware model recommendations underneath the workspace layer |
+
+**Positioning:** the major tools above optimize inference, serving, or
+application UX. `local-llmup` is the decision and lifecycle layer between a
+machine and those runtimes: measure the hardware, explain what fits, choose a
+backend, verify the weights, then serve and migrate without guessing.
 
 ---
 
