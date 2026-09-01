@@ -50,6 +50,7 @@ describe("MlxAdapter — descriptor and installation", () => {
     expect(adapter.capabilities).toEqual({
       canPull: true,
       canEmbed: false,
+      embeddingOffload: "unknown",
       openAiCompatible: true,
       formats: ["mlx"],
       defaultPort: 8080,

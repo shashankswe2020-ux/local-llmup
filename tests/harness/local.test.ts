@@ -29,6 +29,7 @@ describe("createLocalHarness", () => {
       capabilities: {
         canPull: true,
         canEmbed: true,
+        embeddingOffload: "unknown",
         openAiCompatible: true,
         formats: ["ollama"],
         defaultPort: 11434,
@@ -84,6 +85,7 @@ describe("createLocalHarness", () => {
       capabilities: {
         canPull: true,
         canEmbed: true,
+        embeddingOffload: "unknown",
         openAiCompatible: true,
         formats: ["ollama"],
         defaultPort: 11434,
@@ -145,6 +147,7 @@ describe("createLocalHarness", () => {
       capabilities: {
         canPull: false,
         canEmbed: false,
+        embeddingOffload: "unknown",
         openAiCompatible: true,
         formats: ["gguf"],
         defaultPort: 1234,

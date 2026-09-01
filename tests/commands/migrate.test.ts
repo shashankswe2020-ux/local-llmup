@@ -112,6 +112,7 @@ function fakeAdapter(chat?: (req: ChatRequest) => Promise<ChatResult>): BackendA
     capabilities: {
       canPull: true,
       canEmbed: true,
+      embeddingOffload: "unknown",
       openAiCompatible: true,
       formats: ["ollama"],
       defaultPort: 11434,

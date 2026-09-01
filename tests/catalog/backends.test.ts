@@ -25,6 +25,7 @@ function fakeAdapter(
     capabilities: {
       canPull: true,
       canEmbed: true,
+      embeddingOffload: "unknown",
       openAiCompatible: true,
       formats,
       defaultPort: 8080,
