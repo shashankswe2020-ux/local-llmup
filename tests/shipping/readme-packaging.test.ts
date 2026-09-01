@@ -73,4 +73,14 @@ describe("README and publish packaging", () => {
     expect(readme).toContain("docker pull ghcr.io/shashankswe2020-ux/local-llmup");
     expect(site).toContain("docker pull ghcr.io/shashankswe2020-ux/local-llmup");
   });
+
+  it("uses an explicit filesystem-safe desktop executable name", () => {
+    const desktop = JSON.parse(readText("apps/desktop/package.json")) as {
+      build?: { executableName?: string; linux?: { artifactName?: string } };
+    };
+
+    expect(desktop.build?.executableName).toBe("local-llmup");
+    expect(desktop.build?.executableName).toMatch(/^[A-Za-z0-9._ -]+$/u);
+    expect(desktop.build?.linux?.artifactName).toBe("local-llmup-${version}.${ext}");
+  });
 });

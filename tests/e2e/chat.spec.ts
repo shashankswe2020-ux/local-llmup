@@ -30,6 +30,23 @@ test.describe("chat lifecycle", () => {
     await expect(page.locator(".message.assistant")).toHaveCount(2);
   });
 
+  test("preserves multiline assistant structure after restoring history", async ({ page }) => {
+    const prompt = "Formatting\n\n# Result\n\n- first\n- second\n\n```ts\nconst value = 1;\n```";
+    await page.locator("#prompt").fill(prompt);
+    await page.locator("#prompt").press("Control+Enter");
+
+    const reply = page.locator(".message.assistant .message-body").last();
+    await expect(reply.getByRole("heading", { name: "Result" })).toBeVisible();
+    await expect(reply.locator("li")).toHaveCount(2);
+    await expect(reply.locator("pre code")).toContainText("const value = 1;");
+
+    await page.reload();
+    const restored = page.locator(".message.assistant .message-body").last();
+    await expect(restored.getByRole("heading", { name: "Result" })).toBeVisible();
+    await expect(restored.locator("li")).toHaveCount(2);
+    await expect(restored.locator("pre code")).toContainText("const value = 1;");
+  });
+
   test("stops an in-flight run and offers a recoverable retry", async ({ page }) => {
     await page.locator("#prompt").fill("SLOW please");
     await page.locator("#prompt").press("Enter");

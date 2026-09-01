@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ValidationError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
 import { BACKEND_NAMES, type BackendName } from "../types.js";
+import { sanitizeGuiText } from "./text-sanitize.js";
 import {
   MAX_ATTACHMENTS,
   MAX_CONTEXT_SOURCES,
@@ -116,7 +117,7 @@ export async function readJsonBody(
 }
 
 export function sanitizeMessageContent(value: string): string {
-  return stripControl(value);
+  return sanitizeGuiText(value);
 }
 
 export function parseGuiChatRequest(input: unknown): {

@@ -24,6 +24,15 @@ import { createLibraryService } from "../../src/library/service.js";
 import type { AgentChat } from "../../src/gui/agent.js";
 import type { AgentTool, ConnectorView, ConnectorsFile, McpManager } from "../../src/mcp/manager.js";
 import type { McpToolResult } from "../../src/mcp/client.js";
+import {
+  FORMATTING_RESPONSE,
+  FORMATTING_INCOMPLETE_RESPONSE,
+  FORMATTING_INCOMPLETE_TRIGGER,
+  FORMATTING_SCROLL_RESPONSE,
+  FORMATTING_SCROLL_TRIGGER,
+  FORMATTING_STREAM_TRIGGER,
+  FORMATTING_TRIGGER,
+} from "../fixtures/chat-formatting.js";
 
 function resetDir(dir: string): void {
   rmSync(dir, { recursive: true, force: true });
@@ -69,7 +78,7 @@ function fakeMcpManager(): McpManager {
 }
 
 // Deterministic model: echoes; "SLOW" delays (cancellable); "TOOL" calls a tool.
-const agentChat: AgentChat = ({ messages, signal }) => {
+const agentChat: AgentChat = ({ messages, onToken, signal }) => {
   const last = messages[messages.length - 1];
   if (last?.role === "tool") {
     return Promise.resolve({ content: "Tool finished. Done." });
@@ -87,10 +96,49 @@ const agentChat: AgentChat = ({ messages, signal }) => {
   if (text.includes("TOOL")) {
     return Promise.resolve({ content: "", toolCalls: [{ name: "demo_tool", arguments: { q: "hi" } }] });
   }
+  if (text === FORMATTING_TRIGGER) {
+    return Promise.resolve({ content: FORMATTING_RESPONSE });
+  }
+  if (text === FORMATTING_STREAM_TRIGGER) {
+    const cuts = [1, 2, 5, 9, 17, 31, 63, 127, 255, 511, 1023];
+    let offset = 0;
+    for (const length of cuts) {
+      onToken?.(FORMATTING_RESPONSE.slice(offset, offset + length));
+      offset += length;
+    }
+    while (offset < FORMATTING_RESPONSE.length) {
+      onToken?.(FORMATTING_RESPONSE.slice(offset, offset + 37));
+      offset += 37;
+    }
+    return Promise.resolve({ content: FORMATTING_RESPONSE });
+  }
+  if (text === FORMATTING_SCROLL_TRIGGER) {
+    return (async () => {
+      for (let offset = 0; offset < FORMATTING_SCROLL_RESPONSE.length; offset += 80) {
+        onToken?.(FORMATTING_SCROLL_RESPONSE.slice(offset, offset + 80));
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      return { content: FORMATTING_SCROLL_RESPONSE };
+    })();
+  }
+  if (text === FORMATTING_INCOMPLETE_TRIGGER) {
+    return (async () => {
+      const split = FORMATTING_INCOMPLETE_RESPONSE.indexOf(" value");
+      onToken?.(FORMATTING_INCOMPLETE_RESPONSE.slice(0, split));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      onToken?.(FORMATTING_INCOMPLETE_RESPONSE.slice(split));
+      return { content: FORMATTING_INCOMPLETE_RESPONSE };
+    })();
+  }
   return Promise.resolve({ content: `You said: ${text}` });
 };
 
 const config = loadConfig();
+mkdirSync(config.artifactsDir, { recursive: true });
+writeFileSync(
+  join(config.artifactsDir, "formatting.png"),
+  Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"),
+);
 const server = new GuiServer({
   rootDir: new URL("../../src/gui/static", import.meta.url),
   workspace: new WorkspaceService(),
@@ -100,6 +148,7 @@ const server = new GuiServer({
   runtimeController: createRuntimeController(createDefaultBackendRegistry()),
   hardwareProvider: createDefaultHardwareProvider(),
   library: createLibraryService(),
+  artifactsDir: config.artifactsDir,
   mcpManager: fakeMcpManager(),
   agentChat,
 });

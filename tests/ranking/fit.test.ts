@@ -72,6 +72,31 @@ describe("evaluateFit", () => {
     if (result.fits) expect(result.quant.name).toBe("Q4_K_M");
   });
 
+  it("prefers recognized higher precision when fitting quants have equal footprints", () => {
+    const equalFootprintQ4 = { ...Q4, diskBytes: 20 * GIB, minVramBytes: 20 * GIB };
+    const equalFootprintQ8 = {
+      ...Q8,
+      diskBytes: equalFootprintQ4.diskBytes,
+      minVramBytes: equalFootprintQ4.minVramBytes,
+    };
+    const result = evaluateFit(
+      model({ quantizations: [equalFootprintQ4, equalFootprintQ8] }),
+      gpuHw(32 * GIB),
+    );
+
+    expect(result.fits).toBe(true);
+    if (result.fits) expect(result.quant.name).toBe("Q8_0");
+  });
+
+  it("uses measured footprint to order unknown quantization formats", () => {
+    const compact = { ...Q4, name: "custom-small" };
+    const larger = { ...Q8, name: "custom-large" };
+    const result = evaluateFit(model({ quantizations: [compact, larger] }), gpuHw(16 * GIB));
+
+    expect(result.fits).toBe(true);
+    if (result.fits) expect(result.quant.name).toBe("custom-large");
+  });
+
   it("excludes kimi-k2 as ram-bound on consumer hardware", () => {
     const kimi = model({
       id: "kimi-k2:instruct",

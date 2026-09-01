@@ -113,210 +113,18 @@ document.addEventListener("DOMContentLoaded", () => {
     return "System";
   }
 
-  function escapeHtml(text) {
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  // Apply inline formatting to already HTML-escaped text. Only a fixed set of
-  // safe tags is produced, and links are restricted to http(s) URLs, so model
-  // output can never inject markup.
-  function renderInline(escaped) {
-    let out = escaped;
-    // Inline images: ![alt](src). Rendered only for local artifact files and
-    // inline data:image payloads; anything else falls back to its alt text.
-    out = out.replace(/!\[([^\]]*)\]\(([^)\s]+)\)/g, (_m, alt, src) => {
-      const safe = safeImageSrc(src);
-      if (safe) {
-        return `<img class="chat-image" src="${safe}" alt="${alt}" loading="lazy" />`;
-      }
-      return alt;
-    });
-    out = out.replace(/`([^`]+)`/g, (_m, code) => `<code>${code}</code>`);
-    out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-    out = out.replace(/__([^_]+)__/g, "<strong>$1</strong>");
-    out = out.replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
-    out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_m, label, url) => {
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`;
-    });
-    return out;
-  }
-
-  // Resolve a markdown image src to a safe URL, or null to reject it. Only local
-  // generated artifacts (served from /api/images) and inline data:image payloads
-  // are allowed — never arbitrary remote or file URLs.
-  function safeImageSrc(src) {
-    const value = String(src).trim();
-    if (/^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/i.test(value)) {
-      return value;
-    }
-    if (/^\/api\/images\/[A-Za-z0-9][A-Za-z0-9._-]*\.(png|jpe?g|gif|webp|svg)$/i.test(value)) {
-      return value;
-    }
-    if (/^[A-Za-z0-9][A-Za-z0-9._-]*\.(png|jpe?g|gif|webp|svg)$/i.test(value)) {
-      return `/api/images/${encodeURIComponent(value)}`;
-    }
-    return null;
-  }
-
-  // Minimal, XSS-safe Markdown renderer: escape first, then emit a fixed set of
-  // block/inline tags. Handles fenced code, headings, ordered/unordered lists,
-  // and paragraphs, tolerating an unclosed code fence mid-stream.
-  function renderMarkdown(src) {
-    const lines = src.split("\n");
-    const html = [];
-    let inCode = false;
-    let codeLang = "";
-    let codeLines = [];
-    let listType = null;
-    let listItems = [];
-    let paragraph = [];
-
-    const flushParagraph = () => {
-      if (paragraph.length) {
-        html.push(`<p>${renderInline(escapeHtml(paragraph.join(" ")))}</p>`);
-        paragraph = [];
-      }
-    };
-    const flushList = () => {
-      if (listType) {
-        const items = listItems.map((item) => `<li>${renderInline(escapeHtml(item))}</li>`).join("");
-        html.push(`<${listType}>${items}</${listType}>`);
-        listType = null;
-        listItems = [];
-      }
-    };
-    const flushCode = () => {
-      const code = escapeHtml(codeLines.join("\n"));
-      const langAttr = codeLang ? ` data-lang="${escapeHtml(codeLang)}"` : "";
-      html.push(`<pre${langAttr}><code>${code}</code></pre>`);
-      codeLines = [];
-      codeLang = "";
-    };
-
-    for (const line of lines) {
-      const fence = line.match(/^```(\w*)\s*$/);
-      if (fence) {
-        if (inCode) {
-          flushCode();
-          inCode = false;
-        } else {
-          flushParagraph();
-          flushList();
-          inCode = true;
-          codeLang = fence[1] || "";
-        }
-        continue;
-      }
-      if (inCode) {
-        codeLines.push(line);
-        continue;
-      }
-      if (line.trim() === "") {
-        flushParagraph();
-        flushList();
-        continue;
-      }
-      const heading = line.match(/^(#{1,6})\s+(.*)$/);
-      if (heading) {
-        flushParagraph();
-        flushList();
-        const level = heading[1].length;
-        html.push(`<h${level}>${renderInline(escapeHtml(heading[2]))}</h${level}>`);
-        continue;
-      }
-      const ul = line.match(/^\s*[-*+]\s+(.*)$/);
-      const ol = line.match(/^\s*\d+\.\s+(.*)$/);
-      if (ul) {
-        flushParagraph();
-        if (listType && listType !== "ul") {
-          flushList();
-        }
-        listType = "ul";
-        listItems.push(ul[1]);
-        continue;
-      }
-      if (ol) {
-        flushParagraph();
-        if (listType && listType !== "ol") {
-          flushList();
-        }
-        listType = "ol";
-        listItems.push(ol[1]);
-        continue;
-      }
-      if (listType) {
-        flushList();
-      }
-      paragraph.push(line.trim());
-    }
-    if (inCode) {
-      flushCode();
-    }
-    flushParagraph();
-    flushList();
-    return html.join("");
-  }
-
-  // Add a "Copy" affordance to every rendered code block.
-  function decorateCodeBlocks(container) {
-    for (const pre of container.querySelectorAll("pre")) {
-      if (pre.querySelector(".code-copy")) {
-        continue;
-      }
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "code-copy";
-      button.textContent = "Copy";
-      button.addEventListener("click", () => {
-        const code = pre.querySelector("code");
-        const text = code ? code.textContent : "";
-        if (navigator.clipboard) {
-          navigator.clipboard.writeText(text).then(
-            () => {
-              button.textContent = "Copied";
-              setTimeout(() => {
-                button.textContent = "Copy";
-              }, 1200);
-            },
-            () => {},
-          );
-        }
-      });
-      pre.appendChild(button);
-
-      const code = pre.querySelector("code");
-      const text = code ? code.textContent || "" : "";
-      const looksHtml =
-        (code && /\blanguage-html\b/.test(code.className)) ||
-        /<!doctype html|<html[\s>]|<body[\s>]|<div[\s>][\s\S]*<\/div>/i.test(text);
-      if (looksHtml && text.trim()) {
-        const preview = document.createElement("button");
-        preview.type = "button";
-        preview.className = "code-preview";
-        preview.textContent = "Preview";
-        preview.addEventListener("click", () => openArtifact(text));
-        pre.appendChild(preview);
-      }
-    }
-  }
-
   function renderAssistantBody(body, text, streaming) {
-    body.innerHTML = renderMarkdown(text);
+    globalThis.GuiMarkdown.renderAssistantMarkdown(body, text);
     const row = body.closest(".message");
     if (row) {
       row.classList.toggle("streaming", Boolean(streaming));
     }
     if (!streaming) {
-      decorateCodeBlocks(body);
+      globalThis.GuiMarkdown.decorateCodeBlocks(body, { onPreview: openArtifact });
     }
   }
 
-  function addMessage(role, content) {
+  function addMessage(role, content, options) {
     const empty = messages.querySelector(".messages-empty");
     if (empty) {
       empty.remove();
@@ -333,7 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (role === "user") {
       body.textContent = content;
     } else {
-      renderAssistantBody(body, content, false);
+      renderAssistantBody(body, content, options?.streaming === true);
     }
 
     row.append(label, body);
@@ -341,7 +149,6 @@ document.addEventListener("DOMContentLoaded", () => {
       row.appendChild(buildMessageActions(body, role));
     }
     messages.appendChild(row);
-    messages.scrollTop = messages.scrollHeight;
     updateContextUsage();
     return body;
   }
@@ -804,6 +611,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // A recoverable end-of-run message with an optional Retry that reuses the same
   // prompt without adding a second user bubble.
   function addRunNotice(text, canRetry) {
+    const follow = nearBottom();
     const row = document.createElement("div");
     row.className = "run-notice";
     const label = document.createElement("span");
@@ -822,7 +630,9 @@ document.addEventListener("DOMContentLoaded", () => {
       row.appendChild(retry);
     }
     messages.appendChild(row);
-    messages.scrollTop = messages.scrollHeight;
+    if (follow) {
+      autoScroll(true);
+    }
   }
 
   function formatBytes(bytes) {
@@ -841,6 +651,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!info) {
       return;
     }
+    const follow = nearBottom();
     const row = document.createElement("div");
     row.className = "disclosure-notice";
     const head = document.createElement("div");
@@ -878,7 +689,28 @@ document.addEventListener("DOMContentLoaded", () => {
     actions.append(confirm, cancel);
     row.append(head, sub, list, actions);
     messages.appendChild(row);
-    messages.scrollTop = messages.scrollHeight;
+    if (follow) {
+      autoScroll(true);
+    }
+  }
+
+  function messageScroller() {
+    if (messages.scrollHeight > messages.clientHeight + 1) {
+      return messages;
+    }
+    return document.scrollingElement || messages;
+  }
+
+  function nearBottom() {
+    const scroller = messageScroller();
+    return scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 120;
+  }
+
+  function autoScroll(force) {
+    if (force || nearBottom()) {
+      const scroller = messageScroller();
+      scroller.scrollTop = scroller.scrollHeight;
+    }
   }
 
   async function stopRun() {
@@ -904,6 +736,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (activeRun || !value) {
       return;
     }
+    let followOnNextPaint = nearBottom();
     clearRunNotices();
     if (!opts.retry) {
       addMessage("user", value);
@@ -932,6 +765,16 @@ document.addEventListener("DOMContentLoaded", () => {
     let errorMessage = "";
     let disclosureInfo = null;
     const toolCards = new Map();
+    const assistantRenderScheduler = globalThis.GuiMarkdown.createRenderScheduler(
+      (body, text, streaming) => {
+        const follow = followOnNextPaint || nearBottom();
+        followOnNextPaint = false;
+        renderAssistantBody(body, text, streaming);
+        if (follow) {
+          autoScroll(true);
+        }
+      },
+    );
     // Real wall-clock timings for the per-message metrics line.
     const startedAt = globalThis.performance.now();
     let firstDeltaAt = null;
@@ -942,23 +785,15 @@ document.addEventListener("DOMContentLoaded", () => {
         empty.remove();
       }
       messages.appendChild(thinkingRow);
-      messages.scrollTop = messages.scrollHeight;
+      if (followOnNextPaint) {
+        autoScroll(true);
+      }
     }
 
     function clearThinking() {
       if (thinkingRow) {
         thinkingRow.remove();
         thinkingRow = null;
-      }
-    }
-
-    function nearBottom() {
-      return messages.scrollHeight - messages.scrollTop - messages.clientHeight < 120;
-    }
-
-    function autoScroll(force) {
-      if (force || nearBottom()) {
-        messages.scrollTop = messages.scrollHeight;
       }
     }
 
@@ -1087,7 +922,7 @@ document.addEventListener("DOMContentLoaded", () => {
           card.body.textContent = `${event.result}${event.resultTruncated ? " …" : ""}`;
         }
       }
-      autoScroll(true);
+      autoScroll(false);
     }
 
     // Handle one decoded SSE event object. Returns true when the run is over.
@@ -1117,11 +952,10 @@ document.addEventListener("DOMContentLoaded", () => {
           firstDeltaAt = globalThis.performance.now();
         }
         if (!assistantBody) {
-          assistantBody = addMessage("assistant", "");
+          assistantBody = addMessage("assistant", "", { streaming: true });
         }
-        renderAssistantBody(assistantBody, reply, true);
+        assistantRenderScheduler.update(assistantBody, reply);
         renderComposer(run.state.phase);
-        autoScroll(false);
         return false;
       }
       if (event.type === "done") {
@@ -1178,7 +1012,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function finalize() {
       clearThinking();
       if (assistantBody) {
-        renderAssistantBody(assistantBody, reply, false);
+        assistantRenderScheduler.finalize(assistantBody, reply);
       }
       const wasStopping = run.stopping;
       activeRun = null;
@@ -3069,6 +2903,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!review || !Array.isArray(review.files) || !review.files.length) {
       return;
     }
+    const follow = nearBottom();
     const empty = messages.querySelector(".messages-empty");
     if (empty) {
       empty.remove();
@@ -3103,7 +2938,9 @@ document.addEventListener("DOMContentLoaded", () => {
       details.appendChild(renderApplyBar(workspaceId, operations));
     }
     messages.appendChild(details);
-    messages.scrollTop = messages.scrollHeight;
+    if (follow) {
+      autoScroll(true);
+    }
   }
 
   function renderApplyBar(workspaceId, operations) {
@@ -3822,8 +3659,8 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     artifactReturnFocus = document.activeElement;
-    // The frame is sandboxed without allow-same-origin, so it cannot reach back
-    // into this page; scripts run in a null origin.
+    // The frame has no sandbox permissions: HTML/CSS render, but model-produced
+    // scripts cannot run or reach back into the application.
     artifactFrame.srcdoc = html;
     artifactModal.hidden = false;
     if (artifactClose) {

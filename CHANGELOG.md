@@ -1,5 +1,62 @@
 # Changelog
 
+## Unreleased
+
+### Model Selection
+
+- Prefer a recognized higher-precision quantization when multiple fitting
+  variants have the same measured memory footprint. Unknown quantization
+  formats remain ordered by measured size without fabricated quality estimates.
+
+## 0.11.2 - 2026-09-01
+
+**Broader model coverage with an auditable catalog pipeline.**
+
+### Model Catalog
+
+- Added the official `gemma4:e4b-it-qat` Ollama artifact with its verified model
+  digest, exact weight size, 128K context cap, and QAT Q4 metadata. Context
+  memory remains explicitly unknown until Gemma 4 hybrid-attention KV geometry
+  is curated.
+- Added curated Ollama entries for Gemma 3n E2B/E4B, Qwen3
+  0.6B/1.7B/4B, and Phi-4 Mini 3.8B, including verified model-layer sizes and
+  digests. Unsupported KV-cache geometry remains explicitly unknown.
+- Added a weekly upstream repository coverage audit that reconciles one GitHub
+  issue with missing discovery candidates. It never auto-admits models, and it
+  cannot detect missing variants inside an already-covered repository because
+  Ollama does not expose a public tag-enumeration endpoint.
+- Added catalog overview and enrichment-process documentation to the README and
+  project site.
+
+## 0.11.1 - 2026-08-30
+
+**Readable, secure Markdown responses in the local AI workspace.**
+
+### New Features
+
+- Assistant responses now render sanitized GitHub-Flavored Markdown with
+  headings, nested and task lists, blockquotes, tables, links, code fences,
+  language labels, and persistent Copy/HTML Preview actions.
+- Streaming output is frame-batched, converges to the same final DOM regardless
+  of token fragmentation, and follows only while the reader remains near the
+  bottom.
+- Replaced the connector demo with two real, explicitly approved WHOOP tool
+  calls and an actual-value health briefing.
+
+### Security and Accessibility
+
+- Added GUI-specific multiline sanitization without weakening terminal output
+  sanitization, plus strict Marked/DOMPurify tag, attribute, link, and image
+  policies.
+- Added a deny-by-default CSP, no-store handling for token-bearing HTML,
+  MIME/referrer/frame/permissions hardening, and scriptless artifact previews.
+- Upgraded the desktop packaging toolchain to `electron-builder@26.15.3`,
+  removing the critical/high archive and credential-redirect advisories in the
+  previous builder dependency graph.
+- Added semantic browser coverage, stable accessible names, keyboard focus,
+  concise streaming announcements, hostile-input tests, and responsive checks
+  down to 320 px.
+
 ## 0.11.0 - 2026-08-30
 
 **Model performance intelligence and a complete local AI workspace.**

@@ -94,16 +94,16 @@ describe("GuiServer terminal/diagnostics/git context (task 32.7)", () => {
           harness: "local",
           messages: [{ role: "user", content: "why did it fail" }],
           contextSources: [
-            { kind: "terminal", label: "npm test", content: "Error: boom at line 3" },
-            { kind: "diagnostics", content: "src/index.ts(2,1): error TS1005" },
+            { kind: "terminal", label: "npm test", content: "Error: boom\r\n\tat line 3\u001b[31m" },
+            { kind: "diagnostics", content: "src/index.ts(2,1):\rerror TS1005\u202e" },
           ],
         }),
       })
     ).text();
 
     const text = systemText(captured.messages);
-    expect(text).toContain("Error: boom at line 3");
-    expect(text).toContain("error TS1005");
+    expect(text).toContain("Error: boom\n\tat line 3");
+    expect(text).toContain("src/index.ts(2,1):\nerror TS1005");
     expect(stream).toContain('"type":"context"');
     expect(stream).toContain('"kind":"terminal"');
     expect(stream).toContain('"kind":"diagnostics"');

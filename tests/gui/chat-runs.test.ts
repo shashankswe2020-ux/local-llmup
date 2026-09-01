@@ -54,6 +54,68 @@ describe("GuiServer run lifecycle", () => {
     ]);
   });
 
+  it("preserves multiline chat content through model input, SSE, and canonical history", async () => {
+    const seen: GuiChatRequest["messages"][] = [];
+    const expectedReply = "## Result\n\n```ts\nconst value = 1;\n```\t";
+    const { port } = await startServer({
+      sendChat: async (request) => {
+        seen.push(request.messages);
+        return ["## Result\r", "\n\r\n```ts\r\nconst value = 1;\r\n```\t\u001b[", "31m\u202e"];
+      },
+    });
+    const headers = { Host: `127.0.0.1:${port}`, "Content-Type": "application/json" };
+    const user = "# Question\r\n\r\n- one\r- two\t\u0000\u001b[2J";
+
+    const stream = await (
+      await fetch(`http://127.0.0.1:${port}/api/chat`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: "demo",
+          harness: "local",
+          systemPrompt: "Follow these rules:\r\n\t- preserve structure\u001b[31m",
+          messages: [{ role: "user", content: user }],
+        }),
+      })
+    ).text();
+
+    expect(seen[0]).toEqual([
+      { role: "system", content: "Follow these rules:\n\t- preserve structure" },
+      { role: "user", content: "# Question\n\n- one\n- two\t" },
+    ]);
+    const deltas = [...stream.matchAll(/^data: (.+)$/gmu)]
+      .map((match) => JSON.parse(match[1] ?? "{}") as { type?: string; content?: string })
+      .filter((event) => event.type === "delta")
+      .map((event) => event.content ?? "")
+      .join("");
+    expect(deltas).toBe(expectedReply);
+
+    await (
+      await fetch(`http://127.0.0.1:${port}/api/chat`, {
+        method: "POST",
+        headers,
+        body: chatBody("follow up"),
+      })
+    ).text();
+    expect(seen[1]).toEqual([
+      { role: "user", content: "# Question\n\n- one\n- two\t" },
+      { role: "assistant", content: expectedReply },
+      { role: "user", content: "follow up" },
+    ]);
+
+    const history = await fetch(`http://127.0.0.1:${port}/api/history`, {
+      headers: { Host: `127.0.0.1:${port}` },
+    });
+    expect((await history.json()) as { history: unknown[] }).toMatchObject({
+      history: [
+        { role: "user", content: "# Question\n\n- one\n- two\t" },
+        { role: "assistant", content: expectedReply },
+        { role: "user", content: "follow up" },
+        { role: "assistant", content: expectedReply },
+      ],
+    });
+  });
+
   it("returns a typed 409 when a second run starts while one is active", async () => {
     let release: (() => void) | null = null;
     const gate = new Promise<void>((resolve) => {

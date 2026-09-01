@@ -64,8 +64,11 @@ describe("bootstrap catalog generation", () => {
       "mixtral",
       "gemma2",
       "gemma3",
+      "gemma3n",
+      "gemma4",
       "phi3",
       "phi4",
+      "phi4-mini",
       "glm4",
       "yi",
       "smollm2",
@@ -75,6 +78,55 @@ describe("bootstrap catalog generation", () => {
       expect(families.has(family)).toBe(true);
     }
     expect(catalog.models.length).toBeGreaterThanOrEqual(40);
+  });
+
+  it("includes the official Gemma 4 E4B QAT Ollama artifact", () => {
+    const model = catalog.models.find((candidate) => candidate.id === "gemma4:e4b-it-qat");
+
+    expect(model).toMatchObject({
+      family: "gemma4",
+      params: "8B",
+      architecture: "dense",
+      contextLength: 131072,
+      source: {
+        ollama: "gemma4:e4b-it-qat",
+        hf: "google/gemma-4-E4B-it-qat-q4_0-gguf",
+      },
+      quantizations: [{ name: "Q4_0" }],
+    });
+    expect(model?.kvBytesPerToken).toBeUndefined();
+  });
+
+  it("includes the curated consumer-model coverage tranche", () => {
+    const byId = new Map(catalog.models.map((model) => [model.id, model]));
+
+    expect([...byId.keys()]).toEqual(
+      expect.arrayContaining([
+        "gemma3n:e2b",
+        "gemma3n:e4b",
+        "phi4-mini:3.8b",
+        "qwen3:0.6b",
+        "qwen3:1.7b",
+        "qwen3:4b",
+      ]),
+    );
+    expect(byId.get("gemma3n:e2b")).toMatchObject({
+      params: "6B",
+      contextLength: 32768,
+      source: { ollama: "gemma3n:e2b", hf: "google/gemma-3n-E2B-it" },
+    });
+    expect(byId.get("gemma3n:e4b")).toMatchObject({
+      params: "8B",
+      contextLength: 32768,
+      source: { ollama: "gemma3n:e4b", hf: "google/gemma-3n-E4B-it" },
+    });
+    expect(byId.get("phi4-mini:3.8b")).toMatchObject({
+      contextLength: 131072,
+      source: { ollama: "phi4-mini:3.8b", hf: "microsoft/Phi-4-mini-instruct" },
+    });
+    expect(byId.get("qwen3:0.6b")?.contextLength).toBe(40960);
+    expect(byId.get("qwen3:1.7b")?.contextLength).toBe(40960);
+    expect(byId.get("qwen3:4b")?.contextLength).toBe(262144);
   });
 
   it("covers every required Kimi release", () => {

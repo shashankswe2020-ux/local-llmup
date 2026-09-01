@@ -484,6 +484,7 @@ input {
 .stage-body {
   flex: 1;
   min-height: 0;
+  min-width: 0;
   display: flex;
 }
 
@@ -491,6 +492,7 @@ input {
   display: none;
   flex: 1;
   min-height: 0;
+  min-width: 0;
 }
 
 .view.active {
@@ -512,6 +514,7 @@ input {
 .messages {
   flex: 1;
   min-height: 14rem;
+  min-width: 0;
   overflow: auto;
   padding: 0.75rem 0.35rem 1rem;
   display: flex;
@@ -613,6 +616,7 @@ input {
   gap: 0.45rem;
   max-width: 48rem;
   width: 100%;
+  min-width: 0;
   animation: rise 0.18s ease;
 }
 
@@ -651,6 +655,7 @@ input {
 }
 
 .message-body {
+  min-width: 0;
   line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
@@ -672,6 +677,10 @@ input {
   color: var(--text-dim);
 }
 
+.message.assistant {
+  max-width: min(100%, 72ch);
+}
+
 .message.system {
   gap: 0.2rem;
 }
@@ -689,7 +698,7 @@ input {
   display: flex;
   gap: 0.3rem;
   margin-top: 0.1rem;
-  opacity: 0;
+  opacity: 0.58;
   transform: translateY(-2px);
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
@@ -1095,6 +1104,20 @@ input {
 /* Rich Markdown rendering for assistant replies. */
 .message.assistant .message-body {
   white-space: normal;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.message.assistant .message-body.markdown-fallback {
+  white-space: pre-wrap;
+}
+
+.markdown-table-wrap {
+  margin: 0.3rem 0 1rem;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
 }
 
 .message-body > :first-child {
@@ -1106,7 +1129,7 @@ input {
 }
 
 .message-body p {
-  margin: 0 0 0.7rem;
+  margin: 0 0 0.85rem;
 }
 
 .message-body h1,
@@ -1115,17 +1138,19 @@ input {
 .message-body h4,
 .message-body h5,
 .message-body h6 {
-  margin: 1rem 0 0.5rem;
-  line-height: 1.3;
+  margin: 1.25rem 0 0.55rem;
+  line-height: 1.25;
   font-weight: 650;
 }
 
 .message-body h1 {
-  font-size: 1.28rem;
+  font-size: 1.32rem;
 }
 
 .message-body h2 {
-  font-size: 1.14rem;
+  padding-bottom: 0.28rem;
+  border-bottom: 1px solid var(--stroke);
+  font-size: 1.12rem;
 }
 
 .message-body h3 {
@@ -1134,12 +1159,91 @@ input {
 
 .message-body ul,
 .message-body ol {
-  margin: 0 0 0.7rem;
+  margin: 0 0 0.85rem;
   padding-left: 1.35rem;
 }
 
+.message-body ul ul,
+.message-body ul ol,
+.message-body ol ul,
+.message-body ol ol {
+  margin: 0.25rem 0 0.35rem;
+}
+
 .message-body li {
-  margin: 0.2rem 0;
+  margin: 0.24rem 0;
+  padding-left: 0.12rem;
+}
+
+.message-body .contains-task-list {
+  padding-left: 0.15rem;
+  list-style: none;
+}
+
+.message-body .task-list-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding-left: 0;
+  list-style: none;
+}
+
+.message-body .task-list-item input {
+  flex: none;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.message-body blockquote {
+  margin: 0.2rem 0 1rem;
+  padding: 0.05rem 0 0.05rem 0.9rem;
+  border-left: 3px solid var(--accent-line);
+  color: var(--text-dim);
+}
+
+.message-body blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+.message-body hr {
+  margin: 1.2rem 0;
+  border: 0;
+  border-top: 1px solid var(--stroke-strong);
+}
+
+.message-body table {
+  width: 100%;
+  min-width: 32rem;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+}
+
+.message-body th,
+.message-body td {
+  padding: 0.58rem 0.68rem;
+  border-right: 1px solid var(--stroke);
+  border-bottom: 1px solid var(--stroke);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.message-body th:last-child,
+.message-body td:last-child {
+  border-right: 0;
+}
+
+.message-body tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.message-body th {
+  background: var(--glass-strong);
+  color: var(--text);
+  font-weight: 650;
+}
+
+.message-body tbody tr:nth-child(even) {
+  background: var(--glass);
 }
 
 .message-body a {
@@ -1160,13 +1264,14 @@ input {
   border-radius: 5px;
   background: var(--glass-strong);
   border: 1px solid var(--stroke);
+  overflow-wrap: anywhere;
 }
 
 .message-body pre {
   position: relative;
   margin: 0 0 0.8rem;
-  padding: 0.85rem 0.95rem;
-  border-radius: 10px;
+  padding: 2.55rem 0.95rem 0.9rem;
+  border-radius: var(--radius-sm);
   background: rgba(0, 0, 0, 0.28);
   border: 1px solid var(--stroke);
   overflow-x: auto;
@@ -1181,30 +1286,59 @@ input {
   line-height: 1.55;
   color: var(--text);
   white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
-.code-copy {
+.code-toolbar {
   position: absolute;
-  top: 0.45rem;
-  right: 0.45rem;
+  top: 0;
+  left: 0;
+  right: 0;
+  min-height: 2rem;
+  padding: 0.42rem 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--stroke);
+  background: var(--glass);
+}
+
+.code-language {
+  overflow: hidden;
+  color: var(--muted);
+  font-family: var(--mono);
   font-size: 0.68rem;
-  letter-spacing: 0.03em;
+  text-overflow: ellipsis;
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+
+.code-actions {
+  display: flex;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
+.code-copy,
+.code-preview {
+  font-size: 0.68rem;
   padding: 0.18rem 0.5rem;
   border-radius: 6px;
   border: 1px solid var(--stroke);
   background: var(--glass-strong);
   color: var(--muted);
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s ease, color 0.15s ease;
-}
-
-.message-body pre:hover .code-copy {
   opacity: 1;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-.code-copy:hover {
+.code-copy:hover,
+.code-preview:hover {
   color: var(--text);
+  border-color: var(--stroke-strong);
+  background: var(--glass-hover);
 }
 
 /* Blinking caret while the assistant is still streaming its reply. */
@@ -3161,24 +3295,18 @@ select:focus-visible,
   background: #fff;
 }
 
-/* Preview affordance on HTML code blocks */
+/* Preview uses the same persistent toolbar treatment as Copy. */
 .code-preview {
-  position: absolute;
-  top: 0.5rem;
-  right: 4rem;
-  padding: 0.15rem 0.5rem;
-  font-size: 0.7rem;
-  border-radius: 7px;
   border: 1px solid var(--accent-line);
   background: var(--accent-soft);
   color: var(--text);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s ease;
 }
 
-.message-body pre:hover .code-preview {
-  opacity: 1;
+@media (hover: none) {
+  .msg-actions {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* Composer drag-and-drop affordance */

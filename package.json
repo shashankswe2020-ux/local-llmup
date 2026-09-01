@@ -1,6 +1,6 @@
 {
   "name": "local-llmup",
-  "version": "0.11.0",
+  "version": "0.11.2",
   "description": "Hardware-aware CLI that scores your machine and tells you which local LLMs will run (yes/slow/no + tok/s) before recommending, installing, serving, and migrating them.",
   "repository": {
     "type": "git",
@@ -50,6 +50,7 @@
     "catalog:refresh:dry-run": "tsx scripts/catalog-refresh-dry-run.ts",
     "catalog:refresh": "tsx scripts/catalog-refresh.ts",
     "catalog:enrich": "tsx scripts/catalog-enrich.ts",
+    "catalog:coverage": "tsx scripts/catalog-coverage.ts",
     "catalog:freshness": "tsx scripts/catalog-freshness.ts",
     "bootstrap": "tsx scripts/bootstrap-catalog.ts",
     "tui:dependency-policy": "tsx scripts/tui-dependency-policy.ts",
@@ -61,7 +62,9 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "cac": "^6.7.14",
+    "dompurify": "3.4.13",
     "ink": "5.2.1",
+    "marked": "15.0.12",
     "react": "18.3.1",
     "string-width": "7.2.0",
     "systeminformation": "^5.33.1",
