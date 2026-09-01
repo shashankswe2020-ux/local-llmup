@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Model Selection
+
+- Prefer a recognized higher-precision quantization when multiple fitting
+  variants have the same measured memory footprint. Unknown quantization
+  formats remain ordered by measured size without fabricated quality estimates.
+
 ## 0.11.2 - 2026-09-01
 
 **Broader model coverage with an auditable catalog pipeline.**

@@ -5,6 +5,7 @@
  * it is excluded with a typed reason so the caller can explain *why*.
  */
 import {
+  quantBitsPerParam,
   requiredMemoryAtContext,
   requiredMemoryBytes,
   usableMemoryBytes,
@@ -114,8 +115,17 @@ function evaluateFitWith(
       // count → higher bits-per-param, and catalog `diskBytes` is non-decreasing
       // with quality; at a fixed context the KV term is quant-independent), so
       // the largest fitting `requiredBytes` is the highest-quality fitting quant.
-      // Ties keep the first quant encountered.
-      if (best === undefined || requiredBytes > best.requiredBytes) {
+      // Equal measured footprints are possible after registry enrichment. In
+      // that case prefer explicitly recognized higher precision; unknown
+      // formats keep catalog order rather than receiving a guessed quality.
+      const quantBits = quantBitsPerParam(quant.name);
+      const bestBits = best === undefined ? undefined : quantBitsPerParam(best.quant.name);
+      const hasHigherKnownPrecision =
+        requiredBytes === best?.requiredBytes &&
+        quantBits !== undefined &&
+        bestBits !== undefined &&
+        quantBits > bestBits;
+      if (best === undefined || requiredBytes > best.requiredBytes || hasHigherKnownPrecision) {
         best = { fits: true, quant, requiredBytes, usableBytes };
       }
     }
