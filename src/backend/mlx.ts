@@ -297,6 +297,7 @@ export class MlxAdapter implements BackendAdapter {
   readonly capabilities: BackendCapabilities = {
     canPull: true,
     canEmbed: false,
+    embeddingOffload: "unknown",
     openAiCompatible: true,
     formats: ["mlx"],
     defaultPort: MLX_DEFAULT_PORT,

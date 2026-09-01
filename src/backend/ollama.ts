@@ -631,6 +631,7 @@ export class OllamaAdapter implements BackendAdapter {
   readonly capabilities: BackendCapabilities = {
     canPull: true,
     canEmbed: true,
+    embeddingOffload: "unknown",
     openAiCompatible: true,
     formats: ["ollama"],
     defaultPort: DEFAULT_OLLAMA_PORT,

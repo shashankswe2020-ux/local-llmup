@@ -77,6 +77,7 @@ describe("LlamaCppAdapter — capabilities", () => {
     expect(adapter.capabilities).toEqual({
       canPull: true,
       canEmbed: false,
+      embeddingOffload: "unknown",
       openAiCompatible: true,
       formats: ["gguf"],
       defaultPort: 8080,

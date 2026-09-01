@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Backend Capabilities
+
+- Added an explicit `supported | unsupported | unknown` embedding-layer offload
+  capability to backend adapters. Current backends report `unknown` until
+  runtime support can be observed without inference.
+
 ### Model Selection
 
 - Prefer a recognized higher-precision quantization when multiple fitting

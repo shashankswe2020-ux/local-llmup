@@ -63,6 +63,7 @@ describe("LmStudioAdapter — descriptor and installation", () => {
     expect(adapter.capabilities).toEqual({
       canPull: false,
       canEmbed: true,
+      embeddingOffload: "unknown",
       openAiCompatible: true,
       formats: ["gguf", "mlx"],
       defaultPort: 1234,

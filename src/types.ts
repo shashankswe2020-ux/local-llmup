@@ -43,6 +43,10 @@ export type ModelFormat = (typeof MODEL_FORMATS)[number];
 export const BACKEND_NAMES = ["ollama", "llamacpp", "mlx", "lmstudio"] as const;
 export type BackendName = (typeof BACKEND_NAMES)[number];
 
+/** Runtime-observed support state for backend-specific inference features. */
+export const BACKEND_SUPPORT_STATES = ["supported", "unsupported", "unknown"] as const;
+export type BackendSupportState = (typeof BACKEND_SUPPORT_STATES)[number];
+
 /**
  * Declarative capability descriptor a backend advertises so command code
  * branches on data rather than per-call feature detection.
@@ -52,6 +56,8 @@ export interface BackendCapabilities {
   readonly canPull: boolean;
   /** False → embeddings must use a different backend. */
   readonly canEmbed: boolean;
+  /** Whether embedding layers can leave primary compute memory; omission means unknown. */
+  readonly embeddingOffload?: BackendSupportState;
   readonly openAiCompatible: boolean;
   /** Weight formats this backend can serve. */
   readonly formats: readonly ModelFormat[];

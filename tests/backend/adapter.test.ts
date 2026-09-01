@@ -14,7 +14,12 @@ import {
   type ServeOptions,
 } from "../../src/backend/adapter.js";
 import { OllamaAdapter } from "../../src/backend/ollama.js";
-import { MODEL_FORMATS, type BackendCapabilities, type ModelFormat } from "../../src/types.js";
+import {
+  BACKEND_SUPPORT_STATES,
+  MODEL_FORMATS,
+  type BackendCapabilities,
+  type ModelFormat,
+} from "../../src/types.js";
 
 describe("endpoint helpers", () => {
   it("defaults to loopback and the Ollama port", () => {
@@ -59,6 +64,7 @@ class FakeAdapter implements BackendAdapter {
   readonly capabilities: BackendCapabilities = {
     canPull: true,
     canEmbed: true,
+    embeddingOffload: "unknown",
     openAiCompatible: true,
     formats: ["ollama"],
     defaultPort: DEFAULT_OLLAMA_PORT,
@@ -142,10 +148,15 @@ describe("BackendCapabilities", () => {
     expect(MODEL_FORMATS).toEqual(["gguf", "mlx", "ollama", "safetensors"]);
   });
 
+  it("enumerates runtime-observed support without collapsing unknown to false", () => {
+    expect(BACKEND_SUPPORT_STATES).toEqual(["supported", "unsupported", "unknown"]);
+  });
+
   it("types a descriptor an adapter can expose", () => {
     const caps: BackendCapabilities = {
       canPull: true,
       canEmbed: false,
+      embeddingOffload: "unknown",
       openAiCompatible: true,
       formats: ["gguf"],
       defaultPort: 8080,
@@ -161,6 +172,7 @@ describe("OllamaAdapter capabilities descriptor", () => {
     expect(adapter.capabilities).toEqual({
       canPull: true,
       canEmbed: true,
+      embeddingOffload: "unknown",
       openAiCompatible: true,
       formats: ["ollama"],
       defaultPort: DEFAULT_OLLAMA_PORT,

@@ -28,6 +28,7 @@ function fakeAdapter(options: FakeAdapterOptions): BackendAdapter {
     capabilities: {
       canPull: true,
       canEmbed: true,
+      embeddingOffload: "unknown",
       openAiCompatible: true,
       formats: ["ollama"],
       defaultPort: 11434,

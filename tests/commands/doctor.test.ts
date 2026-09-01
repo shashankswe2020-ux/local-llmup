@@ -72,6 +72,7 @@ function fakeAdapter(overrides: Partial<BackendAdapter> = {}): BackendAdapter {
     capabilities: {
       canPull: true,
       canEmbed: true,
+      embeddingOffload: "unknown",
       openAiCompatible: true,
       formats: ["ollama"],
       defaultPort: 11434,

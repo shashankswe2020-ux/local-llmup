@@ -28,6 +28,7 @@ function fakeAdapter(
     capabilities: {
       canPull: name === "ollama",
       canEmbed: false,
+      embeddingOffload: "unknown",
       openAiCompatible: true,
       formats: [],
       defaultPort: port,

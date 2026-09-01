@@ -288,6 +288,7 @@ export class LmStudioAdapter implements BackendAdapter {
   readonly capabilities: BackendCapabilities = {
     canPull: false,
     canEmbed: true,
+    embeddingOffload: "unknown",
     openAiCompatible: true,
     formats: ["gguf", "mlx"],
     defaultPort: LM_STUDIO_DEFAULT_PORT,

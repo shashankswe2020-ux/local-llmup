@@ -186,6 +186,7 @@ function fakeAdapter(options: FakeAdapterOptions = {}): FakeAdapter {
     capabilities: {
       canPull: options.canPull ?? true,
       canEmbed: backendName !== "llamacpp" && backendName !== "mlx",
+      embeddingOffload: "unknown",
       openAiCompatible: true,
       formats: [...formats],
       defaultPort,

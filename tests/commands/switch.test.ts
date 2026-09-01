@@ -82,6 +82,7 @@ function fakeAdapter(
     capabilities: {
       canPull: options.canPull ?? true,
       canEmbed: true,
+      embeddingOffload: "unknown",
       openAiCompatible: true,
       formats: options.formats ?? ["ollama"],
       defaultPort: 11434,

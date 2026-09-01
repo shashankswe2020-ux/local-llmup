@@ -381,6 +381,7 @@ export class LlamaCppAdapter implements BackendAdapter {
     // `false`: memory capture then degrades to the vector-less path (honest, no
     // fabricated vectors) rather than calling an endpoint that isn't enabled.
     canEmbed: false,
+    embeddingOffload: "unknown",
     openAiCompatible: true,
     formats: ["gguf"],
     defaultPort: LLAMACPP_DEFAULT_PORT,
