@@ -156,8 +156,11 @@ export const FAMILY_QUALITY_OFFSET: Readonly<Record<string, number>> = {
   "mistral-small": 0.05,
   "mistral-nemo": 0.03,
   mistral: 0.02,
+  gemma4: 0.08,
+  gemma3n: 0.06,
   gemma3: 0.06,
   gemma2: 0.04,
+  "phi4-mini": 0.1,
   phi4: 0.12,
   "phi3.5": 0.08,
   phi3: 0.06,
@@ -188,7 +191,7 @@ function round2(value: number): number {
  * `unknown` rather than a fabricated number. Deliberately excluded:
  * - MLA models (DeepSeek-V2/V3 and its 671B R1) — a compressed latent KV; the
  *   generic formula over-counts ~5–10×.
- * - Sliding-window / hybrid-attention models (Gemma 2/3) — per-layer KV differs
+ * - Sliding-window / hybrid-attention models (Gemma 2/3/4) — per-layer KV differs
  *   from the flat formula; deferred until curated correctly.
  * The R1 *distills* (Qwen/Llama backbones) are standard attention but left for a
  * later tranche to keep this first pass to high-confidence geometries.

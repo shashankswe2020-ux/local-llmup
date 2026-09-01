@@ -1,7 +1,38 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-27T17:09:54.893Z",
+  "generatedAt": "2026-09-01T02:44:54.336Z",
   "models": [
+    {
+      "id": "gemma4:e4b-it-qat",
+      "family": "gemma4",
+      "params": "8B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "vision",
+        "code",
+        "tools",
+        "reasoning"
+      ],
+      "releaseDate": "2026-03-31",
+      "source": {
+        "ollama": "gemma4:e4b-it-qat",
+        "hf": "google/gemma-4-E4B-it-qat-q4_0-gguf"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_0",
+          "diskBytes": 5154939136,
+          "minRamBytes": 5928180007,
+          "minVramBytes": 5928180007,
+          "sha256": "e8b6a059ba86947a44ace84d6e5679795bc41862c25c30513142588f0e9dba1d"
+        }
+      ],
+      "benchmarkProxy": 0.52
+    },
     {
       "id": "kimi-k2-thinking",
       "family": "kimi-k2-thinking",
@@ -115,6 +146,64 @@
       "benchmarkProxy": 0.97
     },
     {
+      "id": "gemma3n:e2b",
+      "family": "gemma3n",
+      "params": "6B",
+      "architecture": "dense",
+      "license": "gemma",
+      "openWeight": true,
+      "contextLength": 32768,
+      "capabilities": [
+        "chat",
+        "vision",
+        "code"
+      ],
+      "releaseDate": "2025-06-26",
+      "source": {
+        "ollama": "gemma3n:e2b",
+        "hf": "google/gemma-3n-E2B-it"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 5621607424,
+          "minRamBytes": 6464848538,
+          "minVramBytes": 6464848538,
+          "sha256": "3839a254cf2d00b208c6e2524c129e4438f9d106bba4c3fbc12b631f519d1de1"
+        }
+      ],
+      "benchmarkProxy": 0.42
+    },
+    {
+      "id": "gemma3n:e4b",
+      "family": "gemma3n",
+      "params": "8B",
+      "architecture": "dense",
+      "license": "gemma",
+      "openWeight": true,
+      "contextLength": 32768,
+      "capabilities": [
+        "chat",
+        "vision",
+        "code"
+      ],
+      "releaseDate": "2025-06-26",
+      "source": {
+        "ollama": "gemma3n:e4b",
+        "hf": "google/gemma-3n-E4B-it"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 7547579904,
+          "minRamBytes": 8679716890,
+          "minVramBytes": 8679716890,
+          "sha256": "38e8dcc30df4eb0e29eaf5c74ba6ce3f2cd66badad50768fc14362acfb8b8cb6"
+        }
+      ],
+      "benchmarkProxy": 0.5
+    },
+    {
       "id": "kimi-dev-72b",
       "family": "kimi-dev",
       "params": "72B",
@@ -142,13 +231,103 @@
       "benchmarkProxy": 0.78
     },
     {
+      "id": "qwen3:0.6b",
+      "family": "qwen3",
+      "params": "0.6B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 40960,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
+      "releaseDate": "2025-04-29",
+      "source": {
+        "ollama": "qwen3:0.6b",
+        "hf": "Qwen/Qwen3-0.6B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 522640096,
+          "minRamBytes": 601036111,
+          "minVramBytes": 601036111,
+          "sha256": "7f4030143c1c477224c5434f8272c662a8b042079a0a584f0a27a1684fe2e1fa"
+        }
+      ],
+      "benchmarkProxy": 0.22
+    },
+    {
+      "id": "qwen3:1.7b",
+      "family": "qwen3",
+      "params": "1.7B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 40960,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
+      "releaseDate": "2025-04-29",
+      "source": {
+        "ollama": "qwen3:1.7b",
+        "hf": "Qwen/Qwen3-1.7B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 1359279776,
+          "minRamBytes": 1563171743,
+          "minVramBytes": 1563171743,
+          "sha256": "3d0b790534fe4b79525fc3692950408dca41171676ed7e21db57af5c65ef6ab6"
+        }
+      ],
+      "benchmarkProxy": 0.3
+    },
+    {
+      "id": "qwen3:4b",
+      "family": "qwen3",
+      "params": "4B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 262144,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
+      "releaseDate": "2025-04-29",
+      "source": {
+        "ollama": "qwen3:4b",
+        "hf": "Qwen/Qwen3-4B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 2497280480,
+          "minRamBytes": 2871872552,
+          "minVramBytes": 2871872552,
+          "sha256": "3e4cb14174460404e7a233e531675303b2fbf7749c02f91864fe311ab6344e4f"
+        }
+      ],
+      "benchmarkProxy": 0.46
+    },
+    {
       "id": "qwen3:14b",
       "family": "qwen3",
       "params": "14B",
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 40960,
       "capabilities": [
         "chat",
         "reasoning",
@@ -185,7 +364,7 @@
       "activeParams": "22B",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 262144,
       "capabilities": [
         "chat",
         "reasoning",
@@ -216,7 +395,7 @@
       "activeParams": "3B",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 262144,
       "capabilities": [
         "chat",
         "reasoning",
@@ -252,7 +431,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 40960,
       "capabilities": [
         "chat",
         "reasoning",
@@ -288,7 +467,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 40960,
       "capabilities": [
         "chat",
         "reasoning",
@@ -452,6 +631,36 @@
         }
       ],
       "benchmarkProxy": 0.42
+    },
+    {
+      "id": "phi4-mini:3.8b",
+      "family": "phi4-mini",
+      "params": "3.8B",
+      "architecture": "dense",
+      "license": "mit",
+      "openWeight": true,
+      "contextLength": 131072,
+      "capabilities": [
+        "chat",
+        "reasoning",
+        "tools",
+        "code"
+      ],
+      "releaseDate": "2025-02-26",
+      "source": {
+        "ollama": "phi4-mini:3.8b",
+        "hf": "microsoft/Phi-4-mini-instruct"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 2491874624,
+          "minRamBytes": 2865655818,
+          "minVramBytes": 2865655818,
+          "sha256": "3c168af1dea0a414299c7d9077e100ac763370e5a98b3c53801a958a47f0a5db"
+        }
+      ],
+      "benchmarkProxy": 0.38
     },
     {
       "id": "mistral-small:24b",

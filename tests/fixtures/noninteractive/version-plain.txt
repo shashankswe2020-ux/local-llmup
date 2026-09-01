@@ -1,1 +1,1 @@
-local-llmup/0.11.1 <platform>-<arch> node-<version>
+local-llmup/0.11.2 <platform>-<arch> node-<version>

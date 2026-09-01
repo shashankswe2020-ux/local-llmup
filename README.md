@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/tests-1600%2B%20passing-brightgreen.svg)](#development)
+[![Tests](https://img.shields.io/badge/tests-1800%2B%20passing-brightgreen.svg)](#development)
 [![Backends](https://img.shields.io/badge/backends-Ollama%20%7C%20llama.cpp%20%7C%20MLX%20%7C%20LM%20Studio-000000.svg)](#supported-backends)
 
 > **Know which local LLMs will actually run on your machine — before you download anything.**
@@ -57,6 +57,8 @@ integrity status, capabilities, and catalog sources. Unknown inputs stay
   - [Install](#install)
     - [Docker](#docker)
   - [Quick Start](#quick-start)
+  - [Model Catalog](#model-catalog)
+    - [Catalog Enrichment](#catalog-enrichment)
   - [Terminal UI](#terminal-ui)
     - [Features](#features)
     - [Keyboard Shortcuts](#keyboard-shortcuts)
@@ -149,6 +151,52 @@ flowchart LR
     CHAT --> MIG["migrate<br/>carry memory over"]
     MIG --> SW["switch<br/>change active model"]
     SW --> DOWN["down<br/>stop server"]
+```
+
+---
+
+## Model Catalog
+
+`local-llmup` ships a deterministic, offline catalog of 66 curated model
+variants. Each record connects model identity and capabilities to the evidence
+the advisor needs: parameter count, architecture, license, context ceiling,
+quantizations, artifact size, source coordinates, and integrity digest. Run
+`local-llmup catalog --all` to browse it or open a model in the browser GUI for
+its complete performance and fit breakdown.
+
+Catalog metadata is deliberately conservative. A model with unknown attention
+geometry remains eligible for weight-based ranking, but its KV-cache cost and
+maximum safe context are reported as `unknown` rather than inferred from a
+different architecture.
+
+### Catalog Enrichment
+
+The catalog pipeline separates human-reviewed facts from machine-verifiable
+artifact metadata:
+
+1. **Curate.** Maintainers add architecture, license, capabilities, context,
+  quantization, and official source IDs to
+  `src/catalog/registry-snapshot.ts`.
+2. **Bootstrap.** `npm run bootstrap` deterministically generates
+  `data/models.json` from that pinned snapshot.
+3. **Enrich.** `npm run catalog:enrich` resolves already-curated Ollama sources
+  and pins exact model-layer bytes and SHA-256 digests. It never invents or
+  changes curated architecture facts.
+4. **Audit.** The weekly Catalog Freshness workflow checks snapshot drift and
+  compares represented repositories with Ollama's local-library inventory.
+  Missing repositories update one review issue instead of entering the catalog
+  automatically.
+
+Repository coverage is a discovery signal, not an admission mechanism. Ollama
+does not expose a public tag-enumeration endpoint, so the audit cannot identify
+missing variants inside a repository that is already represented. Every
+candidate still requires source and metadata review.
+
+```bash
+npm run bootstrap          # regenerate from the curated snapshot
+npm run catalog:enrich     # pin exact bytes and digests for known sources
+npm run catalog:coverage   # report missing upstream repositories
+npm run catalog:freshness  # report age and snapshot drift
 ```
 
 ---

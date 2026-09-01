@@ -39,6 +39,9 @@ jobs:
       - name: Enrich catalog quant sizes + digests from the live registry
         run: npm run catalog:enrich
 
+      - name: Audit upstream catalog coverage
+        run: npm run --silent catalog:coverage
+
       - name: Catalog freshness report
         run: npm run --silent catalog:freshness
 
@@ -130,5 +133,51 @@ jobs:
             gh issue comment "$EXISTING" --body "$BODY"
           else
             echo "Creating a new freshness issue"
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi
+
+      - name: Reconcile upstream coverage issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="Catalog coverage: upstream models missing"
+          MISSING=$(node -e "process.stdout.write(String(require('./catalog-coverage.json').missing.length))")
+          EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+
+          if [ "$MISSING" = "0" ]; then
+            if [ -n "$EXISTING" ]; then
+              gh issue close "$EXISTING" --comment "All models in the monitored Ollama local-library inventory are now represented in the curated catalog."
+            fi
+            echo "Catalog covers the monitored Ollama inventory."
+            exit 0
+          fi
+
+          BODY=$(node -e "
+            const r = require('./catalog-coverage.json');
+            const lines = [
+              'The curated catalog does not represent every repository in Ollama’s monitored local-model inventory.',
+              '',
+              '- upstream repositories: ' + r.upstreamCount,
+              '- covered repositories: ' + r.coveredCount,
+              '- missing repositories: ' + r.missing.length,
+              '- source: ' + r.source,
+              '',
+              'Missing candidates:',
+              '',
+              ...r.missing.map(name => '- \\`' + name + '\\`'),
+              '',
+                'These are discovery candidates only. Verify license, architecture, context, capabilities, quantization, and source metadata before adding an entry to \\`src/catalog/registry-snapshot.ts\\`.',
+                'This repository-level audit cannot detect missing variants inside a repository that is already represented because Ollama does not expose a public tag-enumeration endpoint.',
+              '',
+              '_Updated automatically by the Catalog Freshness workflow._',
+            ];
+            process.stdout.write(lines.join('\\n'));
+          ")
+
+          if [ -n "$EXISTING" ]; then
+            echo "Updating existing coverage issue #$EXISTING"
+            gh issue edit "$EXISTING" --body "$BODY"
+          else
+            echo "Creating a catalog coverage issue"
             gh issue create --title "$TITLE" --body "$BODY"
           fi

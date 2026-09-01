@@ -110,7 +110,7 @@ kbd {
 .wordmark {
   font-weight: 800; font-size: 1.35rem;
   letter-spacing: -.02em; text-transform: uppercase; color: var(--ink);
-  display: inline-flex; align-items: center; gap: .55rem;
+  display: inline-flex; align-items: center; gap: .55rem; white-space: nowrap;
 }
 .wordmark::before {
   content: ""; width: 22px; height: 22px;
@@ -119,7 +119,7 @@ kbd {
   border: 2px solid var(--ink);
   transform: rotate(-8deg);
 }
-.nav-links { display: flex; align-items: center; gap: 1.6rem; }
+.nav-links { display: flex; align-items: center; gap: 1rem; }
 .nav-toggle { display: none; }
 .nav-links a {
   color: var(--ink); font-size: .82rem; font-weight: 600;
@@ -428,6 +428,43 @@ h1 em {
 .feature h3 { font-size: 1.05rem; font-weight: 800; color: var(--ink); letter-spacing: -.01em; text-transform: uppercase; }
 .feature p  { font-size: .9rem; color: var(--ink-2); line-height: 1.65; }
 
+/* ── Catalog ledger ───────────────────────────────────────────── */
+.catalog-section { background: var(--paper-2); }
+.catalog-ledger {
+  margin-top: 3rem; border: var(--border-w) solid var(--ink);
+  background: var(--paper); box-shadow: var(--shadow-lg);
+}
+.catalog-stats {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: var(--border-w) solid var(--ink);
+}
+.catalog-stats > div { min-width: 0; padding: 1.35rem; border-right: var(--border-w) solid var(--ink); }
+.catalog-stats > div:last-child { border-right: 0; }
+.catalog-stats strong {
+  display: block; font-family: var(--mono); font-size: clamp(1.15rem, 3vw, 2rem);
+  line-height: 1; color: var(--ink); overflow-wrap: anywhere;
+}
+.catalog-stats span {
+  display: block; margin-top: .55rem; color: var(--ink-2); font-size: .72rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0;
+}
+.catalog-pipeline { list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.catalog-pipeline li {
+  min-width: 0; padding: 1.5rem 1.35rem; border-right: var(--border-w) solid var(--ink);
+  display: flex; flex-direction: column; gap: 1.25rem;
+}
+.catalog-pipeline li:last-child { border-right: 0; }
+.pipeline-index {
+  width: fit-content; padding: .15rem .45rem; border: 1.5px solid var(--ink);
+  background: var(--gold); font-family: var(--mono); font-size: .72rem; font-weight: 700;
+}
+.catalog-pipeline h3 { font-size: 1rem; text-transform: uppercase; color: var(--ink); }
+.catalog-pipeline p { margin-top: .45rem; color: var(--ink-2); font-size: .84rem; line-height: 1.6; }
+.catalog-note {
+  max-width: 78ch; margin-top: 1.75rem; padding-left: 1rem;
+  border-left: 6px solid var(--terracotta); color: var(--ink-2); font-size: .9rem;
+}
+
 /* ── Screenshots ───────────────────────────────────────────────── */
 .screenshots { display: flex; flex-direction: column; gap: 3.5rem; margin-top: 3rem; }
 .screenshot-block {
@@ -625,6 +662,11 @@ footer { border-top: var(--border-w) solid var(--ink); background: var(--ink); c
   .compare-table th, .compare-table td { padding: .65rem .75rem; }
   .compare-table { font-size: .82rem; }
   .sticker { display: none; }
+  .catalog-stats, .catalog-pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .catalog-stats > div:nth-child(2) { border-right: 0; }
+  .catalog-stats > div:nth-child(-n+2) { border-bottom: var(--border-w) solid var(--ink); }
+  .catalog-pipeline li:nth-child(2) { border-right: 0; }
+  .catalog-pipeline li:nth-child(-n+2) { border-bottom: var(--border-w) solid var(--ink); }
 }
 @media (max-width: 620px) {
   .frame { padding: 0 1rem; }
@@ -634,6 +676,12 @@ footer { border-top: var(--border-w) solid var(--ink); background: var(--ink); c
   .nav-links.is-open { grid-template-columns: 1fr; }
   .nav-links .nav-cta { grid-column: auto; }
   .features { grid-template-columns: 1fr; }
+  .catalog-stats, .catalog-pipeline { grid-template-columns: 1fr; }
+  .catalog-stats > div, .catalog-stats > div:nth-child(2), .catalog-pipeline li, .catalog-pipeline li:nth-child(2) {
+    border-right: 0; border-bottom: var(--border-w) solid var(--ink);
+  }
+  .catalog-stats > div:last-child, .catalog-pipeline li:last-child { border-bottom: 0; }
+  .catalog-ledger { box-shadow: var(--shadow); }
   .backends { grid-template-columns: 1fr; }
   .quickstart { grid-template-columns: minmax(0, 1fr); }
   .cmd-row { grid-template-columns: 1fr; }

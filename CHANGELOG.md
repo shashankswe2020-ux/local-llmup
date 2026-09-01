@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.11.2 - 2026-09-01
+
+**Broader model coverage with an auditable catalog pipeline.**
+
+### Model Catalog
+
+- Added the official `gemma4:e4b-it-qat` Ollama artifact with its verified model
+  digest, exact weight size, 128K context cap, and QAT Q4 metadata. Context
+  memory remains explicitly unknown until Gemma 4 hybrid-attention KV geometry
+  is curated.
+- Added curated Ollama entries for Gemma 3n E2B/E4B, Qwen3
+  0.6B/1.7B/4B, and Phi-4 Mini 3.8B, including verified model-layer sizes and
+  digests. Unsupported KV-cache geometry remains explicitly unknown.
+- Added a weekly upstream repository coverage audit that reconciles one GitHub
+  issue with missing discovery candidates. It never auto-admits models, and it
+  cannot detect missing variants inside an already-covered repository because
+  Ollama does not expose a public tag-enumeration endpoint.
+- Added catalog overview and enrichment-process documentation to the README and
+  project site.
+
 ## 0.11.1 - 2026-08-30
 
 **Readable, secure Markdown responses in the local AI workspace.**
