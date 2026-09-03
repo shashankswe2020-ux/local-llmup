@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+## 0.11.3 - 2026-09-03
+
+**OpenCode harness with visible tool activity, plus a create-workspace surface.**
+
+### Chat Panel and OpenCode Harness
+
+- Added the `opencode` chat harness. It drives the OpenCode CLI in JSON mode
+  through a shell-free child process, streams its `text` events, and now
+  surfaces `tool_use` and `reasoning` events as inline markdown blockquotes
+  (e.g. `🔧 \`write\` · path`, `🔧 \`bash\` · command`) so the panel shows the
+  model's actual tool loop instead of only the final answer. Bare model IDs
+  are normalized to `ollama/<id>` and an inline local Ollama provider is
+  injected when the target is Ollama, so a workspace-selected local model just
+  works.
+- Fail-closed by default: `permission: "deny"`, `share: "disabled"`,
+  `autoupdate: false`, `snapshot: false`, `shell: false`. Setting the env var
+  `LOCAL_LLMUP_OPENCODE_UNRESTRICTED=1` explicitly opts a local machine into
+  OpenCode's full tool loop (`permission: "allow"`, `share: "auto"`,
+  `autoupdate: true`, `snapshot: true`). This is not the default and must be
+  set on the machine — the shipped registry remains deny-by-default.
+- Added output caps (1 MiB prompt / 16 MiB stdout), typed cancellation,
+  malformed-event and non-zero-exit fail-closed handling, and 11 harness tests.
+
+### Workspace
+
+- Added `POST /api/workspace/root/create` and `WorkspaceService.createRoot()`
+  so the browser panel can create an approved workspace root explicitly,
+  behind the existing per-launch token and exact-origin checks. Existing
+  registration semantics, canonicalization, and denylist behavior are
+  unchanged.
+- Added a built-in calculator template in the workspace picker: propose,
+  review through the existing reviewed-edit path, and open in a sandboxed
+  same-origin preview iframe (no model-generated code is ever loaded here).
+  The runtime uses a CSP-safe recursive-descent evaluator, not `eval`.
+
 ### Backend Capabilities
 
 - Added an explicit `supported | unsupported | unknown` embedding-layer offload

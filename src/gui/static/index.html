@@ -88,6 +88,14 @@
                 <option value="">No agent</option>
               </select>
             </label>
+            <a
+              id="update-link"
+              class="update-link"
+              href="https://github.com/shashankswe2020-ux/local-llmup/releases"
+              target="_blank"
+              rel="noopener noreferrer"
+              hidden
+            >Update</a>
             <button id="refresh-status" class="ghost-btn" type="button">Refresh</button>
           </div>
         </header>
@@ -170,11 +178,18 @@
                     <div class="context-root-row">
                       <input id="context-root-path" class="context-root-input" type="text" placeholder="/path/to/project" autocomplete="off" spellcheck="false" />
                       <button type="button" id="context-root-browse" class="context-root-btn" hidden>Browse…</button>
-                      <button type="button" id="context-root-add" class="context-root-btn">Add folder</button>
+                      <button type="button" id="context-root-add" class="context-root-btn">Use folder</button>
+                      <button type="button" id="context-root-create" class="context-root-btn">Create workspace</button>
                     </div>
                     <p id="context-root-error" class="context-root-error" hidden></p>
                   </div>
                   <div id="context-browse" class="context-browse">
+                    <div id="workspace-actions" class="workspace-actions" hidden>
+                      <span class="workspace-actions-label">Workspace ready</span>
+                      <button type="button" id="calculator-create" class="context-root-btn">Create calculator</button>
+                      <button type="button" id="calculator-preview" class="context-root-btn" disabled>Preview calculator</button>
+                      <span id="calculator-status" class="workspace-actions-status" role="status"></span>
+                    </div>
                     <input id="context-search" class="context-search" type="text" placeholder="Search files…" autocomplete="off" spellcheck="false" aria-label="Search files" />
                     <ul id="context-results" class="context-results" role="listbox" aria-label="File results"></ul>
                     <div class="context-range">
@@ -544,6 +559,7 @@
     <script src="/static/markdown.js"></script>
     <script src="/static/sse.js"></script>
     <script src="/static/run-reducer.js"></script>
+    <script src="/static/calculator-template.js"></script>
     <script src="/static/chat.js"></script>
   </body>
 </html>

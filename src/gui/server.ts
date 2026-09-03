@@ -36,6 +36,7 @@ import { z } from "zod";
 import { LibraryDraftSchema, LibraryUpdateSchema, type LibraryKind } from "../library/schema.js";
 import type { LibraryService } from "../library/service.js";
 import { readArtifactImage } from "./artifacts.js";
+import { getUpdateStatus, type UpdateStatus } from "./update.js";
 
 /** Upper bound on a composed agent+skill system prompt injected into a chat turn. */
 const MAX_SYSTEM_PROMPT_CHARS = 48 * 1024;
@@ -131,6 +132,8 @@ export interface GuiServerOptions {
   readonly workspace?: WorkspaceService | undefined;
   /** Owner-only directory for durable edit-apply records; enables apply/revert. */
   readonly editRecordsDir?: string | undefined;
+  /** Latest-release status provider; injectable so tests and offline hosts stay deterministic. */
+  readonly updateStatus?: (() => Promise<UpdateStatus>) | undefined;
 }
 
 export function resolveGuiRootDir(baseUrl: URL): URL {
@@ -163,6 +166,7 @@ export class GuiServer {
   readonly artifactsDir?: string | undefined;
   readonly sessions?: SessionRepository | undefined;
   readonly workspace?: WorkspaceService | undefined;
+  readonly updateStatus: () => Promise<UpdateStatus>;
   /** Per-launch capability token; a local CSRF/DNS-rebinding defense, not auth. */
   readonly launchToken: string = randomBytes(32).toString("hex");
   private activeSessionId: string | null = null;
@@ -192,6 +196,7 @@ export class GuiServer {
     this.artifactsDir = options.artifactsDir;
     this.sessions = options.sessions;
     this.workspace = options.workspace;
+    this.updateStatus = options.updateStatus ?? getUpdateStatus;
     this.editProposals =
       options.workspace !== undefined ? new EditProposalService(options.workspace) : undefined;
     this.patchTransactions =
@@ -282,6 +287,11 @@ export class GuiServer {
             turns: this.session.conversationWindow.length,
           },
         });
+        return;
+      }
+
+      if (req.method === "GET" && pathname === "/api/update") {
+        this.writeJson(res, 200, await this.updateStatus());
         return;
       }
 
@@ -1100,7 +1110,8 @@ export class GuiServer {
   /**
    * Route read-only workspace requests behind the launch token. Paths:
    *   GET  /api/workspace/status            active root (if any)
-   *   POST /api/workspace/root              register + activate a root (Origin-checked)
+  *   POST /api/workspace/root              register + activate a root (Origin-checked)
+  *   POST /api/workspace/root/create       create + activate a root (Origin-checked)
    *   POST /api/workspace/root/revoke       revoke a root (Origin-checked)
    *   GET  /api/workspace/tree?id=&path=    list one directory level
    *   GET  /api/workspace/file?id=&path=&startLine=&endLine=  read a bounded snapshot
@@ -1146,6 +1157,26 @@ export class GuiServer {
         throw new ValidationError("invalid workspace path");
       }
       const root = workspace.registerRoot(parsed.data.path);
+      this.activeWorkspaceId = root.id;
+      this.writeJson(res, 201, { root });
+      return;
+    }
+
+    if (pathname === "/api/workspace/root/create") {
+      if (req.method !== "POST") {
+        this.writeJson(res, 405, { error: "method not allowed" });
+        return;
+      }
+      if (!this.hasSameOrigin(req)) {
+        this.writeJson(res, 403, { error: "cross-origin request refused" });
+        return;
+      }
+      const body = await readJsonBody(req, MAX_REQUEST_BYTES);
+      const parsed = WORKSPACE_ROOT_SCHEMA.safeParse(body);
+      if (!parsed.success) {
+        throw new ValidationError("invalid workspace path");
+      }
+      const root = workspace.createRoot(parsed.data.path);
       this.activeWorkspaceId = root.id;
       this.writeJson(res, 201, { root });
       return;

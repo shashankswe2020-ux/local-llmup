@@ -9,6 +9,7 @@ import { createClaudeHarness } from "./claude.js";
 import { createLocalHarness } from "./local.js";
 import { createOpenAICompatibleHarness } from "./openai-compatible.js";
 import { createOpenAIHarness } from "./openai.js";
+import { createOpenCodeHarness } from "./opencode.js";
 import type { ChatHarness } from "./adapter.js";
 
 /** A read-only lookup over the registered chat harnesses. */
@@ -65,6 +66,9 @@ export function createRegistry(harnesses: readonly ChatHarness[]): HarnessRegist
 
 /** Build the production harness registry with the canonical built-ins. */
 export function createDefaultRegistry(): HarnessRegistry {
+  const opencodeUnrestricted = /^(1|true|yes|on)$/i.test(
+    process.env["LOCAL_LLMUP_OPENCODE_UNRESTRICTED"] ?? "",
+  );
   return createRegistry([
     createLocalHarness({
       config: loadConfig(),
@@ -76,5 +80,6 @@ export function createDefaultRegistry(): HarnessRegistry {
     createClaudeHarness(),
     createOpenAIHarness(),
     createOpenAICompatibleHarness(),
+    createOpenCodeHarness({ unrestricted: opencodeUnrestricted }),
   ]);
 }

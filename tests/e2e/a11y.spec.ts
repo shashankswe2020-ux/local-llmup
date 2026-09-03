@@ -50,6 +50,45 @@ test.describe("accessibility and responsive", () => {
     await expect(page.locator(".message.assistant").last()).toContainText("You said: narrow");
   });
 
+  test("shows a trusted update link only when a newer release is available", async ({ page }) => {
+    await page.route("**/api/update", async (route) => {
+      await route.fulfill({
+        json: {
+          currentVersion: "0.11.2",
+          latestVersion: "0.12.0",
+          state: "update-available",
+          releaseUrl: "https://github.com/shashankswe2020-ux/local-llmup/releases",
+        },
+      });
+    });
+    await page.reload();
+
+    const update = page.getByRole("link", { name: "Update to 0.12.0" });
+    await expect(update).toBeVisible();
+    await expect(update).toHaveAttribute(
+      "href",
+      "https://github.com/shashankswe2020-ux/local-llmup/releases",
+    );
+    await expect(update).toHaveAttribute("target", "_blank");
+    await expect(update).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  test("keeps the update link hidden when release status is unknown", async ({ page }) => {
+    await page.route("**/api/update", async (route) => {
+      await route.fulfill({
+        json: {
+          currentVersion: "0.11.2",
+          latestVersion: null,
+          state: "unknown",
+          releaseUrl: null,
+        },
+      });
+    });
+    await page.reload();
+
+    await expect(page.locator("#update-link")).toBeHidden();
+  });
+
   test("the context picker traps focus and closes on Escape", async ({ page }) => {
     await page.locator("#context-add").click();
     await expect(page.locator("#context-picker")).toBeVisible();

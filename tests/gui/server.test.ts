@@ -35,6 +35,33 @@ describe("GuiServer", () => {
     expect(server.url).toBe(`http://127.0.0.1:${port}`);
   });
 
+  it("serves update status from the configured provider", async () => {
+    const server = new GuiServer({
+      rootDir: new URL("../../src/gui/static", import.meta.url),
+      registry: undefined,
+      updateStatus: async () => ({
+        currentVersion: "0.11.2",
+        latestVersion: "0.12.0",
+        state: "update-available",
+        releaseUrl: "https://github.com/shashankswe2020-ux/local-llmup/releases",
+      }),
+    });
+    servers.push(server);
+
+    const port = await server.start(0);
+    const response = await fetch(`http://127.0.0.1:${port}/api/update`, {
+      headers: { Host: `127.0.0.1:${port}` },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      currentVersion: "0.11.2",
+      latestVersion: "0.12.0",
+      state: "update-available",
+      releaseUrl: "https://github.com/shashankswe2020-ux/local-llmup/releases",
+    });
+  });
+
   it("hardens the main document with a restrictive content security policy", async () => {
     const server = new GuiServer({
       rootDir: new URL("../../src/gui/static", import.meta.url),

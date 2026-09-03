@@ -14,6 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const contextUsage = document.querySelector("#context-usage");
   const modelCard = document.querySelector("#model-card");
   const refreshStatus = document.querySelector("#refresh-status");
+  const updateLink = document.querySelector("#update-link");
   const activeOwnership = document.querySelector("#active-ownership");
   const recommendedList = document.querySelector("#recommended-list");
   const modelError = document.querySelector("#model-error");
@@ -37,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const contextRoot = document.querySelector("#context-root");
   const contextRootPath = document.querySelector("#context-root-path");
   const contextRootAdd = document.querySelector("#context-root-add");
+  const contextRootCreate = document.querySelector("#context-root-create");
   const contextRootBrowse = document.querySelector("#context-root-browse");
   const contextRootError = document.querySelector("#context-root-error");
   const contextBrowse = document.querySelector("#context-browse");
@@ -49,6 +51,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const contextGitStatus = document.querySelector("#context-git-status");
   const contextGitDiff = document.querySelector("#context-git-diff");
   const contextGitNote = document.querySelector("#context-git-note");
+  const workspaceActions = document.querySelector("#workspace-actions");
+  const calculatorCreate = document.querySelector("#calculator-create");
+  const calculatorPreview = document.querySelector("#calculator-preview");
+  const calculatorStatus = document.querySelector("#calculator-status");
   const contextPasteText = document.querySelector("#context-paste-text");
   const contextPasteKind = document.querySelector("#context-paste-kind");
   const contextPasteAdd = document.querySelector("#context-paste-add");
@@ -281,6 +287,33 @@ document.addEventListener("DOMContentLoaded", () => {
       if (endpointStatus) {
         endpointStatus.textContent = "127.0.0.1:11434";
       }
+    }
+  }
+
+  async function loadUpdateStatus() {
+    if (!updateLink) {
+      return;
+    }
+    updateLink.hidden = true;
+    try {
+      const response = await globalThis.fetch("/api/update");
+      if (!response.ok) {
+        return;
+      }
+      const status = await response.json();
+      const trustedUrl = "https://github.com/shashankswe2020-ux/local-llmup/releases";
+      if (
+        status.state !== "update-available" ||
+        typeof status.latestVersion !== "string" ||
+        status.releaseUrl !== trustedUrl
+      ) {
+        return;
+      }
+      updateLink.href = trustedUrl;
+      updateLink.textContent = `Update to ${status.latestVersion}`;
+      updateLink.hidden = false;
+    } catch {
+      // Update discovery is optional; offline use must remain unaffected.
     }
   }
 
@@ -1173,6 +1206,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (refreshStatus) {
     refreshStatus.addEventListener("click", async () => {
       await loadStatus();
+      await loadUpdateStatus();
       await loadActive();
       await loadHistory();
       await loadHarnesses();
@@ -2830,6 +2864,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Workspace context (@file, ranges, search, terminal/diag/git) 32.6/32.7 ---
   let workspaceRootId = null;
+  let calculatorHtml = "";
   const selectedAttachments = [];
   const selectedSources = [];
   let pickerResults = [];
@@ -2899,7 +2934,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Render an inert diff review: changed files, +/- counts, warnings, and
   // navigable hunks. Collapsed by default; no file is modified by viewing.
-  function renderEditReview(review, workspaceId, operations) {
+  function renderEditReview(review, workspaceId, operations, onApplied) {
     if (!review || !Array.isArray(review.files) || !review.files.length) {
       return;
     }
@@ -2935,7 +2970,7 @@ document.addEventListener("DOMContentLoaded", () => {
       operations.length > 0 &&
       review.files.every((file) => file.op !== "delete");
     if (applicable) {
-      details.appendChild(renderApplyBar(workspaceId, operations));
+      details.appendChild(renderApplyBar(workspaceId, operations, onApplied));
     }
     messages.appendChild(details);
     if (follow) {
@@ -2943,7 +2978,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function renderApplyBar(workspaceId, operations) {
+  function renderApplyBar(workspaceId, operations, onApplied) {
     const bar = document.createElement("div");
     bar.className = "edit-apply-bar";
     const status = document.createElement("span");
@@ -2970,6 +3005,7 @@ document.addEventListener("DOMContentLoaded", () => {
         apply.remove();
         status.textContent = "Applied.";
         bar.appendChild(renderRevertButton(data.result.applicationId));
+        onApplied?.(data.result);
       } catch {
         status.textContent = "Apply failed.";
         apply.disabled = false;
@@ -3203,6 +3239,76 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function setCalculatorStatus(message) {
+    if (calculatorStatus) {
+      calculatorStatus.textContent = message;
+    }
+  }
+
+  function updateWorkspaceActions() {
+    if (workspaceActions) {
+      workspaceActions.hidden = !workspaceRootId;
+    }
+    if (calculatorPreview && workspaceRootId) {
+      calculatorPreview.disabled = false;
+    }
+  }
+
+  function previewCalculator() {
+    const template = globalThis.GuiCalculatorTemplate;
+    const html =
+      calculatorHtml ||
+      (template && typeof template.createCalculatorProposal === "function"
+        ? template.createCalculatorProposal("preview").operations[0]?.text || ""
+        : "");
+    if (html) {
+      openArtifact(html, true);
+    }
+  }
+
+  async function proposeCalculator() {
+    const template = globalThis.GuiCalculatorTemplate;
+    if (!workspaceRootId || !template || typeof template.createCalculatorProposal !== "function") {
+      return;
+    }
+    const proposal = template.createCalculatorProposal(workspaceRootId);
+    const operation = proposal.operations[0];
+    if (!operation || typeof operation.text !== "string") {
+      return;
+    }
+    if (calculatorCreate) {
+      calculatorCreate.disabled = true;
+    }
+    setCalculatorStatus("Preparing review…");
+    try {
+      const res = await globalThis.fetch("/api/workspace/edits/review", {
+        method: "POST",
+        headers: workspaceHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(proposal),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.review) {
+        setCalculatorStatus(data.error || "Could not prepare calculator.");
+        return;
+      }
+      renderEditReview(data.review, workspaceRootId, proposal.operations, () => {
+        calculatorHtml = operation.text;
+        if (calculatorPreview) {
+          calculatorPreview.disabled = false;
+        }
+        setCalculatorStatus("Calculator created.");
+      });
+      setCalculatorStatus("Review the proposed calculator in chat.");
+      closePicker();
+    } catch {
+      setCalculatorStatus("Could not prepare calculator.");
+    } finally {
+      if (calculatorCreate) {
+        calculatorCreate.disabled = false;
+      }
+    }
+  }
+
   // Desktop-only: open the native directory chooser (a single narrow bridge),
   // fill the path field with the selection, and register it. Cancel does nothing.
   async function browseForRoot() {
@@ -3226,7 +3332,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await addRoot();
   }
 
-  async function addRoot() {
+  async function addRoot(create) {
     if (!contextRootPath) {
       return;
     }
@@ -3236,7 +3342,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     hideRootError();
     try {
-      const res = await globalThis.fetch("/api/workspace/root", {
+      const res = await globalThis.fetch(create ? "/api/workspace/root/create" : "/api/workspace/root", {
         method: "POST",
         headers: workspaceHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ path }),
@@ -3253,6 +3359,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (contextBrowse) {
         contextBrowse.hidden = false;
       }
+      updateWorkspaceActions();
       if (contextSearch) {
         contextSearch.value = "";
         contextSearch.focus();
@@ -3279,6 +3386,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (contextBrowse) {
       contextBrowse.hidden = !hasRoot;
     }
+    updateWorkspaceActions();
     if (contextGit) {
       contextGit.hidden = !hasRoot;
     }
@@ -3415,6 +3523,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json().catch(() => ({}));
       workspaceRootId = typeof data.rootId === "string" ? data.rootId : null;
       contextBar.hidden = false;
+      updateWorkspaceActions();
       // In the desktop shell, offer the native directory chooser alongside the
       // manual path entry; browser mode keeps manual entry only.
       if (contextRootBrowse && globalThis.llmupDesktop && typeof globalThis.llmupDesktop.selectWorkspaceDirectory === "function") {
@@ -3453,6 +3562,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (contextRootAdd) {
     contextRootAdd.addEventListener("click", () => addRoot());
   }
+  if (contextRootCreate) {
+    contextRootCreate.addEventListener("click", () => addRoot(true));
+  }
   if (contextRootBrowse) {
     contextRootBrowse.addEventListener("click", () => browseForRoot());
   }
@@ -3463,6 +3575,12 @@ document.addEventListener("DOMContentLoaded", () => {
         addRoot();
       }
     });
+  }
+  if (calculatorCreate) {
+    calculatorCreate.addEventListener("click", () => proposeCalculator());
+  }
+  if (calculatorPreview) {
+    calculatorPreview.addEventListener("click", () => previewCalculator());
   }
   if (contextSearch) {
     let searchTimer = null;
@@ -3654,13 +3772,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const artifactClose = document.querySelector("#artifact-close");
   let artifactReturnFocus = null;
 
-  function openArtifact(html) {
+  function openArtifact(html, interactive = false) {
     if (!artifactModal || !artifactFrame) {
       return;
     }
     artifactReturnFocus = document.activeElement;
-    // The frame has no sandbox permissions: HTML/CSS render, but model-produced
-    // scripts cannot run or reach back into the application.
+    // Interactive previews run only the built-in calculator runtime under a
+    // same-origin sandbox; model-generated artifacts stay script-free.
+    artifactFrame.setAttribute("sandbox", interactive ? "allow-scripts allow-same-origin" : "");
     artifactFrame.srcdoc = html;
     artifactModal.hidden = false;
     if (artifactClose) {
@@ -3812,6 +3931,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   showEmptyMessages();
   loadStatus();
+  loadUpdateStatus();
   loadHarnesses();
   loadRuntimes();
   loadActive();

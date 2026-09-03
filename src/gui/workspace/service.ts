@@ -7,7 +7,7 @@
  * canonical root, no-follow, size-bounded, and UTF-8 validated, so traversal,
  * symlink, secret, binary, and oversized inputs fail closed.
  */
-import { lstatSync, readdirSync, realpathSync } from "node:fs";
+import { lstatSync, mkdirSync, readdirSync, realpathSync } from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { isAbsolute, join, relative, resolve, basename, dirname } from "node:path";
@@ -119,6 +119,19 @@ export class WorkspaceService {
 
   constructor(deps: { runGit?: GitRunner } = {}) {
     this.runGit = deps.runGit ?? defaultGitRunner;
+  }
+
+  /** Create an explicitly requested directory, then register its canonical root. */
+  createRoot(inputPath: unknown): WorkspaceRoot {
+    if (typeof inputPath !== "string" || inputPath.trim().length === 0) {
+      throw new ValidationError("a workspace path is required");
+    }
+    try {
+      mkdirSync(resolve(inputPath.trim()), { recursive: true, mode: 0o700 });
+    } catch {
+      throw new ValidationError("workspace directory could not be created");
+    }
+    return this.registerRoot(inputPath);
   }
 
   /** Register a directory and return an opaque capability id. */

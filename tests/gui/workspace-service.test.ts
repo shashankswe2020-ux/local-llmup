@@ -32,6 +32,17 @@ describe("WorkspaceService", () => {
     expect(service.has(root.id)).toBe(true);
   });
 
+  it("creates and registers an explicitly requested empty workspace directory", () => {
+    const service = new WorkspaceService();
+    const createdPath = join(dir, "calculator-workspace");
+
+    const root = service.createRoot(createdPath);
+
+    expect(root.name).toBe("calculator-workspace");
+    expect(service.has(root.id)).toBe(true);
+    expect(service.tree(root.id)).toEqual({ path: "", entries: [] });
+  });
+
   it("rejects non-existent and non-directory roots", () => {
     expect(() => service.registerRoot(join(dir, "missing"))).toThrow(ValidationError);
     expect(() => service.registerRoot(join(dir, "README.md"))).toThrow(ValidationError);

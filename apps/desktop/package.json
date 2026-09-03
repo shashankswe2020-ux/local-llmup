@@ -1,6 +1,6 @@
 {
   "name": "@local-llmup/desktop",
-  "version": "0.11.2",
+  "version": "0.11.3",
   "private": true,
   "description": "Desktop shell for local-llmup — a thin Electron surface over the loopback Runtime Host (the same GUI server the CLI serves).",
   "type": "module",

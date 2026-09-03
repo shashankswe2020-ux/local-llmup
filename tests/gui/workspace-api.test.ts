@@ -114,6 +114,25 @@ describe("GuiServer workspace API", () => {
     expect(file.snapshot.hash).toMatch(/^[0-9a-f]{64}$/u);
   });
 
+  it("creates and activates an explicitly requested workspace root", async () => {
+    const { base, tokenHeaders } = await start(true);
+    const parent = makeWorkspaceDir();
+    const path = join(parent, "calculator-workspace");
+
+    const created = await fetch(`${base}/api/workspace/root/create`, {
+      method: "POST",
+      headers: tokenHeaders,
+      body: JSON.stringify({ path }),
+    });
+
+    expect(created.status).toBe(201);
+    const { root } = (await created.json()) as { root: { id: string; name: string } };
+    expect(root.name).toBe("calculator-workspace");
+    expect((await (await fetch(`${base}/api/workspace/status`, { headers: tokenHeaders })).json())).toEqual({
+      rootId: root.id,
+    });
+  });
+
   it("reads a line range", async () => {
     const { base, tokenHeaders } = await start(true);
     const dir = makeWorkspaceDir();

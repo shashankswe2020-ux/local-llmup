@@ -8,7 +8,7 @@ import { z } from "zod";
 import { stripControl } from "../sanitize.js";
 
 /** Canonical built-in harness names in stable registration order. */
-export const HARNESS_NAMES = ["local", "claude", "openai", "openai-compatible"] as const;
+export const HARNESS_NAMES = ["local", "claude", "openai", "openai-compatible", "opencode"] as const;
 
 /** Stable valid harness names. */
 export type HarnessName = (typeof HARNESS_NAMES)[number];

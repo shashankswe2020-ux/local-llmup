@@ -19,7 +19,13 @@ function createHarness(name: HarnessName, available: boolean): ChatHarness {
 
 describe("HARNESS_NAMES", () => {
   it("contains the canonical built-in harness names in stable order", () => {
-    expect(HARNESS_NAMES).toEqual(["local", "claude", "openai", "openai-compatible"]);
+    expect(HARNESS_NAMES).toEqual([
+      "local",
+      "claude",
+      "openai",
+      "openai-compatible",
+      "opencode",
+    ]);
   });
 
   it("exposes a named harness contract", async () => {
