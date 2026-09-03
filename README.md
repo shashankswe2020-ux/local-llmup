@@ -310,7 +310,9 @@ long-context throughput is not modeled yet.
 - **Managed by local-llmup.** Recommendations, integrity-verified installs, and
   active-server state all flow through the same deterministic engine as the CLI.
 - **Pluggable harnesses.** Chat runs against the local backend by default, with
-  `claude`, `openai`, and `openai-compatible` harnesses available.
+  `claude`, `openai`, `openai-compatible`, and `opencode` harnesses available.
+  The `opencode` harness drives the OpenCode CLI in JSON mode and surfaces its
+  tool loop (bash, write, read) inline in the chat panel.
 
 ### Agents, skills & tools
 

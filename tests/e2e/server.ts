@@ -142,6 +142,12 @@ writeFileSync(
 const server = new GuiServer({
   rootDir: new URL("../../src/gui/static", import.meta.url),
   workspace: new WorkspaceService(),
+  updateStatus: async () => ({
+    currentVersion: "0.11.2",
+    latestVersion: "0.11.2",
+    state: "current",
+    releaseUrl: null,
+  }),
   sessions: new SessionRepository(config),
   editRecordsDir: join(config.homeDir, "gui-edits"),
   modelManager: createDefaultModelManager(),

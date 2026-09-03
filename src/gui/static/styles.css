@@ -446,6 +446,26 @@ input {
   border-color: var(--stroke-strong);
 }
 
+.update-link {
+  padding: 0.55rem 0.95rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #050506;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.update-link:hover {
+  filter: brightness(1.08);
+}
+
+.update-link[hidden] {
+  display: none;
+}
+
 /* Pills strip — a slim live-status bar, not duplicate cards */
 .pills {
   display: flex;
@@ -2821,6 +2841,25 @@ input {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.workspace-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.workspace-actions-label,
+.workspace-actions-status {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.workspace-actions-status {
+  flex-basis: 100%;
 }
 
 .context-search {
