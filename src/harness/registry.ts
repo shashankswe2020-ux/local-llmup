@@ -9,7 +9,7 @@ import { createClaudeHarness } from "./claude.js";
 import { createLocalHarness } from "./local.js";
 import { createOpenAICompatibleHarness } from "./openai-compatible.js";
 import { createOpenAIHarness } from "./openai.js";
-import { createOpenCodeHarness } from "./opencode.js";
+import { createLazyOpenCodeHarness } from "./opencode-lazy.js";
 import type { ChatHarness } from "./adapter.js";
 
 /** A read-only lookup over the registered chat harnesses. */
@@ -80,6 +80,6 @@ export function createDefaultRegistry(): HarnessRegistry {
     createClaudeHarness(),
     createOpenAIHarness(),
     createOpenAICompatibleHarness(),
-    createOpenCodeHarness({ unrestricted: opencodeUnrestricted }),
+    createLazyOpenCodeHarness({ unrestricted: opencodeUnrestricted }),
   ]);
 }
