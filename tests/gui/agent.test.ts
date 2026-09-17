@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { runAgentTurn, type AgentChat, type AgentEvent } from "../../src/gui/agent.js";
+import { createActiveBackendChat, runAgentTurn, type AgentChat, type AgentEvent } from "../../src/gui/agent.js";
+import { createRegistry } from "../../src/backend/registry.js";
+import { loadConfig } from "../../src/config.js";
+import { STATE_SCHEMA_VERSION } from "../../src/state/state.js";
 import type { AgentTool } from "../../src/mcp/manager.js";
 import type { ChatResult } from "../../src/backend/adapter.js";
 
@@ -21,6 +24,19 @@ async function collect(gen: AsyncGenerator<AgentEvent>): Promise<AgentEvent[]> {
 }
 
 describe("runAgentTurn", () => {
+  it("routes desktop chat to an installed runtime variant without requiring catalog metadata", async () => {
+    const chat = vi.fn(async () => ({ content: "ok" }));
+    const loadCatalog = vi.fn(() => { throw new Error("catalog must not be needed"); });
+    const backendChat = createActiveBackendChat({ config: loadConfig({ LOCAL_LLMUP_HOME: "/tmp/unused-installed-chat" }), loadCatalog,
+      readState: () => ({ schemaVersion: STATE_SCHEMA_VERSION, active: { backend: "ollama", modelId: "gemma4:e4b-it-qat", runtimeModelId: "llmup-context-test:65536", context: 65536, endpoint: "http://127.0.0.1:11435", port: 11435, pid: 42, ownedByUs: true } }),
+      captureLiveProcessIdentity: vi.fn(async () => ({ hash: "a".repeat(64), expectedProcess: { pid: 42, executable: "/fake/ollama", started: "test" } })),
+      registry: createRegistry([{ name: "ollama", capabilities: { canPull: true, canEmbed: true, embeddingOffload: "unknown", openAiCompatible: true, formats: ["ollama"], defaultPort: 11434 },
+        chat, isInstalled: vi.fn(), installHint: vi.fn(), pull: vi.fn(), serve: vi.fn(), waitUntilReady: vi.fn(), stop: vi.fn(), embed: vi.fn() }]),
+    });
+    await backendChat({ messages: [{ role: "user", content: "hello" }], tools: [] });
+    expect(chat).toHaveBeenCalledWith(expect.objectContaining({ model: "llmup-context-test:65536", endpoint: "http://127.0.0.1:11435" }));
+    expect(loadCatalog).not.toHaveBeenCalled();
+  });
   it("yields a single delta when the model answers without tools", async () => {
     const chat: AgentChat = vi.fn(async () => ({ content: "hello" }));
     const callTool = vi.fn(async () => ({ content: "", isError: false }));

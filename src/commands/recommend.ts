@@ -51,24 +51,7 @@ const CLI_NAME = "local-llmup";
  * catalog `contextLength` is 262 144). It rejects absurd input before the KV
  * math runs; a guard test keeps it ≥ the largest catalog context length.
  */
-export const CONTEXT_CEILING = 10_000_000;
-
-const contextSchema = z.number().int().min(1).max(CONTEXT_CEILING);
-
-/**
- * Parse and validate a `--context` token count. Throws {@link ValidationError}
- * for anything that is not an integer in `1..CONTEXT_CEILING` (zero, negative,
- * non-numeric, fractional, or over the ceiling).
- */
-export function parseContextTokens(raw: string): number {
-  const parsed = contextSchema.safeParse(Number(raw));
-  if (!parsed.success) {
-    throw new ValidationError(
-      `--context must be an integer in 1..${String(CONTEXT_CEILING)}: ${raw}`,
-    );
-  }
-  return parsed.data;
-}
+export { CONTEXT_CEILING, parseContextTokens } from "../context.js";
 
 /**
  * `--context` and `--max-context` are mutually exclusive. Throws

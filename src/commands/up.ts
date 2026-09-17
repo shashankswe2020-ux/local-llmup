@@ -13,9 +13,11 @@
  */
 import { loadCatalog } from "../catalog/load.js";
 import { loadConfig, loadUserConfig, type Config } from "../config.js";
-import { BackendError, ValidationError } from "../errors.js";
+import { BackendError, ModelResolutionError, ValidationError } from "../errors.js";
 import { detectHardware } from "../hardware/detect.js";
-import { evaluateFit } from "../ranking/fit.js";
+import { evaluateFit, evaluateFitAtContext } from "../ranking/fit.js";
+import { parseContextTokens } from "../context.js";
+import { runInstalledUp } from "./installed-up.js";
 import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
 import {
@@ -53,6 +55,9 @@ import {
 /** Inputs for `up`. Servers always bind loopback in v1, so there is no host. */
 export interface UpOptions {
   readonly model: string;
+  readonly bypass?: boolean | undefined;
+  readonly context?: number | undefined;
+  readonly installed?: boolean | undefined;
   /** Port for the backend server; defaults to the backend's standard port. */
   readonly port?: number | undefined;
   /** Force a specific backend; omitted → auto-detect the first servable one. */
@@ -105,16 +110,18 @@ function chooseQuant(
   model: CatalogModel,
   requested: Quantization | undefined,
   hardware: HardwareProfile,
+  options: UpOptions,
 ): Quantization {
   if (requested !== undefined) return requested;
-  const fit = evaluateFit(model, hardware);
+  const fit = options.context === undefined ? evaluateFit(model, hardware) : evaluateFitAtContext(model, hardware, options.context);
   if (!fit.fits) {
     if (fit.reason === "disk-bound") {
       throw new ValidationError(
         insufficientDiskMessage(model, smallestDiskQuant(model), hardware.freeDiskBytes),
       );
     }
-    throw new ValidationError(`${model.id} does not fit this hardware (${fit.reason})`);
+    if (options.bypass === true) return smallestDiskQuant(model);
+    throw new ValidationError(`${model.id} does not fit this hardware (${fit.reason}); use --bypass to override estimated fit`);
   }
   return fit.quant;
 }
@@ -154,6 +161,7 @@ function insufficientDiskMessage(
 }
 
 export interface UpPrepared {
+  readonly context?: number | undefined;
   readonly model: CatalogModel;
   readonly quant: Quantization;
   readonly hardware: HardwareProfile;
@@ -197,6 +205,7 @@ export async function prepareUp(
   options: UpOptions,
   deps: UpDeps = createDefaultDeps(),
 ): Promise<UpPrepared> {
+  if (options.context !== undefined) parseContextTokens(String(options.context));
   if (
     options.port !== undefined &&
     (!Number.isInteger(options.port) || options.port < 1 || options.port > 65535)
@@ -212,11 +221,14 @@ export async function prepareUp(
 
   // 2. Detect hardware and select the requested/default quant.
   const hardware = await deps.detectHardware();
-  const quant = chooseQuant(model, resolved.quant, hardware);
+  const quant = chooseQuant(model, resolved.quant, hardware, options);
   let fitWarning: string | null = null;
-  if (resolved.quant !== undefined) {
-    const fit = evaluateRequestedQuantFit(model, quant, hardware);
+  if (resolved.quant !== undefined || options.bypass === true || options.context !== undefined) {
+    const fit = options.context === undefined ? evaluateRequestedQuantFit(model, quant, hardware) : evaluateFitAtContext({ ...model, quantizations: [quant] }, hardware, options.context);
     if (!fit.fits) {
+      if (options.context !== undefined && options.bypass !== true) {
+        throw new ValidationError(`${model.id} does not fit at context ${String(options.context)} (${fit.reason}); use --bypass to override estimated fit`);
+      }
       fitWarning = `requested quant ${quant.name} for ${model.id} may not fit this hardware (${fit.reason})`;
     }
   }
@@ -238,6 +250,9 @@ export async function prepareUp(
     ...(deps.configBackend !== undefined ? { configBackend: deps.configBackend } : {}),
   });
   const adapter = selection.adapter;
+  if (options.context !== undefined && adapter.installedModels === undefined) {
+    throw new ValidationError(`explicit runtime context is not supported by ${adapter.name}`);
+  }
   const modelFormats = formatsForModel(model);
   if (!adapter.capabilities.formats.some((format) => modelFormats.includes(format))) {
     throw new ValidationError(
@@ -275,6 +290,7 @@ export async function prepareUp(
   });
   return Object.freeze({
     model,
+    ...(options.context !== undefined ? { context: options.context } : {}),
     quant,
     hardware,
     adapter,
@@ -500,6 +516,11 @@ export async function executePreparedUp(
         ...(handle.modelPath !== undefined ? { expectedModelPath: handle.modelPath } : {}),
       });
       notify({ phase: "readiness", status: "completed", label: "API readiness passed" });
+      let runtimeModelId: string | undefined;
+      if (prepared.context !== undefined && adapter.installedModels !== undefined) {
+        const installed = await adapter.installedModels.inspect(handle.endpoint, ollamaId ?? model.id);
+        runtimeModelId = await adapter.installedModels.activate(handle.endpoint, installed, prepared.context);
+      }
       const backend = adapter.name;
       if (
         !handle.ownedByUs &&
@@ -539,7 +560,11 @@ export async function executePreparedUp(
             ...(handle.modelPath !== undefined ? { modelPath: handle.modelPath } : {}),
           };
       notify({ phase: "state-commit", status: "started", label: "Commit active server state" });
-      deps.writeState(deps.config, { schemaVersion: STATE_SCHEMA_VERSION, active });
+      deps.writeState(deps.config, { schemaVersion: STATE_SCHEMA_VERSION, active: {
+        ...active,
+        ...(runtimeModelId !== undefined ? { runtimeModelId, context: prepared.context } : {}),
+      } });
+      if (runtimeModelId !== undefined) deps.log(`Runtime model: ${runtimeModelId} (context ${String(prepared.context)})\n`);
       notify({ phase: "state-commit", status: "completed", label: "Active server state committed" });
       endpoint = handle.endpoint;
       ownership = handle.ownedByUs ? "owned" : "attached";
@@ -567,6 +592,15 @@ export function formatUpResult(result: UpResult): string {
 }
 
 export async function runUp(options: UpOptions, deps: UpDeps = createDefaultDeps()): Promise<void> {
+  if (options.installed === true) return runInstalledUp(options, deps);
+  if (options.bypass === true) {
+    try {
+      resolveModel(deps.loadCatalog(), options.model);
+    } catch (error) {
+      if (!(error instanceof ModelResolutionError)) throw error;
+      return runInstalledUp(options, deps);
+    }
+  }
   const prepared = await prepareUp(options, deps);
   const result = await executePreparedUp(prepared, deps);
   deps.write(formatUpResult(result));

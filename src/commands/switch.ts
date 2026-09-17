@@ -15,6 +15,8 @@ import { loadConfig, type Config } from "../config.js";
 import { ValidationError } from "../errors.js";
 import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
+import { runUp, type UpOptions } from "./up.js";
+import { detectHardware } from "../hardware/detect.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import type { BackendAdapter } from "../backend/adapter.js";
 import { select } from "../backend/select.js";
@@ -36,10 +38,14 @@ import {
 /** Inputs for `switch`. */
 export interface SwitchOptions {
   readonly model: string;
+  readonly bypass?: boolean | undefined;
+  readonly context?: number | undefined;
+  readonly installed?: boolean | undefined;
 }
 
 /** Injectable side effects, so the command can be driven with fakes in tests. */
 export interface SwitchDeps {
+  readonly runUp?: typeof runUp;
   readonly config: Config;
   readonly loadCatalog: () => Catalog;
   readonly readState: (config: Config) => RuntimeState;
@@ -230,7 +236,7 @@ export async function executePreparedSwitch(
       notify({ phase: "state-commit", status: "started", label: "Commit active model" });
       deps.writeState(deps.config, {
         schemaVersion: STATE_SCHEMA_VERSION,
-        active: { ...active, modelId: prepared.targetId },
+        active: { ...active, modelId: prepared.targetId, runtimeModelId: undefined, context: undefined, integrity: undefined, localManifestDigest: undefined },
       });
       notify({ phase: "state-commit", status: "completed", label: "Active model committed" });
     }
@@ -251,6 +257,13 @@ export async function runSwitch(
   options: SwitchOptions,
   deps: SwitchDeps = createDefaultDeps(),
 ): Promise<void> {
+  if (options.context !== undefined || options.bypass === true || options.installed === true) {
+    const active = deps.readState(deps.config).active;
+    if (active === null) throw new ValidationError("no active server to switch. Run `local-llmup up <model>` first.");
+    const upOptions: UpOptions = { ...options, port: active.port, backend: active.backend };
+    await (deps.runUp ?? runUp)(upOptions, { ...deps, detectHardware, env: {} });
+    return;
+  }
   const prepared = await prepareSwitch(options, deps);
   const result = await executePreparedSwitch(prepared, deps);
   deps.write(formatSwitchResult(result));

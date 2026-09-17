@@ -84,6 +84,33 @@ function deps(over: Partial<CanRunDeps> = {}): { deps: CanRunDeps; writes: strin
 }
 
 describe("buildCanRunResult", () => {
+  it("evaluates and reports the requested context", async () => {
+    const setup = deps({
+      loadCatalog: () => catalog([{ ...model("gemma4:e4b-it-qat", "4B"), contextLength: 65536 }]),
+    });
+    const result = await collectCanRun(
+      { model: "gemma4:e4b-it-qat", context: 65536 },
+      setup.deps,
+    );
+    expect(result.runnable).not.toBe("no");
+    expect(result.context).toBe(65536);
+    expect(result.contextFitKnown).toBe(false);
+    expect(formatCanRunText(result)).toContain("context fit unknown");
+    expect(formatCanRunText(result)).toContain("65536");
+    expect(JSON.parse(formatCanRunJson(result))).toMatchObject({ context: 65536 });
+
+    const capped = await collectCanRun(
+      { model: "llama3.1:8b", context: 65536 },
+      deps().deps,
+    );
+    expect(capped.reason).toBe("context-bound");
+  });
+
+  it("rejects invalid context before collecting hardware", async () => {
+    await expect(collectCanRun({ model: "llama3.1:8b", context: 0 }, deps().deps))
+      .rejects.toThrow("--context");
+  });
+
   it("returns a deeply immutable result snapshot", () => {
     const result = buildCanRunResult(model("llama3.1:8b", "7B"), hw(), perf);
 

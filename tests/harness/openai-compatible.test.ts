@@ -3,6 +3,10 @@ import { ValidationError } from "../../src/errors.js";
 import { createOpenAICompatibleHarness } from "../../src/harness/openai-compatible.js";
 
 describe("createOpenAICompatibleHarness", () => {
+  const publicLookup = async (): Promise<readonly { address: string }[]> => [
+    { address: "93.184.216.34" },
+  ];
+
   it("reports unavailable without OPENAI_COMPAT_BASE_URL", async () => {
     const harness = createOpenAICompatibleHarness({
       env: { OPENAI_COMPAT_BASE_URL: "" },
@@ -17,6 +21,21 @@ describe("createOpenAICompatibleHarness", () => {
     const harness = createOpenAICompatibleHarness({
       env: { OPENAI_COMPAT_BASE_URL: "https://192.168.1.10/v1/chat/completions" },
       fetch: vi.fn(),
+    });
+
+    await expect(
+      harness.chatSync({
+        model: "local-model",
+        messages: [{ role: "user", content: "hi" }],
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("rejects OpenAI-compatible hostnames that resolve to private addresses", async () => {
+    const harness = createOpenAICompatibleHarness({
+      env: { OPENAI_COMPAT_BASE_URL: "https://internal.example/v1/chat/completions" },
+      fetch: vi.fn(),
+      lookup: async () => [{ address: "169.254.169.254" }],
     });
 
     await expect(
@@ -47,6 +66,7 @@ describe("createOpenAICompatibleHarness", () => {
     const harness = createOpenAICompatibleHarness({
       env: { OPENAI_COMPAT_BASE_URL: "https://example.com/v1/chat/completions" },
       fetch,
+      lookup: publicLookup,
     });
 
     const chunks: string[] = [];
@@ -62,6 +82,7 @@ describe("createOpenAICompatibleHarness", () => {
       "https://example.com/v1/chat/completions",
       expect.objectContaining({
         method: "POST",
+        redirect: "error",
         headers: expect.objectContaining({
           "content-type": "application/json",
         }),
@@ -83,6 +104,7 @@ describe("createOpenAICompatibleHarness", () => {
         OPENAI_COMPAT_API_KEY: "provider-key",
       },
       fetch,
+      lookup: publicLookup,
     });
 
     await harness.chatSync({
@@ -115,6 +137,7 @@ describe("createOpenAICompatibleHarness", () => {
     const harness = createOpenAICompatibleHarness({
       env: { OPENAI_COMPAT_BASE_URL: "https://example.com/v1/chat/completions" },
       fetch,
+      lookup: publicLookup,
     });
 
     await expect(

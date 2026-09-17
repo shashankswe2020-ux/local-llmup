@@ -1,6 +1,22 @@
 import { test, expect } from "./harness";
 
 test.describe("model catalog details", () => {
+  test("launches from model details with the displayed context", async ({ page }) => {
+    await page.route("**/api/models/recommended?*", async (route) => {
+      const response = await route.fetch();
+      const data = await response.json();
+      data.models = data.models.map((model: Record<string, unknown>) => ({ ...model, contextTokens: 65536, contextFitKnown: true }));
+      await route.fulfill({ json: data });
+    });
+    await page.locator("#refresh-models").click();
+    await expect(page.locator(".model-card-item").first().locator(".model-card-meta")).toContainText("65,536 context tokens");
+    await page.locator(".model-card-item").first().getByRole("button", { name: /View performance details/ }).click();
+    const requests: unknown[] = [];
+    await page.route("**/api/models/up", async (route) => { requests.push(route.request().postDataJSON()); await route.fulfill({ json: { active: null } }); });
+    page.once("dialog", (dialog) => dialog.accept());
+    await page.locator("#model-detail").getByRole("button", { name: "Start model", exact: true }).click();
+    await expect.poll(() => requests).toContainEqual(expect.objectContaining({ context: 65536 }));
+  });
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Models", exact: true }).click();

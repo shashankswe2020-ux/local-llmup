@@ -223,8 +223,9 @@ export async function runChat(
   }
   const liveProcessIdentity = await deps.captureLiveProcessIdentity(active);
 
-  const resolved = resolveModel(deps.loadCatalog(), options.model ?? active.modelId);
-  const modelId = resolved.model.id;
+  const useRuntimeModel = active.backend === "ollama" && active.runtimeModelId !== undefined && (options.model === undefined || options.model === active.modelId);
+  const resolved = useRuntimeModel ? undefined : resolveModel(deps.loadCatalog(), options.model ?? active.modelId);
+  const modelId = resolved?.model.id ?? active.modelId;
   const adapter = (
     await select({ intent: "attach", registry: deps.registry, activeBackend: active.backend })
   ).adapter;
@@ -235,8 +236,8 @@ export async function runChat(
       `active ${adapter.name} server is serving ${active.modelId}; run \`local-llmup up ${modelId} --backend ${adapter.name}\` first`,
     );
   }
-  const backendModelId = adapter.capabilities.formats.includes("ollama")
-    ? resolved.model.source.ollama
+  const backendModelId = useRuntimeModel ? active.runtimeModelId : adapter.capabilities.formats.includes("ollama")
+    ? resolved?.model.source.ollama
     : modelId;
   if (backendModelId === undefined) {
     throw new ValidationError(

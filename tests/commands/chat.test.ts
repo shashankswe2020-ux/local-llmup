@@ -192,6 +192,13 @@ function harness(options: {
 }
 
 describe("runChat", () => {
+  it("chats with the active installed context variant without catalog resolution", async () => {
+    const { deps, chat } = harness({ turns: ["hi"], replies: ["ok"], cat: catalog([]),
+      state: activeState("gemma4:e4b-it-qat", { runtimeModelId: "llmup-context-test:65536", context: 65536, integrity: "local-manifest", localManifestDigest: "a".repeat(64) }),
+    });
+    await runChat({}, deps);
+    expect(chat).toHaveBeenCalledWith(expect.objectContaining({ model: "llmup-context-test:65536" }));
+  });
   it("captures a live process identity for legacy state before inference", async () => {
     const { deps, chat } = harness({ turns: ["hi"], replies: ["ok"] });
 

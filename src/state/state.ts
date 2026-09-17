@@ -31,6 +31,10 @@ const ServerStateCommonSchema = z
   .object({
     backend: z.enum(BACKEND_NAMES),
     modelId: z.string().min(1),
+    runtimeModelId: z.string().regex(/^[a-z0-9][a-z0-9._:/-]*$/).optional(),
+    context: z.number().int().min(1).max(10_000_000).optional(),
+    integrity: z.literal("local-manifest").optional(),
+    localManifestDigest: z.string().regex(/^[a-f0-9]{64}$/).optional(),
     endpoint: z
       .string()
       .url()

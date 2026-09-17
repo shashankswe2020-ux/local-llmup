@@ -1,7 +1,7 @@
 # Spec: Desktop App (Tauri)
 
 > Status: **Draft (v0.1)** — pending sub-agent review and human approval.
-> Last updated: 2026-08-10
+> Last updated: 2026-08-28
 > Related: [gui-and-harness-adapters.md](./gui-and-harness-adapters.md),
 > [local-llmup.md](./local-llmup.md),
 > [terminal-user-interface.md](./terminal-user-interface.md)
@@ -45,7 +45,10 @@ larger than every model weight considered "tiny" in the catalog.
    Node ≥ 20 stable) or a bundled minimal Node runtime. Deferred until D1 is
    validated.
 5. **WebView is the UI layer**: The frontend is exactly the same HTML/CSS/JS
-   served by `src/gui/static/` (from the GUI spec). No duplicate UI code.
+  served by `src/gui/static/` (from the GUI spec). No duplicate UI code. Once
+  the WebView navigates to `http://127.0.0.1:<port>`, the Node GUI server owns
+  document CSP enforcement and must send the policy in §5.2 as an HTTP
+  `Content-Security-Policy` response header.
 6. **IPC is minimal**: The Tauri Rust layer only does lifecycle management
    (discover binary, start server, open window at server URL, stop server on
    quit). All LLM routing, memory, harness, and backend logic remain in
@@ -137,6 +140,12 @@ smaller footprint than an Electron equivalent.
 └─────────────────────────────────────────────────────────┘
 ```
 
+The Tauri `security.csp` setting is injected into bundled app HTML only; it
+does not protect the HTML document served from the loopback URL. The Node GUI
+server therefore owns CSP enforcement for the navigated application document.
+The GUI implementation prerequisite must provide the policy defined in §5.2
+before desktop work begins.
+
 ### 3.2 Startup sequence
 
 1. Tauri `setup()` hook runs.
@@ -144,8 +153,10 @@ smaller footprint than an Electron equivalent.
 3. Rust probes for a free port starting at `4000`.
 4. Rust spawns `llmup gui --port <port> --no-open --json` as a child process.
 5. Rust reads stdout until a valid JSON line `{"url": "http://127.0.0.1:<port>", ...}` is received (5 s timeout).
-6. Rust opens the main window at the parsed URL.
-7. On parse failure or timeout → show error dialog + exit 1.
+6. The ready GUI server serves its application document with the §5.2 HTTP
+  `Content-Security-Policy` response header.
+7. Rust opens the main window at the parsed URL.
+8. On parse failure or timeout → show error dialog + exit 1.
 
 ### 3.3 Binary discovery (Rust)
 
@@ -155,10 +166,15 @@ The `llmup` binary is located by checking in order:
 2. `~/.local-llmup/bin/llmup` (future managed install path).
 3. `which llmup` / `where llmup` (PATH lookup via `std::process::Command`).
 4. Common homebrew paths: `/opt/homebrew/bin/llmup`, `/usr/local/bin/llmup`.
-5. `npx --no-install local-llmup` (fallback when not globally installed).
 
-On failure → show a friendly "Install local-llmup first" dialog with the npm
-install command, a copy button, and a link to the README.
+If steps 1–4 fail, transition directly to a friendly "Install local-llmup first"
+dialog with the npm install command, a copy button, and a link to the README.
+
+`npx` is explicitly excluded from discovery: it is not a validated absolute
+binary path and may resolve or download packages, introducing network and
+supply-chain behavior at this security boundary. Any download-and-run flow is
+out of scope and requires a separate security review before specification or
+implementation.
 
 ### 3.4 Shutdown sequence
 
@@ -255,17 +271,37 @@ URL after the server starts (via `window.navigate(url)`).
 
 ### 5.2 Security / CSP
 
+The canonical desktop policy is:
+
+```text
+default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src http://127.0.0.1:*; img-src 'self' data:; font-src 'self'; frame-src 'none'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'none'
+```
+
+It must be enforced at both document boundaries:
+
+1. Tauri `security.csp` must use this policy for bundled app HTML.
+2. Every loopback GUI server response that serves the application HTML document
+   must return this same policy in the HTTP `Content-Security-Policy` header.
+   A `<meta http-equiv>` element is not an acceptable substitute.
+
 ```json
 {
   "security": {
-    "csp": "default-src 'self' http://127.0.0.1:* 'unsafe-inline'; connect-src http://127.0.0.1:*; img-src 'self' data:"
+    "csp": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src http://127.0.0.1:*; img-src 'self' data:; font-src 'self'; frame-src 'none'; frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'none'"
   }
 }
 ```
 
+- `default-src 'none'` fails closed for any resource type without an explicit
+  directive.
 - `connect-src` is restricted to `http://127.0.0.1:*` — no external network
   from the WebView.
-- `script-src 'self'` — no inline scripts injected by model output can execute.
+- `script-src 'self'` permits only same-origin script files; inline scripts and
+  string-to-code evaluation are not permitted.
+- Inline styles remain allowed for the existing UI. `frame-src 'none'` prevents
+  the document from loading child frames, while `frame-ancestors 'none'`
+  prevents any parent from embedding the document. Base URL changes, plugins,
+  and form submissions are also disabled.
 - Model-generated content is rendered as text, not HTML (enforced by the JS UI
   layer from the GUI spec).
 
@@ -286,9 +322,9 @@ URL after the server starts (via `window.navigate(url)`).
 }
 ```
 
-`shell:allow-execute` is **scoped** to the `llmup` binary and the `npx` fallback
-only — Tauri v2's shell scope prevents the WebView from spawning arbitrary
-processes.
+`shell:allow-execute` is **scoped** to the discovered, validated absolute
+`llmup` binary path only — Tauri v2's shell scope prevents the WebView from
+spawning arbitrary processes.
 
 ---
 
@@ -497,10 +533,19 @@ by `tests/workflows/workflow-policy.test.ts`).
 
 ### 12.1 WebView isolation
 
-- **CSP** restricts `connect-src` to `127.0.0.1` — the WebView cannot reach
-  cloud APIs directly. All cloud harness calls go through the Node.js server.
-- **No `unsafe-eval`** in CSP — no `eval()` or `Function()` possible in the
+- **CSP** is enforced independently for both document sources: Tauri injects
+  the canonical policy into bundled app HTML, and the Node GUI server returns
+  the same policy as an HTTP response header for its application HTML. This is
+  required because Tauri's injected policy does not protect the document after
+  navigation to `http://127.0.0.1:<port>`.
+- **Connection policy** restricts `connect-src` to `127.0.0.1` — the WebView
+  cannot reach cloud APIs directly. All cloud harness calls go through the
+  Node.js server.
+- **Script policy** is explicitly `script-src 'self'`; it does not inherit from
+  `default-src`, permit inline scripts, or permit `eval()` / `Function()` in the
   WebView context.
+- **Frame policy** uses `frame-src 'none'` to prohibit child frames and
+  `frame-ancestors 'none'` to prohibit the GUI document from being embedded.
 - **Tauri capability allowlist** restricts IPC to the four declared commands.
   The WebView cannot invoke shell, fs, or any other Tauri API not in the
   allowlist.
@@ -510,9 +555,19 @@ by `tests/workflows/workflow-policy.test.ts`).
 ### 12.2 Binary execution
 
 - The `llmup` binary path is validated before spawn:
+  - On Windows, the first validation step rejects any raw path beginning with
+    two backslashes (`\\`) unconditionally as a UNC path. This guard returns a
+    typed binary-path validation `AppError` before path canonicalization, any
+    filesystem metadata/existence lookup, or any other validation, so the app
+    never resolves a network share.
   - Must be an absolute path (no relative path traversal).
+    Absolute Windows drive paths such as `C:\Program Files\llmup\llmup.exe`
+    remain permitted subject to all other checks.
   - Must exist and be executable (`std::fs::metadata` check).
   - Must not contain shell metacharacters (strict allowlist: `[a-zA-Z0-9._/\\ :-]`).
+- Package runners such as `npx` are not discovery or execution fallbacks; they
+  do not satisfy the validated absolute-path requirement and may perform
+  package resolution or network downloads.
 - The port argument is range-validated (1–65535) before being passed.
 - No shell interpolation — the binary is spawned with `Command::new(path).arg(...)`
   directly (no `sh -c`).
@@ -548,7 +603,8 @@ Covered:
 - `lifecycle::probe_free_port()` — returns a valid port.
 - `lifecycle::parse_server_json()` — valid JSON, malformed JSON, timeout.
 - `commands::get_version()` — returns a semver string.
-- Binary path validation — metacharacter rejection, non-absolute rejection.
+- Binary path validation — Windows UNC rejection before filesystem lookup,
+  metacharacter rejection, non-absolute rejection.
 
 ### 13.2 TypeScript IPC tests (desktop frontend)
 
@@ -567,6 +623,12 @@ A separate `desktop-smoke.test.ts` (run only in CI, gated by `TAURI_SMOKE=1`):
 - Launches the app binary with `LLMUP_BIN=<fake-echo-server>`.
 - Asserts the window title is "local-llmup".
 - Asserts the tray icon is registered.
+- Fetches the loopback application document and asserts its HTTP
+  `Content-Security-Policy` response header exactly matches the canonical §5.2
+  policy, including `frame-ancestors 'none'`.
+- After the WebView navigates to the loopback application document, attempts
+  `eval()`, `Function()`, and inline-script injection and asserts the effective
+  response-header CSP blocks every payload without executing it.
 - Sends SIGTERM and asserts clean exit.
 
 These require a display server (Xvfb on Linux CI).
@@ -575,7 +637,8 @@ These require a display server (Xvfb on Linux CI).
 
 **D1 — Binary discovery:**
 - [ ] App starts successfully when `llmup` is on PATH.
-- [ ] App shows install dialog when `llmup` is not found (no PATH, no homebrew, no env).
+- [ ] App transitions directly to the install dialog when lookup steps 1–4 fail
+  (no PATH, no homebrew, no env), without invoking `npx` or another package runner.
 - [ ] `LLMUP_BIN=/path/to/custom/binary` overrides all discovery.
 
 **D2 — Lifecycle:**
@@ -591,9 +654,20 @@ These require a display server (Xvfb on Linux CI).
 
 **D4 — Security:**
 - [ ] WebView `connect-src` allows `127.0.0.1:*` only.
+- [ ] The loopback application HTML response includes an HTTP
+  `Content-Security-Policy` header exactly matching the canonical §5.2 policy,
+  including `default-src 'none'`, `script-src 'self'`, and
+  `frame-ancestors 'none'`.
+- [ ] On Windows, a UNC binary path beginning with `\\` is rejected before any
+  filesystem lookup or spawn; absolute local drive paths remain eligible.
 - [ ] Binary path with `../` is rejected before spawn.
 - [ ] Binary path with `;` or `&&` metacharacters is rejected before spawn.
-- [ ] CSP blocks `eval()` in the WebView.
+- [ ] After navigation to the localhost GUI document, runtime CSP tests prove
+  that `eval()` and `Function()` are blocked in the WebView.
+- [ ] After navigation to the localhost GUI document, runtime CSP tests prove
+  that inline scripts are blocked and the effective `script-src` is exactly
+  `'self'`, with no inline-script or eval exceptions. `'unsafe-inline'` appears
+  only in `style-src`, and `'unsafe-eval'` is absent from the entire policy.
 
 **D5 — Platform:**
 - [ ] `.dmg` installer mounts and installs on macOS arm64.
@@ -613,6 +687,7 @@ These require a display server (Xvfb on Linux CI).
 
 ```
 GUI spec G1–G6 (prerequisite, must be implemented first)
+  → GUI server sends the canonical §5.2 CSP response header for app HTML
   → D1 Tauri project scaffold + CI skeleton
      → D2 Binary discovery + lifecycle (Rust)
         → D3 IPC commands + desktop frontend
@@ -638,7 +713,8 @@ Deliverables:
 **Files:** `desktop/src-tauri/src/lifecycle.rs`, `commands.rs`, `lib.rs`
 
 Deliverables:
-- `discover_binary()` — all five discovery paths tested.
+- `discover_binary()` — all four discovery paths and direct install-dialog
+  failure transition tested; package runners are never invoked.
 - `spawn_gui_server(port)` — spawns `llmup gui --port --no-open --json`,
   reads stdout until JSON, returns URL. Times out at 5 s.
 - `shutdown_server()` — SIGTERM → wait 3 s → SIGKILL.
@@ -654,7 +730,8 @@ Deliverables:
 - Four IPC commands registered and callable.
 - Loading splash (`about:blank` → spinner) while server starts.
 - Error splash on startup failure with "Retry" and "Quit" buttons.
-- Successful start → navigate WebView to server URL.
+- Successful start → navigate WebView to the server URL. The prerequisite GUI
+  implementation owns the application document's §5.2 response header.
 - TypeScript frontend tests (Vitest, mocked `@tauri-apps/api/core`).
 
 ### D4 — System tray and OS notifications
@@ -682,7 +759,8 @@ Deliverables:
 **Files:** `desktop-smoke.test.ts`, CI signing steps.
 
 Deliverables:
-- Smoke test (`TAURI_SMOKE=1`) passes on macOS and Linux CI.
+- Smoke test (`TAURI_SMOKE=1`) passes on macOS and Linux CI, including the D4
+  loopback response-header assertion and post-navigation runtime CSP checks.
 - macOS `.dmg` is code-signed and notarized (secrets injected from GitHub env).
 - Windows `.msi` is Authenticode-signed.
 - All platform acceptance criteria D5 pass.
@@ -706,10 +784,12 @@ Deliverables:
 ## 16. Boundaries
 
 **Always:**
-- Validate the `llmup` binary path before every spawn (absolute, executable,
-  no metacharacters).
+- Validate the `llmup` binary path before every spawn (reject Windows UNC paths
+  before filesystem lookup; require an absolute, executable, metacharacter-free
+  local path).
 - Use `Command::new(path)` with discrete args — never `sh -c` interpolation.
-- Enforce the WebView CSP — no `unsafe-eval`, `connect-src` loopback only.
+- Enforce the WebView CSP — no eval or inline-script exceptions; `connect-src`
+  loopback only.
 - Pin all GitHub Actions `uses:` to full 40-character SHAs.
 - Never store code-signing credentials in source code.
 
@@ -722,7 +802,9 @@ Deliverables:
 
 **Never:**
 - Use `shell: true` or string interpolation when spawning the `llmup` binary.
+- Use `npx` or another package runner as a discovery fallback, or download and
+  run a binary without a separately security-reviewed design.
 - Bundle or log API keys, signing keys, or tokens.
-- Disable CSP or use `unsafe-eval` / `unsafe-inline` for scripts.
+- Disable CSP or add eval or inline-script exceptions.
 - Ship a release binary that is not code-signed on macOS or Windows.
 - Access cloud APIs directly from the Tauri Rust backend.

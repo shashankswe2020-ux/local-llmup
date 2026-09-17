@@ -1,7 +1,7 @@
 # Spec: Browser GUI for Chat + Pluggable Chat Harness Adapters
 
 > Status: **Draft (v0.1)** — pending sub-agent review and human approval.
-> Last updated: 2026-08-10
+> Last updated: 2026-08-27
 > Related: [local-llmup.md](./local-llmup.md),
 > [pluggable-inference-backends.md](./pluggable-inference-backends.md),
 > [terminal-user-interface.md](./terminal-user-interface.md)
@@ -123,9 +123,21 @@ Inherited from the project (no changes):
 Additional rules for this spec:
 
 - All strings received from cloud API responses pass `stripControl()` before
-  display or storage.
-- `assertSafeFetchUrl()` validates every cloud API endpoint before the first
-  fetch (blocks SSRF, javascript:, file:, and private IP ranges).
+  display or storage. `stripControl()` only removes control characters; it is
+  not an HTML sanitizer, and its output remains untrusted plain text.
+- Assistant response content is rendered only with DOM text APIs
+  (`textContent` or `append(document.createTextNode(chunk))` for streaming).
+  It must never reach `innerHTML`, `insertAdjacentHTML`, or an unsanitized
+  HTML/Markdown renderer.
+- Static cloud endpoints use `assertSafeFetchUrl()` with an explicit provider
+  allow-list (`api.anthropic.com` or `api.openai.com`) before the first fetch.
+  The default allow-list is catalog-specific and does not contain either host.
+- User-configurable cloud endpoints use `await assertSafeExternalUrl()` before
+  every fetch. This guard deliberately has no hostname allow-list, but requires
+  HTTPS with no URL credentials or non-standard port and rejects non-public IP
+  literals and hostnames when any DNS answer is private, loopback, link-local
+  (including metadata), unspecified, multicast, or reserved. DNS failure and
+  an empty answer set fail closed; redirects are disabled or revalidated.
 - The GUI HTTP server refuses all requests except those to its own origin
   (`Host` header validation).
 - Request bodies from the browser are validated with Zod before processing.
@@ -270,9 +282,9 @@ export type HarnessName = (typeof HARNESS_NAMES)[number];
 - Default model: `claude-3-5-haiku-20241022` (overridable in `HarnessChatRequest`).
 - Request body validated with Zod before send; response validated before yield.
 - Streaming via `anthropic-version: 2023-06-01` + `stream: true` SSE parsing.
-- `assertSafeFetchUrl("https://api.anthropic.com/v1/messages")` called at module
-  init — this is a static constant so it always passes, but the call forces the
-  security gate to be exercised in tests.
+- Calls `assertSafeFetchUrl("https://api.anthropic.com/v1/messages", {
+  allowedHosts: ["api.anthropic.com"] })` before fetch. The explicit allow-list
+  is required because the catalog-oriented defaults do not include this host.
 - Injectable: `FetchFn` seam for tests; never hits the real API in tests.
 - Response body byte cap: 16 MiB abort (consistent with existing acquire module).
 
@@ -281,12 +293,17 @@ export type HarnessName = (typeof HARNESS_NAMES)[number];
 - Reads `OPENAI_API_KEY` from env at call time.
 - Default model: `gpt-4o-mini`.
 - OpenAI streaming SSE (`data: {...}` lines, `data: [DONE]` terminator).
+- Calls `assertSafeFetchUrl()` with `allowedHosts: ["api.openai.com"]` before
+  fetch; it does not rely on the default catalog host allow-list.
 - Same security constraints as Claude harness.
 
 **`OpenAiCompatibleHarness` (`src/harness/openai-compatible.ts`)**
 
 - Reads `OPENAI_COMPAT_BASE_URL` and `OPENAI_COMPAT_API_KEY` from env.
-- `assertSafeFetchUrl()` called on the runtime value — SSRF guard is active.
+- `await assertSafeExternalUrl()` is called on the runtime value immediately
+  before each fetch. The guard resolves hostnames and rejects the endpoint if
+  any returned address is non-public; lookup failures fail closed. Automatic
+  redirects are disabled so they cannot bypass validation.
 - Model must be supplied in every request (no default — the correct model is
   unknown without the endpoint).
 
@@ -297,7 +314,8 @@ export type HarnessName = (typeof HARNESS_NAMES)[number];
 - Delegates to `registry.get(active.backend).chat(...)` — uses the
   `BackendAdapter` chain, not a direct HTTP call.
 - `chatSync()` calls `adapter.chat()` (already non-streaming in the adapter contract).
-- `chat()` async iterator: yields the full reply as a single string chunk.
+- `chat()` async iterator: yields the full reply as a single plain-text string
+  chunk with no implicit HTML or Markdown semantics.
 
 ### 4.4 GUI server (`src/gui/`)
 
@@ -358,9 +376,15 @@ data: {"type":"done","turnsAppended":1,"factsExtracted":0,"vectorsEmbedded":0}
 data: {"type":"error","message":"Harness unavailable"}
 ```
 
-All `content` strings are `stripControl()`-sanitized before inclusion in the
-SSE data. The `done` event includes the capture result so the UI can show
-memory recording status.
+All SSE `content` values are plain text with no implicit HTML or Markdown
+semantics. They are processed with `stripControl()` before inclusion in SSE,
+but that operation is control-character removal, not HTML sanitization. The
+browser treats every assistant delta as untrusted text: create the message
+element with DOM APIs and set `textContent`, or append each streaming delta
+with `document.createTextNode()`. Assistant content must never be passed to
+`innerHTML`, `insertAdjacentHTML`, or an HTML-backed Markdown renderer unless a
+separately approved sanitizer and policy are specified. The `done` event
+includes the capture result so the UI can show memory recording status.
 
 **Host header validation:**
 
@@ -466,9 +490,10 @@ mitigations below address the additional attack surface.
 | Threat | Mitigation |
 |---|---|
 | DNS rebinding (external page → localhost API) | Host header exact-match validation on every request |
-| SSRF via user-supplied `OPENAI_COMPAT_BASE_URL` | `assertSafeFetchUrl()` on the runtime value |
+| SSRF via user-supplied `OPENAI_COMPAT_BASE_URL` | `assertSafeExternalUrl()` requires credential-free standard-port HTTPS, validates every DNS answer as globally routable immediately before fetch, fails closed on DNS errors, and disables automatic redirects |
 | API key leakage in error messages | Keys never interpolated in error strings or response bodies |
 | Prompt injection via API response content | `stripControl()` before storage and before SSE emission |
+| DOM XSS via model-generated HTML | SSE content is plain text and the browser inserts it only through `textContent` or text nodes; HTML insertion APIs are prohibited |
 | Path traversal via static file requests | Whitelist-only static paths; `path.resolve()` + `isWithin()` containment check |
 | Oversized request body | 64 KiB request body cap on all `POST` endpoints |
 | Replay / cross-site request forgery | Same-origin SSE + Host header guard (no cookies, no tokens in v1) |
@@ -546,7 +571,8 @@ function resolveStaticPath(root: string, request: string): string {
 
 **G3 — `ClaudeHarness`:**
 - [ ] `isAvailable()` returns false when `ANTHROPIC_API_KEY` is not set.
-- [ ] `chatSync()` calls `assertSafeFetchUrl` then posts to the Anthropic endpoint.
+- [ ] `chatSync()` calls `assertSafeFetchUrl` with
+  `allowedHosts: ["api.anthropic.com"]`, then posts to the Anthropic endpoint.
 - [ ] API key is not present in any thrown error message.
 - [ ] SSE stream is correctly parsed; delta chunks are yielded in order.
 - [ ] Response body is `stripControl()`-sanitized before yield.
@@ -554,13 +580,23 @@ function resolveStaticPath(root: string, request: string): string {
 
 **G4 — `OpenAiHarness`:**
 - [ ] `isAvailable()` returns false when `OPENAI_API_KEY` is not set.
+- [ ] The static endpoint calls `assertSafeFetchUrl` with
+  `allowedHosts: ["api.openai.com"]`; it does not rely on default hosts.
 - [ ] OpenAI SSE `[DONE]` terminator ends the stream cleanly.
 - [ ] Same key/sanitize/cap tests as G3.
 
 **G5 — `OpenAiCompatibleHarness`:**
 - [ ] `isAvailable()` returns false when `OPENAI_COMPAT_BASE_URL` is not set.
-- [ ] `assertSafeFetchUrl()` is called on the runtime URL value.
-- [ ] Private IP in `OPENAI_COMPAT_BASE_URL` (e.g., `http://192.168.1.1`) throws `ValidationError`.
+- [ ] `await assertSafeExternalUrl()` is called on the runtime URL value
+  immediately before every fetch, without a broad hostname allow-list.
+- [ ] `assertSafeExternalUrl("http://169.254.169.254")` throws `ValidationError`.
+- [ ] Private, loopback, link-local/metadata, unspecified, multicast, and
+  reserved IPv4 and IPv6 literals throw `ValidationError`.
+- [ ] A hostname fails closed when DNS resolution errors, returns no addresses,
+  or returns any unsafe address (including mixed public/private answers).
+- [ ] HTTPS URL credentials and explicit non-standard ports throw
+  `ValidationError`; automatic redirects are disabled or each target is
+  revalidated before follow.
 
 **G6 — GUI server:**
 - [ ] Server binds `127.0.0.1:<port>` and not `0.0.0.0`.
@@ -569,6 +605,10 @@ function resolveStaticPath(root: string, request: string): string {
 - [ ] `GET /static/../outside.txt` returns HTTP 400 (path traversal blocked).
 - [ ] `POST /api/chat` body > 64 KiB returns HTTP 413.
 - [ ] `POST /api/chat` with valid body opens an SSE stream.
+- [ ] A browser/DOM-level test streams HTML tags plus script and event-handler
+  payloads (for example, `<img src=x onerror=...>`); the payload displays
+  as inert literal text, creates no attacker-controlled elements, and
+  executes no script or handler.
 - [ ] SSE `done` event includes `turnsAppended`, `factsExtracted`, `vectorsEmbedded`.
 - [ ] Server stops cleanly on SIGINT without leaving the port open.
 
@@ -654,7 +694,8 @@ Deliverables:
 
 Deliverables:
 - Configurable `OPENAI_COMPAT_BASE_URL` + optional key.
-- SSRF guard on the runtime URL value.
+- DNS-aware `assertSafeExternalUrl()` guard on the runtime URL value, with no
+  hostname allow-list and fail-closed redirect handling.
 
 ### G6 — GUI HTTP server
 
@@ -666,6 +707,9 @@ Deliverables:
 - All HTTP routes specified in §4.4.
 - Host header guard (DNS rebinding defense).
 - SSE streaming with `delta` / `done` / `error` events.
+- Plain-text-only assistant rendering via `textContent` or text-node append
+  semantics; no assistant chunk reaches an HTML insertion API or unsanitized
+  HTML/Markdown renderer.
 - Path-safe static file server from `src/gui/static/`.
 - `src/gui/static/` with functional chat UI (input, message list, harness
   selector, memory stats, copy-to-clipboard, keyboard shortcut to send).
@@ -728,7 +772,9 @@ Deliverables:
 
 **Always:**
 - Validate all external input (HTTP request bodies, cloud API responses, env vars) with Zod.
-- Call `assertSafeFetchUrl()` on every cloud API endpoint before the first fetch.
+- Call `assertSafeFetchUrl()` with the provider's explicit hostname allow-list
+  for static cloud endpoints. Call `await assertSafeExternalUrl()` immediately
+  before every user-configurable endpoint fetch, and fail closed on redirects.
 - Call `stripControl()` on every string received from a cloud API before storing or displaying.
 - Bind the GUI server to `127.0.0.1` only.
 - Validate the `Host` header on every GUI HTTP request.
@@ -746,5 +792,7 @@ Deliverables:
 - Call cloud APIs from advice commands (`recommend`, `can-run`, `catalog`, `doctor`).
 - Invent throughput or cost estimates for cloud harnesses.
 - Store API keys in `state.json`, `config.json`, or memory files.
+- Render assistant content with `innerHTML`, `insertAdjacentHTML`, or an
+  unsanitized HTML/Markdown renderer.
 - Allow path traversal in the static file server.
 - Disable the Host header validation.

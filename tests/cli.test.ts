@@ -1,6 +1,7 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
+  runInstalledModelsMock: vi.fn(async () => []),
   runUpMock: vi.fn<(options: { model: string; port?: number | undefined }) => Promise<void>>(),
   runDownMock: vi.fn<(options: { model?: string | undefined }) => Promise<void>>(),
   resolveUiModeFromSourcesMock: vi.fn(),
@@ -25,6 +26,8 @@ const hoisted = vi.hoisted(() => ({
 vi.mock("../src/commands/up.js", () => ({
   runUp: hoisted.runUpMock,
 }));
+
+vi.mock("../src/commands/installed-models.js", () => ({ runInstalledModels: hoisted.runInstalledModelsMock }));
 
 vi.mock("../src/commands/down.js", () => ({
   runDown: hoisted.runDownMock,
@@ -54,6 +57,7 @@ vi.mock("../src/commands/recommend.js", async (importOriginal) => {
 import { COMMANDS, buildCli, type CommandName } from "../src/cli.js";
 
 afterEach(() => {
+  hoisted.runInstalledModelsMock.mockClear();
   hoisted.runUpMock.mockReset();
   hoisted.runDownMock.mockReset();
   hoisted.resolveUiModeFromSourcesMock.mockReset();
@@ -310,6 +314,27 @@ describe("buildCli", () => {
 });
 
 describe("can-run exit contract", () => {
+  it("explicitly checks installed models at a requested context and port", async () => {
+    await buildCli().parse(["node", "local-llmup", "can-run", "gemma4:e4b-it-qat", "--installed", "--context", "65536", "--port", "11435"]);
+    await vi.waitFor(() => expect(hoisted.runInstalledModelsMock).toHaveBeenCalledWith(expect.objectContaining({ model: "gemma4:e4b-it-qat", context: 65536, port: 11435 })));
+    expect(hoisted.runCanRunMock).not.toHaveBeenCalled();
+  });
+
+  it("compares installed alternatives without invoking catalog recommendations", async () => {
+    await buildCli().parse(["node", "local-llmup", "recommend", "--installed", "--context", "65536", "--fits-only"]);
+    await vi.waitFor(() => expect(hoisted.runInstalledModelsMock).toHaveBeenCalledWith(expect.objectContaining({ context: 65536, fitsOnly: true })));
+    expect(hoisted.runRecommendMock).not.toHaveBeenCalled();
+  });
+  it("forwards bypass and context to up", async () => {
+    await buildCli().parse(["node", "local-llmup", "up", "gemma4:e4b-it-qat", "--bypass", "--context", "65536"]);
+    expect(hoisted.runUpMock).toHaveBeenCalledWith({ model: "gemma4:e4b-it-qat", bypass: true, context: 65536 });
+  });
+  it("forwards an explicit context", async () => {
+    hoisted.runCanRunMock.mockResolvedValueOnce({ runnable: "yes" });
+    await buildCli().parse(["node", "local-llmup", "can-run", "llama3.1:8b", "--context", "65536"]);
+    expect(hoisted.runCanRunMock).toHaveBeenCalledWith({ model: "llama3.1:8b", context: 65536 });
+  });
+
   it("exits non-zero only for a `no` verdict", async () => {
     hoisted.runCanRunMock.mockResolvedValueOnce({ runnable: "no" });
     await buildCli().parse(["node", "local-llmup", "can-run", "llama3.1:8b"]);

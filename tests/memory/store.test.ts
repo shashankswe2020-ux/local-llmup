@@ -1,10 +1,12 @@
 import {
   chmodSync,
+  linkSync,
   mkdirSync,
   mkdtempSync,
   realpathSync,
   readFileSync,
   readdirSync,
+  renameSync,
   rmSync,
   statSync,
   symlinkSync,
@@ -13,6 +15,10 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+vi.mock("node:fs", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs")>();
+  return { ...actual, linkSync: vi.fn(actual.linkSync), renameSync: vi.fn(actual.renameSync) };
+});
 import { loadConfig, type Config } from "../../src/config.js";
 import { MemoryError, ValidationError } from "../../src/errors.js";
 import {
@@ -218,35 +224,9 @@ describe("openMemoryStore", () => {
 
   it("anchors metadata writes to the validated canonical store path", async () => {
     const isolatedHome = mkdtempSync(join(tmpdir(), "llmup-mem-real-"));
-    let observedLinkTarget: string | undefined;
-    let observedRenameTarget: string | undefined;
-
-    vi.resetModules();
-    vi.doMock("node:fs", async () => {
-      const actual = await vi.importActual<typeof import("node:fs")>("node:fs");
-      return {
-        ...actual,
-        linkSync: ((
-          existingPath: import("node:fs").PathLike,
-          newPath: import("node:fs").PathLike,
-        ) => {
-          observedLinkTarget = String(newPath);
-          actual.linkSync(existingPath, newPath);
-        }) as typeof import("node:fs").linkSync,
-        renameSync: ((oldPath: import("node:fs").PathLike, newPath: import("node:fs").PathLike) => {
-          observedRenameTarget = String(newPath);
-          actual.renameSync(oldPath, newPath);
-        }) as typeof import("node:fs").renameSync,
-      };
-    });
 
     try {
-      const [{ loadConfig: loadConfigIsolated }, storeModule] = await Promise.all([
-        import("../../src/config.js"),
-        import("../../src/memory/store.js"),
-      ]);
-
-      const isolatedConfig = loadConfigIsolated({ LOCAL_LLMUP_HOME: isolatedHome });
+      const isolatedConfig = loadConfig({ LOCAL_LLMUP_HOME: isolatedHome });
       mkdirSync(isolatedConfig.memoryDir, { recursive: true });
 
       const canonicalStoreDir = join(isolatedConfig.memoryDir, "canonical-store");
@@ -255,17 +235,15 @@ describe("openMemoryStore", () => {
       symlinkSync(canonicalStoreDir, join(isolatedConfig.memoryDir, "llama3.1-8b"));
       const canonicalMeta = join(realpathSync(canonicalStoreDir), "meta.json");
 
-      const store = storeModule.openMemoryStore(isolatedConfig, "llama3.1:8b");
-      expect(observedLinkTarget).toBe(canonicalMeta);
+      const store = openMemoryStore(isolatedConfig, "llama3.1:8b");
+      expect(linkSync).toHaveBeenCalledWith(expect.any(String), canonicalMeta);
 
-      storeModule.writeMemoryMeta(isolatedConfig, store.dir, {
+      writeMemoryMeta(isolatedConfig, store.dir, {
         ...store.meta,
         embedding: { model: "nomic-embed-text", dimension: 768 },
       });
-      expect(observedRenameTarget).toBe(canonicalMeta);
+      expect(renameSync).toHaveBeenCalledWith(expect.any(String), canonicalMeta);
     } finally {
-      vi.doUnmock("node:fs");
-      vi.resetModules();
       rmSync(isolatedHome, { recursive: true, force: true });
     }
   });

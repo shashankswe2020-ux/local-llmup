@@ -1524,6 +1524,7 @@ input {
 
 .model-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 0.6rem;
 }
@@ -1540,7 +1541,8 @@ input {
   text-transform: uppercase;
 }
 
-.context-control select {
+.context-control select,
+.context-control input {
   min-width: 9rem;
   padding: 0.5rem 0.65rem;
   border: 1px solid var(--stroke-strong);
@@ -1550,6 +1552,22 @@ input {
   font-weight: 600;
   cursor: pointer;
 }
+
+.context-control input {
+  width: 9rem;
+  min-width: 0;
+}
+
+.model-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  min-height: 2.5rem;
+}
+
+.model-toolbar [hidden] { display: none; }
+.model-card-title { overflow-wrap: anywhere; }
 
 /* Banners */
 .banner {
