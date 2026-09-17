@@ -46,6 +46,7 @@ import {
 } from "./listener.js";
 import { stripControl } from "../sanitize.js";
 import type { BackendCapabilities } from "../types.js";
+import { createInstalledModelVerifier, OllamaInstalledModels } from "./ollama-installed.js";
 
 /** Default binary name resolved from `PATH`. */
 const OLLAMA_BINARY = "ollama";
@@ -628,6 +629,7 @@ export interface OllamaAdapterOptions {
 /** Stateless adapter over the Ollama backend. */
 export class OllamaAdapter implements BackendAdapter {
   readonly name = "ollama";
+  readonly installedModels: OllamaInstalledModels;
   readonly capabilities: BackendCapabilities = {
     canPull: true,
     canEmbed: true,
@@ -656,6 +658,26 @@ export class OllamaAdapter implements BackendAdapter {
     this.kill = options.kill ?? defaultKill;
     this.listenerProbe = options.listenerProbe ?? probeListenerIdentity;
     this.processProbe = options.processProbe ?? probeProcessIdentity;
+    this.installedModels = new OllamaInstalledModels({
+      verify: createInstalledModelVerifier(),
+      request: async (rawEndpoint, path, body) => {
+        const endpoint = assertLoopbackEndpoint(rawEndpoint);
+        const signal = AbortSignal.timeout(120_000);
+        await this.assertTrustedInferenceEndpoint(endpoint, signal);
+        const address = new URL(endpoint);
+        const before = await this.listenerProbe(Number(address.port || "80"), address.hostname.replace(/^\[|\]$/g, ""));
+        if (before === null) throw new BackendError("Ollama listener disappeared");
+        const response = await this.fetch(`${endpoint}${path}`, {
+          method: body === undefined ? "GET" : "POST",
+          ...(body !== undefined ? { headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {}),
+          signal,
+        });
+        if (!response.ok) throw new BackendError(`Ollama ${path} failed (status ${String(response.status)})`);
+        const payload = await readBoundedJson(response);
+        await this.assertInferenceListenerUnchanged(endpoint, before);
+        return payload;
+      },
+    });
   }
 
   async isInstalled(): Promise<boolean> {

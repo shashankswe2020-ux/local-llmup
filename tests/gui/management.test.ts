@@ -77,6 +77,10 @@ function makeActive(): LsResult {
 }
 
 describe("parseGuiUpRequest", () => {
+  it("accepts explicit installed bypass and context but rejects invalid context", () => {
+    expect(parseGuiUpRequest({ model: "gemma4:e4b-it-qat", installed: true, bypass: true, context: 65536 })).toMatchObject({ installed: true, bypass: true, context: 65536 });
+    expect(() => parseGuiUpRequest({ model: "test", context: 0 })).toThrow(ValidationError);
+  });
   it("accepts a valid model id with an optional port", () => {
     expect(parseGuiUpRequest({ model: "qwen2.5:1.5b", port: 11434 })).toEqual({
       model: "qwen2.5:1.5b",
@@ -125,6 +129,21 @@ describe("parseContextWindowPreset", () => {
 });
 
 describe("createModelManager", () => {
+  it("retains the active runtime variant and context in the desktop summary", () => {
+    const manager = createModelManager({ collectRecommendation: async () => makeRecommendation(), runUp: async () => undefined,
+      collectLs: () => ({ ...makeActive(), type: "active", modelId: "gemma4:e4b-it-qat", backend: "ollama", endpoint: "http://127.0.0.1:11434", port: 11434, ownedByUs: false, runtimeModelId: "llmup-context-test:65536", context: 65536 }),
+    });
+    expect(manager.active()).toMatchObject({ context: 65536, runtimeModelId: "llmup-context-test:65536" });
+  });
+  it("uses exact context for recommendation and forwards activation controls", async () => {
+    const collectRecommendation = vi.fn(async () => makeRecommendation());
+    const runUp = vi.fn(async () => undefined);
+    const manager = createModelManager({ collectRecommendation, runUp, collectLs: makeActive });
+    await manager.recommended({ context: 65536 });
+    expect(collectRecommendation).toHaveBeenCalledWith({ context: 65536 });
+    await manager.up({ model: "gemma4:e4b-it-qat", context: 65536, installed: true, bypass: true });
+    expect(runUp).toHaveBeenCalledWith({ model: "gemma4:e4b-it-qat", context: 65536, installed: true, bypass: true });
+  });
   it("maps recommendation entries to compact summaries", async () => {
     const manager = createModelManager({
       collectRecommendation: async () => makeRecommendation(),

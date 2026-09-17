@@ -10,6 +10,23 @@ import { GuiServer, resolveGuiRootDir } from "../../src/gui/server.js";
 describe("GuiServer", () => {
   const servers: GuiServer[] = [];
 
+  it("passes exact context and custom port to installed model discovery", async () => {
+    const seen: unknown[] = [];
+    const server = new GuiServer({ rootDir: new URL("../../src/gui/static", import.meta.url), registry: undefined,
+      modelManager: { recommended: async (options) => { seen.push(options); return []; },
+        installed: async (options) => { seen.push(options); return []; }, runtimes: () => ["ollama"], active: () => null,
+        up: async () => { throw new Error("unused"); } },
+    });
+    servers.push(server);
+    const port = await server.start(0);
+    const response = await fetch(`http://127.0.0.1:${port}/api/models/installed?tokens=65536&port=11435`);
+    expect(response.status).toBe(200);
+    expect(seen).toContainEqual({ context: 65536, port: 11435 });
+    await fetch(`http://127.0.0.1:${port}/api/models/recommended?tokens=65536`);
+    expect(seen).toContainEqual({ context: 65536 });
+    expect((await fetch(`http://127.0.0.1:${port}/api/models/installed?tokens=0`)).status).toBe(400);
+  });
+
   afterEach(async () => {
     await Promise.all(servers.splice(0).map(async (server) => server.stop()));
   });

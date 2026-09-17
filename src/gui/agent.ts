@@ -357,13 +357,14 @@ export function createActiveBackendChat(
       throw new ValidationError("no active server. Serve a model first.");
     }
     const liveProcessIdentity = await deps.captureLiveProcessIdentity(active);
-    const resolved = resolveModel(deps.loadCatalog(), active.modelId);
-    const modelId = resolved.model.id;
+    const useRuntimeModel = active.backend === "ollama" && active.runtimeModelId !== undefined;
+    const resolved = useRuntimeModel ? undefined : resolveModel(deps.loadCatalog(), active.modelId);
+    const modelId = resolved?.model.id ?? active.modelId;
     const adapter = (
       await select({ intent: "attach", registry: deps.registry, activeBackend: active.backend })
     ).adapter;
-    const backendModelId = adapter.capabilities.formats.includes("ollama")
-      ? resolved.model.source.ollama
+    const backendModelId = useRuntimeModel ? active.runtimeModelId : adapter.capabilities.formats.includes("ollama")
+      ? resolved?.model.source.ollama
       : modelId;
     if (backendModelId === undefined) {
       throw new ValidationError(

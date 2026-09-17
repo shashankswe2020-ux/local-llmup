@@ -16,6 +16,7 @@ import {
 } from "../commands/recommend.js";
 import { runUp, type UpOptions } from "../commands/up.js";
 import { BACKEND_NAMES, type BackendName, type Runnable } from "../types.js";
+import { collectInstalledModels, type InstalledModelSizing, type InstalledModelsOptions } from "../commands/installed-models.js";
 
 /** A compact, UI-facing view of one recommended model. */
 export interface ManagedModelSummary {
@@ -55,6 +56,8 @@ export interface ManagedModelSummary {
 
 /** A compact, UI-facing view of the active local server. */
 export interface ActiveModelSummary {
+  readonly runtimeModelId?: string;
+  readonly context?: number;
   readonly modelId: string;
   readonly backend: string;
   readonly endpoint: string;
@@ -65,6 +68,9 @@ export interface ActiveModelSummary {
 /** A validated request to bring a model online from the GUI. */
 export interface GuiUpRequest {
   readonly model: string;
+  readonly context?: number;
+  readonly bypass?: boolean;
+  readonly installed?: boolean;
   readonly port?: number;
   /** Force a specific backend; omitted → auto-detect the first servable one. */
   readonly backend?: BackendName;
@@ -72,6 +78,7 @@ export interface GuiUpRequest {
 
 /** Options for scoping a recommendation query from the GUI. */
 export interface RecommendedOptions {
+  readonly context?: number;
   /** Cap the number of returned models (default 8). */
   readonly limit?: number;
   /** Scope the throughput estimate to this inference runtime (default `ollama`). */
@@ -106,6 +113,7 @@ export function parseContextWindowPreset(raw: string | null): ContextWindowPrese
 
 /** The management surface the GUI server depends on. */
 export interface GuiModelManager {
+  installed?(options?: InstalledModelsOptions): Promise<readonly InstalledModelSizing[]>;
   /** Ranked, fitting models for this machine, scoped to an optional runtime. */
   recommended(options?: RecommendedOptions): Promise<readonly ManagedModelSummary[]>;
   /** The inference runtimes the advisor can score throughput for. */
@@ -118,6 +126,7 @@ export interface GuiModelManager {
 
 /** Injectable command-layer side effects, so the manager is testable with fakes. */
 export interface ModelManagerDeps {
+  readonly collectInstalledModels?: typeof collectInstalledModels;
   readonly collectRecommendation: (options?: RecommendOptions) => Promise<RecommendationResult>;
   readonly runUp: (options: UpOptions) => Promise<void>;
   readonly collectLs: () => LsResult;
@@ -130,6 +139,9 @@ const GUI_UP_REQUEST_SCHEMA = z
     model: z.string().trim().min(1).max(256),
     port: z.number().int().min(1).max(65535).optional(),
     backend: z.enum(BACKEND_NAMES).optional(),
+    context: z.number().int().min(1).max(10_000_000).optional(),
+    bypass: z.boolean().optional(),
+    installed: z.boolean().optional(),
   })
   .strict();
 
@@ -144,6 +156,9 @@ export function parseGuiUpRequest(input: unknown): GuiUpRequest {
     ...request,
     ...(parsed.data.port !== undefined ? { port: parsed.data.port } : {}),
     ...(parsed.data.backend !== undefined ? { backend: parsed.data.backend } : {}),
+    ...(parsed.data.context !== undefined ? { context: parsed.data.context } : {}),
+    ...(parsed.data.bypass !== undefined ? { bypass: parsed.data.bypass } : {}),
+    ...(parsed.data.installed !== undefined ? { installed: parsed.data.installed } : {}),
   };
 }
 
@@ -153,6 +168,8 @@ function toActiveSummary(result: LsResult): ActiveModelSummary | null {
   }
   return {
     modelId: result.modelId,
+    ...(result.runtimeModelId !== undefined ? { runtimeModelId: result.runtimeModelId } : {}),
+    ...(result.context !== undefined ? { context: result.context } : {}),
     backend: result.backend,
     endpoint: result.endpoint,
     port: result.port,
@@ -163,11 +180,13 @@ function toActiveSummary(result: LsResult): ActiveModelSummary | null {
 /** Build a model manager over explicit command-layer dependencies. */
 export function createModelManager(deps: ModelManagerDeps): GuiModelManager {
   return {
+    installed: (options) => (deps.collectInstalledModels ?? collectInstalledModels)(options),
     async recommended(options: RecommendedOptions = {}): Promise<readonly ManagedModelSummary[]> {
       const limit = options.limit ?? DEFAULT_RECOMMEND_LIMIT;
       const recommendOptions: RecommendOptions = {
         ...(options.runtime !== undefined ? { backend: options.runtime } : {}),
-        ...(options.contextPreset !== undefined
+        ...(options.context !== undefined ? { context: options.context } : {}),
+        ...(options.context === undefined && options.contextPreset !== undefined
           ? { contextPercent: CONTEXT_WINDOW_PERCENT[options.contextPreset] }
           : {}),
       };
@@ -227,6 +246,9 @@ export function createModelManager(deps: ModelManagerDeps): GuiModelManager {
         model: request.model,
         ...(request.port !== undefined ? { port: request.port } : {}),
         ...(request.backend !== undefined ? { backend: request.backend } : {}),
+        ...(request.context !== undefined ? { context: request.context } : {}),
+        ...(request.bypass !== undefined ? { bypass: request.bypass } : {}),
+        ...(request.installed !== undefined ? { installed: request.installed } : {}),
       };
       await deps.runUp(options);
       const active = toActiveSummary(deps.collectLs());

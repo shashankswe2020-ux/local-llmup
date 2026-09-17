@@ -5,6 +5,7 @@ import { randomBytes, createHash } from "node:crypto";
 import { createServer, type IncomingMessage, type Server as HttpServer, type ServerResponse } from "node:http";
 import { fileURLToPath } from "node:url";
 import { ValidationError } from "../errors.js";
+import { parseContextTokens } from "../commands/recommend.js";
 import { createDefaultRegistry } from "../harness/registry.js";
 import { stripControl } from "../sanitize.js";
 import { appendConversation, createSession, type GuiSession } from "./session.js";
@@ -336,15 +337,31 @@ export class GuiServer {
         const manager = this.requireModelManager();
         const runtime = parseRuntimeQuery(url.searchParams.get("runtime"));
         const contextPreset = parseContextWindowPreset(url.searchParams.get("context"));
+        const rawTokens = url.searchParams.get("tokens");
+        const context = rawTokens === null ? undefined : parseContextTokens(rawTokens);
+        if (context !== undefined && contextPreset !== undefined) throw new ValidationError("tokens and context preset are mutually exclusive");
         const models = await manager.recommended({
           ...(runtime !== undefined ? { runtime } : {}),
           ...(contextPreset !== undefined ? { contextPreset } : {}),
+          ...(context !== undefined ? { context } : {}),
         });
         this.writeJson(res, 200, {
           models,
           runtime: runtime ?? null,
           contextPreset: contextPreset ?? null,
         });
+        return;
+      }
+
+      if (req.method === "GET" && pathname === "/api/models/installed") {
+        const manager = this.requireModelManager();
+        if (manager.installed === undefined) throw new ValidationError("installed model discovery is unavailable");
+        const rawTokens = url.searchParams.get("tokens");
+        const rawPort = url.searchParams.get("port");
+        const context = rawTokens === null ? undefined : parseContextTokens(rawTokens);
+        const port = rawPort === null ? undefined : z.number().int().min(1).max(65535).parse(Number(rawPort));
+        const models = await manager.installed({ ...(context !== undefined ? { context } : {}), ...(port !== undefined ? { port } : {}) });
+        this.writeJson(res, 200, { models, source: "local-runtime-metadata" });
         return;
       }
 

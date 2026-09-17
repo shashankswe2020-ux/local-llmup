@@ -35,6 +35,8 @@ export type LsResult =
   | {
       readonly type: "active";
       readonly modelId: string;
+      readonly runtimeModelId?: string;
+      readonly context?: number;
       readonly backend: NonNullable<RuntimeState["active"]>["backend"];
       readonly endpoint: string;
       readonly port: number;
@@ -50,6 +52,8 @@ export function collectLs(deps: LsDeps = createDefaultDeps()): LsResult {
   return Object.freeze({
     type: "active",
     modelId: active.modelId,
+    ...(active.runtimeModelId !== undefined ? { runtimeModelId: active.runtimeModelId } : {}),
+    ...(active.context !== undefined ? { context: active.context } : {}),
     backend: active.backend,
     endpoint: active.endpoint,
     port: active.port,
@@ -69,7 +73,7 @@ export function formatLsText(result: LsResult): string {
       result.ownedByUs ? "owned" : "attached",
     ],
   ]);
-  return `${table}\n`;
+  return `${table}\n${result.runtimeModelId !== undefined ? `Runtime model: ${result.runtimeModelId}\n` : ""}${result.context !== undefined ? `Context: ${String(result.context)} tokens\n` : ""}`;
 }
 
 /** Print the active server recorded in state, or a note when there is none. */

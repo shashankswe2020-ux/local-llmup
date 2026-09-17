@@ -34,6 +34,14 @@ function deps(): LsDeps {
 }
 
 describe("runLs", () => {
+  it("reports the configured context and runtime model", () => {
+    const result = runLs({ ...deps(), readState: () => ({ schemaVersion: STATE_SCHEMA_VERSION, active: {
+      backend: "ollama", modelId: "gemma4:e4b-it-qat", runtimeModelId: "llmup-context-test:65536", context: 65536,
+      endpoint: "http://127.0.0.1:11434", port: 11434, ownedByUs: true, pid: 9001,
+    } }) });
+    expect(result).toMatchObject({ runtimeModelId: "llmup-context-test:65536", context: 65536 });
+    expect(stdout.join("")).toContain("llmup-context-test:65536");
+  });
   it("collects state without rendering", () => {
     const result = collectLs(deps());
     expect(result).toEqual({ type: "empty" });

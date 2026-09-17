@@ -343,13 +343,13 @@ available to the model:
 | Command | Usage | Purpose |
 |---------|-------|---------|
 | `recommend` | `local-llmup [--task <t>] [--context <n>] [--json]` | Rank models that fit (default command) |
-| `can-run` | `local-llmup can-run <model> [--json]` | `yes/slow/no` for one model |
+| `can-run` | `local-llmup can-run <model> [--context <n>] [--installed] [--json]` | Check one model at a chosen context |
 | `doctor` | `local-llmup doctor [--json]` | Hardware + backend diagnostics |
-| `up` | `local-llmup up <model> [--port <p>] [--backend <b>]` | Pull, verify, serve |
+| `up` | `local-llmup up <model> [--port <p>] [--backend <b>] [--context <n>] [--bypass]` | Verify and serve, optionally overriding estimated fit |
 | `chat` | `local-llmup chat [-m <model>]` | Interactive chat with memory |
 | `gui` | `local-llmup gui [--port <p>] [--harness <h>] [--no-open]` | Launch the browser workspace |
 | `ls` | `local-llmup ls` | Show active server |
-| `switch` | `local-llmup switch <model>` | Change active model |
+| `switch` | `local-llmup switch <model> [--context <n>] [--bypass]` | Change active model or context |
 | `down` | `local-llmup down [model]` | Stop server |
 | `migrate` | `local-llmup migrate --from <a> --to <b> [--dry-run]` | Move memory between models |
 | `catalog` | `local-llmup catalog [--all] [--refresh]` | Browse model catalog |
@@ -368,6 +368,54 @@ available to the model:
 -h, --help            Help
 -v, --version         Version
 ```
+
+### Installed Models and Custom Context
+
+Check the models you already use in Ollama, including tags missing from the
+offline catalog:
+
+```bash
+local-llmup recommend --installed --context 65536
+local-llmup recommend --installed --context 65536 --fits-only
+local-llmup can-run gemma4:e4b-it-qat --installed --context 65536
+local-llmup up gemma4:e4b-it-qat --installed --bypass --context 65536
+local-llmup ls
+```
+
+Use an exact tag from the installed list for other models, including newly
+released Qwen variants. Add `--port 11435` to installed checks or `up` for a
+custom Ollama port. `switch <tag> --installed --bypass --context 65536` reuses
+the active server's port. Installed models require an already-running Ollama.
+
+`--bypass` overrides estimated fit, **not integrity checks**. Catalog launches
+retain disk and weight verification. Installed mode verifies the local manifest
+and every referenced blob, retaining catalog verification requirements when
+available. Set `OLLAMA_MODELS` to the daemon's actual model directory when it
+differs from `~/.ollama/models`; unreadable or mismatched content blocks launch.
+Local manifest integrity is not independent provenance or catalog approval.
+
+Explicit context creates a separate `llmup-context-...:<tokens>` runtime tag
+with Ollama's `num_ctx` parameter. Your original tag and external daemon remain
+unchanged. CLI and desktop chat use the configured tag automatically. For
+OpenCode or another OpenAI-compatible client, select the **Runtime model** shown
+by `local-llmup ls`, using the displayed endpoint plus `/v1`. The generated tags
+remain in Ollama until explicitly removed; no automatic model deletion occurs.
+
+In desktop **Models**, select **Installed Ollama**, choose **64K** or **Custom**,
+and enable **Bypass estimated fit** before starting. The same context controls
+also evaluate catalog recommendations and are passed to activation.
+
+Weights fitting in VRAM do not prove the full context fits. Installed comparisons
+use measured on-disk bytes, known fp16 KV geometry where supported, and reserved
+memory headroom; missing or hybrid architecture geometry remains `unknown`.
+`--fits-only` excludes unknown context fits. These are estimates, not observed GPU
+allocation, CPU-offload detection, or throughput benchmarks. Ordinary advice
+remains offline; only explicit `--installed` checks query the local runtime.
+Runtime context configuration currently supports Ollama; other backends reject
+it rather than ignore it.
+
+See Ollama's [context-size guidance](https://docs.ollama.com/openai#setting-the-local-context-size)
+and [model creation API](https://docs.ollama.com/api/create).
 
 ### Machine-Readable Output
 
@@ -507,6 +555,9 @@ verify the weights, then serve and migrate without guessing.
 ---
 
 ## Development
+
+Use Node.js 22.12+ for development and tests (Vitest 5). The published CLI
+continues to support Node.js 18+.
 
 ```bash
 npm install          # Install dependencies

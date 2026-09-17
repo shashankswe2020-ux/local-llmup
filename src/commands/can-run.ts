@@ -24,6 +24,7 @@ import { renderJson } from "../output.js";
 import { resolveModel } from "../resolver.js";
 import { stripControl } from "../sanitize.js";
 import { immutableSnapshot } from "../immutable.js";
+import { parseContextTokens } from "./recommend.js";
 import type { FitReason } from "../ranking/fit.js";
 import type {
   BackendName,
@@ -37,6 +38,7 @@ import type {
 /** Inputs for `can-run`. */
 export interface CanRunOptions {
   readonly model: string;
+  readonly context?: number | undefined;
   /** Emit machine-readable JSON instead of a human line. */
   readonly json?: boolean | undefined;
   /** Scope the throughput estimate to this runtime (default `ollama`). */
@@ -46,6 +48,8 @@ export interface CanRunOptions {
 /** The verdict plus the evidence, flattened for rendering and JSON. */
 export interface CanRunResult {
   readonly modelId: string;
+  readonly context?: number | undefined;
+  readonly contextFitKnown?: boolean | undefined;
   readonly runnable: Runnable;
   readonly throughput: ThroughputEstimate;
   /** The fitting quant name, or `null` when the model does not fit. */
@@ -117,10 +121,13 @@ export function buildCanRunResult(
   perf: PerfDataset,
   backend: BackendName = DEFAULT_THROUGHPUT_BACKEND,
   registry: BackendRegistry = createDefaultRegistry(),
+  context?: number,
 ): CanRunResult {
-  const verdict = evaluateVerdict(model, hardware, perf, undefined, backend);
+  if (context !== undefined) parseContextTokens(String(context));
+  const verdict = evaluateVerdict(model, hardware, perf, context, backend);
   return immutableSnapshot({
     modelId: model.id,
+    ...(context !== undefined ? { context, contextFitKnown: model.kvBytesPerToken !== undefined } : {}),
     runnable: verdict.runnable,
     throughput: verdict.throughput,
     quant: verdict.quant?.name ?? null,
@@ -152,6 +159,8 @@ function throughputLine(t: ThroughputEstimate): string {
 export function formatCanRunText(result: CanRunResult): string {
   const id = stripControl(result.modelId);
   const lines: string[] = [];
+  if (result.context !== undefined) lines.push(`Context: ${String(result.context)} tokens (KV fp16 estimate)`);
+  if (result.contextFitKnown === false) lines.push("Requested context fit unknown: attention geometry unavailable; verdict below is based on weights only.");
 
   if (result.runnable === "no") {
     const reason = result.reason ?? "vram-bound";
@@ -178,6 +187,7 @@ export function formatCanRunText(result: CanRunResult): string {
 export function formatCanRunJson(result: CanRunResult): string {
   return renderJson({
     model: result.modelId,
+    ...(result.context !== undefined ? { context: result.context, contextFitKnown: result.contextFitKnown, requiredBytes: result.requiredBytes, usableBytes: result.usableBytes } : {}),
     verdict: result.runnable,
     quant: result.quant,
     reason: result.reason,
@@ -200,6 +210,7 @@ export async function collectCanRun(
   options: CanRunOptions,
   deps: CanRunDeps = defaultDeps,
 ): Promise<CanRunResult> {
+  if (options.context !== undefined) parseContextTokens(String(options.context));
   const catalog = deps.loadCatalog();
   const resolved = resolveModel(catalog, options.model);
   const model =
@@ -215,6 +226,7 @@ export async function collectCanRun(
     perf,
     options.backend ?? DEFAULT_THROUGHPUT_BACKEND,
     deps.registry,
+    options.context,
   );
   return result;
 }

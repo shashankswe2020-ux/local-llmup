@@ -7,6 +7,7 @@
  */
 import { ValidationError } from "../errors.js";
 import type { BackendCapabilities, BackendName } from "../types.js";
+import type { InstalledModelSupport } from "./installed.js";
 
 /** Default loopback bind address; servers never bind `0.0.0.0` without opt-in. */
 export const DEFAULT_BIND_HOST = "127.0.0.1";
@@ -284,6 +285,7 @@ export interface EmbedResult {
  * module.
  */
 export interface BackendAdapter {
+  readonly installedModels?: InstalledModelSupport;
   /** Stable adapter identifier, e.g. "ollama". */
   readonly name: BackendName;
 

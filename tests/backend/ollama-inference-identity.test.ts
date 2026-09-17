@@ -13,6 +13,15 @@ const TRUSTED: ListenerIdentity = {
 
 type InferenceKind = "chat" | "embed";
 
+describe("installed inventory endpoint safety", () => {
+  it("rejects non-loopback endpoints and untrusted listeners before inventory requests", async () => {
+    const harness = makeAdapter({ identities: [null] });
+    await expect(harness.adapter.installedModels.list("http://example.com:11434")).rejects.toThrow("non-loopback");
+    await expect(harness.adapter.installedModels.list("http://127.0.0.1:11435")).rejects.toThrow("untrusted");
+    expect(harness.fetch).not.toHaveBeenCalled();
+  });
+});
+
 function makeAdapter(options: {
   identities: readonly (ListenerIdentity | null)[];
   versionValid?: boolean;

@@ -174,6 +174,21 @@ function seedActive(modelId: string, backend: "ollama" | "llamacpp" | "mlx" = "o
 }
 
 describe("runSwitch", () => {
+  it("clears context variant metadata when switching to another catalog model", async () => {
+    seedActive("llama3.1:8b");
+    const state = readState(config);
+    writeState(config, { ...state, active: { ...state.active!, runtimeModelId: "llmup-context-test:65536", context: 65536 } });
+    await runSwitch({ model: "qwen2.5:7b" }, deps(fakeAdapter()));
+    expect(readState(config).active?.runtimeModelId).toBeUndefined();
+    expect(readState(config).active?.context).toBeUndefined();
+  });
+
+  it("forwards explicit context and bypass through verified activation", async () => {
+    seedActive("llama3.1:8b");
+    const activate = vi.fn(async () => undefined);
+    await runSwitch({ model: "gemma4:e4b-it-qat", bypass: true, context: 65536 }, { ...deps(fakeAdapter()), runUp: activate });
+    expect(activate).toHaveBeenCalledWith(expect.objectContaining({ model: "gemma4:e4b-it-qat", bypass: true, context: 65536, port: 11434, backend: "ollama" }), expect.objectContaining({ config }));
+  });
   it("executes one immutable prepared switch and returns a typed result", async () => {
     seedActive("llama3.1:8b");
     const adapter = fakeAdapter();

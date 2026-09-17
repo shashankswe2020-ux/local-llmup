@@ -2,6 +2,44 @@
 
 ## Unreleased
 
+## 0.11.4 - 2026-09-17
+
+### Development Tooling
+
+- Upgraded Vitest and V8 coverage to 5.0.1 and refreshed vulnerable transitive
+  development dependencies. Root and desktop dependency audits report no known
+  vulnerabilities at release preparation.
+- Development tests now require Node.js 22.12+; built CLI runtime compatibility
+  remains Node.js 18+. CI runs build/test tooling on Node 22 before checking the
+  built CLI on the existing Node 18/20/22/24 matrix.
+- Added backend validation and failure-path tests, keeping the existing coverage
+  thresholds intact under the updated coverage engine.
+
+### Model Selection and Context
+
+- Added `--bypass` to `up` and `switch` for explicit estimated-fit overrides,
+  while retaining weight integrity, disk, loopback, and process-ownership checks.
+- Added installed Ollama model comparisons through `recommend --installed` and
+  `can-run --installed`, with exact tags, custom ports, context sizing, and an
+  optional known-fit filter. Missing KV geometry and throughput remain unknown.
+- Added `can-run --context` and runtime context configuration for Ollama. Context
+  variants preserve the original model tag and are used by CLI and desktop chat;
+  `ls` reports the runtime tag for OpenCode and other OpenAI-compatible clients.
+- Added desktop installed-model selection, 64K/custom context controls, fit
+  filtering, and explicit bypass confirmation. Starting from either catalog
+  cards or model details now carries the displayed context into activation.
+
+### Integrity and Compatibility
+
+- Verify uncatalogued installed models against their local manifests and every
+  referenced blob, preserving catalog digest or size-floor checks when available.
+  Local content integrity is explicitly distinguished from catalog provenance.
+- Preserve externally owned Ollama daemons and reject changed process identity
+  or model manifests before recording activation. Switching models clears stale
+  context-variant metadata.
+- Keep ordinary advice deterministic and offline, and preserve side-effect-free
+  launch-module imports through shared context validation.
+
 ## 0.11.3 - 2026-09-03
 
 **OpenCode harness with visible tool activity, plus a create-workspace surface.**

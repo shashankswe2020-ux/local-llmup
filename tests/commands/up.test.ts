@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadConfig, type Config } from "../../src/config.js";
 import { BackendError, ModelResolutionError, ValidationError } from "../../src/errors.js";
 import { readState, STATE_SCHEMA_VERSION, withLock, writeState } from "../../src/state/state.js";
@@ -284,6 +284,44 @@ function deps(adapter: FakeAdapter, cat: Catalog, hw: HardwareProfile = hardware
 }
 
 describe("runUp", () => {
+  it("requires bypass for an explicit quant at an over-limit context", async () => {
+    const adapter = fakeAdapter();
+    await expect(prepareUp({ model: "llama3.1:8b-Q4_K_M", context: 65536 }, deps(adapter, catalog([model("llama3.1:8b", [quant("Q4_K_M", 5_000_000_000)])])))).rejects.toThrow("--bypass");
+    expect(adapter.pullArgs).toHaveLength(0);
+  });
+  it("preserves state when installed model integrity fails", async () => {
+    const installed = { id: "gemma4:e4b-it-qat", digest: "a".repeat(64), sizeBytes: 3_000_000_000, quant: "Q4_0", contextLength: 131072, kvBytesPerToken: null, capabilities: ["completion"] };
+    const adapter = Object.assign(fakeAdapter(), { installedModels: {
+      list: vi.fn(async () => [installed]), inspect: vi.fn(async () => installed),
+      verify: vi.fn(async () => { throw new BackendError("integrity mismatch"); }), activate: vi.fn(async () => installed.id),
+    } });
+    await expect(runUp({ model: installed.id, bypass: true }, deps(adapter, catalog([])))).rejects.toThrow("integrity");
+    expect(readState(config).active).toBeNull();
+    expect(adapter.serveArgs).toHaveLength(0);
+    expect(adapter.installedModels.activate).not.toHaveBeenCalled();
+  });
+  it("bypasses estimated memory fit but retains pull verification", async () => {
+    const adapter = fakeAdapter();
+    const dependencies = deps(adapter, catalog([model("large:8b", [quant("Q4_K_M", 5_000_000_000)])]), hardware({ totalRamBytes: GIB, freeRamBytes: GIB }));
+    await expect(prepareUp({ model: "large:8b" }, dependencies)).rejects.toThrow("does not fit");
+    await runUp({ model: "large:8b", bypass: true }, dependencies);
+    expect(adapter.pullArgs).toHaveLength(1);
+    expect(stderr.join("")).toContain("may not fit");
+  });
+
+  it("activates an installed uncatalogued tag at 64K without pulling or stopping the daemon", async () => {
+    const installed = { id: "gemma4:e4b-it-qat", digest: "a".repeat(64), sizeBytes: 3_000_000_000, quant: "Q4_0", contextLength: 131072, kvBytesPerToken: null, capabilities: ["completion"] };
+    const activate = vi.fn(async () => "llmup-context-test:65536");
+    const adapter = Object.assign(fakeAdapter({ handle: { endpoint: "http://127.0.0.1:11435", port: 11435, pid: 123, ownedByUs: false, processExecutable: "/fake/ollama", processStartedAt: "test-start" } }), {
+      installedModels: { list: vi.fn(async () => [installed]), inspect: vi.fn(async () => installed), verify: vi.fn(async () => undefined), activate },
+    });
+    await runUp({ model: installed.id, bypass: true, context: 65536, port: 11435 }, deps(adapter, catalog([])));
+    expect(activate).toHaveBeenCalledWith("http://127.0.0.1:11435", installed, 65536);
+    expect(adapter.pullArgs).toHaveLength(0);
+    expect(adapter.stopped).toHaveLength(0);
+    expect(readState(config).active).toMatchObject({ modelId: installed.id, runtimeModelId: "llmup-context-test:65536", context: 65536, ownedByUs: false, integrity: "local-manifest" });
+  });
+
   it("executes one prepared lifecycle and returns a typed ready result", async () => {
     const adapter = fakeAdapter();
     const dependencies = deps(

@@ -250,6 +250,10 @@
                   <p class="section-note">Throughput ranges are offline short-context decode estimates.</p>
                 </div>
                 <div class="model-toolbar">
+                  <label class="context-control" for="model-source">
+                    <span>Source</span>
+                    <select id="model-source"><option value="catalog">Catalog</option><option value="installed">Installed Ollama</option></select>
+                  </label>
                   <label class="context-control" for="context-window">
                     <span>Context window</span>
                     <select id="context-window">
@@ -257,8 +261,20 @@
                       <option value="mid" selected>Mid · 50%</option>
                       <option value="high">High · 75%</option>
                       <option value="max">Max · 100%</option>
+                      <option value="65536">64K · 65,536</option>
+                      <option value="custom">Custom</option>
                     </select>
                   </label>
+                  <label class="context-control" id="context-tokens-field" for="context-tokens" hidden>
+                    <span>Context tokens</span>
+                    <input id="context-tokens" type="number" min="1" max="10000000" step="1" value="65536" />
+                  </label>
+                  <label class="context-control" id="installed-port-field" for="installed-port" hidden>
+                    <span>Ollama port</span>
+                    <input id="installed-port" type="number" min="1" max="65535" step="1" value="11434" />
+                  </label>
+                  <label class="model-toggle"><input id="models-fit-only" type="checkbox" /> Known context fit only</label>
+                  <label class="model-toggle"><input id="model-bypass" type="checkbox" /> Bypass estimated fit</label>
                   <button id="refresh-models" class="ghost-btn" type="button">Refresh</button>
                 </div>
               </div>

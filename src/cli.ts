@@ -170,6 +170,9 @@ function registerRecommend(command: Command): void {
     .option("--max-context", "Report the largest context each model can hold on this hardware")
     .option("--backend <name>", `Scope throughput to a runtime: ${BACKEND_NAMES.join("|")}`)
     .option("--available-backends", "Only show models an installed backend can serve")
+    .option("--installed", "Compare models installed in a local Ollama daemon")
+    .option("--port <port>", "Ollama port for --installed (default 11434)")
+    .option("--fits-only", "Only show installed models with known full-context fit")
     .option("--json", "Emit machine-readable JSON")
     .action(
       async (options: {
@@ -179,6 +182,9 @@ function registerRecommend(command: Command): void {
         backend?: string;
         availableBackends?: boolean;
         json?: boolean;
+        installed?: boolean;
+        port?: string | number;
+        fitsOnly?: boolean;
       } & UiCliOptions) => {
         try {
           if (options.task !== undefined && !isCapability(options.task)) {
@@ -195,6 +201,14 @@ function registerRecommend(command: Command): void {
           assertModesExclusive(context, options.maxContext);
           const backend =
             options.backend !== undefined ? parseBackendName(String(options.backend)) : undefined;
+          if (options.installed === true) {
+            if (options.task !== undefined || options.maxContext === true || options.availableBackends === true || (backend !== undefined && backend !== "ollama")) {
+              throw new Error("--installed supports Ollama context comparisons, not catalog task/backend filters or --max-context");
+            }
+            await (await import("./commands/installed-models.js")).runInstalledModels({ context, port: options.port === undefined ? undefined : Number(options.port), fitsOnly: options.fitsOnly, json: options.json });
+            return;
+          }
+          if (options.port !== undefined || options.fitsOnly === true) throw new Error("--port and --fits-only require --installed");
           const commandOptions = {
             ...(options.task !== undefined ? { task: options.task as Capability } : {}),
             ...(context !== undefined ? { context } : {}),
@@ -228,7 +242,10 @@ function registerUp(command: Command): void {
   registerReadOnlyUiOptions(command)
     .option("--port <port>", "Port for the backend server (default 11434)")
     .option("--backend <name>", "Force a backend (ollama, llamacpp)")
-    .action(async (model: string | undefined, options: { port?: string | number; backend?: string } & UiCliOptions) => {
+    .option("--bypass", "Override estimated fit; retain integrity checks")
+    .option("--installed", "Use an exact installed Ollama tag (requires --bypass)")
+    .option("--context <tokens>", "Configure the model's inference context")
+    .action(async (model: string | undefined, options: { port?: string | number; backend?: string; bypass?: boolean; installed?: boolean; context?: string | number } & UiCliOptions) => {
       try {
         const port = options.port === undefined ? undefined : Number(options.port);
         if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
@@ -244,8 +261,11 @@ function registerUp(command: Command): void {
           ...(model !== undefined ? { model } : {}),
           ...(port !== undefined ? { port } : {}),
           ...(backend !== undefined ? { backend } : {}),
+          ...(options.bypass === true ? { bypass: true } : {}),
+          ...(options.installed === true ? { installed: true } : {}),
+          ...(options.context !== undefined ? { context: parseContextTokens(String(options.context)) } : {}),
         };
-        if (usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
+        if (options.bypass === true || options.installed === true || options.context !== undefined || usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
           if (model === undefined) {
             process.stderr.write("up: model is required outside interactive mode\n");
             process.exitCode = 1;
@@ -335,15 +355,24 @@ function registerLs(command: Command): void {
 
 /** Wire the `switch` action onto its cac command. */
 function registerSwitch(command: Command): void {
-  registerReadOnlyUiOptions(command).action(async (model: string | undefined, options: UiCliOptions) => {
+  registerReadOnlyUiOptions(command)
+    .option("--bypass", "Override estimated fit; retain integrity checks")
+    .option("--installed", "Use an exact installed Ollama tag (requires --bypass)")
+    .option("--context <tokens>", "Configure the model's inference context")
+    .action(async (model: string | undefined, options: UiCliOptions & { bypass?: boolean; installed?: boolean; context?: string | number }) => {
     try {
-      if (usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
+      const commandOptions = {
+        ...(options.bypass === true ? { bypass: true } : {}),
+        ...(options.installed === true ? { installed: true } : {}),
+        ...(options.context !== undefined ? { context: parseContextTokens(String(options.context)) } : {}),
+      };
+      if (options.bypass === true || options.installed === true || options.context !== undefined || usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
         if (model === undefined) {
           process.stderr.write("switch: model is required outside interactive mode\n");
           process.exitCode = 1;
           return;
         }
-        await runSwitch({ model });
+        await runSwitch({ ...commandOptions, model });
         return;
       }
       const mode = await resolveReadOnlyMode(options, command.cli.rawArgs);
@@ -504,15 +533,26 @@ function registerDoctor(command: Command): void {
 function registerCanRun(command: Command): void {
   registerReadOnlyUiOptions(command)
     .option("--backend <name>", `Scope throughput to a runtime: ${BACKEND_NAMES.join("|")}`)
+    .option("--context <tokens>", "Evaluate fit at this context (tokens)")
+    .option("--installed", "Inspect an exact installed Ollama model tag")
+    .option("--port <port>", "Ollama port for --installed (default 11434)")
     .option("--json", "Emit machine-readable JSON")
-    .action(async (model: string | undefined, options: { backend?: string; json?: boolean } & UiCliOptions) => {
+    .action(async (model: string | undefined, options: { backend?: string; json?: boolean; context?: string | number; installed?: boolean; port?: string | number } & UiCliOptions) => {
       try {
         const backend =
           options.backend !== undefined ? parseBackendName(String(options.backend)) : undefined;
+        if (options.installed === true) {
+          if (model === undefined || (backend !== undefined && backend !== "ollama")) throw new Error("--installed requires an exact Ollama model tag");
+          const results = await (await import("./commands/installed-models.js")).runInstalledModels({ model, context: options.context === undefined ? undefined : parseContextTokens(String(options.context)), port: options.port === undefined ? undefined : Number(options.port), json: options.json });
+          if (results[0]?.fit === "no") process.exitCode = 1;
+          return;
+        }
+        if (options.port !== undefined) throw new Error("--port requires --installed");
         const commandOptions = {
           ...(model !== undefined ? { model } : {}),
           ...(backend !== undefined ? { backend } : {}),
           ...(options.json === true ? { json: true } : {}),
+          ...(options.context !== undefined ? { context: parseContextTokens(String(options.context)) } : {}),
         };
         if (usesDirectNoninteractivePath(options, command.cli.rawArgs)) {
           if (model === undefined) {

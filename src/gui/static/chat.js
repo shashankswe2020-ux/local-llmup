@@ -21,6 +21,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const activeBanner = document.querySelector("#active-model-banner");
   const refreshModels = document.querySelector("#refresh-models");
   const contextWindow = document.querySelector("#context-window");
+  const modelSource = document.querySelector("#model-source");
+  const contextTokens = document.querySelector("#context-tokens");
+  const contextTokensField = document.querySelector("#context-tokens-field");
+  const installedPort = document.querySelector("#installed-port");
+  const installedPortField = document.querySelector("#installed-port-field");
+  const modelsFitOnly = document.querySelector("#models-fit-only");
+  const modelBypass = document.querySelector("#model-bypass");
   const modelCatalogPanel = document.querySelector("#model-catalog-panel");
   const modelDetail = document.querySelector("#model-detail");
   const modelDetailBack = document.querySelector("#model-detail-back");
@@ -1390,7 +1397,7 @@ document.addEventListener("DOMContentLoaded", () => {
       start.disabled = true;
     } else {
       start.addEventListener("click", () =>
-        startModel(model.id, start, backendSelect ? backendSelect.value : ""),
+        startModel(model.id, start, backendSelect ? backendSelect.value : "", model.contextTokens !== undefined ? { context: model.contextTokens } : {}),
       );
     }
     actions.appendChild(start);
@@ -1581,7 +1588,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (activeBanner) {
       if (active) {
         activeBanner.hidden = false;
-        activeBanner.textContent = `${active.modelId} is running on ${active.backend} at ${active.endpoint}`;
+        activeBanner.textContent = `${active.modelId} is running on ${active.backend} at ${active.endpoint}${active.runtimeModelId ? ` · Runtime model: ${active.runtimeModelId}` : ""}${active.context ? ` · Context: ${active.context}` : ""}`;
       } else {
         activeBanner.hidden = true;
       }
@@ -1615,7 +1622,16 @@ document.addEventListener("DOMContentLoaded", () => {
     return "Won't fit";
   }
 
-  async function startModel(id, button, backend) {
+  function selectedContext() {
+    if (contextWindow?.value === "65536") return 65536;
+    if (contextWindow?.value !== "custom") return undefined;
+    if (!contextTokens?.reportValidity()) throw new Error("Invalid context size");
+    const tokens = Number(contextTokens.value);
+    if (!Number.isInteger(tokens) || tokens < 1 || tokens > 10000000) throw new Error("Invalid context size");
+    return tokens;
+  }
+
+  async function startModel(id, button, backend, extra = {}) {
     if (modelError) {
       modelError.hidden = true;
     }
@@ -1624,6 +1640,18 @@ document.addEventListener("DOMContentLoaded", () => {
     button.textContent = "Starting…";
     try {
       const payload = backend ? { model: id, backend } : { model: id };
+      Object.assign(payload, extra);
+      const context = selectedContext() ?? extra.context;
+      if (context !== undefined) payload.context = context;
+      if (modelBypass?.checked) payload.bypass = true;
+      if (payload.installed) {
+        if (!installedPort?.reportValidity()) throw new Error("Invalid Ollama port");
+        payload.port = Number(installedPort.value);
+        if (!payload.bypass) throw new Error("Installed models require explicit bypass consent");
+      }
+      if ((payload.bypass || payload.context !== undefined) && !globalThis.confirm(
+        `Start ${id} at ${payload.context ?? "default"} context?${payload.bypass ? " Estimated fit may be wrong or unknown; memory exhaustion or CPU offload is possible." : ""}${payload.installed ? " Local manifest integrity will be checked, not catalog provenance." : " Weight integrity checks remain enabled."}${payload.context !== undefined ? " A separate runtime model tag will be created; the source tag stays unchanged." : ""}`,
+      )) return;
       const response = await globalThis.fetch("/api/models/up", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1652,6 +1680,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     recommendedList.innerHTML = "";
+    if (modelsFitOnly?.checked) models = models.filter((model) => model.verdict !== "no" && model.contextFitKnown !== false);
     if (!models.length) {
       const empty = document.createElement("div");
       empty.className = "recommended-empty";
@@ -1713,13 +1742,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const button = document.createElement("button");
       button.type = "button";
-      if (isActive) {
+      if (isActive && model.contextTokens === undefined && selectedContext() === undefined) {
         button.textContent = "Running";
         button.disabled = true;
       } else {
         button.textContent = model.verdict === "no" ? "Start anyway" : "Start";
         button.addEventListener("click", () =>
-          startModel(model.id, button, backendSelect ? backendSelect.value : ""),
+          startModel(model.id, button, backendSelect ? backendSelect.value : "", model.contextTokens !== undefined ? { context: model.contextTokens } : {}),
         );
       }
       actions.appendChild(button);
@@ -1775,13 +1804,21 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const runtime = selectedRuntime();
       const params = new globalThis.URLSearchParams();
-      if (runtime) {
+      const installed = modelSource?.value === "installed";
+      if (runtime && !installed) {
         params.set("runtime", runtime);
       }
-      if (contextWindow && contextWindow.value) {
+      const context = selectedContext();
+      if (context !== undefined) {
+        params.set("tokens", String(context));
+      } else if (contextWindow && contextWindow.value && !installed) {
         params.set("context", contextWindow.value);
       }
-      const response = await globalThis.fetch(`/api/models/recommended?${params.toString()}`);
+      if (installed) {
+        if (!installedPort?.reportValidity()) throw new Error("Invalid Ollama port");
+        params.set("port", installedPort.value);
+      }
+      const response = await globalThis.fetch(`/api/models/${installed ? "installed" : "recommended"}?${params.toString()}`);
       if (!response.ok) {
         throw new Error(`request failed (${response.status})`);
       }
@@ -1790,7 +1827,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       const models = Array.isArray(data.models) ? data.models : [];
-      renderRecommended(models, active);
+      if (installed) renderInstalled(models);
+      else renderRecommended(models, active);
     } catch (error) {
       if (requestSequence !== modelsRequestSequence) {
         return;
@@ -1808,7 +1846,50 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (contextWindow) {
-    contextWindow.addEventListener("change", () => loadModels());
+    contextWindow.addEventListener("change", () => {
+      if (contextTokensField) contextTokensField.hidden = contextWindow.value !== "custom";
+      loadModels();
+    });
+  }
+
+  function renderInstalled(models) {
+    recommendedList.replaceChildren();
+    const visible = modelsFitOnly?.checked ? models.filter((model) => model.fit === "yes") : models;
+    for (const model of visible) {
+      const row = document.createElement("article");
+      row.className = "model-card-item";
+      const title = document.createElement("h3");
+      title.className = "model-card-title";
+      title.textContent = model.id;
+      const details = document.createElement("p");
+      details.className = "model-card-meta";
+      const fit = model.fit === "unknown" ? "Context fit unknown" : model.fit === "yes" ? "Estimated context fits" : "Estimated context exceeds limits";
+      details.textContent = `${model.quant ?? "Unknown quant"} · ${formatSize(model.sizeBytes)} weights · ${model.weightsFit ? "weights fit" : "weights exceed budget"} · ${model.context ?? "default"} context · ${fit} · ${model.memoryKind.toUpperCase()} budget ${formatSize(model.usableBytes)} · Throughput unknown`;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "Start";
+      button.disabled = !modelBypass?.checked;
+      button.title = "Requires explicit bypass consent; integrity checks remain enabled";
+      button.addEventListener("click", () => startModel(model.id, button, "ollama", { installed: true }));
+      const actions = document.createElement("div");
+      actions.className = "model-card-actions";
+      actions.append(button);
+      row.append(title, details, actions);
+      recommendedList.append(row);
+    }
+    if (visible.length === 0) recommendedList.textContent = "No installed models match.";
+  }
+
+  modelSource?.addEventListener("change", () => {
+    const installed = modelSource.value === "installed";
+    if (installedPortField) installedPortField.hidden = !installed;
+    if (installed && contextWindow && !["custom", "65536"].includes(contextWindow.value)) contextWindow.value = "65536";
+    if (contextTokensField) contextTokensField.hidden = contextWindow?.value !== "custom";
+    if (modelBypass) modelBypass.checked = false;
+    loadModels();
+  });
+  for (const control of [contextTokens, installedPort, modelsFitOnly, modelBypass]) {
+    control?.addEventListener("change", () => loadModels());
   }
 
   if (refreshRuntime) {
