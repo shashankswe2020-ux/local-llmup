@@ -1,0 +1,39 @@
+[package]
+name = "llmup-runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+llmup-core = { path = "../llmup-core" }
+serde.workspace = true
+serde_json.workspace = true
+uuid = { version = "1", features = ["v4"] }
+async-trait = "0.1"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+futures-util = "0.3"
+tokio-util = { version = "0.7", features = ["io", "rt"] }
+thiserror.workspace = true
+url = "2"
+sha2 = "0.10"
+regex = "1"
+rmcp = { version = "3.4", default-features = false, features = ["client", "transport-async-rw", "transport-streamable-http-client-reqwest", "reqwest"] }
+reqwest-mcp = { package = "reqwest", version = "0.13", default-features = false, features = ["rustls", "json", "stream"] }
+same-file = "1"
+cap-std = "4.0.3"
+cap-fs-ext = "4.0.3"
+tempfile = "3"
+sysinfo = "0.38"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "process", "time", "io-util", "fs", "net", "sync"] }
+http = "1"
+sse-stream = "0.2"
+bytes = "1"
+percent-encoding = "2"
+time = { version = "0.3", features = ["formatting"] }
+
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "1", features = ["fs", "process"] }
+
+[lints]
+workspace = true

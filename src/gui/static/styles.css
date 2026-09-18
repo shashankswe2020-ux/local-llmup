@@ -2347,6 +2347,50 @@ input {
 }
 
 /* Responsive */
+.live-metrics {
+  min-width: 0;
+  padding: 0.7rem 0.2rem;
+  border-top: 1px solid var(--stroke);
+  letter-spacing: 0;
+}
+.metrics-heading,
+.metric-heading,
+.metrics-axis {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.metrics-heading h2 {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.metrics-state {
+  font-size: 0.65rem;
+  color: var(--muted);
+}
+.metrics-state[data-state="live"] { color: #6ed4ad; }
+.metrics-state[data-state="offline"] { color: var(--warn); }
+.metric-series { padding-top: 1rem; min-width: 0; }
+.metric-series[data-metric="memory"] { --metric-color: #77b8ed; }
+.metric-series[data-metric="cpu"] { --metric-color: #6ed4ad; }
+.metric-series[data-metric="disk"] { --metric-color: #e3ba70; }
+.metric-series[data-metric="latency"] { --metric-color: #df8caa; }
+.metric-series[data-metric="tokens"] { --metric-color: #a5c6f5; }
+.metric-series[data-metric="cacheHits"] { --metric-color: #6ed4ad; }
+.metric-series[data-metric="cacheMisses"] { --metric-color: #e3ba70; }
+.metrics-subheading { margin-top: 0.85rem; padding-top: 0.7rem; border-top: 1px solid var(--stroke); color: var(--text-dim); font-size: 0.65rem; }
+.live-metrics .metric-series { padding-top: 0.65rem; }
+.live-metrics .metric-chart { height: 28px; }
+.context { overflow-y: auto; }
+.metric-heading { color: var(--metric-color); font-size: 0.7rem; }
+.metric-heading output { font: 600 0.82rem var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.metric-detail { color: var(--muted); font: 0.6rem var(--mono); margin-top: 0.2rem; overflow-wrap: anywhere; }
+.metric-chart { display: block; width: 100%; height: 42px; margin-top: 0.35rem; }
+.metrics-axis { margin-top: 0.45rem; color: var(--muted); font: 0.6rem var(--mono); }
+
 @media (max-width: 1100px) {
   .app {
     grid-template-columns: 200px minmax(0, 1fr);

@@ -5,6 +5,7 @@ import type { ExternalUrlLookup } from "../backend/net.js";
 import { ValidationError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
 import type { ChatHarness, HarnessChatRequest } from "./adapter.js";
+import { beginInferenceUsage, recordInferenceUsage } from "./usage.js";
 
 const DEFAULT_MAX_RESPONSE_BYTES = 16 * 1024 * 1024;
 
@@ -68,6 +69,7 @@ function parseOpenAIResponse(raw: string): string {
 
   try {
     const parsed = JSON.parse(trimmed) as unknown;
+    recordInferenceUsage(parsed, "openai");
     if (typeof parsed !== "object" || parsed === null) {
       throw new ValidationError("OpenAI-compatible response payload was malformed");
     }
@@ -226,6 +228,7 @@ export function createOpenAICompatibleHarness(
       }
     },
     async *chat(request: HarnessChatRequest): AsyncIterable<string> {
+      beginInferenceUsage();
       const url = await assertSafeEndpoint();
       const apiKey = getApiKey();
       const messages = request.messages.map((message) => ({
@@ -244,6 +247,7 @@ export function createOpenAICompatibleHarness(
           model: request.model || modelName,
           messages,
           stream: true,
+          stream_options: { include_usage: true },
           ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
         }),
         ...(request.signal ? { signal: request.signal } : {}),

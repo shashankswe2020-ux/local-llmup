@@ -1,0 +1,235 @@
+use llmup_runtime::{
+    http::{HttpError, Request, Response, Transport},
+    identity::{Listener, ProcessIdentity, ProcessProbe},
+    ollama_inference::{ChatInput, ChatMessage, OllamaInference},
+};
+use serde_json::json;
+use std::sync::Mutex;
+use tokio_util::sync::CancellationToken;
+struct Probe;
+fn identity() -> ProcessIdentity {
+    ProcessIdentity {
+        pid: 123,
+        process: "ollama".into(),
+        executable: "/opt/bin/ollama".into(),
+        started: "start".into(),
+    }
+}
+#[async_trait::async_trait]
+impl ProcessProbe for Probe {
+    async fn listener(
+        &self,
+        port: u16,
+        host: &str,
+    ) -> Result<Listener, llmup_runtime::state::StateError> {
+        Ok(Listener {
+            identity: identity(),
+            address: host.into(),
+            port,
+        })
+    }
+    async fn process(
+        &self,
+        _pid: u32,
+    ) -> Result<ProcessIdentity, llmup_runtime::state::StateError> {
+        Ok(identity())
+    }
+}
+struct Http {
+    bodies: Mutex<std::collections::VecDeque<Vec<u8>>>,
+    requests: Mutex<Vec<serde_json::Value>>,
+}
+#[async_trait::async_trait]
+impl Transport for Http {
+    async fn send(&self, request: Request) -> Result<Response, HttpError> {
+        self.requests
+            .lock()
+            .unwrap()
+            .push(request.body().cloned().unwrap_or(serde_json::Value::Null));
+        Ok(Response {
+            status: 200,
+            body: Box::pin(std::io::Cursor::new(
+                self.bodies.lock().unwrap().pop_front().unwrap(),
+            )),
+        })
+    }
+}
+fn input() -> ChatInput {
+    ChatInput {
+        model: "test:latest".into(),
+        messages: vec![ChatMessage {
+            role: "user".into(),
+            content: "hello".into(),
+            tool_calls: Vec::new(),
+            tool_name: None,
+        }],
+        tools: Vec::new(),
+        temperature: Some(0.2),
+    }
+}
+#[tokio::test]
+async fn native_chat_and_stream_use_exact_model_and_collect_tool_calls() {
+    let http=Http{bodies:Mutex::new([b"{\"version\":\"0.11.4\"}".to_vec(),serde_json::to_vec(&json!({"message":{"content":"hello","tool_calls":[{"function":{"name":"lookup","arguments":{"query":"x"}}}]}})).unwrap(),b"{\"version\":\"0.11.4\"}".to_vec(),b"{\"message\":{\"content\":\"one\"},\"done\":false}\n{\"message\":{\"content\":\"two\"},\"done\":true}\n".to_vec()].into()),requests:Mutex::new(Vec::new())};
+    let api = OllamaInference::new(&http, &Probe, "/opt/bin/ollama");
+    let cancel = CancellationToken::new();
+    let result = api
+        .chat("http://127.0.0.1:11435", &identity(), &input(), &cancel)
+        .await
+        .unwrap();
+    assert_eq!(result.content, "hello");
+    assert_eq!(result.tool_calls[0].name, "lookup");
+    let mut deltas = Vec::new();
+    let result = api
+        .chat_stream(
+            "http://127.0.0.1:11435",
+            &identity(),
+            &input(),
+            &cancel,
+            &mut |chunk| deltas.push(chunk.to_owned()),
+        )
+        .await
+        .unwrap();
+    assert_eq!(result.content, "onetwo");
+    assert_eq!(deltas, vec!["one", "two"]);
+    assert_eq!(http.requests.lock().unwrap()[1]["model"], "test:latest");
+}
+#[tokio::test]
+async fn inference_refuses_identity_drift_before_sending_http() {
+    let http = Http {
+        bodies: Mutex::new(Default::default()),
+        requests: Mutex::new(Vec::new()),
+    };
+    let api = OllamaInference::new(&http, &Probe, "/opt/bin/ollama");
+    let mut expected = identity();
+    expected.started = "another process".into();
+    assert!(
+        api.chat(
+            "http://127.0.0.1:11435",
+            &expected,
+            &input(),
+            &CancellationToken::new()
+        )
+        .await
+        .is_err()
+    );
+    assert!(http.requests.lock().unwrap().is_empty());
+}
+#[tokio::test]
+async fn embeddings_validate_count_dimensions_and_finite_scalars() {
+    for (vectors, valid) in [
+        (json!([[0.1, 0.2], [0.3, 0.4]]), true),
+        (json!([[0.1], [0.2, 0.3]]), false),
+        (json!([[0.1, 0.2]]), false),
+    ] {
+        let http = Http {
+            bodies: Mutex::new(
+                [
+                    b"{\"version\":\"0.11.4\"}".to_vec(),
+                    serde_json::to_vec(&json!({"embeddings":vectors})).unwrap(),
+                ]
+                .into(),
+            ),
+            requests: Mutex::new(Vec::new()),
+        };
+        let api = OllamaInference::new(&http, &Probe, "/opt/bin/ollama");
+        let result = api
+            .embed(
+                "http://127.0.0.1:11435",
+                &identity(),
+                "embed:latest",
+                &["first".into(), "second".into()],
+                &CancellationToken::new(),
+            )
+            .await;
+        assert_eq!(result.is_ok(), valid);
+    }
+}
+
+#[tokio::test]
+async fn streaming_matches_lenient_ndjson_contract_with_bounded_records() {
+    for (bytes, expected) in [
+        (
+            b"{\"message\":{\"content\":\"partial\"}}\n".to_vec(),
+            Some("partial"),
+        ),
+        (b"not json\n".to_vec(), Some("")),
+        (vec![b'x'; 65537], None),
+        (
+            b"{\"done\":true}\n{\"message\":{\"content\":\"late\"}}\n".to_vec(),
+            Some("late"),
+        ),
+        (
+            b"{\"message\":{\"content\":\"unterminated\"}}".to_vec(),
+            Some(""),
+        ),
+    ] {
+        let http = Http {
+            bodies: Mutex::new([b"{\"version\":\"0.11.4\"}".to_vec(), bytes].into()),
+            requests: Mutex::new(Vec::new()),
+        };
+        let api = OllamaInference::new(&http, &Probe, "/opt/bin/ollama");
+        let result = api
+            .chat_stream(
+                "http://127.0.0.1:11435",
+                &identity(),
+                &input(),
+                &CancellationToken::new(),
+                &mut |_| {},
+            )
+            .await;
+        match expected {
+            Some(content) => assert_eq!(result.unwrap().content, content),
+            None => assert!(result.is_err()),
+        }
+    }
+}
+struct ChangingProbe(std::sync::atomic::AtomicUsize);
+#[async_trait::async_trait]
+impl ProcessProbe for ChangingProbe {
+    async fn listener(
+        &self,
+        port: u16,
+        host: &str,
+    ) -> Result<Listener, llmup_runtime::state::StateError> {
+        let mut observed = identity();
+        if self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst) >= 2 {
+            observed.started = "replacement".into();
+        }
+        Ok(Listener {
+            identity: observed,
+            address: host.into(),
+            port,
+        })
+    }
+    async fn process(
+        &self,
+        _pid: u32,
+    ) -> Result<ProcessIdentity, llmup_runtime::state::StateError> {
+        Ok(identity())
+    }
+}
+#[tokio::test]
+async fn changed_listener_after_response_invalidates_completion() {
+    let http = Http {
+        bodies: Mutex::new(
+            [
+                b"{\"version\":\"0.11.4\"}".to_vec(),
+                b"{\"message\":{\"content\":\"untrusted\"}}".to_vec(),
+            ]
+            .into(),
+        ),
+        requests: Mutex::new(Vec::new()),
+    };
+    let probe = ChangingProbe(std::sync::atomic::AtomicUsize::new(0));
+    let api = OllamaInference::new(&http, &probe, "/opt/bin/ollama");
+    assert!(
+        api.chat(
+            "http://127.0.0.1:11435",
+            &identity(),
+            &input(),
+            &CancellationToken::new()
+        )
+        .await
+        .is_err()
+    );
+}

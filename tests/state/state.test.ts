@@ -1,4 +1,14 @@
-import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -431,6 +441,15 @@ describe("writeState", () => {
 });
 
 describe("withLock", () => {
+  it("does not delete a replacement lock when the original holder exits", async () => {
+    await expect(
+      withLock(config, () => {
+        renameSync(config.lockFile, `${config.lockFile}.original`);
+        writeFileSync(config.lockFile, "123456\n");
+      }),
+    ).rejects.toMatchObject({ kind: "locked" });
+    expect(readFileSync(config.lockFile, "utf8")).toBe("123456\n");
+  });
   it("serializes overlapping critical sections (barrier, not timing)", async () => {
     const order: string[] = [];
     const aAcquired = deferred();
@@ -472,19 +491,20 @@ describe("withLock", () => {
     expect(ran).toBe(true);
   });
 
-  it("does not clobber an empty (mid-creation) lock until the timeout elapses", async () => {
-    // An empty lock file has no readable PID; it must be waited on, then
-    // reclaimed once the timeout proves it was a crashed half-creation.
+  it("does not reclaim an empty lock whose ownership cannot be proven", async () => {
+    // A timeout does not establish ownership or prove that an unknown owner died.
     writeFileSync(config.lockFile, "");
     let ran = false;
-    await withLock(
-      config,
-      () => {
-        ran = true;
-      },
-      { timeoutMs: 20, pollIntervalMs: 5 },
-    );
-    expect(ran).toBe(true);
+    await expect(
+      withLock(
+        config,
+        () => {
+          ran = true;
+        },
+        { timeoutMs: 20, pollIntervalMs: 5 },
+      ),
+    ).rejects.toMatchObject({ kind: "locked" });
+    expect(ran).toBe(false);
   });
 
   it("times out when the lock is held by a live process", async () => {
@@ -496,6 +516,48 @@ describe("withLock", () => {
         pollIntervalMs: 5,
       }),
     ).rejects.toMatchObject({ kind: "locked" });
+  });
+
+  it.each(["1e3", "0x123", "000123", "2147483648", "9".repeat(100)])(
+    "does not reclaim malformed PID %s",
+    async (contents) => {
+      writeFileSync(config.lockFile, contents);
+      await expect(
+        withLock(config, () => undefined, {
+          timeoutMs: 10,
+          pollIntervalMs: 2,
+          isProcessAlive: () => {
+            throw new Error("must not probe invalid PID");
+          },
+        }),
+      ).rejects.toMatchObject({ kind: "locked" });
+      expect(readFileSync(config.lockFile, "utf8")).toBe(contents);
+    },
+  );
+
+  it.skipIf(process.platform === "win32")(
+    "refuses symlinked locks without probing their target",
+    async () => {
+      const target = join(home, "target");
+      writeFileSync(target, "12345\n");
+      symlinkSync(target, config.lockFile);
+      await expect(
+        withLock(config, () => undefined, {
+          timeoutMs: 10,
+          pollIntervalMs: 2,
+          isProcessAlive: () => {
+            throw new Error("must not probe symlink target");
+          },
+        }),
+      ).rejects.toMatchObject({ kind: "locked" });
+      expect(readFileSync(target, "utf8")).toBe("12345\n");
+    },
+  );
+
+  it("reports missing lock ownership on release", async () => {
+    await expect(withLock(config, () => unlinkSync(config.lockFile))).rejects.toMatchObject({
+      kind: "locked",
+    });
   });
 
   it("releases the lock even when the critical section throws", async () => {

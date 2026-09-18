@@ -11,6 +11,7 @@ import { lstatSync, readFileSync, readdirSync } from "node:fs";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { Readable } from "node:stream";
 import { z } from "zod";
+import { beginInferenceUsage, recordInferenceUsage } from "../harness/usage.js";
 import { BackendError, ValidationError } from "../errors.js";
 import type { Arch, BackendCapabilities } from "../types.js";
 import {
@@ -622,6 +623,7 @@ export class MlxAdapter implements BackendAdapter {
   }
 
   async chat(request: ChatRequest): Promise<ChatResult> {
+    beginInferenceUsage();
     const endpoint = assertLoopbackEndpoint(
       request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, MLX_DEFAULT_PORT),
     );
@@ -664,6 +666,7 @@ export class MlxAdapter implements BackendAdapter {
       throw new BackendError("MLX chat content exceeds byte limit");
     }
     await this.assertExpectedInferenceProcess(endpoint, request.expectedProcess);
+    recordInferenceUsage(payload, "openai");
     return { content };
   }
 

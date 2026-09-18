@@ -4,6 +4,7 @@ import { assertSafeFetchUrl } from "../backend/net.js";
 import { ValidationError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
 import type { ChatHarness, HarnessChatRequest } from "./adapter.js";
+import { beginInferenceUsage, recordInferenceUsage } from "./usage.js";
 
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1/chat/completions";
 const DEFAULT_OPENAI_MODEL = "gpt-4o-mini";
@@ -59,6 +60,7 @@ function parseOpenAIResponse(raw: string): string {
 
   try {
     const parsed = JSON.parse(trimmed) as unknown;
+    recordInferenceUsage(parsed, "openai");
     if (typeof parsed !== "object" || parsed === null) {
       throw new ValidationError("OpenAI response payload was malformed");
     }
@@ -191,6 +193,7 @@ export function createOpenAIHarness(deps: OpenAIHarnessDeps = {}): ChatHarness {
       }
     },
     async *chat(request: HarnessChatRequest): AsyncIterable<string> {
+      beginInferenceUsage();
       const apiKey = getApiKey();
       const url = assertSafeEndpoint();
       const messages = request.messages.map((message) => ({
@@ -208,6 +211,7 @@ export function createOpenAIHarness(deps: OpenAIHarnessDeps = {}): ChatHarness {
           model: request.model || modelName,
           messages,
           stream: true,
+          stream_options: { include_usage: true },
           ...(request.temperature !== undefined ? { temperature: request.temperature } : {}),
         }),
         ...(request.signal ? { signal: request.signal } : {}),

@@ -1,0 +1,26 @@
+[package]
+name = "llmup-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "llmup-fit-parity"
+path = "src/main.rs"
+
+[[bin]]
+name = "llmup-native"
+path = "src/native.rs"
+
+[dependencies]
+llmup-core = { path = "../llmup-core" }
+llmup-runtime = { path = "../llmup-runtime" }
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
