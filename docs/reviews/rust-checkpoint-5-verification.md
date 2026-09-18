@@ -1,7 +1,8 @@
 # Rust Checkpoint 5 Verification
 
-Date: 2026-09-18. Host: macOS arm64. Status: R20-R21 implemented; R22 open.
-No production routing switch, commit, release, or Electron removal is included.
+Date: 2026-09-18. Status: R20-R22 complete at the checkpoint verification scope.
+Feature-branch commits and CI were authorized. No merge, production routing switch,
+release, or Electron removal is included.
 
 ## Native Entry Points
 
@@ -15,9 +16,10 @@ npm run rust:gui-parity
 ```
 
 Set `LOCAL_LLMUP_HOME` to an isolated directory before experimental mutations.
-Builds require the pinned Rust toolchain and npm dependencies because the marked
-and DOMPurify vendor files are embedded at compile time. Built native executables
-do not require Node. `rust:gui:e2e` uses a separate Rust example with an injected
+Builds require the pinned Rust toolchain and platform system libraries, not npm.
+Marked and DOMPurify are vendored with their licenses and embedded at compile time.
+Native CI builds pass before npm dependencies are installed. The retained
+`rust:gui:e2e` verification tooling uses a separate Rust example with an injected
 model and fresh temporary home; it does not start a real inference process.
 Use `RUST_GUI_TEST_PORT` to choose a free browser-test port (default 4322).
 
@@ -62,21 +64,25 @@ Tauri documents Linux iframe-origin limitations. Artifact responses prohibit
 scripts via sandbox CSP; the launch document prohibits framing. No artifact
 document is granted the picker capability.
 
-## Remaining R22 Gate
+## Completed R22 Gate
 
 | Check | macOS arm64 | Linux | Windows |
 | --- | --- | --- | --- |
 | Native build, tests, Clippy | Passed | Passed | Passed |
 | Actual WebView launch/bridge | Passed | Passed (WebKitGTK/Xvfb) | Passed (WebView2) |
 | Picker IPC with injected selection | Passed | Passed | Passed |
-| Physical folder dialog select/cancel | Passed | Selection automation failed | Exact-selection assertion failed |
+| Physical folder dialog select/cancel | Passed (Accessibility) | Passed (AT-SPI/GTK) | Passed (native IDOK/UI Automation) |
 | Browser streaming/cancel/keyboard | Passed (Chromium) | Passed (Chromium) | Passed (Chromium) |
 
-Run the same locked Cargo desktop tests and build on native Linux with WebKitGTK
-and Windows with WebView2. Run the built desktop executable with `--smoke-test`,
-then manually select and cancel a workspace folder, check root revocation, close
-the window during a pending reply, and verify no owned process remains. Test
-artifact isolation in the actual platform WebView, not only the mock runtime.
+Passing full matrix, commit `36c96fee7ae1bfdbeaf04e4b8efeb61aaa8cf220`:
+https://github.com/shashankswe2020-ux/local-llmup/actions/runs/35355772910
+Jobs: Windows `105634643675`, Linux `105634643698`, macOS `105634643880`.
+All native lint/test/build, real WebView smoke, and three browser journeys pass.
+Linux and Windows also pass actual Cancel, exact-folder selection, root
+registration/revocation, and exit. macOS actual dialog evidence is recorded below.
+Artifact IPC denial is exercised through Tauri's dispatcher; artifact sandboxing
+is covered at the HTTP boundary. This is not a claim of exhaustive WebView exploit
+testing or signed-installer certification.
 
 On 2026-09-18, the user authorized feature-branch commits, pushes, and verification
 CI. Commit `f60c3a4` started the three-platform `Rust Desktop Verification` workflow:
@@ -92,24 +98,27 @@ and Unix-only absolute paths in adapter/inference fixtures. Private permissions,
 descriptor-relative operations, and identity checks were retained; no test gate
 was weakened. Test startup waits now have deadlines and CI collects all failures.
 
-The additional actual-folder-dialog gate failed at commit `c4f36b3`:
+Historical actual-folder-dialog failure at commit `c4f36b3`:
 https://github.com/shashankswe2020-ux/local-llmup/actions/runs/35340732466
 It uses the real picker twice (Cancel, then selection), checks the selected path
 against a disposable directory, registers and revokes that root, and requires a
 successful exit. Linux uses GTK portal/Xvfb; Windows uses UI Automation. Mock
 picker tests are not substituted for this gate.
 
-Both platforms opened two real picker dialogs, but Linux never completed the
+Previously both platforms opened two real picker dialogs, but Linux never completed the
 second selection before the smoke deadline. Windows returned a directory other
 than the required disposable target, which the smoke guard rejected before root
-registration. These are unresolved automation/interaction failures, not passing
-dialog evidence. The driver checks the success marker as well as the process
+registration. These failures were resolved without weakening the selected-path
+assertion: smoke-only initial directories and unique titles avoid stale-dialog
+targeting; Linux invokes the observed enabled `select` action through AT-SPI;
+Windows invokes the actual native confirmation control. This verifies real folder
+selection/cancellation, not arbitrary keyboard navigation through filesystem trees.
+The driver checks the success marker as well as the process
 exit code, so an exit code of zero alone cannot falsely pass the test.
 
-R22 remains unchecked. Next action: inspect the live native controls/screenshots
-on interactive Linux and Windows sessions, or repair the hosted dialog drivers
-with that evidence. Do not weaken the exact-path assertion, skip the dialog step,
-or substitute injected picker results to close this gate.
+The browser fixture also now waits for session creation and active-session render
+before sending chat. Previously an already-empty transcript could satisfy setup
+before New Chat finished, allowing its late completion to clear the test reply.
 
 The actual macOS folder dialog was exercised through Accessibility automation:
 Browse opened the native sheet; Cancel dismissed it; reopening and selecting a
@@ -117,7 +126,7 @@ disposable directory registered a workspace root. Authenticated root revocation
 cleared the capability. Closing the native window terminated its process normally.
 No inference runtime was started during this check.
 
-Do not mark R22 or the full checkpoint complete from these macOS results alone.
+R22 closes using the combined native matrix and macOS dialog evidence above.
 Signed installers, distribution,
 native runtime smoke with real weights, dependency-release audits, and production
 cutover remain checkpoint 6. Tauri bundle generation is disabled until those gates.

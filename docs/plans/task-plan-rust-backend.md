@@ -1,7 +1,7 @@
 # Rust Backend Migration Plan
 
 Status: Approved on 2026-09-17; Checkpoints 1-4 and R20-R21 implemented
-experimentally. Checkpoint 5 platform certification (R22) remains open.
+experimentally. Checkpoint 5 platform verification (R22) passed on 2026-09-18.
 Scope: full Rust backend and Tauri desktop replacement.
 Spec: [Rust migration](../specs/rust-backend-migration.md).
 
@@ -267,7 +267,7 @@ Windows/Linux process/filesystem certification remain R25 release gates.
 - [x] R21: Create the Tauri app using the existing frontend and the Rust host;
       match navigation, native dialogs, lifecycle, and packaging identity. No Node
       backend. Gate every privileged capability and forbid artifact IPC/navigation.
-- [ ] R22: Run native Tauri tests on macOS/Linux/Windows plus browser screenshots,
+- [x] R22: Run native Tauri tests on macOS/Linux/Windows plus browser screenshots,
       console/network checks, keyboard accessibility, streaming/cancellation, and
       desktop integration tests. Linux requires WebKitGTK; Windows requires WebView2.
 
@@ -312,9 +312,10 @@ Verification on macOS arm64, 2026-09-18:
 - TypeScript lint/typecheck/build and 2,066 tests pass. Coverage thresholds pass:
   85.31% statements, 79.34% branches, 81.39% functions, 86.76% lines.
 
-R22 is **not complete**. Linux WebKitGTK and Windows WebView2 builds, native
-tests, WebView launches, and browser journeys passed on hosted runners. Actual
-Linux/Windows folder-selection automation still fails; macOS dialog checks passed.
+R22 is **complete at checkpoint scope**. Commit `36c96fe`, Actions run
+`35355772910`, passed the full three-platform matrix including actual Linux/Windows
+folder selection, cancellation, root registration and revocation. macOS actual
+dialog checks passed locally through Accessibility automation.
 Run the commands and platform matrix in
 `docs/reviews/rust-checkpoint-5-verification.md` on native machines before checking
 R22. Signed artifacts, installer certification, live inference smoke, and the
@@ -365,7 +366,7 @@ not release activation or production routing changes.
   down run passed without changing user state. Embeddings remain unverified. Core
   RustSec/license checks pass; desktop audit warnings and MPL obligations remain.
   Other-runtime certification and approved performance budgets remain open.
-- R26: Blocked by R22-R25. No production cutover, retirement of TypeScript/Electron,
+- R26: Blocked by R23-R25. No production cutover, retirement of TypeScript/Electron,
   release publication, or change to existing datasets/user memory layouts.
 
 Detailed evidence, commands, limitations, and retained cache location:

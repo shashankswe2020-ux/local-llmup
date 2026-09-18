@@ -1,7 +1,7 @@
 # Rust Backend and Tauri Migration
 
 Status: Approved on 2026-09-17. Checkpoints 1-4 and checkpoint 5 implementation
-(R20-R21) are experimental; R22 platform certification and production cutover pending.
+(R20-R22) are verified experimentally; checkpoint 6 and production cutover are pending.
 
 ## Objective
 

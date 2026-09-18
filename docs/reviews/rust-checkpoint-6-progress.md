@@ -178,7 +178,26 @@ exception or blanket copyleft allowance was invented.
 - No CI changes or pushes were made for checkpoint 6; these new edits still need
   native Linux/Windows reruns before cross-platform certification.
 
-R26 remains blocked by R22 dialog verification, incomplete R23 terminal parity,
+R22 dialog verification is now closed by the three-platform run `35355772910`
+at commit `36c96fe`; see `rust-checkpoint-5-verification.md`.
+
+The user authorized feature-branch commits and verification CI on 2026-09-18.
+The accumulated native changes were published in `39742b1`, followed by verified
+dialog/test fixes. No merge or release publication was authorized or performed.
+The earlier local-only statements describe the preceding implementation session.
+
+The user confirmed that neither macOS nor Windows signing identities are
+configured. R24 cannot close until identities are provisioned outside chat,
+macOS signing/notarization and Windows signing are verified, and signed artifacts
+and installers pass validation. Unsigned checksummed archives are not substitutes.
+
+Dependency review confirmed `glib` 0.18.5 is required by the current Tauri GTK3
+stack; RUSTSEC-2024-0429 is patched at >=0.20.0, not a compatible direct upgrade.
+No advisory ignore was added. A supported dependency-stack update or reviewed
+upstream backport is still required. MPL source-access notices and distribution
+obligations must be implemented before changing the conservative license policy.
+
+R26 remains blocked by incomplete R23 terminal/catalog parity,
 signed distribution/installer evidence, dependency review, remaining runtime smoke
 coverage, and approved performance budgets. Do not delete the TypeScript oracle or
 Electron before these gates pass. Full checkpoint completion is not claimed.

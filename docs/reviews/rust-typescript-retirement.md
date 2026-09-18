@@ -2,7 +2,7 @@
 
 The final migration target is Rust CLI/backend plus Tauri, with no Node/npm build,
 launcher, runtime, or distribution requirement. Static browser JavaScript remains.
-The PR is not ready to claim complete migration while R22-R26 remain open.
+R22 is verified; the PR is not ready to claim complete migration while R23-R26 remain open.
 
 ## Deleted After Replacement
 
@@ -51,8 +51,9 @@ npm installation, not that every remaining repository workflow has been retired.
   used by parity tests. Full TUI and catalog-refresh replacements are incomplete.
 - Node-based browser drivers, parity scripts, and workflows still need native
   replacements before removing all npm manifests and the TypeScript toolchain.
-- R22 actual Linux/Windows folder-selection tests, signing/notarization, desktop
-  dependency review, and remaining runtime smoke gates are not passed.
+- R22 actual Linux/Windows folder-selection tests now pass (run `35355772910`).
+  Signing/notarization, desktop dependency review, and remaining runtime smoke
+  gates are not passed.
 
 Deletion policy: prove a replacement's behavior, migrate its callers/tests, remove
 the old implementation, then run checks. Do not delete a failing test or an active
