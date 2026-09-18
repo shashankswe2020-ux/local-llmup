@@ -94,7 +94,7 @@ jobs:
           XDG_CURRENT_DESKTOP: GNOME
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            dbus-run-session -- xvfb-run -a node scripts/rust-dialog-smoke.mjs
+            xvfb-run -a dbus-run-session -- node scripts/rust-dialog-smoke.mjs
           else
             node scripts/rust-dialog-smoke.mjs
           fi
