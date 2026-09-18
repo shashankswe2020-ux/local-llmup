@@ -12,6 +12,6 @@
   "bundle": {
     "active": false,
     "category": "DeveloperTool",
-    "icon": ["../build/icon.png", "../build/icon.icns"]
+    "icon": ["../build/icon.png", "../build/icon.icns", "../build/icon.ico"]
   }
 }

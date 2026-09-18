@@ -173,7 +173,7 @@ impl Directory {
                 parent.rename(&temporary, &parent, &name)?;
             }
             #[cfg(unix)]
-            parent.try_clone()?.into_std_file().sync_all()?;
+            parent.open(".")?.sync_all()?;
             Ok(())
         })();
         if result.is_err() {
