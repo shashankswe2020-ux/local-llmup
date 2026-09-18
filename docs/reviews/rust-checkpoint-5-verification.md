@@ -66,11 +66,11 @@ document is granted the picker capability.
 
 | Check | macOS arm64 | Linux | Windows |
 | --- | --- | --- | --- |
-| Native build, tests, Clippy | Passed | Not run | Not run |
-| Actual WebView launch/bridge | Passed | Not run | Not run |
-| Picker IPC with injected selection | Passed | Not run | Not run |
-| Physical folder dialog select/cancel | Passed | Not run | Not run |
-| Browser streaming/cancel/keyboard | Passed (Chromium) | Not run | Not run |
+| Native build, tests, Clippy | Passed | Passed | Passed |
+| Actual WebView launch/bridge | Passed | Passed (WebKitGTK/Xvfb) | Passed (WebView2) |
+| Picker IPC with injected selection | Passed | Passed | Passed |
+| Physical folder dialog select/cancel | Passed | Selection automation failed | Exact-selection assertion failed |
+| Browser streaming/cancel/keyboard | Passed (Chromium) | Passed (Chromium) | Passed (Chromium) |
 
 Run the same locked Cargo desktop tests and build on native Linux with WebKitGTK
 and Windows with WebView2. Run the built desktop executable with `--smoke-test`,
@@ -81,9 +81,35 @@ artifact isolation in the actual platform WebView, not only the mock runtime.
 On 2026-09-18, the user authorized feature-branch commits, pushes, and verification
 CI. Commit `f60c3a4` started the three-platform `Rust Desktop Verification` workflow:
 https://github.com/shashankswe2020-ux/local-llmup/actions/runs/35316992201
-Windows exposed Unix-only mutable bindings under strict Clippy; a portability
-repair preserves Unix directory modes and is being verified. Hosted results must
-be recorded before treating Linux or Windows as passed.
+The complete native build/lint/test/WebView/browser matrix passed for all three
+platforms at commit `59dffd0`:
+https://github.com/shashankswe2020-ux/local-llmup/actions/runs/35325069584
+Platform jobs: macOS `105536111599`, Windows `105536111731`, Linux `105536111831`.
+
+Native execution found and fixed Linux `O_PATH` directory descriptors being used
+for fsync/chmod, Windows-only unused mutability, a missing Windows icon resource,
+and Unix-only absolute paths in adapter/inference fixtures. Private permissions,
+descriptor-relative operations, and identity checks were retained; no test gate
+was weakened. Test startup waits now have deadlines and CI collects all failures.
+
+The additional actual-folder-dialog gate failed at commit `c4f36b3`:
+https://github.com/shashankswe2020-ux/local-llmup/actions/runs/35340732466
+It uses the real picker twice (Cancel, then selection), checks the selected path
+against a disposable directory, registers and revokes that root, and requires a
+successful exit. Linux uses GTK portal/Xvfb; Windows uses UI Automation. Mock
+picker tests are not substituted for this gate.
+
+Both platforms opened two real picker dialogs, but Linux never completed the
+second selection before the smoke deadline. Windows returned a directory other
+than the required disposable target, which the smoke guard rejected before root
+registration. These are unresolved automation/interaction failures, not passing
+dialog evidence. The driver checks the success marker as well as the process
+exit code, so an exit code of zero alone cannot falsely pass the test.
+
+R22 remains unchecked. Next action: inspect the live native controls/screenshots
+on interactive Linux and Windows sessions, or repair the hosted dialog drivers
+with that evidence. Do not weaken the exact-path assertion, skip the dialog step,
+or substitute injected picker results to close this gate.
 
 The actual macOS folder dialog was exercised through Accessibility automation:
 Browse opened the native sheet; Cancel dismissed it; reopening and selecting a
