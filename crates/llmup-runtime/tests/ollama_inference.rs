@@ -6,12 +6,16 @@ use llmup_runtime::{
 use serde_json::json;
 use std::sync::Mutex;
 use tokio_util::sync::CancellationToken;
+#[cfg(windows)]
+const OLLAMA: &str = "C:/opt/bin/ollama.exe";
+#[cfg(not(windows))]
+const OLLAMA: &str = "/opt/bin/ollama";
 struct Probe;
 fn identity() -> ProcessIdentity {
     ProcessIdentity {
         pid: 123,
         process: "ollama".into(),
-        executable: "/opt/bin/ollama".into(),
+        executable: OLLAMA.into(),
         started: "start".into(),
     }
 }
@@ -70,7 +74,7 @@ fn input() -> ChatInput {
 #[tokio::test]
 async fn native_chat_and_stream_use_exact_model_and_collect_tool_calls() {
     let http=Http{bodies:Mutex::new([b"{\"version\":\"0.11.4\"}".to_vec(),serde_json::to_vec(&json!({"message":{"content":"hello","tool_calls":[{"function":{"name":"lookup","arguments":{"query":"x"}}}]}})).unwrap(),b"{\"version\":\"0.11.4\"}".to_vec(),b"{\"message\":{\"content\":\"one\"},\"done\":false}\n{\"message\":{\"content\":\"two\"},\"done\":true}\n".to_vec()].into()),requests:Mutex::new(Vec::new())};
-    let api = OllamaInference::new(&http, &Probe, "/opt/bin/ollama");
+    let api = OllamaInference::new(&http, &Probe, OLLAMA);
     let cancel = CancellationToken::new();
     let result = api
         .chat("http://127.0.0.1:11435", &identity(), &input(), &cancel)
@@ -99,7 +103,7 @@ async fn inference_refuses_identity_drift_before_sending_http() {
         bodies: Mutex::new(Default::default()),
         requests: Mutex::new(Vec::new()),
     };
-    let api = OllamaInference::new(&http, &Probe, "/opt/bin/ollama");
+    let api = OllamaInference::new(&http, &Probe, OLLAMA);
     let mut expected = identity();
     expected.started = "another process".into();
     assert!(
@@ -131,7 +135,7 @@ async fn embeddings_validate_count_dimensions_and_finite_scalars() {
             ),
             requests: Mutex::new(Vec::new()),
         };
-        let api = OllamaInference::new(&http, &Probe, "/opt/bin/ollama");
+        let api = OllamaInference::new(&http, &Probe, OLLAMA);
         let result = api
             .embed(
                 "http://127.0.0.1:11435",
@@ -167,7 +171,7 @@ async fn streaming_matches_lenient_ndjson_contract_with_bounded_records() {
             bodies: Mutex::new([b"{\"version\":\"0.11.4\"}".to_vec(), bytes].into()),
             requests: Mutex::new(Vec::new()),
         };
-        let api = OllamaInference::new(&http, &Probe, "/opt/bin/ollama");
+        let api = OllamaInference::new(&http, &Probe, OLLAMA);
         let result = api
             .chat_stream(
                 "http://127.0.0.1:11435",
@@ -221,7 +225,7 @@ async fn changed_listener_after_response_invalidates_completion() {
         requests: Mutex::new(Vec::new()),
     };
     let probe = ChangingProbe(std::sync::atomic::AtomicUsize::new(0));
-    let api = OllamaInference::new(&http, &probe, "/opt/bin/ollama");
+    let api = OllamaInference::new(&http, &probe, OLLAMA);
     assert!(
         api.chat(
             "http://127.0.0.1:11435",
