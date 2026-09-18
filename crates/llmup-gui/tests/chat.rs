@@ -35,7 +35,10 @@ async fn shutdown_refuses_new_chat_and_cancels_inflight_reply() {
         .oneshot(chat_request(&host))
         .await
         .unwrap();
-    engine.started.notified().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    tokio::time::timeout(std::time::Duration::from_secs(5), engine.started.notified())
+        .await
+        .expect("engine did not start");
     host.shutdown.cancel();
     host.tasks.close();
     tokio::time::timeout(std::time::Duration::from_secs(2), host.tasks.wait())
@@ -62,7 +65,10 @@ async fn session_activation_cancels_inflight_reply_without_leaking_history() {
         .oneshot(chat_request(&host))
         .await
         .unwrap();
-    engine.started.notified().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    tokio::time::timeout(std::time::Duration::from_secs(5), engine.started.notified())
+        .await
+        .expect("engine did not start");
     let old = host.ui.lock().await.session.clone().unwrap();
     let next = host
         .sessions
@@ -132,7 +138,10 @@ async fn disconnected_stream_cancels_run_without_persisting_reply() {
         .oneshot(chat_request(&host))
         .await
         .unwrap();
-    engine.started.notified().await;
+    assert_eq!(response.status(), StatusCode::OK);
+    tokio::time::timeout(std::time::Duration::from_secs(5), engine.started.notified())
+        .await
+        .expect("engine did not start");
     let second = router(host.clone())
         .oneshot(chat_request(&host))
         .await
@@ -199,7 +208,7 @@ async fn sse_chat_streams_and_persists_a_native_session() {
             .to_vec(),
     )
     .unwrap();
-    assert!(text.contains("hello "));
+    assert!(text.contains("hello "), "unexpected SSE response: {text}");
     assert!(text.contains("\"type\":\"done\""));
     let id = host.ui.lock().await.session.clone().unwrap();
     assert_eq!(host.sessions.get(&id).unwrap().unwrap().messages.len(), 2);

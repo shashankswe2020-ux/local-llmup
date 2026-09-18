@@ -62,8 +62,9 @@ jobs:
           cargo clippy --workspace --all-targets --locked -- -D warnings
           cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets --locked -- -D warnings
       - name: Native tests
+        timeout-minutes: 15
         run: |
-          cargo test --workspace --locked
+          cargo test --workspace --locked -- --nocapture
           cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --locked
       - name: Native build
         run: |

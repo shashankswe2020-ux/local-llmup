@@ -69,7 +69,7 @@ document is granted the picker capability.
 | Native build, tests, Clippy | Passed | Not run | Not run |
 | Actual WebView launch/bridge | Passed | Not run | Not run |
 | Picker IPC with injected selection | Passed | Not run | Not run |
-| Physical folder dialog select/cancel | Not run | Not run | Not run |
+| Physical folder dialog select/cancel | Passed | Not run | Not run |
 | Browser streaming/cancel/keyboard | Passed (Chromium) | Not run | Not run |
 
 Run the same locked Cargo desktop tests and build on native Linux with WebKitGTK
@@ -78,7 +78,20 @@ then manually select and cancel a workspace folder, check root revocation, close
 the window during a pending reply, and verify no owned process remains. Test
 artifact isolation in the actual platform WebView, not only the mock runtime.
 
-No Linux/Windows runner is available in this session. Do not mark R22 or the full
-checkpoint complete from these macOS results. Signed installers, distribution,
+On 2026-09-18, the user authorized feature-branch commits, pushes, and verification
+CI. Commit `f60c3a4` started the three-platform `Rust Desktop Verification` workflow:
+https://github.com/shashankswe2020-ux/local-llmup/actions/runs/35316992201
+Windows exposed Unix-only mutable bindings under strict Clippy; a portability
+repair preserves Unix directory modes and is being verified. Hosted results must
+be recorded before treating Linux or Windows as passed.
+
+The actual macOS folder dialog was exercised through Accessibility automation:
+Browse opened the native sheet; Cancel dismissed it; reopening and selecting a
+disposable directory registered a workspace root. Authenticated root revocation
+cleared the capability. Closing the native window terminated its process normally.
+No inference runtime was started during this check.
+
+Do not mark R22 or the full checkpoint complete from these macOS results alone.
+Signed installers, distribution,
 native runtime smoke with real weights, dependency-release audits, and production
 cutover remain checkpoint 6. Tauri bundle generation is disabled until those gates.

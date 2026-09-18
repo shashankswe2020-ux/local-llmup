@@ -151,7 +151,9 @@ pub(crate) fn private_directory(path: &Path) -> Result<(), MemoryError> {
             if let Some(parent) = path.parent() {
                 private_directory(parent)?;
             }
-            let mut builder = fs::DirBuilder::new();
+            let builder = fs::DirBuilder::new();
+            #[cfg(unix)]
+            let mut builder = builder;
             #[cfg(unix)]
             {
                 use std::os::unix::fs::DirBuilderExt;

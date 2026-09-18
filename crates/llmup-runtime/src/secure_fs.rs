@@ -52,7 +52,9 @@ impl Directory {
             match parent.symlink_metadata(part) {
                 Ok(metadata) if metadata.is_dir() && !metadata.file_type().is_symlink() => (),
                 Err(error) if error.kind() == io::ErrorKind::NotFound => {
-                    let mut builder = cap_std::fs::DirBuilder::new();
+                    let builder = cap_std::fs::DirBuilder::new();
+                    #[cfg(unix)]
+                    let mut builder = builder;
                     #[cfg(unix)]
                     {
                         use cap_std::fs::DirBuilderExt;

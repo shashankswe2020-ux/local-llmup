@@ -328,7 +328,9 @@ fn ensure_dir(path: &Path) -> Result<(), StateError> {
             if let Some(parent) = path.parent() {
                 ensure_dir(parent)?;
             }
-            let mut builder = fs::DirBuilder::new();
+            let builder = fs::DirBuilder::new();
+            #[cfg(unix)]
+            let mut builder = builder;
             #[cfg(unix)]
             {
                 use std::os::unix::fs::DirBuilderExt;
@@ -366,7 +368,9 @@ impl MutationGuard {
         let path = PathBuf::from(guard_path);
         let deadline = Instant::now() + timeout;
         loop {
-            let mut builder = fs::DirBuilder::new();
+            let builder = fs::DirBuilder::new();
+            #[cfg(unix)]
+            let mut builder = builder;
             #[cfg(unix)]
             {
                 use std::os::unix::fs::DirBuilderExt;

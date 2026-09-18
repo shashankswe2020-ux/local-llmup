@@ -324,7 +324,9 @@ fn private_directory(path: &Path) -> Result<(), String> {
             if let Some(parent) = path.parent() {
                 private_directory(parent)?;
             }
-            let mut builder = std::fs::DirBuilder::new();
+            let builder = std::fs::DirBuilder::new();
+            #[cfg(unix)]
+            let mut builder = builder;
             #[cfg(unix)]
             {
                 use std::os::unix::fs::DirBuilderExt;
