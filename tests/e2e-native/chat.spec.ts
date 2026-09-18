@@ -7,7 +7,18 @@ test.beforeEach(async ({ page }) => {
     }),
   );
   await page.goto("/");
+  const created = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/sessions") && response.request().method() === "POST",
+  );
   await page.locator("#session-new").click();
+  const response = await created;
+  expect(response.status()).toBe(201);
+  const data = await response.json();
+  expect(data.session.id).toMatch(/^[a-f0-9-]{36}$/);
+  await expect(
+    page.locator(`.rail-session-item.active[data-session-id="${data.session.id}"]`),
+  ).toBeVisible();
   await expect(page.locator(".message")).toHaveCount(0);
 });
 
