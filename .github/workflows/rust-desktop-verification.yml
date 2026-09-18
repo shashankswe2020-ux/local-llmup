@@ -51,7 +51,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb dbus-x11 xdotool xdg-desktop-portal-gtk
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb dbus-x11 python3-pyatspi xdg-desktop-portal-gtk
       - name: Install pinned Rust toolchain
         run: rustup show active-toolchain
       - name: Formatting
@@ -93,6 +93,8 @@ jobs:
         env:
           WEBKIT_DISABLE_DMABUF_RENDERER: "1"
           XDG_CURRENT_DESKTOP: GNOME
+          GTK_MODULES: gail:atk-bridge
+          NO_AT_BRIDGE: "0"
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
             xvfb-run -a dbus-run-session -- node scripts/rust-dialog-smoke.mjs

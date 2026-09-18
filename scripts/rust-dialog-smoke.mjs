@@ -44,18 +44,11 @@ async function operate(index) {
     );
     return;
   }
-  const { stdout } = await execute(
-    "xdotool",
-    ["search", "--sync", "--onlyvisible", "--name", `^Choose workspace directory R22 ${index}$`],
-    { timeout: 20_000 },
-  );
-  const windowId = stdout.trim().split(/\s+/)[0];
-  await execute("xdotool", ["windowfocus", "--sync", windowId]);
-  if (index === 1) {
-    await execute("xdotool", ["key", "--clearmodifiers", "Escape"]);
-  } else {
-    await execute("xdotool", ["key", "--clearmodifiers", "alt+o"]);
-  }
+  const { stdout } = await execute("/usr/bin/python3", [
+    resolve("scripts/rust-dialog-smoke.py"), `Choose workspace directory R22 ${index}`,
+    index === 1 ? "cancel" : "select",
+  ], { timeout: 25_000 });
+  process.stdout.write(stdout);
 }
 child.stdout.on("data", (chunk) => {
   process.stdout.write(chunk);
