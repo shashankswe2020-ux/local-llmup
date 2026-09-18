@@ -178,8 +178,8 @@ pub(crate) fn owned_directory(path: &Path) -> Result<(), MemoryError> {
         use std::os::unix::fs::PermissionsExt;
         crate::secure_fs::Directory::open(path)?
             .dir()?
-            .try_clone()?
-            .into_std_file()
+            .open(".")?
+            .into_std()
             .set_permissions(fs::Permissions::from_mode(0o700))?;
     }
     Ok(())
@@ -383,7 +383,7 @@ impl MemoryStore {
             self.relative(to.as_ref())?,
         )?;
         #[cfg(unix)]
-        directory.try_clone()?.into_std_file().sync_all()?;
+        directory.open(".")?.sync_all()?;
         Ok(())
     }
     fn remove_dir_at(&self, path: impl AsRef<Path>) -> Result<(), MemoryError> {

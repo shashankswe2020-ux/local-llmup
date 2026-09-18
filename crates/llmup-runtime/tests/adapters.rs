@@ -8,6 +8,18 @@ use llmup_runtime::{
 use serde_json::json;
 use std::{path::PathBuf, sync::Mutex};
 use tokio_util::sync::CancellationToken;
+#[cfg(windows)]
+const RUNTIME: &str = "C:/opt/runtime";
+#[cfg(not(windows))]
+const RUNTIME: &str = "/opt/runtime";
+#[cfg(windows)]
+const STUDIO: &str = "C:/trusted/studio";
+#[cfg(not(windows))]
+const STUDIO: &str = "/trusted/studio";
+#[cfg(windows)]
+const LMS: &str = "C:/opt/lms";
+#[cfg(not(windows))]
+const LMS: &str = "/opt/lms";
 struct Probe {
     binary: String,
 }
@@ -84,7 +96,7 @@ async fn llama_startup_uses_exact_artifact_and_alias() {
         mlx: false,
     };
     let probe = Probe {
-        binary: "/opt/runtime".into(),
+        binary: RUNTIME.into(),
     };
     let control = SpawnControl {
         args: Mutex::new(Vec::new()),
@@ -93,7 +105,7 @@ async fn llama_startup_uses_exact_artifact_and_alias() {
     };
     let adapter = RuntimeAdapter::new(
         BackendKind::LlamaCpp,
-        PathBuf::from("/opt/runtime"),
+        PathBuf::from(RUNTIME),
         &http,
         &probe,
         &control,
@@ -202,11 +214,11 @@ async fn attach_only_never_spawns_when_daemon_disappears() {
         cleaned: std::sync::Arc::new(Mutex::new(false)),
     };
     let probe = Probe {
-        binary: "/opt/runtime".into(),
+        binary: RUNTIME.into(),
     };
     let adapter = RuntimeAdapter::new(
         BackendKind::Ollama,
-        PathBuf::from("/opt/runtime"),
+        PathBuf::from(RUNTIME),
         &Http,
         &probe,
         &control,
@@ -268,7 +280,7 @@ impl ProcessControl for SpawnControl {
 }
 #[tokio::test]
 async fn ollama_startup_binds_custom_loopback_port_and_cleans_untrusted_readiness() {
-    for executable in ["/opt/runtime", "/tmp/untrusted"] {
+    for executable in [RUNTIME, "/tmp/untrusted"] {
         let cleaned = std::sync::Arc::new(Mutex::new(false));
         let control = SpawnControl {
             args: Mutex::new(Vec::new()),
@@ -280,7 +292,7 @@ async fn ollama_startup_binds_custom_loopback_port_and_cleans_untrusted_readines
         };
         let adapter = RuntimeAdapter::new(
             BackendKind::Ollama,
-            PathBuf::from("/opt/runtime"),
+            PathBuf::from(RUNTIME),
             &Http,
             &probe,
             &control,
@@ -292,11 +304,11 @@ async fn ollama_startup_binds_custom_loopback_port_and_cleans_untrusted_readines
             context: None,
         };
         let result = adapter.serve(&request, &CancellationToken::new()).await;
-        assert_eq!(result.is_ok(), executable == "/opt/runtime");
+        assert_eq!(result.is_ok(), executable == RUNTIME);
         if let Ok(handle) = result {
             assert!(handle.owned_by_us);
         }
-        assert_eq!(*cleaned.lock().unwrap(), executable != "/opt/runtime");
+        assert_eq!(*cleaned.lock().unwrap(), executable != RUNTIME);
         assert_eq!(*control.args.lock().unwrap(), vec!["serve"]);
         assert_eq!(
             control.env.lock().unwrap()["OLLAMA_HOST"],
@@ -328,10 +340,9 @@ async fn attach_preserves_foreign_ownership_and_stop_never_signals_it() {
             signals: Mutex::new(Vec::new()),
         };
         let probe = Probe {
-            binary: "/opt/runtime".into(),
+            binary: RUNTIME.into(),
         };
-        let adapter =
-            RuntimeAdapter::new(kind, PathBuf::from("/opt/runtime"), &Http, &probe, &control);
+        let adapter = RuntimeAdapter::new(kind, PathBuf::from(RUNTIME), &Http, &probe, &control);
         let request = ServeRequest {
             model_id: "test:latest".into(),
             endpoint: "http://127.0.0.1:11435".into(),
@@ -361,7 +372,7 @@ async fn untrusted_listener_is_rejected_before_attachment() {
     };
     let adapter = RuntimeAdapter::new(
         BackendKind::Ollama,
-        PathBuf::from("/opt/runtime"),
+        PathBuf::from(RUNTIME),
         &Http,
         &probe,
         &control,
@@ -417,11 +428,11 @@ impl Transport for StudioHttp {
 async fn studio_requires_exact_delegated_path_and_never_owns_listener() {
     use llmup_runtime::{adapters::BackendAdapter, special_adapters::LmStudioAdapter};
     let probe = Probe {
-        binary: "/trusted/studio".into(),
+        binary: STUDIO.into(),
     };
     let adapter = LmStudioAdapter {
-        binary: PathBuf::from("/opt/lms"),
-        trusted_executables: vec![PathBuf::from("/trusted/studio")],
+        binary: PathBuf::from(LMS),
+        trusted_executables: vec![PathBuf::from(STUDIO)],
         http: &StudioHttp,
         probe: &probe,
         commands: &Commands,

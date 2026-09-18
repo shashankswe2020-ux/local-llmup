@@ -64,7 +64,7 @@ jobs:
       - name: Native tests
         timeout-minutes: 15
         run: |
-          cargo test --workspace --locked -- --nocapture
+          cargo test --workspace --locked --no-fail-fast -- --nocapture
           cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --locked
       - name: Native build
         run: |
