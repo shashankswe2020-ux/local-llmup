@@ -127,6 +127,8 @@ struct Args {
     #[arg(long)]
     all: bool,
     #[arg(long)]
+    refresh: bool,
+    #[arg(long)]
     no_tui: bool,
     #[arg(long, conflicts_with_all = ["no_tui", "json", "message"])]
     accessible: bool,
@@ -213,6 +215,9 @@ struct ParityRequest {
 }
 
 async fn execute(args: Args) -> Result<u8, Box<dyn std::error::Error>> {
+    if args.refresh && (args.command != "catalog" || args.parity) {
+        return Err("--refresh is only supported by catalog".into());
+    }
     if args.accessible && args.command != "chat" {
         return Err("--accessible currently requires chat".into());
     }
@@ -693,7 +698,27 @@ async fn execute(args: Args) -> Result<u8, Box<dyn std::error::Error>> {
             if args.json {
                 return Err("catalog --json is not part of the existing CLI contract".into());
             }
-            (Value::Null, catalog_text(&catalog, &hardware, args.all)?, 0)
+            let text = if args.refresh {
+                use llmup_core::enrich::{Mode, enrich, format_diff, parse_candidates};
+                let candidates = parse_candidates(include_str!(
+                    "../../llmup-core/fixtures/registry-snapshot.json"
+                ))?;
+                let result = enrich(
+                    &catalog,
+                    &candidates,
+                    Mode::Incremental,
+                    &llmup_runtime::native_chat::timestamp()?,
+                    None,
+                )?;
+                format!(
+                    "{}{}",
+                    format_diff(&result.diff),
+                    catalog_text(&result.catalog, &hardware, args.all)?
+                )
+            } else {
+                catalog_text(&catalog, &hardware, args.all)?
+            };
+            (Value::Null, text, 0)
         }
         "doctor" => {
             let backends = diagnostics::probe_backends(&hardware).await;

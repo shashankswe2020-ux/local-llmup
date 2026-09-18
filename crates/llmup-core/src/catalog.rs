@@ -7,7 +7,7 @@ use time::{Date, OffsetDateTime, format_description::well_known::Rfc3339};
 pub const BACKENDS: [&str; 4] = ["ollama", "llamacpp", "mlx", "lmstudio"];
 pub const CAPABILITIES: [&str; 6] = ["chat", "code", "vision", "reasoning", "tools", "embedding"];
 pub const VENDORS: [&str; 5] = ["apple", "nvidia", "amd", "intel", "none"];
-const LICENSES: [&str; 18] = [
+pub(crate) const LICENSES: [&str; 18] = [
     "apache-2.0",
     "mit",
     "modified-mit",
@@ -184,7 +184,7 @@ impl CatalogModel {
             quantizations: self.quantizations.clone(),
         }
     }
-    fn validate(&self) -> Result<(), ValidationError> {
+    pub(crate) fn validate(&self) -> Result<(), ValidationError> {
         nonempty(&self.id)?;
         nonempty(&self.family)?;
         require(

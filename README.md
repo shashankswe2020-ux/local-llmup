@@ -177,7 +177,7 @@ artifact metadata:
 
 1. **Curate.** Maintainers add architecture, license, capabilities, context,
   quantization, and official source IDs to
-  `src/catalog/registry-snapshot.ts`.
+  `crates/llmup-core/fixtures/registry-snapshot.json`.
 2. **Bootstrap.** `npm run bootstrap` deterministically generates
   `data/models.json` from that pinned snapshot.
 3. **Enrich.** `npm run catalog:enrich` resolves already-curated Ollama sources

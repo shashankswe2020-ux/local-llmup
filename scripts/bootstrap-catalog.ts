@@ -11,9 +11,9 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { BOOTSTRAP_CLOCK, buildBootstrapCatalog } from "../src/catalog/bootstrap.js";
-import { REGISTRY_SNAPSHOT } from "../src/catalog/registry-snapshot.js";
+import { loadRegistrySnapshot } from "../src/catalog/load.js";
 
-const catalog = buildBootstrapCatalog(REGISTRY_SNAPSHOT, BOOTSTRAP_CLOCK);
+const catalog = buildBootstrapCatalog(loadRegistrySnapshot(), BOOTSTRAP_CLOCK);
 const here = dirname(fileURLToPath(import.meta.url));
 const outPath = join(here, "..", "data", "models.json");
 writeFileSync(outPath, `${JSON.stringify(catalog, null, 2)}\n`, "utf8");

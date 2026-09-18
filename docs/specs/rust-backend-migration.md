@@ -139,7 +139,9 @@ probing. The hidden `--parity` protocol is bounded and only for differential tes
 Checkpoint 2 originally kept doctor offline by user agreement. Checkpoint 3 now
 validates active state and verifies listener identity and backend readiness.
 Backend installation/version probes remain bounded local command invocations.
-Catalog refresh and interactive TUI remain later migration work; installed-model
+Catalog refresh was initially deferred; checkpoint 6 now implements its offline
+dry-run in Rust with exact enrichment/text goldens. Interactive TUI and maintenance
+automation remain migration work; installed-model
 inventory and lifecycle operations are now available in the experimental binary.
 
 Hardware fixtures cover macOS, Linux, Windows, unknown GPUs, Intel shared memory,

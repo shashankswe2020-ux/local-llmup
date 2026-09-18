@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { writeFileSync, rmSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseCatalog, loadCatalog, DEFAULT_CATALOG_PATH } from "../../src/catalog/load.js";
+import { parseCatalog, loadCatalog, loadRegistrySnapshot, DEFAULT_CATALOG_PATH } from "../../src/catalog/load.js";
 import { CatalogError } from "../../src/errors.js";
 import { validCatalog } from "./fixtures.js";
 
@@ -23,6 +23,20 @@ afterEach(() => {
   while (tmpFiles.length > 0) {
     rmSync(tmpFiles.pop()!, { recursive: true, force: true });
   }
+});
+
+describe("shared native registry snapshot", () => {
+  it("loads the same validated offline records used by Rust", () => {
+    const records = loadRegistrySnapshot();
+    expect(records).toHaveLength(66);
+    expect(records.find((entry) => entry.id === "kimi-k2:instruct")?.params).toBe("1T");
+  });
+  it("fails closed on malformed or missing snapshot data", () => {
+    for (const content of ["{broken", '[{"id":"incomplete"}]']) {
+      expect(() => loadRegistrySnapshot(writeTmp(content))).toThrow(CatalogError);
+    }
+    expect(() => loadRegistrySnapshot("/missing/registry-snapshot.json")).toThrow(CatalogError);
+  });
 });
 
 describe("parseCatalog", () => {

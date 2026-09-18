@@ -17,8 +17,7 @@ import {
   evaluateCatalogFreshness,
   formatFreshnessReport,
 } from "../src/catalog/freshness.js";
-import { loadCatalog } from "../src/catalog/load.js";
-import { REGISTRY_SNAPSHOT } from "../src/catalog/registry-snapshot.js";
+import { loadCatalog, loadRegistrySnapshot } from "../src/catalog/load.js";
 
 function argValue(flag: string): string | undefined {
   const index = process.argv.indexOf(flag);
@@ -31,7 +30,7 @@ function main(): void {
   const { diff } = enrichCatalog({
     mode: "incremental",
     existing: catalog,
-    candidates: REGISTRY_SNAPSHOT,
+    candidates: loadRegistrySnapshot(),
     now,
   });
   const report = evaluateCatalogFreshness({ catalog, diff, now });

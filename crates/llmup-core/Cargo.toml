@@ -10,7 +10,7 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 regex = "1"
-time = { version = "0.3", features = ["parsing", "macros"] }
+time = { version = "0.3", features = ["parsing", "macros", "formatting"] }
 url = "2"
 
 [lints]

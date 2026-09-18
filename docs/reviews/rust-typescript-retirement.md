@@ -6,6 +6,11 @@ R22 is verified; the PR is not ready to claim complete migration while R23-R26 r
 
 ## Deleted After Replacement
 
+- `src/catalog/registry-snapshot.ts`: 66 unchanged records moved to the shared
+  JSON snapshot under `crates/llmup-core/fixtures/`. Native `catalog --refresh`
+  embeds and validates it; retained maintenance callers use a validated loader.
+  Ninety full enrichment oracle cases and four CLI output goldens pass in Rust.
+  The TypeScript enrichment/collector code remains until maintenance tooling moves.
 - `src/tui/cancellation.ts` and `tests/tui/cancellation.test.ts`: no production
   imports existed. State/effect classification, recovery messages, timeout constants,
   signal exits, and exact display contracts moved to `crates/llmup-cli/src/cancellation.rs`
@@ -48,7 +53,8 @@ npm installation, not that every remaining repository workflow has been retired.
 - Electron main/build/release files still have active desktop packaging consumers;
   delete them together with their production wiring after the Tauri release gates.
 - TypeScript CLI, GUI, backend, and data modules remain interconnected and are
-  used by parity tests. Full TUI and catalog-refresh replacements are incomplete.
+  used by parity tests. Full TUI and catalog-maintenance automation are incomplete;
+  the user-facing offline catalog-refresh command itself is now native.
 - Node-based browser drivers, parity scripts, and workflows still need native
   replacements before removing all npm manifests and the TypeScript toolchain.
 - R22 actual Linux/Windows folder-selection tests now pass (run `35355772910`).

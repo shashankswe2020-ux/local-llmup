@@ -34,6 +34,7 @@
   "files": [
     "dist",
     "data",
+    "crates/llmup-core/fixtures/registry-snapshot.json",
     "!dist/**/*.map"
   ],
   "scripts": {

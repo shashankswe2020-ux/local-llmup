@@ -7,8 +7,7 @@
  */
 import { readFileSync } from "node:fs";
 import { enrichCatalog } from "../src/catalog/enrich.js";
-import { DEFAULT_CATALOG_PATH, loadCatalog } from "../src/catalog/load.js";
-import { REGISTRY_SNAPSHOT } from "../src/catalog/registry-snapshot.js";
+import { DEFAULT_CATALOG_PATH, loadCatalog, loadRegistrySnapshot } from "../src/catalog/load.js";
 
 function main(): void {
   const before = readFileSync(DEFAULT_CATALOG_PATH, "utf8");
@@ -16,7 +15,7 @@ function main(): void {
   const { diff } = enrichCatalog({
     mode: "incremental",
     existing,
-    candidates: REGISTRY_SNAPSHOT,
+    candidates: loadRegistrySnapshot(),
     now: new Date(),
   });
   const after = readFileSync(DEFAULT_CATALOG_PATH, "utf8");
