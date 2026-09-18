@@ -276,7 +276,11 @@ pub async fn run_native_with_config(
     let probe = NativeProcessProbe;
     let control = NativeProcessControl;
     let commands = NativeCommandRunner;
-    let ollama = RuntimeAdapter::new(BackendKind::Ollama, binary(0), &http, &probe, &control);
+    let ollama_root = std::env::var_os("OLLAMA_MODELS")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home.join(".ollama/models"));
+    let ollama = RuntimeAdapter::new(BackendKind::Ollama, binary(0), &http, &probe, &control)
+        .with_ollama_models(ollama_root.clone())?;
     let llama = RuntimeAdapter::new(BackendKind::LlamaCpp, binary(1), &http, &probe, &control);
     let mlx = MlxAdapter {
         binary: binary(2),
@@ -386,9 +390,6 @@ pub async fn run_native_with_config(
             "no active server to switch; run up first".into(),
         ));
     }
-    let ollama_root = std::env::var_os("OLLAMA_MODELS")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| home.join(".ollama/models"));
     let installed_fallback = options.bypass
         && resolve(catalog, query).is_err_and(|error| error.code == "MODEL_RESOLUTION_ERROR");
     if options.installed || installed_fallback {
@@ -654,19 +655,6 @@ pub async fn run_native_with_config(
         ollama_models: &ollama_root,
         studio_models: &studio_root,
     };
-    let prepared = pulls.pull(&pull_request, &binary(index), cancel).await?;
-    if !prepared.digest_verified {
-        eprintln!("up: weights passed a size-floor check; no catalog SHA-256 was available");
-    }
-    if simple_switch {
-        let active = lifecycle
-            .switch_pointer(&model.id, &reviewed, cancel)
-            .await?;
-        return Ok((
-            json!({"type":"switched","modelId":active.model_id,"endpoint":active.endpoint}),
-            format!("Switched to {} ({}).\n", active.model_id, active.endpoint),
-        ));
-    }
     let port = options
         .port
         .or_else(|| {
@@ -681,9 +669,29 @@ pub async fn run_native_with_config(
             "lmstudio" => 1234,
             _ => 8080,
         });
+    let endpoint = format!("http://127.0.0.1:{port}");
+    let pull_binary = binary(index);
+    let pull = pulls.pull_at(&pull_request, &pull_binary, &endpoint, cancel);
+    let prepared = if backend == "ollama" {
+        crate::pull::with_ollama_daemon(&ollama, &endpoint, cancel, pull).await?
+    } else {
+        pull.await?
+    };
+    if !prepared.digest_verified {
+        eprintln!("up: weights passed a size-floor check; no catalog SHA-256 was available");
+    }
+    if simple_switch {
+        let active = lifecycle
+            .switch_pointer(&model.id, &reviewed, cancel)
+            .await?;
+        return Ok((
+            json!({"type":"switched","modelId":active.model_id,"endpoint":active.endpoint}),
+            format!("Switched to {} ({}).\n", active.model_id, active.endpoint),
+        ));
+    }
     let request = ServeRequest {
         model_id: model.id.clone(),
-        endpoint: format!("http://127.0.0.1:{port}"),
+        endpoint,
         model_path: prepared.model_path,
         context: options.context,
     };

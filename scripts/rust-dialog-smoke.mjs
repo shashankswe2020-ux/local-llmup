@@ -4,7 +4,6 @@ import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import { promisify } from "node:util";
 import { setTimeout, clearTimeout } from "node:timers";
-import { setTimeout as delay } from "node:timers/promises";
 
 const execute = promisify(execFile);
 const workspace = await mkdtemp(join(tmpdir(), "llmup-r22-workspace-"));
@@ -36,6 +35,8 @@ async function operate(index) {
         String(child.pid),
         "-Selection",
         workspace,
+        "-DialogTitle",
+        `Choose workspace directory R22 ${index}`,
         "-Mode",
         index === 1 ? "cancel" : "select",
       ],
@@ -45,7 +46,7 @@ async function operate(index) {
   }
   const { stdout } = await execute(
     "xdotool",
-    ["search", "--sync", "--onlyvisible", "--name", "Choose workspace directory"],
+    ["search", "--sync", "--onlyvisible", "--name", `^Choose workspace directory R22 ${index}$`],
     { timeout: 20_000 },
   );
   const windowId = stdout.trim().split(/\s+/)[0];
@@ -53,11 +54,7 @@ async function operate(index) {
   if (index === 1) {
     await execute("xdotool", ["key", "--clearmodifiers", "Escape"]);
   } else {
-    await execute("xdotool", ["key", "--clearmodifiers", "ctrl+l"]);
-    await execute("xdotool", ["type", "--clearmodifiers", "--", workspace]);
-    await execute("xdotool", ["key", "--clearmodifiers", "Return"]);
-    await delay(500);
-    await execute("xdotool", ["key", "--clearmodifiers", "Return"]);
+    await execute("xdotool", ["key", "--clearmodifiers", "alt+o"]);
   }
 }
 child.stdout.on("data", (chunk) => {

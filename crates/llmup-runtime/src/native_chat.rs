@@ -32,12 +32,40 @@ pub async fn run(
     cancel: &CancellationToken,
     sink: &mut DeltaSink<'_>,
 ) -> Result<serde_json::Value, HarnessError> {
+    run_with_history(options, None, None, cancel, sink).await
+}
+pub async fn run_with_history(
+    options: &NativeChatOptions,
+    history: Option<&[HarnessMessage]>,
+    expected: Option<&crate::state::RuntimeState>,
+    cancel: &CancellationToken,
+    sink: &mut DeltaSink<'_>,
+) -> Result<serde_json::Value, HarnessError> {
+    if let Some(history) = history {
+        if history.len() > 19
+            || history
+                .iter()
+                .any(|message| !["user", "assistant"].contains(&message.role.as_str()))
+        {
+            return Err(HarnessError::Invalid);
+        }
+        HarnessRequest {
+            model: String::new(),
+            messages: history.to_vec(),
+            temperature: None,
+        }
+        .validate()?;
+    }
     if options.message.trim().is_empty() || options.message.len() > 1024 * 1024 {
         return Err(HarnessError::Invalid);
     }
     let config = Config::load().map_err(|_| HarnessError::Invalid)?;
     let state = StateStore::new(config.clone());
-    let active = state.read().map_err(|_| HarnessError::Unavailable)?.active;
+    let current = state.read().map_err(|_| HarnessError::Unavailable)?;
+    if expected.is_some_and(|expected| expected != &current) {
+        return Err(HarnessError::Drift);
+    }
+    let active = current.active;
     let runtime = crate::native_runtime::NativeRuntime::new(config.clone())?;
     let adapters = runtime.adapters();
     let backends = adapters.registry();
@@ -119,18 +147,31 @@ pub async fn run(
                 content: source.facts_text,
             });
         }
-        messages.extend(source.turns.into_iter().map(|turn| HarnessMessage {
-            role: turn.role,
-            content: turn.content,
-        }));
+        if history.is_none() {
+            messages.extend(source.turns.into_iter().map(|turn| HarnessMessage {
+                role: turn.role,
+                content: turn.content,
+            }));
+        }
         Some(memory)
     } else {
         None
     };
+    if let Some(history) = history {
+        messages.extend_from_slice(history);
+    }
     messages.push(HarnessMessage {
         role: "user".into(),
         content: options.message.clone(),
     });
+    let mut emitted_bytes = 0usize;
+    let mut bounded_sink = |text: &str| {
+        emitted_bytes = emitted_bytes.saturating_add(text.len());
+        if history.is_some() && emitted_bytes > 1024 * 1024 {
+            return Err(HarnessError::Limit);
+        }
+        sink(text)
+    };
     let response = harness
         .chat(
             &HarnessRequest {
@@ -139,9 +180,15 @@ pub async fn run(
                 temperature: None,
             },
             cancel,
-            sink,
+            &mut bounded_sink,
         )
         .await?;
+    if history.is_some() && response.len() > 1024 * 1024 {
+        return Err(HarnessError::Limit);
+    }
+    if cancel.is_cancelled() {
+        return Err(HarnessError::Cancelled);
+    }
     let mut captured = None;
     if let Some(memory) = memory {
         let backend = active

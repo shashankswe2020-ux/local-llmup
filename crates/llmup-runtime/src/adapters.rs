@@ -126,6 +126,7 @@ pub struct RuntimeAdapter<'runtime> {
     pub http: &'runtime dyn Transport,
     pub probe: &'runtime dyn ProcessProbe,
     pub control: &'runtime dyn ProcessControl,
+    pub(crate) ollama_models: Option<PathBuf>,
 }
 pub fn model_id(value: &str) -> Result<(), BackendError> {
     if value.is_empty()
@@ -154,7 +155,18 @@ impl<'runtime> RuntimeAdapter<'runtime> {
             http,
             probe,
             control,
+            ollama_models: None,
         }
+    }
+    pub fn with_ollama_models(mut self, models: PathBuf) -> Result<Self, BackendError> {
+        if self.kind != BackendKind::Ollama {
+            return Err(BackendError(
+                "model store configuration requires Ollama".into(),
+            ));
+        }
+        crate::command::OllamaCommandContext::new("http://127.0.0.1:11434", &models)?;
+        self.ollama_models = Some(models);
+        Ok(self)
     }
     async fn json(
         &self,
@@ -283,6 +295,11 @@ impl<'runtime> RuntimeAdapter<'runtime> {
             let mut env = minimal_env();
             let args = match self.kind {
                 BackendKind::Ollama => {
+                    if let Some(models) = &self.ollama_models {
+                        let context =
+                            crate::command::OllamaCommandContext::new(&request.endpoint, models)?;
+                        env.extend(context.environment().clone());
+                    }
                     env.insert(
                         "OLLAMA_HOST".into(),
                         format!(

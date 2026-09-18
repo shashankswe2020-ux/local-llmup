@@ -244,8 +244,8 @@ async fn asset(axum::extract::Path(path): axum::extract::Path<String>) -> Respon
 }
 async fn vendor(axum::extract::Path(name): axum::extract::Path<String>) -> Response {
     let bytes: &'static [u8] = match name.as_str() {
-        "marked.min.js" => include_bytes!("../../../node_modules/marked/marked.min.js"),
-        "dompurify.min.js" => include_bytes!("../../../node_modules/dompurify/dist/purify.min.js"),
+        "marked.min.js" => include_bytes!("../../../vendor/gui/marked.min.js"),
+        "dompurify.min.js" => include_bytes!("../../../vendor/gui/dompurify.min.js"),
         _ => return error(StatusCode::NOT_FOUND, "not found"),
     };
     ([(header::CONTENT_TYPE, "application/javascript")], bytes).into_response()

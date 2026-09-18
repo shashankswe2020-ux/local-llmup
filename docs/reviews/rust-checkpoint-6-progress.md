@@ -1,0 +1,184 @@
+# Rust Checkpoint 6 Progress
+
+Date: 2026-09-18. Platform: macOS arm64. Status: partial; R23-R26 remain open.
+Production CLI/GUI and Electron entry points are unchanged. This work is local,
+uncommitted, and unpublished per the user's distribution choice in this session.
+
+## Implemented
+
+### Native Terminal Chat
+
+```sh
+cargo build --locked -p llmup-cli --bin llmup-native
+target/debug/llmup-native chat --no-tui
+target/debug/llmup-native chat --accessible
+printf 'First turn\nSecond turn\n' | target/debug/llmup-native chat --no-memory
+```
+
+The CLI now consumes bounded lines instead of treating all piped input as one
+prompt. `--message` and `--json` retain single-request behavior. Plain output is
+assistant transcript on stdout; accessible output sends replies/status to stderr
+and an exact session summary to stdout. There is no Node/backend fallback.
+
+Successful turns retain a 20-message inference window, including without memory
+capture. Explicit session history replaces stored conversation history instead
+of duplicating it, while library/persona/facts still compose normally. Local
+sessions bind their initial runtime state. Draft limits use UTF-8 bytes and Unicode
+graphemes; responses are limited before capture. Ctrl-C cancels input/provider
+waits and returns 130; failed turns do not enter context and return failure status.
+
+Six injected session tests and two compiled-CLI tests cover line bounds/CRLF/EOF,
+output contracts, history retention, cancellation before/during inference, failed
+turn isolation, summary pluralization, and invalid flags. A real OS SIGINT test
+confirmed idle-input exit 130 without output or runtime access.
+
+Still missing: visual TUI parity, recommendation/lifecycle menus and confirmations,
+automatic capability routing, exhaustive PTY/golden tests, full remote memory
+parity, and remaining native command gaps such as catalog refresh. R23 is not done.
+
+### Private Native Package
+
+Superseded by the user's subsequent no-Node/no-npm requirement. The generator,
+launcher, npm command, and associated TypeScript tests below have been deleted.
+Use `cargo native-dist package` and `cargo native-dist verify <directory>` instead.
+See `rust-typescript-retirement.md` for the current distribution path and evidence.
+The following records the earlier experiment, not current instructions.
+
+```sh
+npm run rust:package:preview
+```
+
+Builds a release executable, checks its version against package metadata, creates
+a fresh directory under `target/native-packages/`, and packs a private npm tarball
+without install scripts. The generated dependency-free launcher checks platform,
+architecture, regular-file status, length, and a baked SHA-256 before invoking the
+binary with inherited stdio, direct argv, and `shell: false`. Tampering fails closed.
+The manifest explicitly says `unsigned`; checksum verification is not publisher
+authentication and does not replace code signing.
+
+Measured local preview: approximately 4.1 MB compressed / 10.7 MB executable.
+The preview is not a signed release, a platform-package resolver, or a Tauri
+installer. There are no configured signing credentials, release activations, or
+production-bin changes. R24 remains open. Regenerate the preview after subsequent
+source edits; generated output is intentionally ignored by Git and ESLint.
+
+## Real Runtime Evidence
+
+Runtime: llama.cpp `10090 (7347430f4)`, AppleClang 21, macOS arm64.
+Available disk at baseline: 692 GiB. Physical RAM: 36 GiB.
+The existing user state recorded an Ollama server and was not modified.
+
+- Model: Qwen2.5-0.5B-Instruct, Q4_K_M.
+- Repository: `Qwen/Qwen2.5-0.5B-Instruct-GGUF`.
+- Revision: `9217f5db79a29953eb74d5343926648285ec7e67`.
+- File: `qwen2.5-0.5b-instruct-q4_k_m.gguf`.
+- Authoritative size: 491,400,032 bytes, within native GGUF acquisition ceiling.
+- Published and independently computed SHA-256:
+  `74a4da8c9fdbcd15bd1f6d01d621410d31c6fc00986f5eb687824e7b93d7a9db`.
+- Isolated home: `/tmp/llmup-r25-llama.ZZLURV`.
+- Verified cache retained below `cache/llamacpp/Qwen/` in that home (mode 0600).
+- Actual listener: `127.0.0.1:59124`, initial owned PID 28644. No wildcard bind.
+- Production release CLI `up` verified weights and published owned state.
+- Native chat returned exactly `RUNTIME_SMOKE_OK`.
+- Two-turn accessible chat returned `READY`, then `orchid`, proving conversation
+  continuity; two captures completed with zero memory warnings and no fabricated
+  embeddings for the unsupported llama.cpp embedding capability.
+- Repeated activation reused the independently verified cache without download.
+- Replacement and `down` passed after the shutdown race fix. Final `ls` is empty;
+  no listener, `.part`, or lock remains. The cache is retained, not deleted.
+
+Two live failures were fixed with regression tests:
+
+1. Hugging Face returns `x-repo-commit` on a redirect, while the CDN may omit it.
+   The downloader now retains validated evidence across approved HTTPS hops,
+   rejects malformed/conflicting evidence, and still compares the result to the
+   pinned revision. URL/DNS, byte ceiling, digest, and atomic promotion checks remain.
+2. A process can exit between the post-signal liveness test and identity probe.
+   The stop path now rechecks liveness after probe failure; only positively gone
+   PIDs count as successful exit. Unknown live identities remain errors and are
+   not signalled again. The failed smoke's isolated state file was preserved as
+   `state.failed-shutdown.json` after independently confirming PID/port exit.
+
+This is not all-runtime or all-platform certification. The subsequent Ollama
+isolation work and live results are recorded below. LM Studio live delegated-model
+tests were not run; MLX was not available on PATH. Destructive failure scenarios
+remain covered by injected tests rather than live processes.
+
+### Native Ollama Isolation and Cold Start
+
+Implemented and locally verified on 2026-09-18:
+
+- `OllamaCommandContext` validates a loopback HTTP origin and absolute model-store
+  path. Only `OLLAMA_HOST` and `OLLAMA_MODELS` extend the existing minimal command
+  environment; generic commands still do not inherit arbitrary environment values.
+- Acquisition uses the same selected endpoint as activation, including custom
+  ports and switch operations. Owned daemon startup receives the selected store.
+- Cold acquisition starts a temporary daemon through the native adapter when
+  necessary. Cleanup stops only a daemon owned by that operation, uses a fresh
+  cancellation token, and reports both pull and cleanup errors when applicable.
+  Attached daemons are not stopped. Integrity checks still precede activation.
+- Tests cover explicit endpoint/store propagation, unsafe input rejection before
+  side effects, owned versus attached cleanup, cancellation, and combined errors.
+
+Live evidence (Ollama 0.32.5, macOS arm64):
+
+- Isolated home `/tmp/llmup-r25-ollama.OShZGx`, isolated store `models/`, endpoint
+  `http://127.0.0.1:59125`; no daemon was initially listening on the test port.
+- Native release CLI `up smollm2:135m --backend ollama --port 59125 --json`
+  completed cold-start pull, catalog integrity verification, and owned activation.
+- Independent SHA-256 of the weight blob matched the curated digest:
+  `f535f83ec568d040f88ddc04a199fa6da90923bbb41d4dcaed02caa924d6ef57`.
+- OS inspection confirmed owned PID 68976 listened only on `127.0.0.1:59125`.
+- Native `chat --message 'Reply with only OK.' --no-memory --json` returned a
+  valid nonempty response. The tiny model did not follow the requested marker;
+  this proves inference transport, not exact marker compliance or model quality.
+- Repeated native `up` succeeded with existing local content, then native `down`
+  stopped the owned daemon. Final native `ls` reported empty; no test-port listener,
+  partial files, or locks remained. The 258 MiB verified cache was retained.
+- User state SHA-256 before and after was unchanged:
+  `451ef506632b315bee16f50ea4988c7c7fefbedbceb016a4129d90ea9d6d856e`.
+
+Embedding inference, interrupted real downloads, different-store foreign-daemon
+scenarios, and cross-platform execution of this change remain unverified. This is
+partial R25 evidence, not a complete Ollama production-smoke certification.
+Rust workspace and Tauri formatting/lint/tests/build pass. Retained TypeScript
+lint/typecheck/build pass; its full 2,034-test suite passed with `--maxWorkers=2`
+after an initial concurrent-build run timed out starting workers. No assertions or
+test deadlines were weakened. No Node dependency was added to native operation.
+
+## Dependency Gates
+
+```sh
+cargo audit --file Cargo.lock
+cargo audit --file apps/desktop/src-tauri/Cargo.lock
+cargo deny --config deny-native.toml check licenses
+cargo deny --manifest-path apps/desktop/src-tauri/Cargo.toml --config deny-native.toml check licenses
+```
+
+Core RustSec and license-expression checks pass. The desktop lockfile reports seven
+RustSec warnings: `proc-macro-error`, five `unic-*` crates (unmaintained), and
+`glib` 0.18.5 (`RUSTSEC-2024-0429`, unsound iterator implementation). These are not
+silently waived release approvals merely because cargo-audit returns success.
+
+The conservative desktop license gate rejects MPL-2.0 dependencies `cssparser`,
+`cssparser-macros`, `dtoa-short`, `option-ext`, and `selectors`. Review and satisfy
+notice/source obligations before accepting an explicit policy change. The core's
+dual-license expressions can be satisfied with allowed alternatives. No new legal
+exception or blanket copyleft allowance was invented.
+
+## Verification and Remaining Gates
+
+- Workspace formatting, strict Clippy, tests, and build pass locally.
+- Tauri strict Clippy, tests, and build pass against the runtime changes.
+- TypeScript lint/typecheck/build and 2,068 tests pass; coverage thresholds pass
+  (85.33% statements, 79.35% branches, 81.42% functions, 86.77% lines).
+- Fit/advice/state/workflow/GUI differential gates pass unchanged.
+- Native package assembly, version validation, launcher execution, and integrity
+  rejection tests pass. Size measurements are observations, not an approved budget.
+- No CI changes or pushes were made for checkpoint 6; these new edits still need
+  native Linux/Windows reruns before cross-platform certification.
+
+R26 remains blocked by R22 dialog verification, incomplete R23 terminal parity,
+signed distribution/installer evidence, dependency review, remaining runtime smoke
+coverage, and approved performance budgets. Do not delete the TypeScript oracle or
+Electron before these gates pass. Full checkpoint completion is not claimed.

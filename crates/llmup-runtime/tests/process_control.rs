@@ -139,3 +139,65 @@ async fn startup_uses_backend_deadline_and_cleans_up_on_timeout() {
     assert!(result.unwrap_err().contains("timed out"));
     assert!(*terminated.lock().unwrap());
 }
+
+struct ExitingProbe(std::sync::atomic::AtomicUsize);
+#[async_trait::async_trait]
+impl ProcessProbe for ExitingProbe {
+    async fn listener(&self, port: u16, host: &str) -> Result<Listener, StateError> {
+        Probe.listener(port, host).await
+    }
+    async fn process(&self, _: u32) -> Result<ProcessIdentity, StateError> {
+        if self.0.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 0 {
+            return Ok(identity());
+        }
+        Err(StateError {
+            kind: "identity",
+            message: "process disappeared".into(),
+        })
+    }
+}
+struct ExitRaceControl {
+    probes: std::sync::atomic::AtomicUsize,
+    remains_alive: bool,
+    signals: Mutex<Vec<bool>>,
+}
+#[async_trait::async_trait]
+impl ProcessControl for ExitRaceControl {
+    async fn occupied(&self, _: &str) -> Result<bool, String> {
+        Ok(false)
+    }
+    async fn spawn(&self, _: &SpawnSpec) -> Result<Box<dyn ChildProcess>, String> {
+        unreachable!()
+    }
+    async fn signal(&self, _: &ProcessIdentity, force: bool) -> Result<(), String> {
+        self.signals.lock().unwrap().push(force);
+        Ok(())
+    }
+    async fn alive(&self, _: u32) -> Result<bool, String> {
+        Ok(self
+            .probes
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+            == 0
+            || self.remains_alive)
+    }
+}
+#[tokio::test]
+async fn exit_between_liveness_and_identity_probe_is_not_a_shutdown_failure() {
+    for remains_alive in [false, true] {
+        let control = ExitRaceControl {
+            probes: Default::default(),
+            remains_alive,
+            signals: Mutex::new(Vec::new()),
+        };
+        let result = stop_owned(
+            "http://127.0.0.1:11435",
+            &identity(),
+            &ExitingProbe(Default::default()),
+            &control,
+            &CancellationToken::new(),
+        )
+        .await;
+        assert_eq!(result.is_ok(), !remains_alive);
+        assert_eq!(*control.signals.lock().unwrap(), vec![false]);
+    }
+}

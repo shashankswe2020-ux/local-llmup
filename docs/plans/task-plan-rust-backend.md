@@ -313,8 +313,8 @@ Verification on macOS arm64, 2026-09-18:
   85.31% statements, 79.34% branches, 81.39% functions, 86.76% lines.
 
 R22 is **not complete**. Linux WebKitGTK and Windows WebView2 builds, native
-runtime/window tests, and native folder-dialog interaction on each platform have
-not been executed. Cross-platform fixtures and macOS Chromium are not substitutes.
+tests, WebView launches, and browser journeys passed on hosted runners. Actual
+Linux/Windows folder-selection automation still fails; macOS dialog checks passed.
 Run the commands and platform matrix in
 `docs/reviews/rust-checkpoint-5-verification.md` on native machines before checking
 R22. Signed artifacts, installer certification, live inference smoke, and the
@@ -325,7 +325,8 @@ production switch remain checkpoint 6; bundle generation is deliberately disable
 - [ ] R23: Port terminal UX (including accessible/plain modes and cancellation)
       with golden/parity tests. Keep no hidden fallback to the TypeScript backend.
 - [ ] R24: Add signed/checksummed native CLI and Tauri artifacts for supported
-      OS/architecture targets; keep npm as a thin native launcher. CI changes and
+  OS/architecture targets; no Node/npm launcher or build requirement (updated
+  user requirement on 2026-09-18). CI changes and
       release switches require explicit review before activation.
 - [ ] R25: Run authorized runtime smoke tests, performance/package budgets,
       RustSec/license checks, data interoperability/rollback, and full workflow parity.
@@ -334,6 +335,41 @@ production switch remain checkpoint 6; bundle generation is deliberately disable
       appropriate regression fixtures. Document deliberate incompatibilities.
 
 ## Working Rules
+
+### Checkpoint 6 Progress (2026-09-18)
+
+This checkpoint is **partial**, not a completed migration. Work in this session
+is local only: the user approved existing-runtime smoke tests and local packaging,
+not release activation or production routing changes.
+
+- R23: Native line-oriented chat now supports stdin/TTY turns, explicit
+  `--accessible`, plain transcript output, bounded 20-message conversation context,
+  32 KiB/8,192-grapheme drafts, 1 MiB replies, and Ctrl-C (exit 130). Failed turns
+  do not enter history and produce failure status. Local sessions bind their
+  initial runtime state. `--message` and single-request JSON remain available.
+  Six injected session tests and two executable contract tests pass. Full-screen
+  TUI, recommendation/lifecycle selection, capability auto-routing, and complete
+  terminal golden/parity coverage remain unfinished; R23 stays unchecked.
+- R24: The superseded npm preview generator has been deleted. `cargo native-dist
+  package` builds native CLI/GUI executables and an unsigned checksummed archive
+  with license notices; `cargo native-dist verify <directory>` checks its manifest.
+  Vendored browser assets remove the GUI build's `node_modules` dependency.
+  Production npm bins are unchanged pending cutover. Signed cross-platform CLI/Tauri artifacts,
+  installer verification, notarization, and release review remain unfinished.
+- R25: A real llama.cpp smoke on macOS verified pinned acquisition/digest,
+  loopback/custom port, chat, multi-turn context, vector-less memory capture,
+  cache reuse, replacement, and owned shutdown. It exposed and led to tested fixes
+  for redirect commit-evidence loss and a post-signal process-exit race.
+  Native Ollama now supports explicit custom-port/store acquisition, cold-start
+  daemon cleanup, and verified activation; an isolated live pull/chat/repeated-up/
+  down run passed without changing user state. Embeddings remain unverified. Core
+  RustSec/license checks pass; desktop audit warnings and MPL obligations remain.
+  Other-runtime certification and approved performance budgets remain open.
+- R26: Blocked by R22-R25. No production cutover, retirement of TypeScript/Electron,
+  release publication, or change to existing datasets/user memory layouts.
+
+Detailed evidence, commands, limitations, and retained cache location:
+`docs/reviews/rust-checkpoint-6-progress.md`.
 
 Implement one numbered slice at a time. Split R4 onward into focused testable
 subtasks at the owning code boundary before editing. Preserve existing behavior

@@ -34,6 +34,34 @@ pub trait DownloadTransport: Send + Sync {
 pub struct HfTransport {
     client: reqwest::Client,
 }
+fn retain_commit(evidence: &mut Option<String>, observed: Option<&str>) -> Result<(), String> {
+    if let Some(observed) = observed {
+        if observed.len() != 40 || !observed.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err("invalid repository commit evidence".into());
+        }
+        if evidence
+            .as_ref()
+            .is_some_and(|previous| !previous.eq_ignore_ascii_case(observed))
+        {
+            return Err("conflicting repository commit evidence".into());
+        }
+        *evidence = Some(observed.to_owned());
+    }
+    Ok(())
+}
+#[test]
+fn commit_evidence_survives_cdn_redirects_and_rejects_conflicts() {
+    let revision = "a".repeat(40);
+    let mut evidence = None;
+    retain_commit(&mut evidence, Some(&revision)).unwrap();
+    retain_commit(&mut evidence, None).unwrap();
+    assert_eq!(evidence.as_deref(), Some(revision.as_str()));
+    assert!(retain_commit(&mut evidence, Some(&"b".repeat(40))).is_err());
+    assert!(retain_commit(&mut None, Some("not-a-commit")).is_err());
+    let mut absent = None;
+    retain_commit(&mut absent, None).unwrap();
+    assert!(absent.is_none());
+}
 impl HfTransport {
     pub fn new() -> Result<Self, String> {
         Ok(Self {
@@ -66,6 +94,7 @@ fn safe_url(raw: &str) -> Result<url::Url, String> {
 impl DownloadTransport for HfTransport {
     async fn get(&self, raw: &str) -> Result<DownloadResponse, String> {
         let mut url = safe_url(raw)?;
+        let mut commit = None;
         for redirect in 0..=5 {
             let response = self
                 .client
@@ -73,6 +102,18 @@ impl DownloadTransport for HfTransport {
                 .send()
                 .await
                 .map_err(|_| "download transport failed".to_owned())?;
+            retain_commit(
+                &mut commit,
+                response
+                    .headers()
+                    .get("x-repo-commit")
+                    .map(|value| {
+                        value
+                            .to_str()
+                            .map_err(|_| "invalid repository commit header".to_owned())
+                    })
+                    .transpose()?,
+            )?;
             if response.status().is_redirection() {
                 if redirect == 5 {
                     return Err("too many download redirects".into());
@@ -89,11 +130,6 @@ impl DownloadTransport for HfTransport {
                 )?;
                 continue;
             }
-            let commit = response
-                .headers()
-                .get("x-repo-commit")
-                .and_then(|value| value.to_str().ok())
-                .map(str::to_owned);
             let length = response.content_length();
             let status = response.status().as_u16();
             let stream = response.bytes_stream().map_err(std::io::Error::other);

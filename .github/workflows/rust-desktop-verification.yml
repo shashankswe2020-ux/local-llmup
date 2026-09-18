@@ -15,6 +15,8 @@ on:
       - tests/e2e-native/**
       - playwright.rust.config.ts
       - scripts/rust-dialog-smoke.*
+      - vendor/**
+      - .cargo/**
 
 permissions:
   contents: read
@@ -45,8 +47,6 @@ jobs:
         with:
           node-version: 22.x
           cache: npm
-      - name: Install frontend build dependencies
-        run: npm ci
       - name: Install Linux native WebView dependencies
         if: runner.os == 'Linux'
         run: |
@@ -83,8 +83,9 @@ jobs:
           else
             apps/desktop/src-tauri/target/debug/llmup-desktop --smoke-test
           fi
+      - name: Install retained browser verification tooling
+        run: npm ci
       - name: Install browser
-
         run: npx playwright install --with-deps chromium
       - name: Actual native folder dialogs
         if: runner.os != 'macOS'
@@ -103,4 +104,4 @@ jobs:
       - name: Verification summary
         if: always()
         run: |
-          printf '## R22: %s\n\nCommit: %s\n\nAutomated native tests, WebView smoke and browser journeys ran above. Physical folder-dialog interaction is a separate required result; this job does not certify it.\n' "$RUNNER_OS" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          printf '## R22: %s\n\nCommit: %s\n\nNative builds run before npm dependencies are installed. Consult each step result for native tests, real WebView and folder-dialog checks, and retained browser journeys. Signing and release publication are not performed.\n' "$RUNNER_OS" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

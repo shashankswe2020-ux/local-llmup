@@ -21,9 +21,11 @@ logic to Node.js. A Cargo workspace alone is not migration completion.
 - Keep current CLI commands, flags, JSON fields, exit codes, SSE event shapes,
   data locations, and catalog/performance datasets unless an intentional
   incompatibility is separately reviewed. Existing golden fixtures are contracts.
-- Keep npm as an optional thin launcher for platform-specific native binaries.
-  No JavaScript backend fallback after final cutover, and no compiler requirement
-  for end users. Desktop and native CLI do not require Node.js.
+- Updated user requirement (2026-09-18): no Node.js or npm in the final build,
+  runtime, or distribution path, including no thin npm launcher. Ship native CLI
+  archives and Tauri applications; end users need no compiler. Browser JavaScript
+  remains supported as static frontend assets, not a Node backend. Retained
+  TypeScript currently serves as a compatibility oracle until its gates migrate.
 - Runtime integrations still launch external Ollama, llama.cpp, MLX/Python,
   LM Studio, and external harness processes when those integrations need them.
   Rust migration does not mean reimplementing their inference engines.

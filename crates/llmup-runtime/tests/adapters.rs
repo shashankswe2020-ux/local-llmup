@@ -280,6 +280,7 @@ impl ProcessControl for SpawnControl {
 }
 #[tokio::test]
 async fn ollama_startup_binds_custom_loopback_port_and_cleans_untrusted_readiness() {
+    let store = tempfile::tempdir().unwrap();
     for executable in [RUNTIME, "/tmp/untrusted"] {
         let cleaned = std::sync::Arc::new(Mutex::new(false));
         let control = SpawnControl {
@@ -296,7 +297,9 @@ async fn ollama_startup_binds_custom_loopback_port_and_cleans_untrusted_readines
             &Http,
             &probe,
             &control,
-        );
+        )
+        .with_ollama_models(store.path().to_path_buf())
+        .unwrap();
         let request = ServeRequest {
             model_id: "test:latest".into(),
             endpoint: "http://127.0.0.1:11435".into(),
@@ -313,6 +316,10 @@ async fn ollama_startup_binds_custom_loopback_port_and_cleans_untrusted_readines
         assert_eq!(
             control.env.lock().unwrap()["OLLAMA_HOST"],
             "127.0.0.1:11435"
+        );
+        assert_eq!(
+            control.env.lock().unwrap()["OLLAMA_MODELS"],
+            store.path().to_str().unwrap()
         );
     }
 }

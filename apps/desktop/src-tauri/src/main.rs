@@ -4,7 +4,10 @@ use tauri::Manager;
 struct HostState(Arc<llmup_gui::Host>);
 enum DirectoryPicker {
     #[cfg(not(test))]
-    Native { report: bool },
+    Native {
+        report: bool,
+        requests: std::sync::atomic::AtomicUsize,
+    },
     #[cfg(test)]
     Fixture(Option<std::path::PathBuf>),
 }
@@ -12,12 +15,24 @@ impl DirectoryPicker {
     async fn pick(&self) -> Option<std::path::PathBuf> {
         match self {
             #[cfg(not(test))]
-            Self::Native { report } => {
+            Self::Native { report, requests } => {
+                let mut dialog =
+                    rfd::AsyncFileDialog::new().set_title("Choose workspace directory");
                 if *report {
+                    let Some(directory) = std::env::var_os("LLMUP_DIALOG_SMOKE_PATH")
+                        .and_then(|path| std::fs::canonicalize(path).ok())
+                        .filter(|path| path.is_dir())
+                    else {
+                        eprintln!("R22 test directory is unavailable");
+                        return None;
+                    };
+                    let number = requests.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+                    dialog = dialog
+                        .set_directory(directory)
+                        .set_title(format!("Choose workspace directory R22 {number}"));
                     println!("R22 directory picker requested");
                 }
-                let selected = rfd::AsyncFileDialog::new()
-                    .set_title("Choose workspace directory")
+                let selected = dialog
                     .pick_folder()
                     .await
                     .map(|entry| entry.path().to_path_buf());
@@ -91,7 +106,7 @@ fn main() {
     let launch_host = host.clone();
     let app = tauri::Builder::default()
         .manage(HostState(host.clone()))
-        .manage(DirectoryPicker::Native { report: dialog_smoke })
+        .manage(DirectoryPicker::Native { report: dialog_smoke, requests: Default::default() })
         .invoke_handler(tauri::generate_handler![select_workspace_directory])
         .setup(move |app| {
             app.add_capability(picker_capability(&entry))?;

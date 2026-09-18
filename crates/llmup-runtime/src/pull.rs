@@ -1,7 +1,7 @@
 use crate::{
     acquire::{Acquisition, Artifact, DownloadTransport, SizePolicy, hash_file},
-    adapters::{BackendError, model_id},
-    command::CommandRunner,
+    adapters::{BackendAdapter, BackendError, ServeRequest, model_id},
+    command::{CommandRunner, OllamaCommandContext},
     ollama_installed::{model_path, verify_manifest},
     state::secure_read,
 };
@@ -13,6 +13,51 @@ use std::{
     time::Duration,
 };
 use tokio_util::sync::CancellationToken;
+
+pub async fn with_ollama_daemon<T>(
+    adapter: &dyn BackendAdapter,
+    endpoint: &str,
+    cancel: &CancellationToken,
+    operation: impl std::future::Future<Output = Result<T, BackendError>>,
+) -> Result<T, BackendError> {
+    if adapter.name() != "ollama" || cancel.is_cancelled() {
+        return Err(BackendError(
+            "invalid or cancelled acquisition daemon request".into(),
+        ));
+    }
+    let request = ServeRequest {
+        model_id: "llmup-acquisition".into(),
+        endpoint: endpoint.into(),
+        model_path: None,
+        context: None,
+    };
+    let handle = adapter.serve(&request, cancel).await?;
+    let result = tokio::select! { biased; _ = cancel.cancelled() => Err(BackendError("pull cancelled".into())), result = operation => result };
+    if handle.owned_by_us {
+        let cleanup = tokio::time::timeout(
+            Duration::from_secs(15),
+            adapter.stop(&handle, &CancellationToken::new()),
+        )
+        .await;
+        let failure = match cleanup {
+            Ok(Ok(())) => None,
+            Ok(Err(error)) => Some(error.0),
+            Err(_) => Some("cleanup timed out".into()),
+        };
+        if let Some(failure) = failure {
+            return Err(BackendError(format!(
+                "{}; acquisition daemon cleanup failed (pid {:?}): {failure}",
+                result
+                    .as_ref()
+                    .err()
+                    .map(|error| error.0.as_str())
+                    .unwrap_or("pull completed"),
+                handle.pid
+            )));
+        }
+    }
+    result
+}
 
 #[derive(Clone)]
 pub struct PullRequest {
@@ -45,6 +90,16 @@ impl PullService<'_> {
         binary: &Path,
         cancel: &CancellationToken,
     ) -> Result<PreparedModel, BackendError> {
+        self.pull_at(request, binary, "http://127.0.0.1:11434", cancel)
+            .await
+    }
+    pub async fn pull_at(
+        &self,
+        request: &PullRequest,
+        binary: &Path,
+        endpoint: &str,
+        cancel: &CancellationToken,
+    ) -> Result<PreparedModel, BackendError> {
         model_id(&request.model_id)?;
         if request.expected_bytes == 0
             || request.expected_bytes > 9007199254740991
@@ -65,10 +120,12 @@ impl PullService<'_> {
         };
         match request.backend.as_str() {
             "ollama" => {
+                let context = OllamaCommandContext::new(endpoint, self.ollama_models)?;
                 self.commands
-                    .run(
+                    .run_ollama(
                         binary,
                         &["pull".into(), "--".into(), request.model_id.clone()],
+                        &context,
                         cancel,
                         Duration::from_secs(1800),
                     )

@@ -128,6 +128,8 @@ struct Args {
     all: bool,
     #[arg(long)]
     no_tui: bool,
+    #[arg(long, conflicts_with_all = ["no_tui", "json", "message"])]
+    accessible: bool,
     #[arg(long, hide = true)]
     hardware_json: Option<String>,
     #[arg(long, hide = true)]
@@ -149,6 +151,58 @@ fn read_file(path: &PathBuf) -> Result<String, Box<dyn std::error::Error>> {
     Ok(String::from_utf8(bytes)?)
 }
 
+struct TerminalEngine {
+    provider: String,
+    model: Option<String>,
+    agent: Option<String>,
+    skills: Vec<String>,
+    capture: bool,
+    expected: std::sync::Mutex<Option<llmup_runtime::state::RuntimeState>>,
+}
+impl llmup_cli::terminal::ChatEngine for TerminalEngine {
+    async fn reply(
+        &self,
+        messages: &[llmup_runtime::harness::HarnessMessage],
+        cancel: &tokio_util::sync::CancellationToken,
+    ) -> Result<llmup_cli::terminal::ChatReply, String> {
+        let (message, history) = messages.split_last().ok_or("empty conversation")?;
+        let expected = if self.provider == "local" {
+            let config = llmup_runtime::state::Config::load().map_err(|error| error.to_string())?;
+            let current = llmup_runtime::state::StateStore::new(config)
+                .read()
+                .map_err(|error| error.to_string())?;
+            let mut expected = self
+                .expected
+                .lock()
+                .map_err(|_| "session state unavailable")?;
+            Some(expected.get_or_insert(current).clone())
+        } else {
+            None
+        };
+        let options = llmup_runtime::native_chat::NativeChatOptions {
+            provider: self.provider.clone(),
+            model: self.model.clone(),
+            message: message.content.clone(),
+            agent: self.agent.clone(),
+            skills: self.skills.clone(),
+            capture: self.capture,
+        };
+        let result = llmup_runtime::native_chat::run_with_history(
+            &options,
+            Some(history),
+            expected.as_ref(),
+            cancel,
+            &mut |_| Ok(()),
+        )
+        .await
+        .map_err(|error| error.to_string())?;
+        Ok(llmup_cli::terminal::ChatReply {
+            content: result["content"].as_str().ok_or("missing response")?.into(),
+            memory_warning: result["memoryCaptured"] == false,
+        })
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct ParityRequest {
@@ -159,6 +213,9 @@ struct ParityRequest {
 }
 
 async fn execute(args: Args) -> Result<u8, Box<dyn std::error::Error>> {
+    if args.accessible && args.command != "chat" {
+        return Err("--accessible currently requires chat".into());
+    }
     if args.command != "chat"
         && (args.chat_model.is_some()
             || args.harness.is_some()
@@ -200,14 +257,67 @@ async fn execute(args: Args) -> Result<u8, Box<dyn std::error::Error>> {
             if args.context.is_some() {
                 return Err("--context is not a chat option".into());
             }
+            if args.message.is_none() && !args.json {
+                use llmup_cli::terminal::{Mode, run_chat, stdin_turns};
+                let engine = TerminalEngine {
+                    provider: args.harness.unwrap_or_else(|| "local".into()),
+                    model: args.chat_model,
+                    agent: args.agent,
+                    skills: args.skills,
+                    capture: !args.no_memory,
+                    expected: Default::default(),
+                };
+                if !["local", "claude", "openai", "openai-compatible", "opencode"]
+                    .contains(&engine.provider.as_str())
+                {
+                    return Err("unknown chat harness".into());
+                }
+                if engine.provider != "local"
+                    && engine
+                        .model
+                        .as_ref()
+                        .is_none_or(|model| model.trim().is_empty())
+                {
+                    return Err("--model is required for remote chat".into());
+                }
+                let signal_cancel = cancel.clone();
+                let signal = tokio::spawn(async move {
+                    if tokio::signal::ctrl_c().await.is_ok() {
+                        signal_cancel.cancel();
+                    }
+                });
+                let mode = if args.accessible {
+                    Mode::Accessible
+                } else {
+                    Mode::Plain
+                };
+                use std::io::IsTerminal;
+                if std::io::stdin().is_terminal() {
+                    eprintln!("Chatting using {}. End input to exit.", engine.provider);
+                }
+                let result = run_chat(
+                    stdin_turns(),
+                    &engine,
+                    mode,
+                    &cancel,
+                    &mut std::io::stdout(),
+                    &mut std::io::stderr(),
+                )
+                .await;
+                signal.abort();
+                let summary = result?;
+                return Ok(if summary.cancelled {
+                    130
+                } else {
+                    u8::from(summary.failed_turns > 0)
+                });
+            }
             let message = match args.message {
                 Some(message) => message,
                 None => {
                     use std::io::IsTerminal;
                     if std::io::stdin().is_terminal() {
-                        return Err(
-                            "experimental native chat requires --message or piped stdin".into()
-                        );
+                        return Err("JSON chat requires --message or piped stdin".into());
                     }
                     let mut message = String::new();
                     std::io::stdin()

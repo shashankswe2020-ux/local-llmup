@@ -1,0 +1,2 @@
+[alias]
+native-dist = "run --locked -p llmup-cli --bin llmup-dist --"

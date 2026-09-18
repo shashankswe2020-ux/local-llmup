@@ -2,6 +2,10 @@ use llmup_core::sizing::{SizingRequest, evaluate};
 use serde::Serialize;
 use std::io::{Read, Write};
 
+pub mod cancellation;
+pub mod distribution;
+pub mod terminal;
+
 pub const MAX_INPUT_BYTES: usize = 8 * 1024 * 1024;
 const MAX_BATCH: usize = 4096;
 

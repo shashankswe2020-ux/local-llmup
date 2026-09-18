@@ -348,10 +348,15 @@ pub async fn stop_owned(
             if !control.alive(expected.pid).await? {
                 return Ok(());
             }
-            let current = probe
-                .process(expected.pid)
-                .await
-                .map_err(|_| "process identity unavailable after signal")?;
+            let current = match probe.process(expected.pid).await {
+                Ok(current) => current,
+                Err(_) => {
+                    if !control.alive(expected.pid).await? {
+                        return Ok(());
+                    }
+                    return Err("process identity unavailable after signal".into());
+                }
+            };
             if !same_process(&current, expected) {
                 return Ok(());
             }

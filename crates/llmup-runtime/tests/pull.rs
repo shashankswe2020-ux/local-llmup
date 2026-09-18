@@ -1,6 +1,6 @@
 use llmup_runtime::{
     acquire::{Acquisition, DownloadResponse, DownloadTransport},
-    command::CommandRunner,
+    command::{CommandRunner, OllamaCommandContext},
     pull::{PullRequest, PullService},
 };
 use std::{path::Path, time::Duration};
@@ -19,17 +19,82 @@ impl CommandRunner for Commands {
     }
 }
 struct Download;
+#[tokio::test]
+async fn unsafe_ollama_context_is_rejected_before_commands_or_downloads() {
+    let root = tempfile::tempdir().unwrap();
+    let acquisition = Acquisition::new(root.path().join("cache")).unwrap();
+    let service = PullService {
+        acquisition: &acquisition,
+        download: &Download,
+        commands: &Commands,
+        ollama_models: root.path(),
+        studio_models: root.path(),
+    };
+    let request = PullRequest {
+        backend: "ollama".into(),
+        model_id: "test:latest".into(),
+        expected_bytes: 8,
+        expected_sha256: None,
+        gguf: None,
+        mlx: None,
+    };
+    for endpoint in [
+        "http://example.com:59125",
+        "http://127.0.0.1:59125/?query=1",
+        "http://127.0.0.1:59125/#fragment",
+    ] {
+        assert!(
+            service
+                .pull_at(
+                    &request,
+                    Path::new("/never/spawn"),
+                    endpoint,
+                    &CancellationToken::new()
+                )
+                .await
+                .is_err()
+        );
+    }
+    let cancel = CancellationToken::new();
+    cancel.cancel();
+    assert!(
+        service
+            .pull_at(
+                &request,
+                Path::new("/never/spawn"),
+                "http://127.0.0.1:59125",
+                &cancel
+            )
+            .await
+            .is_err()
+    );
+}
 struct PullCommands;
 #[async_trait::async_trait]
 impl CommandRunner for PullCommands {
     async fn run(
         &self,
         _binary: &Path,
+        _args: &[String],
+        _cancel: &CancellationToken,
+        _timeout: Duration,
+    ) -> Result<String, String> {
+        panic!("Ollama pull must use explicit endpoint and store")
+    }
+    async fn run_ollama(
+        &self,
+        _binary: &Path,
         args: &[String],
+        context: &OllamaCommandContext,
         _cancel: &CancellationToken,
         _timeout: Duration,
     ) -> Result<String, String> {
         assert_eq!(args, ["pull", "--", "test:latest"]);
+        assert_eq!(
+            context.environment()["OLLAMA_HOST"],
+            "http://127.0.0.1:59125/"
+        );
+        assert!(Path::new(&context.environment()["OLLAMA_MODELS"]).is_absolute());
         Ok(String::new())
     }
 }
@@ -69,9 +134,10 @@ async fn ollama_pull_uses_discrete_argv_and_verifies_manifest_blobs() {
         mlx: None,
     };
     let result = service
-        .pull(
+        .pull_at(
             &request,
             Path::new("/fake/ollama"),
+            "http://127.0.0.1:59125",
             &CancellationToken::new(),
         )
         .await
@@ -81,9 +147,10 @@ async fn ollama_pull_uses_discrete_argv_and_verifies_manifest_blobs() {
     std::fs::write(blobs.join(format!("sha256-{sha}")), b"corrupt!").unwrap();
     assert!(
         service
-            .pull(
+            .pull_at(
                 &request,
                 Path::new("/fake/ollama"),
+                "http://127.0.0.1:59125",
                 &CancellationToken::new()
             )
             .await
