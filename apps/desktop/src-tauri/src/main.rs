@@ -4,7 +4,7 @@ use tauri::Manager;
 struct HostState(Arc<llmup_gui::Host>);
 enum DirectoryPicker {
     #[cfg(not(test))]
-    Native,
+    Native { report: bool },
     #[cfg(test)]
     Fixture(Option<std::path::PathBuf>),
 }
@@ -12,11 +12,25 @@ impl DirectoryPicker {
     async fn pick(&self) -> Option<std::path::PathBuf> {
         match self {
             #[cfg(not(test))]
-            Self::Native => rfd::AsyncFileDialog::new()
-                .set_title("Choose workspace directory")
-                .pick_folder()
-                .await
-                .map(|entry| entry.path().to_path_buf()),
+            Self::Native { report } => {
+                if *report {
+                    println!("R22 directory picker requested");
+                }
+                let selected = rfd::AsyncFileDialog::new()
+                    .set_title("Choose workspace directory")
+                    .pick_folder()
+                    .await
+                    .map(|entry| entry.path().to_path_buf());
+                if *report && let Some(path) = &selected {
+                    let expected = std::env::var_os("LLMUP_DIALOG_SMOKE_PATH")
+                        .and_then(|path| std::fs::canonicalize(path).ok());
+                    if expected.is_none() || std::fs::canonicalize(path).ok() != expected {
+                        eprintln!("R22 picker selected an unexpected directory");
+                        return None;
+                    }
+                }
+                selected
+            }
             #[cfg(test)]
             Self::Fixture(path) => path.clone(),
         }
@@ -54,7 +68,8 @@ async fn select_workspace_directory<R: tauri::Runtime>(
 }
 #[cfg(not(test))]
 fn main() {
-    let smoke = std::env::args().any(|argument| argument == "--smoke-test");
+    let dialog_smoke = std::env::args().any(|argument| argument == "--dialog-smoke-test");
+    let smoke = dialog_smoke || std::env::args().any(|argument| argument == "--smoke-test");
     let runtime = tokio::runtime::Runtime::new().expect("native async runtime");
     let config = llmup_runtime::state::Config::load().expect("native configuration");
     let listener = runtime
@@ -76,7 +91,7 @@ fn main() {
     let launch_host = host.clone();
     let app = tauri::Builder::default()
         .manage(HostState(host.clone()))
-        .manage(DirectoryPicker::Native)
+        .manage(DirectoryPicker::Native { report: dialog_smoke })
         .invoke_handler(tauri::generate_handler![select_workspace_directory])
         .setup(move |app| {
             app.add_capability(picker_capability(&entry))?;
@@ -84,7 +99,7 @@ fn main() {
             let allowed = origin.clone();
             let navigation_app=app.handle().clone();
             let smoke_app=app.handle().clone();
-            if smoke { tauri::async_runtime::spawn(async move { tokio::time::sleep(std::time::Duration::from_secs(20)).await; smoke_app.exit(1); }); }
+            if smoke { tauri::async_runtime::spawn(async move { tokio::time::sleep(std::time::Duration::from_secs(if dialog_smoke { 60 } else { 20 })).await; smoke_app.exit(1); }); }
             tauri::WebviewWindowBuilder::new(app,"main",tauri::WebviewUrl::External(entry.parse()?))
                 .title("local-llmup").inner_size(1280.0,840.0).min_inner_size(760.0,540.0)
                 .initialization_script(script)
@@ -99,7 +114,7 @@ fn main() {
                 })
                 .on_page_load(move |window,payload| {
                     if smoke && matches!(payload.event(),tauri::webview::PageLoadEvent::Finished) {
-                        let _=window.eval("location.href='/__native_smoke/'+(document.title==='local-llmup' && document.querySelector('main') && document.querySelector('textarea') && typeof window.llmupDesktop?.selectWorkspaceDirectory==='function' && typeof window.__TAURI_INTERNALS__?.invoke==='function' ? 'pass':'fail')");
+                        let _=window.eval(if dialog_smoke { include_str!("dialog-smoke.js") } else { "location.href='/__native_smoke/'+(document.title==='local-llmup' && document.querySelector('main') && document.querySelector('textarea') && typeof window.llmupDesktop?.selectWorkspaceDirectory==='function' && typeof window.__TAURI_INTERNALS__?.invoke==='function' ? 'pass':'fail')" });
                     }
                 })
                 .on_new_window(|_,_|tauri::webview::NewWindowResponse::Deny)

@@ -14,6 +14,7 @@ on:
       - src/gui/static/**
       - tests/e2e-native/**
       - playwright.rust.config.ts
+      - scripts/rust-dialog-smoke.*
 
 permissions:
   contents: read
@@ -50,7 +51,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb dbus-x11
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb dbus-x11 xdotool xdg-desktop-portal-gtk
       - name: Install pinned Rust toolchain
         run: rustup show active-toolchain
       - name: Formatting
@@ -83,7 +84,20 @@ jobs:
             apps/desktop/src-tauri/target/debug/llmup-desktop --smoke-test
           fi
       - name: Install browser
+
         run: npx playwright install --with-deps chromium
+      - name: Actual native folder dialogs
+        if: runner.os != 'macOS'
+        timeout-minutes: 3
+        env:
+          WEBKIT_DISABLE_DMABUF_RENDERER: "1"
+          XDG_CURRENT_DESKTOP: GNOME
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            dbus-run-session -- xvfb-run -a node scripts/rust-dialog-smoke.mjs
+          else
+            node scripts/rust-dialog-smoke.mjs
+          fi
       - name: Native HTTP and browser journeys
         run: npm run rust:gui:e2e
       - name: Verification summary
