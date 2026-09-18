@@ -57,7 +57,7 @@ async function operate(index) {
     await execute("xdotool", ["type", "--clearmodifiers", "--", workspace]);
     await execute("xdotool", ["key", "--clearmodifiers", "Return"]);
     await delay(500);
-    await execute("xdotool", ["key", "--clearmodifiers", "alt+o"]);
+    await execute("xdotool", ["key", "--clearmodifiers", "alt+s"]);
   }
 }
 child.stdout.on("data", (chunk) => {

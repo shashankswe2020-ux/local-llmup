@@ -29,11 +29,11 @@ if ($Mode -eq "cancel") {
   [System.Windows.Forms.SendKeys]::SendWait($Selection)
   [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
   [System.Threading.Tasks.Task]::Delay(500).Wait()
-  $buttonCondition = New-Object System.Windows.Automation.AndCondition(
-    (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::AutomationIdProperty, "1")),
-    (New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button))
-  )
-  $button = $dialog.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $buttonCondition)
-  if ($null -eq $button) { throw "Native folder confirmation button not found" }
+  $buttonCondition = New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty, [System.Windows.Automation.ControlType]::Button)
+  $buttons = $dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants, $buttonCondition)
+  $button = $buttons | Where-Object { $_.Current.Name -match '^(Select Folder|Select|Open)$' } | Select-Object -First 1
+  if ($null -eq $button) {
+    throw ("Native folder confirmation button not found; labels: " + (($buttons | ForEach-Object { $_.Current.Name }) -join ', '))
+  }
   $button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
 }
