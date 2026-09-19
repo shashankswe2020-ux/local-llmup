@@ -340,7 +340,8 @@ production switch remain checkpoint 6; bundle generation is deliberately disable
 
 The user's merge requirement is a complete Rust migration with no remaining Node
 code, not a partial cutover followed by cleanup after merge. `cargo native-retirement`
-is a strict inventory check and currently fails with 327 file-level blockers.
+is a strict inventory check and currently fails with 326 file-level blockers
+after verified retirement of the Node native-dialog coordinator.
 The new read-only Rust Merge Readiness workflow must not be treated as passing
 while its retirement job is red. This inventory is necessary but not sufficient:
 functional parity, signing, audits, native browser testing, and platform/runtime

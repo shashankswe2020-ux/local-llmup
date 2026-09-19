@@ -6,6 +6,10 @@ R22 is verified; the PR is not ready to claim complete migration while R23-R26 r
 
 ## Deleted After Replacement
 
+- `scripts/rust-dialog-smoke.mjs`: replaced by the Cargo `dialog-smoke` example.
+  Native sequence tests and actual Windows/Linux Cancel/select/root/revoke/exit
+  tests pass in run `35442346134`; macOS native verification also passes. The
+  existing PowerShell/AT-SPI drivers remain, with no Node coordinator.
 - `src/catalog/freshness.ts`, `scripts/catalog-freshness.ts`, and
   `tests/catalog/freshness.test.ts`: replaced by the native freshness core and
   `cargo catalog-freshness`. All eleven former test contracts are covered by

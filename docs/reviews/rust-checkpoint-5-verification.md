@@ -7,10 +7,15 @@ release, or Electron removal is included.
 ## Native Entry Points
 
 ```sh
-npm run rust:gui -- --port 59103
-npm run rust:desktop
-npm run rust:gui:test
-npm run rust:desktop:test
+cargo run --locked -p llmup-gui -- --port 59103
+cargo run --locked --manifest-path apps/desktop/src-tauri/Cargo.toml
+cargo test --locked -p llmup-gui
+cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml
+```
+
+Browser and differential verification still use retained Node tooling:
+
+```sh
 npm run rust:gui:e2e
 npm run rust:gui-parity
 ```
@@ -65,6 +70,12 @@ scripts via sandbox CSP; the launch document prohibits framing. No artifact
 document is granted the picker capability.
 
 ## Completed R22 Gate
+
+Update on 2026-09-19: the native dialog process coordinator is now Rust. Full
+macOS/Linux/Windows verification passed at `5e7a842` in run `35442346134`,
+including actual Linux/Windows Cancel/select/root/revoke/exit tests. The obsolete
+Node coordinator was removed only after this evidence. Browser journey tooling
+still requires migration; this does not close R26.
 
 | Check | macOS arm64 | Linux | Windows |
 | --- | --- | --- | --- |

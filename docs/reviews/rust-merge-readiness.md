@@ -33,6 +33,13 @@ The Rust Merge Readiness workflow runs this as a real failing gate, without
 `continue-on-error`. Passing earlier native CI does not mean retirement passed.
 Repository branch-protection configuration has not been changed.
 
+After real platform verification, the Node native-dialog launcher was deleted.
+Its Rust replacement calls the existing Linux AT-SPI and Windows UI Automation
+drivers, requires Cancel then selection and the desktop success marker, bounds
+output and deadlines, and cleans up isolated temporary state. The inventory now
+has 326 remaining blockers; the application and other active tooling are not yet
+retired.
+
 ## Performance Gate
 
 ```sh
@@ -75,6 +82,27 @@ limits, and failures are emitted as JSON. Linux/macOS CI records the same eviden
 in job logs and summaries. These initial absolute ceilings do not substitute for
 future baseline-relative regression checks, Windows measurements, Tauri startup,
 GUI responsiveness, long-lived memory, or installer/archive size budgets.
+
+## Platform Evidence
+
+At commit `5e7a842`, native desktop verification passed macOS, Linux, and Windows,
+including actual folder-dialog cancellation/selection through the Rust coordinator:
+https://github.com/shashankswe2020-ux/local-llmup/actions/runs/35442346134
+
+Both native release-budget jobs also passed at the same commit:
+https://github.com/shashankswe2020-ux/local-llmup/actions/runs/35442346120
+The overall readiness run correctly failed its separate retirement job.
+
+The preceding performance run at `74fa886` recorded Linux p90 values of
+1.64/10.16/9.49/17.00 ms (version/recommend/can-run/catalog), maximum RSS
+8,691,712 bytes, and a 13,116,504-byte CLI. macOS CI recorded
+8.25/18.56/20.33/25.86 ms, maximum RSS 8,912,896 bytes, and a 10,937,040-byte CLI.
+Full samples are in run `35441471071`. Local strict Clippy, workspace tests/build,
+retained lint/typecheck/build and all 2,025 retained tests pass.
+
+Windows initially rejected a canonical verbatim script path in PowerShell's
+AuthorizationManager. Passing the checked-in script relative to its repository
+working directory fixed the real test without changing execution policy.
 
 ## Remaining Blockers
 
