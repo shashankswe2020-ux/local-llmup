@@ -332,8 +332,27 @@ production switch remain checkpoint 6; bundle generation is deliberately disable
 - [ ] R25: Run authorized runtime smoke tests, performance/package budgets,
       RustSec/license checks, data interoperability/rollback, and full workflow parity.
 - [ ] R26: Switch production entry points only after R1-R25 pass. Remove retired
-      TypeScript backend and Electron code/dependencies; keep frontend tooling and
-      appropriate regression fixtures. Document deliberate incompatibilities.
+  TypeScript backend, Electron, all Node tooling, package manifests, and Node
+  workflow entry points before merge. Keep reviewed browser JavaScript and
+  native regression fixtures only. Document deliberate incompatibilities.
+
+### Merge Acceptance (2026-09-19)
+
+The user's merge requirement is a complete Rust migration with no remaining Node
+code, not a partial cutover followed by cleanup after merge. `cargo native-retirement`
+is a strict inventory check and currently fails with 327 file-level blockers.
+The new read-only Rust Merge Readiness workflow must not be treated as passing
+while its retirement job is red. This inventory is necessary but not sufficient:
+functional parity, signing, audits, native browser testing, and platform/runtime
+certification are still required. Do not delete active implementations merely to
+make the inventory green.
+
+`cargo native-performance --executable target/release/llmup-native` now measures
+release process latency, OS peak RSS, executable bytes, output determinism, and
+state isolation. Initial enforced budgets are p90 <=100 ms, peak RSS <=64 MiB,
+and CLI executable <=32 MiB. Linux/macOS CI measurements and their raw samples
+are required; Windows memory measurement, GUI/Tauri budgets, and full artifact
+budgets remain open. See `docs/reviews/rust-merge-readiness.md` for scope and evidence.
 
 ## Working Rules
 

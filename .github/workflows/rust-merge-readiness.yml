@@ -1,0 +1,67 @@
+name: Rust Merge Readiness
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feature/rust-backend-migration]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rust-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  retirement:
+    name: Native retirement gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - name: Rust toolchain
+        run: rustup show active-toolchain
+      - name: Validate gate behavior
+        run: cargo test --locked -p llmup-cli --test retirement
+      - name: Require complete retirement
+        run: cargo native-retirement > retirement-report.json
+      - name: Retirement evidence
+        if: always()
+        run: |
+          if test -f retirement-report.json; then
+            cat retirement-report.json
+          fi
+
+  performance:
+    name: Native release budgets (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - name: Rust toolchain
+        run: rustup show active-toolchain
+      - name: Validate budget behavior
+        run: cargo test --locked -p llmup-cli --test performance
+      - name: Build optimized candidate and runner
+        run: cargo build --locked --release -p llmup-cli --bin llmup-native --example native-performance
+      - name: Measure native release budgets
+        run: target/release/examples/native-performance --executable target/release/llmup-native > performance-report.json
+      - name: Performance evidence
+        if: always()
+        run: |
+          if test -f performance-report.json; then
+            cat performance-report.json
+            {
+              printf '### Native Release Budgets\n\nCommit: %s\n\n```json\n' "$GITHUB_SHA"
+              cat performance-report.json
+              printf '\n```\n'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

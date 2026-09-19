@@ -4,6 +4,8 @@ use std::io::{Read, Write};
 
 pub mod cancellation;
 pub mod distribution;
+pub mod performance;
+pub mod retirement;
 pub mod terminal;
 
 pub const MAX_INPUT_BYTES: usize = 8 * 1024 * 1024;
