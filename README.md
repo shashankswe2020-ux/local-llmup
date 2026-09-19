@@ -178,7 +178,7 @@ artifact metadata:
 1. **Curate.** Maintainers add architecture, license, capabilities, context,
   quantization, and official source IDs to
   `crates/llmup-core/fixtures/registry-snapshot.json`.
-2. **Bootstrap.** `npm run bootstrap` deterministically generates
+2. **Bootstrap.** `cargo catalog-bootstrap` deterministically generates
   `data/models.json` from that pinned snapshot.
 3. **Enrich.** `npm run catalog:enrich` resolves already-curated Ollama sources
   and pins exact model-layer bytes and SHA-256 digests. It never invents or
@@ -194,7 +194,7 @@ missing variants inside a repository that is already represented. Every
 candidate still requires source and metadata review.
 
 ```bash
-npm run bootstrap          # regenerate from the curated snapshot
+cargo catalog-bootstrap    # regenerate from the curated snapshot (requires Rust)
 npm run catalog:enrich     # pin exact bytes and digests for known sources
 npm run catalog:coverage   # report missing upstream repositories
 cargo catalog-freshness   # report age and snapshot drift (Rust toolchain required)
@@ -567,7 +567,7 @@ npm run typecheck    # tsc --noEmit
 npm run lint         # ESLint
 npm run format       # Prettier
 npm run dev          # Dev mode (tsx src/cli.ts)
-npm run bootstrap    # Regenerate data/models.json
+cargo catalog-bootstrap  # Regenerate data/models.json
 ```
 
 ### Architecture

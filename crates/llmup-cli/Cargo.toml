@@ -21,6 +21,14 @@ path = "src/dist.rs"
 name = "llmup-catalog-freshness"
 path = "src/catalog_freshness.rs"
 
+[[bin]]
+name = "llmup-catalog-bootstrap"
+path = "src/catalog_bootstrap.rs"
+
+[[bin]]
+name = "llmup-catalog-refresh"
+path = "src/catalog_refresh.rs"
+
 [dependencies]
 llmup-core = { path = "../llmup-core" }
 llmup-runtime = { path = "../llmup-runtime" }

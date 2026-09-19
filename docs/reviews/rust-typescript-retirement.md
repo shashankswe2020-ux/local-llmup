@@ -6,6 +6,13 @@ R22 is verified; the PR is not ready to claim complete migration while R23-R26 r
 
 ## Deleted After Replacement
 
+- `src/catalog/bootstrap.ts`, `scripts/bootstrap-catalog.ts`, and
+  `tests/catalog/bootstrap.test.ts`: replaced by native bootstrap, frozen full
+  oracle comparisons, independent geometry tests, and atomic CLI write tests.
+  Invoke `cargo catalog-bootstrap`; use `--dry-run` to preview without writes.
+- `scripts/catalog-refresh.ts`: replaced by `cargo catalog-refresh` with no-op
+  byte preservation and validated atomic updates. The weekly workflow invokes
+  Cargo directly; transitional npm commands delegate to Cargo.
 - `scripts/rust-dialog-smoke.mjs`: replaced by the Cargo `dialog-smoke` example.
   Native sequence tests and actual Windows/Linux Cancel/select/root/revoke/exit
   tests pass in run `35442346134`; macOS native verification also passes. The

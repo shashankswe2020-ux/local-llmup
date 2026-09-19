@@ -17,8 +17,10 @@ while retaining reviewed browser JavaScript. R23-R26 are still incomplete.
 
 ## Next Work
 
-- [ ] Port bootstrap attention geometry and pinned GGUF/MLX source metadata with
+- [x] Port bootstrap attention geometry and pinned GGUF/MLX source metadata with
   frozen-oracle parity, then replace the write command and retire its TS callers.
+- [x] Replace incremental catalog write mode with `cargo catalog-refresh`;
+  unchanged input is preserved byte-for-byte and changed catalogs use atomic writes.
 - [ ] Migrate remaining catalog refresh writes, live collectors, coverage reports,
   and maintenance issue rendering without changing curated dataset formats.
 - [ ] Finish terminal UX, capability routing, lifecycle confirmations, and PTY
@@ -34,3 +36,21 @@ while retaining reviewed browser JavaScript. R23-R26 are still incomplete.
 
 Verification must remain honest: the retirement job currently fails on retained
 Node files, and the passing native tests are not proof of complete migration.
+
+## Current Verification
+
+Native bootstrap has seven core tests (including all 66 frozen oracle models,
+independent per-model builds, and 18 independently calculated attention geometries)
+and three executable tests. Native refresh writes have four executable tests.
+Tests exercise empty PATH, preview without writes, idempotence, invalid input,
+symlink rejection, and preserved permissions. Full native format/Clippy/test/build
+and retained lint/typecheck/build plus 2,008 tests and coverage thresholds pass.
+No curated dataset was changed. The native writer uses deterministic Serde JSON;
+floating-point fields may serialize as `8192.0` instead of `8192`. Schema and numeric
+meaning are unchanged. No-op refresh preserves original bytes, including formatting.
+
+The user approved Ratatui and Crossterm on 2026-09-19 for full-screen native TUI
+work. A frozen 360-case mode-selection oracle now passes in Rust. Renderer,
+workflow integration, PTY acceptance, and final dependency review remain pending.
+The requested deep CLI/TUI/GUI/desktop performance report is a separate completion
+gate after migration; startup-only measurements do not fulfill it.
