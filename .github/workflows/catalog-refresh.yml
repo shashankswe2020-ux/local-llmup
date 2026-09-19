@@ -43,7 +43,9 @@ jobs:
         run: npm run --silent catalog:coverage
 
       - name: Catalog freshness report
-        run: npm run --silent catalog:freshness
+        run: |
+          rustup show active-toolchain
+          cargo catalog-freshness
 
       - name: Detect catalog changes
         id: diff
@@ -120,7 +122,7 @@ jobs:
               '- age: ' + r.ageDays + ' day(s) (stale after ' + r.staleAfterDays + ')',
               '- status: ' + r.status,
               '',
-              'Update \`src/catalog/registry-snapshot.ts\` with new pinned model entries; the next weekly run will open a refresh PR.',
+              'Update \`crates/llmup-core/fixtures/registry-snapshot.json\` with new pinned model entries; the next weekly run will open a refresh PR.',
               '',
               '_Filed automatically by the Catalog Freshness workflow._',
             ];
@@ -166,7 +168,7 @@ jobs:
               '',
               ...r.missing.map(name => '- \\`' + name + '\\`'),
               '',
-                'These are discovery candidates only. Verify license, architecture, context, capabilities, quantization, and source metadata before adding an entry to \\`src/catalog/registry-snapshot.ts\\`.',
+                'These are discovery candidates only. Verify license, architecture, context, capabilities, quantization, and source metadata before adding an entry to \\`crates/llmup-core/fixtures/registry-snapshot.json\\`.',
                 'This repository-level audit cannot detect missing variants inside a repository that is already represented because Ollama does not expose a public tag-enumeration endpoint.',
               '',
               '_Updated automatically by the Catalog Freshness workflow._',

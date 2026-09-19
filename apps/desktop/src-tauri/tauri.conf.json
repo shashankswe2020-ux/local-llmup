@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "local-llmup",
+  "version": "0.11.4",
+  "identifier": "org.localllmup.desktop",
+  "build": { "frontendDist": "../../../src/gui/static" },
+  "app": {
+    "windows": [],
+    "withGlobalTauri": false,
+    "security": { "capabilities": [] }
+  },
+  "bundle": {
+    "active": false,
+    "category": "DeveloperTool",
+    "icon": ["../build/icon.png", "../build/icon.icns", "../build/icon.ico"]
+  }
+}

@@ -15,6 +15,7 @@ import { homedir } from "node:os";
 import { join, relative } from "node:path";
 import type { Readable } from "node:stream";
 import { z } from "zod";
+import { beginInferenceUsage, recordInferenceUsage } from "../harness/usage.js";
 import { BackendError, ValidationError } from "../errors.js";
 import {
   assertLoopbackEndpoint,
@@ -1210,6 +1211,7 @@ export class OllamaAdapter implements BackendAdapter {
   }
 
   async chat(request: ChatRequest): Promise<ChatResult> {
+    beginInferenceUsage();
     const { endpoint, expectedListener, response } = await this.sendChatRequest(request, false);
 
     if (typeof response.json !== "function") {
@@ -1234,6 +1236,7 @@ export class OllamaAdapter implements BackendAdapter {
 
     await this.assertInferenceListenerUnchanged(endpoint, expectedListener);
 
+    recordInferenceUsage(payload, "ollama");
     const toolCalls = parsed.data.message.tool_calls?.map((call) => ({
       name: call.function.name,
       arguments: call.function.arguments,
@@ -1245,6 +1248,7 @@ export class OllamaAdapter implements BackendAdapter {
   }
 
   async chatStream(request: ChatStreamRequest): Promise<ChatResult> {
+    beginInferenceUsage();
     const { endpoint, expectedListener, response } = await this.sendChatRequest(request, true);
 
     const body = response.body;
@@ -1255,11 +1259,13 @@ export class OllamaAdapter implements BackendAdapter {
     let content = "";
     const toolCalls: { name: string; arguments: Record<string, unknown> }[] = [];
     const consume = lineConsumer((line) => {
-      const parsed = OllamaChatStreamChunkSchema.safeParse(safeParseJson(line));
+      const payload = safeParseJson(line);
+      const parsed = OllamaChatStreamChunkSchema.safeParse(payload);
       if (!parsed.success) {
         return;
       }
       const message = parsed.data.message;
+      recordInferenceUsage(payload, "ollama");
       if (message === undefined) {
         return;
       }

@@ -12,9 +12,8 @@ import {
   type EnrichOptions,
   type RawRegistryModel,
 } from "../catalog/enrich.js";
-import { loadCatalog } from "../catalog/load.js";
+import { loadCatalog, loadRegistrySnapshot } from "../catalog/load.js";
 import { backendsForModel } from "../catalog/backends.js";
-import { REGISTRY_SNAPSHOT } from "../catalog/registry-snapshot.js";
 import { createDefaultRegistry, type BackendRegistry } from "../backend/registry.js";
 import { detectHardware } from "../hardware/detect.js";
 import { requiredMemoryBytes } from "../hardware/memory-math.js";
@@ -66,7 +65,7 @@ export interface CatalogResult {
 const createDefaultDeps = (): CatalogDeps => ({
   loadCatalog: () => loadCatalog(),
   detectHardware: () => detectHardware(),
-  loadCandidates: () => REGISTRY_SNAPSHOT,
+  loadCandidates: loadRegistrySnapshot,
   enrichCatalog: (options) => enrichCatalog(options),
   now: () => new Date(),
   registry: createDefaultRegistry(),

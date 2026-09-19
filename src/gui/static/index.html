@@ -533,14 +533,46 @@
           </ul>
         </div>
 
-        <div class="context-block">
-          <div class="context-title">Status</div>
-          <ul class="feature-list muted">
-            <li>Workspace ready</li>
-            <li>Session history enabled</li>
-            <li>Safe local access</li>
-          </ul>
-        </div>
+        <section id="live-metrics" class="live-metrics" aria-label="Live system metrics">
+          <div class="metrics-heading"><h2>Live metrics</h2><span id="metrics-state" class="metrics-state" data-state="connecting">Connecting</span></div>
+          <div class="metric-series" data-metric="memory">
+            <div class="metric-heading"><span>RAM</span><output id="metric-memory-value">—</output></div>
+            <div id="metric-memory-detail" class="metric-detail">Used / total</div>
+            <canvas id="metric-memory-chart" class="metric-chart" role="img" aria-label="RAM usage history"></canvas>
+          </div>
+          <div class="metric-series" data-metric="cpu">
+            <div class="metric-heading"><span>CPU</span><output id="metric-cpu-value">—</output></div>
+            <div id="metric-cpu-detail" class="metric-detail">System utilization</div>
+            <canvas id="metric-cpu-chart" class="metric-chart" role="img" aria-label="CPU utilization history"></canvas>
+          </div>
+          <div class="metric-series" data-metric="disk">
+            <div class="metric-heading"><span>Disk</span><output id="metric-disk-value">—</output></div>
+            <div id="metric-disk-detail" class="metric-detail">Storage used / total</div>
+            <canvas id="metric-disk-chart" class="metric-chart" role="img" aria-label="Disk storage usage history"></canvas>
+          </div>
+          <div class="metric-series" data-metric="latency">
+            <div class="metric-heading"><span>Latency</span><output id="metric-latency-value">—</output></div>
+            <div id="metric-latency-detail" class="metric-detail">Local host round-trip</div>
+            <canvas id="metric-latency-chart" class="metric-chart" role="img" aria-label="Local host round-trip latency history"></canvas>
+          </div>
+          <div class="metrics-subheading">Latest model call</div>
+          <div class="metric-series" data-metric="tokens">
+            <div class="metric-heading"><span>Token usage</span><output id="metric-tokens-value">—</output></div>
+            <div id="metric-tokens-detail" class="metric-detail">Not reported yet</div>
+            <canvas id="metric-tokens-chart" class="metric-chart" role="img" aria-label="Reported token usage history"></canvas>
+          </div>
+          <div class="metric-series" data-metric="cacheHits">
+            <div class="metric-heading"><span>Cache hits</span><output id="metric-cacheHits-value">—</output></div>
+            <div id="metric-cacheHits-detail" class="metric-detail">Prompt tokens · not reported</div>
+            <canvas id="metric-cacheHits-chart" class="metric-chart" role="img" aria-label="Prompt cache hit token history"></canvas>
+          </div>
+          <div class="metric-series" data-metric="cacheMisses">
+            <div class="metric-heading"><span>Cache misses</span><output id="metric-cacheMisses-value">—</output></div>
+            <div id="metric-cacheMisses-detail" class="metric-detail">Prompt tokens · not reported</div>
+            <canvas id="metric-cacheMisses-chart" class="metric-chart" role="img" aria-label="Prompt cache miss token history"></canvas>
+          </div>
+          <div class="metrics-axis"><span>2 min ago</span><span>Now</span></div>
+        </section>
       </aside>
     </div>
 
@@ -577,5 +609,6 @@
     <script src="/static/run-reducer.js"></script>
     <script src="/static/calculator-template.js"></script>
     <script src="/static/chat.js"></script>
+    <script src="/static/telemetry.js"></script>
   </body>
 </html>

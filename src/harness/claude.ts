@@ -4,6 +4,7 @@ import { assertSafeFetchUrl } from "../backend/net.js";
 import { ValidationError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
 import type { ChatHarness, HarnessChatRequest } from "./adapter.js";
+import { beginInferenceUsage, recordInferenceUsage } from "./usage.js";
 
 const DEFAULT_ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1/messages";
 const DEFAULT_ANTHROPIC_MODEL = "claude-3-5-haiku-20241022";
@@ -38,6 +39,7 @@ function parseAnthropicPayload(raw: string): string {
 
   try {
     const parsed = JSON.parse(trimmed) as unknown;
+    recordInferenceUsage(parsed, "claude");
     if (typeof parsed !== "object" || parsed === null) {
       return "";
     }
@@ -175,6 +177,7 @@ export function createClaudeHarness(deps: ClaudeHarnessDeps = {}): ChatHarness {
       }
     },
     async *chat(request: HarnessChatRequest): AsyncIterable<string> {
+      beginInferenceUsage();
       const apiKey = getApiKey();
       const url = assertSafeEndpoint();
       const messages = request.messages

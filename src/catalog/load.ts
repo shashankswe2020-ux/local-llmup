@@ -5,6 +5,18 @@ import { CatalogError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
 import type { Catalog } from "../types.js";
 import { CatalogSchema } from "./schema.js";
+import { parseRawRegistryModels, type RawRegistryModel } from "./enrich.js";
+
+export function loadRegistrySnapshot(filePath: string = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../crates/llmup-core/fixtures/registry-snapshot.json",
+)): readonly RawRegistryModel[] {
+  try {
+    return parseRawRegistryModels(JSON.parse(readFileSync(filePath, "utf8")));
+  } catch (cause) {
+    throw new CatalogError("Cannot load validated offline registry snapshot", { cause });
+  }
+}
 
 /** Default catalog location: `data/models.json` at the package root. */
 export const DEFAULT_CATALOG_PATH = resolve(

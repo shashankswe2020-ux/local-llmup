@@ -19,6 +19,7 @@ import { spawn as nodeSpawn } from "node:child_process";
 import { resolve } from "node:path";
 import type { Readable } from "node:stream";
 import { z } from "zod";
+import { beginInferenceUsage, recordInferenceUsage } from "../harness/usage.js";
 import { BackendError, ValidationError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
 import {
@@ -929,6 +930,7 @@ export class LlamaCppAdapter implements BackendAdapter {
    * an argv or URL path), so it is passed through as-is.
    */
   async chat(request: ChatRequest): Promise<ChatResult> {
+    beginInferenceUsage();
     const endpoint = assertLoopbackEndpoint(
       request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, LLAMACPP_DEFAULT_PORT),
     );
@@ -986,6 +988,7 @@ export class LlamaCppAdapter implements BackendAdapter {
       throw new BackendError("llamacpp chat returned no choices");
     }
     await this.assertInferenceListenerUnchanged(endpoint, expectedListener);
+    recordInferenceUsage(payload, "openai");
     return { content: first.message.content };
   }
 

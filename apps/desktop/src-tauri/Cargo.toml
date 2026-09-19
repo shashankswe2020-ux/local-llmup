@@ -1,0 +1,25 @@
+[package]
+name = "llmup-desktop"
+version = "0.11.4"
+edition = "2024"
+rust-version = "1.98"
+publish = false
+
+[dependencies]
+tauri = { version = "2.11.5", features = ["dynamic-acl"] }
+rfd = "0.15"
+llmup-gui = { path = "../../../crates/llmup-gui" }
+llmup-runtime = { path = "../../../crates/llmup-runtime" }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "sync"] }
+serde_json = "1"
+url = "2"
+
+[build-dependencies]
+tauri-build = "2.6.3"
+
+[dev-dependencies]
+tauri = { version = "2.11.5", features = ["test"] }
+tempfile = "3"
+
+[lints.rust]
+unsafe_code = "forbid"

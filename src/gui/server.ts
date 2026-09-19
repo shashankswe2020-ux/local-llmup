@@ -38,6 +38,9 @@ import { LibraryDraftSchema, LibraryUpdateSchema, type LibraryKind } from "../li
 import type { LibraryService } from "../library/service.js";
 import { readArtifactImage } from "./artifacts.js";
 import { getUpdateStatus, type UpdateStatus } from "./update.js";
+import { createTelemetryProvider, type TelemetrySample } from "./telemetry.js";
+import { captureInferenceUsage, emptyInferenceUsage } from "../harness/usage.js";
+import { loadConfig } from "../config.js";
 
 /** Upper bound on a composed agent+skill system prompt injected into a chat turn. */
 const MAX_SYSTEM_PROMPT_CHARS = 48 * 1024;
@@ -135,6 +138,7 @@ export interface GuiServerOptions {
   readonly editRecordsDir?: string | undefined;
   /** Latest-release status provider; injectable so tests and offline hosts stay deterministic. */
   readonly updateStatus?: (() => Promise<UpdateStatus>) | undefined;
+  readonly telemetry?: (() => Promise<TelemetrySample>) | undefined;
 }
 
 export function resolveGuiRootDir(baseUrl: URL): URL {
@@ -168,9 +172,12 @@ export class GuiServer {
   readonly sessions?: SessionRepository | undefined;
   readonly workspace?: WorkspaceService | undefined;
   readonly updateStatus: () => Promise<UpdateStatus>;
+  readonly telemetry: () => Promise<TelemetrySample>;
   /** Per-launch capability token; a local CSRF/DNS-rebinding defense, not auth. */
   readonly launchToken: string = randomBytes(32).toString("hex");
   private activeSessionId: string | null = null;
+  private inferenceUsage = emptyInferenceUsage();
+  private usageRevision = 0;
   private activeWorkspaceId: string | null = null;
   private readonly runs = new RunCoordinator();
   /** Pending tool-approval resolvers keyed by call id, for the active run. */
@@ -198,6 +205,7 @@ export class GuiServer {
     this.sessions = options.sessions;
     this.workspace = options.workspace;
     this.updateStatus = options.updateStatus ?? getUpdateStatus;
+    this.telemetry = options.telemetry ?? createTelemetryProvider(loadConfig().homeDir);
     this.editProposals =
       options.workspace !== undefined ? new EditProposalService(options.workspace) : undefined;
     this.patchTransactions =
@@ -288,6 +296,12 @@ export class GuiServer {
             turns: this.session.conversationWindow.length,
           },
         });
+        return;
+      }
+
+      if (req.method === "GET" && pathname === "/api/telemetry") {
+        res.setHeader("Cache-Control", "no-store");
+        this.writeJson(res, 200, { ...await this.telemetry(), inferenceUsage: this.inferenceUsage });
         return;
       }
 
@@ -382,7 +396,10 @@ export class GuiServer {
       }
 
       if (req.method === "POST" && pathname === "/api/chat") {
-        await this.handleChat(req, res);
+        const revision = ++this.usageRevision;
+        this.inferenceUsage = emptyInferenceUsage();
+        const captured = await captureInferenceUsage(() => this.handleChat(req, res));
+        if (revision === this.usageRevision) this.inferenceUsage = captured.usage;
         return;
       }
 
@@ -961,6 +978,8 @@ export class GuiServer {
       throw new ValidationError(`session not found: ${id}`);
     }
     this.activeSessionId = id;
+    this.usageRevision += 1;
+    this.inferenceUsage = emptyInferenceUsage();
     this.session.conversationWindow = doc.messages
       .filter((message) => message.role === "user" || message.role === "assistant")
       .slice(-20)
@@ -1084,6 +1103,8 @@ export class GuiServer {
         repo.remove(id);
         if (this.activeSessionId === id) {
           this.activeSessionId = null;
+          this.usageRevision += 1;
+          this.inferenceUsage = emptyInferenceUsage();
           this.session.conversationWindow = [];
         }
         this.writeJson(res, 200, { removed: id });

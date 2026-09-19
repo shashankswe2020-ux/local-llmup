@@ -22,6 +22,7 @@ import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import type { Readable } from "node:stream";
 import { z } from "zod";
+import { beginInferenceUsage, recordInferenceUsage } from "../harness/usage.js";
 import { BackendError, ValidationError } from "../errors.js";
 import { stripControl } from "../sanitize.js";
 import type { BackendCapabilities } from "../types.js";
@@ -507,6 +508,7 @@ export class LmStudioAdapter implements BackendAdapter {
   async stop(_handle: ServeHandle): Promise<void> {}
 
   async chat(request: ChatRequest): Promise<ChatResult> {
+    beginInferenceUsage();
     assertSafeModelId(request.model);
     const endpoint = assertLoopbackEndpoint(
       request.endpoint ?? buildEndpoint(DEFAULT_BIND_HOST, LM_STUDIO_DEFAULT_PORT),
@@ -546,6 +548,7 @@ export class LmStudioAdapter implements BackendAdapter {
       request.expectedModelPath,
       request.signal,
     );
+    recordInferenceUsage(payload, "openai");
     return { content };
   }
 

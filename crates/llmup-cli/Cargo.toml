@@ -1,0 +1,39 @@
+[package]
+name = "llmup-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "llmup-fit-parity"
+path = "src/main.rs"
+
+[[bin]]
+name = "llmup-native"
+path = "src/native.rs"
+
+[[bin]]
+name = "llmup-dist"
+path = "src/dist.rs"
+
+[[bin]]
+name = "llmup-catalog-freshness"
+path = "src/catalog_freshness.rs"
+
+[dependencies]
+llmup-core = { path = "../llmup-core" }
+llmup-runtime = { path = "../llmup-runtime" }
+clap = { version = "4", features = ["derive"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+serde.workspace = true
+serde_json.workspace = true
+unicode-segmentation = "1"
+sha2 = "0.10"
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+tempfile = "3"

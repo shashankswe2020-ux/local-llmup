@@ -1,10 +1,15 @@
 import {
   chmodSync,
   closeSync,
+  constants,
+  fstatSync,
+  lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
+  readSync,
   renameSync,
+  rmdirSync,
   unlinkSync,
   writeFileSync,
   writeSync,
@@ -31,10 +36,16 @@ const ServerStateCommonSchema = z
   .object({
     backend: z.enum(BACKEND_NAMES),
     modelId: z.string().min(1),
-    runtimeModelId: z.string().regex(/^[a-z0-9][a-z0-9._:/-]*$/).optional(),
+    runtimeModelId: z
+      .string()
+      .regex(/^[a-z0-9][a-z0-9._:/-]*$/)
+      .optional(),
     context: z.number().int().min(1).max(10_000_000).optional(),
     integrity: z.literal("local-manifest").optional(),
-    localManifestDigest: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+    localManifestDigest: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
     endpoint: z
       .string()
       .url()
@@ -322,11 +333,45 @@ export async function withLock<T>(
   const timeoutMs = options.timeoutMs ?? DEFAULT_LOCK_TIMEOUT_MS;
   const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
 
-  await acquireLock(config, isAlive, pid, timeoutMs, pollIntervalMs);
+  const descriptor = await acquireLock(config, isAlive, pid, timeoutMs, pollIntervalMs);
   try {
     return await fn();
   } finally {
-    releaseLock(config);
+    try {
+      await withLockGuard(config, () => releaseLock(config, descriptor), timeoutMs, pollIntervalMs);
+    } finally {
+      closeSync(descriptor);
+    }
+  }
+}
+
+async function withLockGuard<T>(
+  config: Config,
+  operation: () => T,
+  timeoutMs: number,
+  pollIntervalMs: number,
+): Promise<T> {
+  const guard = `${config.lockFile}.guard`;
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      mkdirSync(guard, { mode: DIR_MODE });
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST")
+        throw new StateError("failed to acquire lock guard", "io", { cause: error });
+      if (Date.now() >= deadline)
+        throw new StateError(
+          "lock guard is busy or abandoned; explicit recovery required",
+          "locked",
+        );
+      await delay(pollIntervalMs);
+    }
+  }
+  try {
+    return operation();
+  } finally {
+    rmdirSync(guard);
   }
 }
 
@@ -336,80 +381,112 @@ async function acquireLock(
   pid: number,
   timeoutMs: number,
   pollIntervalMs: number,
-): Promise<void> {
+): Promise<number> {
   ensureDir(config.homeDir);
   const deadline = Date.now() + timeoutMs;
 
   for (;;) {
-    try {
-      const fd = openSync(config.lockFile, "wx", FILE_MODE);
-      try {
-        writeSync(fd, `${pid}\n`);
-      } finally {
-        closeSync(fd);
-      }
-      return;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
-        throw new StateError(`failed to acquire lock: ${config.lockFile}`, "io", { cause: error });
-      }
-    }
+    const attempt = await withLockGuard(
+      config,
+      () => {
+        try {
+          const fd = openSync(config.lockFile, "wx", FILE_MODE);
+          try {
+            writeSync(fd, `${pid}\n`);
+            return { fd, holder: null };
+          } catch (error) {
+            closeSync(fd);
+            unlinkSync(config.lockFile);
+            throw error;
+          }
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+            throw new StateError(`failed to acquire lock: ${config.lockFile}`, "io", {
+              cause: error,
+            });
+          }
+        }
 
-    const holder = readHolderPid(config.lockFile);
-    // Reclaim only when a valid holder PID is positively confirmed dead. A null
-    // holder means the file is mid-creation (created empty by openSync before
-    // its PID is written) or unreadable — clobbering it here would let two live
-    // acquirers both enter the critical section, so we wait instead.
-    if (holder !== null && !isAlive(holder)) {
-      reclaimStaleLock(config.lockFile);
-      continue;
-    }
-
+        const holder = readHolderPid(config.lockFile);
+        // Reclaim only when a valid holder PID is positively confirmed dead. A null
+        // holder means the file is mid-creation (created empty by openSync before
+        // its PID is written) or unreadable — clobbering it here would let two live
+        // acquirers both enter the critical section, so we wait instead.
+        if (holder !== null && !isAlive(holder)) {
+          reclaimStaleLock(config.lockFile);
+          return { fd: undefined, holder };
+        }
+        return { fd: undefined, holder };
+      },
+      Math.max(0, deadline - Date.now()),
+      pollIntervalMs,
+    );
+    if (attempt.fd !== undefined) return attempt.fd;
+    const holder = attempt.holder;
     if (Date.now() >= deadline) {
-      if (holder === null) {
-        // The lock stayed unreadable/empty for the entire timeout: treat it as a
-        // crashed half-creation and reclaim it rather than deadlocking.
-        reclaimStaleLock(config.lockFile);
-        continue;
-      }
-      throw new StateError(`lock held by pid ${holder}: ${config.lockFile}`, "locked");
+      throw new StateError(
+        `lock held by ${holder === null ? "unknown owner; explicit recovery required" : `pid ${holder}`}: ${config.lockFile}`,
+        "locked",
+      );
     }
     await delay(pollIntervalMs);
   }
 }
 
-/**
- * Reclaim a stale lock atomically: rename it to a caller-unique name so only one
- * racer wins the reclaim, then delete it. A blind unlink could delete a lock a
- * different process had just recreated; renaming makes the winner the sole owner
- * of the delete. A losing racer's rename fails and it simply retries the loop.
- */
+/** Reclaim a positively dead owner's lock while holding the shared mutation guard. */
 function reclaimStaleLock(lockFile: string): void {
   const claim = `${lockFile}.reclaim.${process.pid}.${randomUUID()}`;
   try {
     renameSync(lockFile, claim);
     unlinkSync(claim);
   } catch {
-    // Another process reclaimed or recreated the lock first; retry acquisition.
+    // Leave failed reclamation for a subsequent guarded attempt.
   }
 }
 
-function releaseLock(config: Config): void {
+function releaseLock(config: Config, descriptor: number): void {
   try {
+    const owned = fstatSync(descriptor);
+    const current = lstatSync(config.lockFile);
+    if (!current.isFile() || owned.dev !== current.dev || owned.ino !== current.ino) {
+      throw new StateError("lock ownership changed; refusing to remove replacement", "locked");
+    }
     unlinkSync(config.lockFile);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw new StateError(`failed to release lock: ${config.lockFile}`, "io", { cause: error });
-    }
+    if (error instanceof StateError) throw error;
+    throw new StateError(
+      `failed to release lock: ${config.lockFile}`,
+      (error as NodeJS.ErrnoException).code === "ENOENT" ? "locked" : "io",
+      { cause: error },
+    );
   }
 }
 
 function readHolderPid(lockFile: string): number | null {
+  let descriptor: number | undefined;
   try {
-    const pid = Number(readFileSync(lockFile, "utf8").trim());
-    return Number.isInteger(pid) && pid > 0 ? pid : null;
+    if (!lstatSync(lockFile).isFile()) return null;
+    descriptor = openSync(
+      lockFile,
+      constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0),
+    );
+    const metadata = fstatSync(descriptor);
+    if (
+      !metadata.isFile() ||
+      metadata.size > 64 ||
+      (process.platform !== "win32" && (metadata.mode & 0o022) !== 0)
+    )
+      return null;
+    const buffer = Buffer.alloc(65);
+    const count = readSync(descriptor, buffer, 0, buffer.length, 0);
+    if (count > 64) return null;
+    const raw = buffer.subarray(0, count).toString("utf8").trim();
+    const pid = Number(raw);
+    return /^[1-9][0-9]*$/.test(raw) && Number.isInteger(pid) && pid <= 2_147_483_647 ? pid : null;
   } catch {
     return null;
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
   }
 }
 
@@ -419,8 +496,8 @@ function isProcessAlive(pid: number): boolean {
     process.kill(pid, 0);
     return true;
   } catch (error) {
-    // EPERM means the process exists but we may not signal it — still alive.
-    return (error as NodeJS.ErrnoException).code === "EPERM";
+    // Only ESRCH positively establishes that the owner no longer exists.
+    return (error as NodeJS.ErrnoException).code !== "ESRCH";
   }
 }
 

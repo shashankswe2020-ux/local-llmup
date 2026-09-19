@@ -1,0 +1,5 @@
+[alias]
+native-dist = "run --locked -p llmup-cli --bin llmup-dist --"
+catalog-freshness = "run --quiet --locked -p llmup-cli --bin llmup-catalog-freshness --"
+native-performance = "run --quiet --locked --release -p llmup-cli --example native-performance --"
+native-retirement = "run --quiet --locked -p llmup-cli --example retirement-check --"

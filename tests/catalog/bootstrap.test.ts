@@ -5,11 +5,12 @@ import {
   KV_BYTES_PER_TOKEN_FP16,
   buildBootstrapCatalog,
 } from "../../src/catalog/bootstrap.js";
-import { DEFAULT_CATALOG_PATH, loadCatalog } from "../../src/catalog/load.js";
-import { REGISTRY_SNAPSHOT } from "../../src/catalog/registry-snapshot.js";
+import { DEFAULT_CATALOG_PATH, loadCatalog, loadRegistrySnapshot } from "../../src/catalog/load.js";
 import { CatalogSchema } from "../../src/catalog/schema.js";
 import { LICENSE_ALLOWLIST } from "../../src/types.js";
 import type { Catalog } from "../../src/types.js";
+
+const REGISTRY_SNAPSHOT = loadRegistrySnapshot();
 
 // The curated skeleton the snapshot fully controls. Quant `diskBytes`/`sha256`
 // are refreshed live from the registry by the weekly enrich pipeline, and
