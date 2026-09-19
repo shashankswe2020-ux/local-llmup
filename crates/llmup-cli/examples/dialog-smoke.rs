@@ -26,7 +26,7 @@ async fn operate(
         let mut command = Command::new("powershell.exe");
         command
             .args(["-NoProfile", "-NonInteractive", "-File"])
-            .arg(root.join("scripts/rust-dialog-smoke.ps1"))
+            .arg("scripts/rust-dialog-smoke.ps1")
             .args(["-DesktopPid", &pid.to_string(), "-Selection"])
             .arg(workspace)
             .args(["-DialogTitle", &title, "-Mode", mode]);
@@ -39,6 +39,7 @@ async fn operate(
         command
     };
     command
+        .current_dir(root)
         .stdin(Stdio::null())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
