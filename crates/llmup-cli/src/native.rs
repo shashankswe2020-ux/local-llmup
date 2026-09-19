@@ -260,8 +260,12 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
     if args.refresh && (args.command != "catalog" || args.parity) {
         return Err("--refresh is only supported by catalog".into());
     }
-    if args.accessible && !["chat", "up", "switch", "down"].contains(&args.command.as_str()) {
-        return Err("--accessible currently requires chat or a lifecycle command".into());
+    if args.accessible
+        && !["chat", "up", "switch", "down", "ls", "doctor"].contains(&args.command.as_str())
+    {
+        return Err(
+            "--accessible currently requires chat, ls, doctor, or a lifecycle command".into(),
+        );
     }
     if args.command != "chat"
         && (args.chat_model.is_some()
@@ -602,6 +606,16 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         if args.json {
             println!("{}", serde_json::to_string_pretty(&sanitized(&report))?);
         } else {
+            if presentation
+                .as_ref()
+                .is_some_and(|selection| selection.mode == llmup_cli::tui_mode::Mode::Accessible)
+            {
+                let screen = llmup_cli::accessible_read_only::active_server_screen(&report)?;
+                let exit = show_accessible_screen(&screen).await?;
+                if exit != 0 {
+                    return Ok(exit);
+                }
+            }
             let presentation_exit =
                 present_read_only(presentation.as_ref(), &presentation_title, &text).await?;
             if presentation_exit != 0 {
@@ -945,6 +959,17 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         }
         _ => return Err("unsupported command".into()),
     };
+    if presentation_title == "doctor"
+        && presentation
+            .as_ref()
+            .is_some_and(|selection| selection.mode == llmup_cli::tui_mode::Mode::Accessible)
+    {
+        let screen = llmup_cli::accessible_read_only::doctor_screen(&report)?;
+        let presentation_exit = show_accessible_screen(&screen).await?;
+        if presentation_exit != 0 {
+            return Ok(presentation_exit);
+        }
+    }
     let output = if args.json {
         format!("{}\n", serde_json::to_string_pretty(&sanitized(&report))?)
     } else {
@@ -956,6 +981,25 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         return Ok(presentation_exit);
     }
     Ok(exit)
+}
+
+async fn show_accessible_screen(screen: &str) -> std::io::Result<u8> {
+    let mut input = llmup_cli::accessible::stdin_answers();
+    let mut output = std::io::stderr();
+    let cancel = tokio_util::sync::CancellationToken::new();
+    #[cfg(unix)]
+    let mut terminate = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+    tokio::select! {
+        biased;
+        signal=tokio::signal::ctrl_c()=>{signal?;cancel.cancel();Ok(130)},
+        _=async {
+            #[cfg(unix)]
+            terminate.recv().await;
+            #[cfg(not(unix))]
+            std::future::pending::<()>().await;
+        }=>{cancel.cancel();Ok(143)},
+        result=llmup_cli::accessible_read_only::run_screen(screen,&mut input,&mut output,&cancel)=>result.map(|()|0),
+    }
 }
 
 async fn present_read_only(

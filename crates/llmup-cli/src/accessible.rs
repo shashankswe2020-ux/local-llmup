@@ -48,7 +48,7 @@ pub fn stdin_answers() -> mpsc::Receiver<io::Result<String>> {
     receiver
 }
 
-async fn answer(
+pub(crate) async fn answer(
     input: &mut mpsc::Receiver<io::Result<String>>,
     cancel: &CancellationToken,
 ) -> io::Result<Option<String>> {

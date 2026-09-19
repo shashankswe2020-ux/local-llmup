@@ -3,6 +3,8 @@ use serde::Serialize;
 use std::io::{Read, Write};
 
 pub mod accessible;
+pub mod accessible_read_only;
+pub mod accessible_text;
 pub mod cancellation;
 pub mod dialog_smoke;
 pub mod distribution;

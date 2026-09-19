@@ -46,14 +46,21 @@ fn incompatible_modes_and_missing_remote_model_fail_before_work() {
         vec!["up", "llama3.1:8b", "--accessible", "--json"],
         vec!["down", "--accessible", "--no-tui"],
         vec!["down", "--accessible"],
+        vec!["ls", "--accessible"],
+        vec!["doctor", "--accessible"],
+        vec!["ls", "--accessible", "--json"],
+        vec!["doctor", "--accessible", "--no-tui"],
     ] {
+        let home = tempfile::tempdir().unwrap();
         let output = Command::new(env!("CARGO_BIN_EXE_llmup-native"))
             .args(args)
             .env("PATH", "")
+            .env("LOCAL_LLMUP_HOME", home.path().join("unused"))
             .stdin(Stdio::null())
             .output()
             .unwrap();
         assert!(!output.status.success());
         assert!(output.stdout.is_empty());
+        assert!(!home.path().join("unused").exists());
     }
 }

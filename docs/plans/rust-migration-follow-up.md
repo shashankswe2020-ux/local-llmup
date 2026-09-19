@@ -26,6 +26,10 @@ while retaining reviewed browser JavaScript. R23-R26 are still incomplete.
   fixed HTTPS with redirects refused, 15-second deadline, and a streamed 1 MiB bound.
 - [x] Add native cooked model selection and default-cancel review to accessible
   lifecycle commands, with shared input, 256-byte answers, and cancellation tests.
+- [x] Port accessible active-server and diagnostic views with numbered evidence,
+  cooked help/quit, unchanged plain-output/exit contracts, Unicode escaping/NFC
+  parity, and real-PTY tests. Shared TypeScript read-only views remain until
+  recommendation/catalog/can-run and their search/detail behavior are native.
 - [x] Replace the maintenance dry-run script with `cargo catalog-refresh --dry-run`,
   preserving exact diagnostics, source bytes, and modification times.
 - [x] Replace inline Node PR/issue body formatting and report decisions with

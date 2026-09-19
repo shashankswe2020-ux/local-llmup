@@ -255,3 +255,57 @@ fn accessible_confirmation_control_c_exits_130_without_state() {
     assert_eq!(exit, 130, "{output}");
     assert!(!entered(&output));
 }
+
+#[test]
+fn accessible_active_server_uses_cooked_help_then_prints_plain_result() {
+    let (exit, output) = run_scripted(
+        "ls",
+        &["--accessible"],
+        40,
+        10,
+        None,
+        &[
+            ("local-llmup up <model>", b"?\r"),
+            ("Commands: ? help; q quit", b"q\r"),
+        ],
+    );
+    assert_eq!(exit, 0, "{output}");
+    assert!(output.contains("Active Server / Accessible"));
+    assert_eq!(output.matches("No active model.").count(), 2, "{output}");
+    assert!(!entered(&output));
+}
+
+#[test]
+fn accessible_active_server_interrupt_does_not_print_final_result() {
+    let (exit, output) = run_scripted(
+        "ls",
+        &["--accessible"],
+        40,
+        10,
+        None,
+        &[("local-llmup up <model>", &[3])],
+    );
+    assert_eq!(exit, 130, "{output}");
+    assert_eq!(output.matches("No active model.").count(), 1, "{output}");
+    assert!(!entered(&output));
+}
+
+#[test]
+fn accessible_doctor_preserves_failed_diagnostics_and_cooked_navigation() {
+    let (exit, output) = run_scripted(
+        "doctor",
+        &["--accessible"],
+        80,
+        24,
+        None,
+        &[
+            ("Suggested commands are text only.", b"?\r"),
+            ("Commands: ? help; q quit\r\n", b"q\r"),
+        ],
+    );
+    assert_eq!(exit, 1, "{output}");
+    assert!(output.contains("Doctor / Accessible"), "{output}");
+    assert!(output.contains("not installed"), "{output}");
+    assert!(output.contains("AI Hardware Score:"), "{output}");
+    assert!(!entered(&output));
+}

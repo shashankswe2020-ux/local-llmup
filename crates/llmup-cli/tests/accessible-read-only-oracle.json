@@ -1,0 +1,476 @@
+[
+  {
+    "screen": "doctor",
+    "input": {
+      "ok": true,
+      "checks": [
+        {
+          "name": "state",
+          "status": "ok",
+          "detail": "no active server recorded"
+        }
+      ],
+      "backends": [
+        {
+          "name": "ollama",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "https://ollama.com/download"
+        }
+      ],
+      "hardwareScore": null
+    },
+    "expected": "local-llmup / Doctor / Accessible\n1. Diagnostics\n1. OK state: no active server recorded\n2. Backends\n1. ollama; not installed; version unknown; not default; https://ollama.com/download\n3. Hardware score\nUnknown (not sourced)\n4. Controls\nCommands: ? help; q quit. Suggested commands are text only.\n"
+  },
+  {
+    "screen": "doctor",
+    "input": {
+      "ok": false,
+      "checks": [
+        {
+          "name": "hardware",
+          "status": "fail",
+          "detail": "insufficient memory"
+        },
+        {
+          "name": "catalog",
+          "status": "warn",
+          "detail": "unverified digest"
+        }
+      ],
+      "backends": [
+        {
+          "name": "ollama",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "https://ollama.com/download"
+        }
+      ],
+      "hardwareScore": {
+        "total": 42,
+        "sub": {
+          "vram": 40,
+          "ram": 50,
+          "compute": 35,
+          "storage": 80
+        },
+        "bottleneck": "compute"
+      }
+    },
+    "expected": "local-llmup / Doctor / Accessible\n1. Diagnostics\n1. FAIL hardware: insufficient memory\n2. WARN catalog: unverified digest\n2. Backends\n1. ollama; not installed; version unknown; not default; https://ollama.com/download\n3. Hardware score\n42/100; bottleneck Compute; VRAM 40; RAM 50; Compute 35; Storage 80\n4. Controls\nCommands: ? help; q quit. Suggested commands are text only.\n"
+  },
+  {
+    "screen": "doctor",
+    "input": {
+      "ok": true,
+      "checks": [
+        {
+          "name": "state",
+          "status": "ok",
+          "detail": "no active server recorded"
+        }
+      ],
+      "backends": [
+        {
+          "name": "llamacpp",
+          "installed": true,
+          "version": "b10090",
+          "isDefault": true,
+          "installHint": "https://github.com/ggml-org/llama.cpp"
+        }
+      ],
+      "hardwareScore": {
+        "total": 80,
+        "sub": {
+          "vram": 100,
+          "ram": 70,
+          "compute": 60,
+          "storage": 90
+        },
+        "bottleneck": "ram"
+      }
+    },
+    "expected": "local-llmup / Doctor / Accessible\n1. Diagnostics\n1. OK state: no active server recorded\n2. Backends\n1. llamacpp; installed; version b10090; default; https://github.com/ggml-org/llama.cpp\n3. Hardware score\n80/100; bottleneck RAM; VRAM 100; RAM 70; Compute 60; Storage 90\n4. Controls\nCommands: ? help; q quit. Suggested commands are text only.\n"
+  },
+  {
+    "screen": "doctor",
+    "input": {
+      "ok": true,
+      "checks": [
+        {
+          "name": "check-0",
+          "status": "ok",
+          "detail": "detail-0"
+        },
+        {
+          "name": "check-1",
+          "status": "ok",
+          "detail": "detail-1"
+        },
+        {
+          "name": "check-2",
+          "status": "ok",
+          "detail": "detail-2"
+        },
+        {
+          "name": "check-3",
+          "status": "ok",
+          "detail": "detail-3"
+        },
+        {
+          "name": "check-4",
+          "status": "ok",
+          "detail": "detail-4"
+        },
+        {
+          "name": "check-5",
+          "status": "ok",
+          "detail": "detail-5"
+        },
+        {
+          "name": "check-6",
+          "status": "ok",
+          "detail": "detail-6"
+        },
+        {
+          "name": "check-7",
+          "status": "ok",
+          "detail": "detail-7"
+        },
+        {
+          "name": "check-8",
+          "status": "ok",
+          "detail": "detail-8"
+        },
+        {
+          "name": "check-9",
+          "status": "ok",
+          "detail": "detail-9"
+        },
+        {
+          "name": "check-10",
+          "status": "ok",
+          "detail": "detail-10"
+        },
+        {
+          "name": "check-11",
+          "status": "ok",
+          "detail": "detail-11"
+        },
+        {
+          "name": "check-12",
+          "status": "ok",
+          "detail": "detail-12"
+        },
+        {
+          "name": "check-13",
+          "status": "ok",
+          "detail": "detail-13"
+        },
+        {
+          "name": "check-14",
+          "status": "ok",
+          "detail": "detail-14"
+        },
+        {
+          "name": "check-15",
+          "status": "ok",
+          "detail": "detail-15"
+        },
+        {
+          "name": "check-16",
+          "status": "ok",
+          "detail": "detail-16"
+        },
+        {
+          "name": "check-17",
+          "status": "ok",
+          "detail": "detail-17"
+        },
+        {
+          "name": "check-18",
+          "status": "ok",
+          "detail": "detail-18"
+        },
+        {
+          "name": "check-19",
+          "status": "ok",
+          "detail": "detail-19"
+        },
+        {
+          "name": "check-20",
+          "status": "ok",
+          "detail": "detail-20"
+        },
+        {
+          "name": "check-21",
+          "status": "ok",
+          "detail": "detail-21"
+        }
+      ],
+      "backends": [
+        {
+          "name": "backend-0",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-1",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-2",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-3",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-4",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-5",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-6",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-7",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-8",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-9",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-10",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-11",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-12",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-13",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-14",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-15",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-16",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-17",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-18",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-19",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-20",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        },
+        {
+          "name": "backend-21",
+          "installed": false,
+          "version": null,
+          "isDefault": false,
+          "installHint": "install"
+        }
+      ],
+      "hardwareScore": null
+    },
+    "expected": "local-llmup / Doctor / Accessible\n1. Diagnostics\n1. OK check-0: detail-0\n2. OK check-1: detail-1\n3. OK check-2: detail-2\n4. OK check-3: detail-3\n5. OK check-4: detail-4\n6. OK check-5: detail-5\n7. OK check-6: detail-6\n8. OK check-7: detail-7\n9. OK check-8: detail-8\n10. OK check-9: detail-9\n11. OK check-10: detail-10\n12. OK check-11: detail-11\n13. OK check-12: detail-12\n14. OK check-13: detail-13\n15. OK check-14: detail-14\n16. OK check-15: detail-15\n17. OK check-16: detail-16\n18. OK check-17: detail-17\n19. OK check-18: detail-18\n20. OK check-19: detail-19\n+2 more checks\n2. Backends\n1. backend-0; not installed; version unknown; not default; install\n2. backend-1; not installed; version unknown; not default; install\n3. backend-2; not installed; version unknown; not default; install\n4. backend-3; not installed; version unknown; not default; install\n5. backend-4; not installed; version unknown; not default; install\n6. backend-5; not installed; version unknown; not default; install\n7. backend-6; not installed; version unknown; not default; install\n8. backend-7; not installed; version unknown; not default; install\n9. backend-8; not installed; version unknown; not default; install\n10. backend-9; not installed; version unknown; not default; install\n11. backend-10; not installed; version unknown; not default; install\n12. backend-11; not installed; version unknown; not default; install\n13. backend-12; not installed; version unknown; not default; install\n14. backend-13; not installed; version unknown; not default; install\n15. backend-14; not installed; version unknown; not default; install\n16. backend-15; not installed; version unknown; not default; install\n17. backend-16; not installed; version unknown; not default; install\n18. backend-17; not installed; version unknown; not default; install\n19. backend-18; not installed; version unknown; not default; install\n20. backend-19; not installed; version unknown; not default; install\n+2 more backends\n3. Hardware score\nUnknown (not sourced)\n4. Controls\nCommands: ? help; q quit. Suggested commands are text only.\n"
+  },
+  {
+    "screen": "ls",
+    "input": {
+      "type": "empty"
+    },
+    "expected": "local-llmup / Active Server / Accessible\n1. Status\nNo active model.\n2. Next\nlocal-llmup up <model>\n"
+  },
+  {
+    "screen": "ls",
+    "input": {
+      "type": "active",
+      "modelId": "llama3.1:8b",
+      "backend": "ollama",
+      "endpoint": "http://127.0.0.1:11434",
+      "port": 11434,
+      "ownedByUs": true
+    },
+    "expected": "local-llmup / Active Server / Accessible\n1. Model\nllama3.1:8b\n2. Runtime\nBackend: ollama\nEndpoint: http://127.0.0.1:11434\nPort: 11434\nOwnership: owned\n"
+  },
+  {
+    "screen": "ls",
+    "input": {
+      "type": "active",
+      "modelId": "qwen3:8b",
+      "backend": "llamacpp",
+      "endpoint": "http://127.0.0.1:8080",
+      "port": 8080,
+      "ownedByUs": false
+    },
+    "expected": "local-llmup / Active Server / Accessible\n1. Model\nqwen3:8b\n2. Runtime\nBackend: llamacpp\nEndpoint: http://127.0.0.1:8080\nPort: 8080\nOwnership: attached\n"
+  },
+  {
+    "screen": "doctor",
+    "input": {
+      "ok": true,
+      "checks": [
+        {
+          "name": "check",
+          "status": "ok",
+          "detail": "é\nline\t\u001b[2J‮"
+        }
+      ],
+      "backends": [
+        {
+          "name": "ollama",
+          "installed": true,
+          "version": "v1\u0007",
+          "isDefault": true,
+          "installHint": "https://ollama.com/download"
+        }
+      ],
+      "hardwareScore": null
+    },
+    "expected": "local-llmup / Doctor / Accessible\n1. Diagnostics\n1. OK check: é\\nline  \\u{1B}[2J\\u{202E}\n2. Backends\n1. ollama; installed; version v1\\u{7}; default; https://ollama.com/download\n3. Hardware score\nUnknown (not sourced)\n4. Controls\nCommands: ? help; q quit. Suggested commands are text only.\n"
+  },
+  {
+    "screen": "doctor",
+    "input": {
+      "ok": true,
+      "checks": [
+        {
+          "name": "check",
+          "status": "ok",
+          "detail": "long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long "
+        }
+      ],
+      "backends": [
+        {
+          "name": "ollama",
+          "installed": true,
+          "version": "v1\u0007",
+          "isDefault": true,
+          "installHint": "https://ollama.com/download"
+        }
+      ],
+      "hardwareScore": null
+    },
+    "expected": "local-llmup / Doctor / Accessible\n1. Diagnostics\n1. OK check: long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long lon…\n2. Backends\n1. ollama; installed; version v1\\u{7}; default; https://ollama.com/download\n3. Hardware score\nUnknown (not sourced)\n4. Controls\nCommands: ? help; q quit. Suggested commands are text only.\n"
+  },
+  {
+    "screen": "ls",
+    "input": {
+      "type": "active",
+      "modelId": "Qwen3:8b‮",
+      "backend": "ollama",
+      "endpoint": "http://127.0.0.1:11434",
+      "port": 11434,
+      "ownedByUs": true
+    },
+    "expected": "local-llmup / Active Server / Accessible\n1. Model\n\\u{51}wen3:8b\\u{202E}\n2. Runtime\nBackend: ollama\nEndpoint: http://127.0.0.1:11434\nPort: 11434\nOwnership: owned\n"
+  },
+  {
+    "screen": "ls",
+    "input": {
+      "type": "active",
+      "modelId": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "backend": "ollama",
+      "endpoint": "http://127.0.0.1:11434",
+      "port": 11434,
+      "ownedByUs": true
+    },
+    "expected": "local-llmup / Active Server / Accessible\n1. Model\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx…\n2. Runtime\nBackend: ollama\nEndpoint: http://127.0.0.1:11434\nPort: 11434\nOwnership: owned\n"
+  }
+]

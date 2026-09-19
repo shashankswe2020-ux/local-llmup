@@ -50,6 +50,8 @@ tokio-util = { version = "0.7", features = ["rt"] }
 serde.workspace = true
 serde_json.workspace = true
 unicode-segmentation = "1"
+unicode-normalization = "0.1"
+regex = "1"
 sha2 = "0.10"
 ratatui = { version = "0.30.2", default-features = false, features = ["crossterm", "layout-cache"] }
 crossterm = { version = "0.29", features = ["event-stream"] }

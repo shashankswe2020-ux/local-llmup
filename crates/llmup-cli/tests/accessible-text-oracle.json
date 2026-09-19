@@ -1,0 +1,97 @@
+[
+  {
+    "input": "plain",
+    "line": "plain",
+    "identifier": "plain"
+  },
+  {
+    "input": "line\r\nnext\tcell",
+    "line": "line\\nnext  cell",
+    "identifier": "line\\u{D}\\u{A}next\\u{9}cell"
+  },
+  {
+    "input": "\u001b[2Jbad\u0007",
+    "line": "\\u{1B}[2Jbad\\u{7}",
+    "identifier": "\\u{1B}\\u{5B}2\\u{4A}bad\\u{7}"
+  },
+  {
+    "input": "é",
+    "line": "é",
+    "identifier": "e\\u{301}"
+  },
+  {
+    "input": "ab‮cd",
+    "line": "ab\\u{202E}cd",
+    "identifier": "ab\\u{202E}cd"
+  },
+  {
+    "input": "­؜﻿‍",
+    "line": "\\u{AD}\\u{61C}\\u{FEFF}\\u{200D}",
+    "identifier": "\\u{AD}\\u{61C}\\u{FEFF}\\u{200D}"
+  },
+  {
+    "input": "👩‍💻",
+    "line": "👩\\u{200D}💻",
+    "identifier": "\\u{1F469}\\u{200D}\\u{1F4BB}"
+  },
+  {
+    "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "line": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "identifier": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  {
+    "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "line": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "identifier": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  {
+    "input": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "line": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…",
+    "identifier": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…"
+  },
+  {
+    "input": "界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界",
+    "line": "界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界界…",
+    "identifier": "\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}\\u{754C}…"
+  },
+  {
+    "input": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\u001b",
+    "line": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\\u{1B}",
+    "identifier": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\\u{1B}"
+  },
+  {
+    "input": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+    "line": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé…",
+    "identifier": "e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e\\u{301}e…"
+  },
+  {
+    "input": "Qwen3:8b",
+    "line": "Qwen3:8b",
+    "identifier": "\\u{51}wen3:8b"
+  },
+  {
+    "input": "namespace/../model",
+    "line": "namespace/../model",
+    "identifier": "namespace/../model"
+  },
+  {
+    "input": "unsafe; $(command)",
+    "line": "unsafe; $(command)",
+    "identifier": "unsafe\\u{3B}\\u{20}\\u{24}\\u{28}command\\u{29}"
+  },
+  {
+    "input": "normal:model-tag",
+    "line": "normal:model-tag",
+    "identifier": "normal:model-tag"
+  },
+  {
+    "input": "\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}",
+    "line": "\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}\\u{1B}…",
+    "identifier": "\\u{5C}u\\u{7B}1\\u{42}\\u{7D}\\u{5C}u\\u{7B}1\\u{42}\\u{7D}\\u{5C}u\\u{7B}1\\u{42}\\u{7D}\\u{5C}u\\u{7B}1\\u{42}\\u{7D}\\u{5C}u\\u{7B}1\\u{42}\\u{7D}\\u{5C}u\\u{7B}1\\u{42}\\u{7D}\\u{5C}u\\u{7B}1\\u{42}\\u{7D}\\u{5C}u\\u{7B}1\\u{42}\\u{7D}\\u{5C}u\\u{7B}1\\u{42}\\u{7D}\\u{5C}u\\u{7B}1…"
+  },
+  {
+    "input": "👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽",
+    "line": "👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽👍🏽…",
+    "identifier": "\\u{1F44D}\\u{1F3FD}\\u{1F44D}\\u{1F3FD}\\u{1F44D}\\u{1F3FD}\\u{1F44D}\\u{1F3FD}\\u{1F44D}\\u{1F3FD}\\u{1F44D}\\u{1F3FD}\\u{1F44D}\\u{1F3FD}\\u{1F44D}\\u{1F3FD}\\u{1F44D}\\u{1F3FD}\\u{1F44D}\\u{1F3FD}\\u{1F44D}\\u{1F3FD}\\u{1F44D}\\u{1F3FD}\\u{1F44D}\\u{1F3FD}\\u{1F44D}\\u{1F3FD}…"
+  }
+]
