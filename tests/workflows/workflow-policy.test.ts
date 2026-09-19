@@ -180,6 +180,8 @@ describe("T30 workflow hardening", () => {
     expect(refresh).not.toContain("npm run catalog:refresh");
     expect(refresh).toContain("cargo catalog-freshness");
     expect(refresh).toContain("cargo catalog-coverage");
+    expect(refresh).toContain("cargo catalog-enrich");
+    expect(refresh).not.toContain("npm run catalog:enrich");
     for (const kind of ["refresh-pr", "freshness-issue", "coverage-issue", "needs-attention", "missing-count"]) {
       expect(refresh).toContain(`cargo catalog-notice ${kind} --input`);
     }

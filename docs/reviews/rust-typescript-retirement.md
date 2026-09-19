@@ -6,6 +6,13 @@ R22 is verified; the PR is not ready to claim complete migration while R23-R26 r
 
 ## Deleted After Replacement
 
+- `src/catalog/registry-collector.ts`, `scripts/catalog-enrich.ts`, and
+  `tests/catalog/registry-collector.test.ts`: replaced by native manifest parsing,
+  HTTPS transport, quant-only updates, and `cargo catalog-enrich`. Seventeen native
+  tests include eight full-catalog oracle comparisons. Failure/outage and no-op
+  runs preserve the catalog; cancellation never writes partial updates. The
+  native collector adds streamed byte limits and rejects unsafe registry path
+  coordinates before requesting them. Live/platform verification remains pending.
 - `scripts/catalog-refresh-dry-run.ts`: replaced by `cargo catalog-refresh --dry-run`.
   Tests verify exact legacy stderr counts, empty stdout, no temporary/state files,
   unchanged bytes and modification times for both no-op and nonempty diffs.

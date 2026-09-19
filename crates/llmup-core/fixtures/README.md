@@ -23,3 +23,12 @@ Do not regenerate expected output from the Rust implementation under test.
 into 21 model entries for native bootstrap. Neither file changes a curated
 dataset format. Unknown attention geometry remains absent. Native tests also
 derive every KV value independently from the former test geometry ledger.
+
+`registry-collector-parity.json` freezes eight complete `refreshCatalogQuants`
+results from the TypeScript collector at commit `01e90da`, with clock
+`2026-09-19T00:00:00.000Z`. Each case records input catalog, URL-keyed mock HTTP
+responses, and expected catalog/updated IDs. Cases cover matching manifests,
+digest-only updates, size changes, partial failure, total outage, malformed
+manifests, absent model layers, and invalid digests. No network was used to
+capture the fixture. The native test uses only its recorded transport; expected
+output must not be regenerated from the native implementation.

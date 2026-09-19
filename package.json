@@ -63,7 +63,7 @@
     "typecheck": "tsc --noEmit",
     "catalog:refresh:dry-run": "cargo catalog-refresh --dry-run",
     "catalog:refresh": "cargo catalog-refresh",
-    "catalog:enrich": "tsx scripts/catalog-enrich.ts",
+    "catalog:enrich": "cargo catalog-enrich",
     "catalog:coverage": "cargo catalog-coverage",
     "catalog:freshness": "cargo catalog-freshness",
     "bootstrap": "cargo catalog-bootstrap",

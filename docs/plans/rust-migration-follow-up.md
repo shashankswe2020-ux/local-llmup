@@ -30,7 +30,7 @@ while retaining reviewed browser JavaScript. R23-R26 are still incomplete.
   preserving exact diagnostics, source bytes, and modification times.
 - [x] Replace inline Node PR/issue body formatting and report decisions with
   `cargo catalog-notice`, retaining the workflow's permissions and GitHub actions.
-- [ ] Migrate live artifact enrichment and its remaining registry collector without
+- [x] Migrate live artifact enrichment and its remaining registry collector without
   changing curated dataset formats.
 - [ ] Finish terminal UX, capability routing, lifecycle confirmations, and PTY
   parity before retiring active CLI paths.
@@ -85,3 +85,14 @@ unsafe repository names before any output. The catalog workflow's inline Node
 formatting is removed and `actionlint` passes, resolving its former nested-shell
 quoting failure. Its write-enabled workflow was not dispatched; pushes and the
 full platform matrix remain deferred.
+
+Native `cargo catalog-enrich` now replaces the TypeScript registry collector and
+maintenance script. Four core tests, nine runtime tests, and four executable
+tests cover target-quant updates, digest-only memory preservation, total-parameter
+MoE floors, fixed HTTPS origin, streamed 4 MiB limits, per-request deadlines,
+isolated failures, cancellation, atomic writes, and no-op byte preservation.
+Eight frozen full-catalog cases match the former TypeScript output exactly after
+typed JSON normalization. `--manifest-fixture` is strictly offline and never falls
+back to live requests; `--dry-run` reports without writing. Live registry requests
+and cross-platform certification were not run in this local batch. The workflow
+still retains Node-based compatibility quality gates; it has not been dispatched.

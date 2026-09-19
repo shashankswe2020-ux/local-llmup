@@ -6,5 +6,6 @@ pub mod coverage;
 pub mod enrich;
 pub mod freshness;
 pub mod ranking;
+pub mod registry_collector;
 pub mod reports;
 pub mod sizing;

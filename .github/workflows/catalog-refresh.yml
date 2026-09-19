@@ -39,7 +39,7 @@ jobs:
           cargo catalog-refresh
 
       - name: Enrich catalog quant sizes + digests from the live registry
-        run: npm run catalog:enrich
+        run: cargo catalog-enrich
 
       - name: Audit upstream catalog coverage
         run: cargo catalog-coverage

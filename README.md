@@ -180,7 +180,7 @@ artifact metadata:
   `crates/llmup-core/fixtures/registry-snapshot.json`.
 2. **Bootstrap.** `cargo catalog-bootstrap` deterministically generates
   `data/models.json` from that pinned snapshot.
-3. **Enrich.** `npm run catalog:enrich` resolves already-curated Ollama sources
+3. **Enrich.** `cargo catalog-enrich` resolves already-curated Ollama sources
   and pins exact model-layer bytes and SHA-256 digests. It never invents or
   changes curated architecture facts.
 4. **Audit.** The weekly Catalog Freshness workflow checks snapshot drift and
@@ -196,15 +196,23 @@ candidate still requires source and metadata review.
 ```bash
 cargo catalog-bootstrap    # regenerate from the curated snapshot (requires Rust)
 cargo catalog-refresh --dry-run  # preview snapshot drift without writes
-npm run catalog:enrich     # pin exact bytes and digests for known sources
+cargo catalog-enrich      # pin exact bytes and digests for known sources
 cargo catalog-coverage    # report missing upstream repositories (requires Rust)
 cargo catalog-freshness   # report age and snapshot drift (Rust toolchain required)
 ```
 
 The workflow formats its PR/issue bodies using `cargo catalog-notice <kind>
 --input <report.json>`. This command only validates and reads the report; it does
-not contact GitHub or modify files. Live artifact enrichment and the retained
-compatibility checks still require Node during migration.
+not contact GitHub or modify files. Catalog maintenance commands are native;
+the retained compatibility checks still require Node during migration.
+
+`cargo catalog-enrich --dry-run` checks live manifests without writing the catalog.
+For offline verification, add `--manifest-fixture <file.json>`: the file maps exact
+registry manifest URLs to `{ "status": 200, "body": <manifest> }` responses.
+Unrecorded URLs behave as unavailable models and never cause a live fallback.
+Use `--catalog-path <file>` for an isolated catalog and `--now <RFC3339 timestamp>`
+for reproducible output. No-op and failed-lookups-only runs preserve source bytes;
+changed catalogs are schema-validated and written atomically.
 
 ---
 

@@ -31,6 +31,7 @@ pub mod opencode;
 pub mod process_control;
 pub mod pull;
 mod redaction;
+pub mod registry_collector;
 pub mod runs;
 pub mod secure_fs;
 pub mod sessions;

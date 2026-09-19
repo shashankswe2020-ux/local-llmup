@@ -37,6 +37,10 @@ path = "src/catalog_coverage.rs"
 name = "llmup-catalog-notice"
 path = "src/catalog_notice.rs"
 
+[[bin]]
+name = "llmup-catalog-enrich"
+path = "src/catalog_enrich.rs"
+
 [dependencies]
 llmup-core = { path = "../llmup-core" }
 llmup-runtime = { path = "../llmup-runtime" }
