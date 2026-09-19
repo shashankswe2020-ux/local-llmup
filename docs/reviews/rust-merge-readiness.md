@@ -1,5 +1,11 @@
 # Rust Merge Readiness
 
+Subsequent decision on 2026-09-19: the user explicitly authorized merging the
+intermediate foundation and continuing migration in a subsequent PR. PR #245
+merged at `c726793` without an administrative override. The findings below remain
+valid completion/release blockers; this merge did not certify a Node-free
+repository or activate production Rust routing.
+
 Status on 2026-09-19: **not merge-ready**. No PR existed for the migration branch
 when checked. No production routing switch, merge, signing exception, or release
 activation is authorized by this report.

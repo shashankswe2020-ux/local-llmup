@@ -8,6 +8,9 @@ pub mod distribution;
 pub mod performance;
 pub mod retirement;
 pub mod terminal;
+pub mod tui_chat;
+pub mod tui_mode;
+pub mod tui_view;
 
 pub const MAX_INPUT_BYTES: usize = 8 * 1024 * 1024;
 const MAX_BATCH: usize = 4096;

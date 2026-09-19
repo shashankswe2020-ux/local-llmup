@@ -65,6 +65,9 @@ fn rejects_irrelevant_flags_instead_of_ignoring_them() {
         vec!["recommend", "--all"],
         vec!["recommend", "--refresh"],
         vec!["chat", "--refresh", "--message", "hello"],
+        vec!["recommend", "--tui"],
+        vec!["recommend", "--tui", "--json"],
+        vec!["recommend", "--tui", "--no-tui"],
     ] {
         let output = Command::new(env!("CARGO_BIN_EXE_llmup-native"))
             .args(args)
@@ -75,6 +78,27 @@ fn rejects_irrelevant_flags_instead_of_ignoring_them() {
         assert!(!output.status.success());
         assert!(output.stdout.is_empty());
     }
+}
+
+#[test]
+fn plain_override_and_no_color_preserve_noninteractive_output() {
+    let run = |extra: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_llmup-native"))
+            .args(["recommend", "--hardware-json", HARDWARE])
+            .args(extra)
+            .env("PATH", "")
+            .output()
+            .unwrap()
+    };
+    let baseline = run(&[]);
+    let explicit = run(&["--no-tui", "--no-color"]);
+    assert!(
+        explicit.status.success(),
+        "{}",
+        String::from_utf8_lossy(&explicit.stderr)
+    );
+    assert_eq!(explicit.stdout, baseline.stdout);
+    assert!(!explicit.stdout.contains(&0x1b));
 }
 
 #[test]

@@ -34,7 +34,9 @@ jobs:
         run: npm ci
 
       - name: Refresh catalog from the registry snapshot
-        run: npm run catalog:refresh
+        run: |
+          rustup show active-toolchain
+          cargo catalog-refresh
 
       - name: Enrich catalog quant sizes + digests from the live registry
         run: npm run catalog:enrich

@@ -1,4 +1,5 @@
 pub mod advice;
+pub mod bootstrap;
 pub mod catalog;
 pub mod enrich;
 pub mod freshness;

@@ -176,7 +176,8 @@ describe("T30 workflow hardening", () => {
     // Refreshed catalog lands on a dedicated branch and merges through a PR;
     // there is never a direct push to the protected default branch, and never a
     // force-push (a branch-protection ruleset forbids it).
-    expect(refresh).toContain("npm run catalog:refresh");
+    expect(refresh).toContain("cargo catalog-refresh");
+    expect(refresh).not.toContain("npm run catalog:refresh");
     expect(refresh).toContain("cargo catalog-freshness");
     expect(refresh).not.toContain("npm run --silent catalog:freshness");
     expect(refresh).toContain("gh pr create");
