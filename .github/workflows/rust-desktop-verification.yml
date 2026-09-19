@@ -3,7 +3,7 @@ name: Rust Desktop Verification
 on:
   workflow_dispatch:
   push:
-    branches: [feature/rust-backend-migration]
+    branches: [feature/rust-backend-migration, feature/rust-migration-follow-up]
     paths:
       - .github/workflows/rust-desktop-verification.yml
       - rust-toolchain.toml

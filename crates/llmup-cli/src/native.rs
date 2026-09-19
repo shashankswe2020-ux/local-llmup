@@ -130,6 +130,10 @@ struct Args {
     refresh: bool,
     #[arg(long)]
     no_tui: bool,
+    #[arg(long)]
+    tui: bool,
+    #[arg(long)]
+    no_color: bool,
     #[arg(long, conflicts_with_all = ["no_tui", "json", "message"])]
     accessible: bool,
     #[arg(long, hide = true)]
@@ -214,7 +218,44 @@ struct ParityRequest {
     queries: Option<Vec<String>>,
 }
 
-async fn execute(args: Args) -> Result<u8, Box<dyn std::error::Error>> {
+async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
+    let presentation_title = args.command.clone();
+    let visual_supported = ([
+        "recommend",
+        "can-run",
+        "catalog",
+        "doctor",
+        "ls",
+        "up",
+        "switch",
+        "down",
+    ]
+    .contains(&args.command.as_str())
+        || (args.command == "chat" && args.message.is_none() && !args.json && !args.accessible))
+        && !args.parity;
+    if args.tui && !visual_supported {
+        return Err("--tui requires a native read-only command or interactive chat without --accessible, --json, or --message".into());
+    }
+    let presentation = if visual_supported {
+        Some(
+            llmup_cli::tui_mode::resolve(
+                &llmup_cli::tui_mode::Options {
+                    json: args.json,
+                    tui: args.tui,
+                    no_tui: args.no_tui,
+                    no_color: args.no_color,
+                    environment_no_color: std::env::var_os("NO_COLOR").is_some(),
+                    ..Default::default()
+                },
+                &llmup_cli::tui_mode::capture(),
+            )
+            .map_err(|reason| {
+                format!("interactive UI is incompatible with this invocation ({reason})")
+            })?,
+        )
+    } else {
+        None
+    };
     if args.refresh && (args.command != "catalog" || args.parity) {
         return Err("--refresh is only supported by catalog".into());
     }
@@ -284,6 +325,30 @@ async fn execute(args: Args) -> Result<u8, Box<dyn std::error::Error>> {
                         .is_none_or(|model| model.trim().is_empty())
                 {
                     return Err("--model is required for remote chat".into());
+                }
+                if let Some(selection) = &presentation
+                    && selection.mode == llmup_cli::tui_mode::Mode::Tui
+                {
+                    let title = format!(
+                        "{} / {}",
+                        engine.provider,
+                        engine.model.as_deref().unwrap_or("active model")
+                    );
+                    let (summary, code) =
+                        llmup_cli::tui_chat::run_chat(&title, &engine, selection.color, &cancel)
+                            .await?;
+                    println!(
+                        "Chat session ended: {} turn{}, {} memory warning{}.",
+                        summary.turns,
+                        if summary.turns == 1 { "" } else { "s" },
+                        summary.memory_warnings,
+                        if summary.memory_warnings == 1 {
+                            ""
+                        } else {
+                            "s"
+                        }
+                    );
+                    return Ok(code);
                 }
                 let signal_cancel = cancel.clone();
                 let signal = tokio::spawn(async move {
@@ -443,7 +508,13 @@ async fn execute(args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         {
             return Err("--context and --backend require recommend or can-run".into());
         }
-        if ["can-run", "up", "switch"].contains(&args.command.as_str()) && args.model.is_none() {
+        if ["can-run", "up", "switch"].contains(&args.command.as_str())
+            && args.model.is_none()
+            && (args.installed
+                || !presentation
+                    .as_ref()
+                    .is_some_and(|selection| selection.mode == llmup_cli::tui_mode::Mode::Tui))
+        {
             return Err("model is required".into());
         }
         if !["up", "switch"].contains(&args.command.as_str())
@@ -527,7 +598,11 @@ async fn execute(args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         if args.json {
             println!("{}", serde_json::to_string_pretty(&sanitized(&report))?);
         } else {
-            print!("{text}");
+            let presentation_exit =
+                present_read_only(presentation.as_ref(), &presentation_title, &text).await?;
+            if presentation_exit != 0 {
+                return Ok(presentation_exit);
+            }
         }
         return Ok(0);
     }
@@ -545,6 +620,27 @@ async fn execute(args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         .unwrap_or_else(|| include_str!("../../../data/perf.json").into());
     let catalog = Catalog::parse(&catalog_raw)?;
     let perf = PerfDataset::parse(&perf_raw)?;
+    if args.model.is_none()
+        && ["can-run", "up", "switch"].contains(&args.command.as_str())
+        && let Some(selection) = &presentation
+        && selection.mode == llmup_cli::tui_mode::Mode::Tui
+    {
+        let choices: Vec<_> = catalog
+            .models
+            .iter()
+            .map(|model| format!("{}  {}  {}", model.id, model.params, model.family))
+            .collect();
+        let (selected, code) = llmup_cli::tui_view::pick(
+            &format!("{} / choose model", args.command),
+            &choices,
+            selection.color,
+        )
+        .await?;
+        let Some(selected) = selected else {
+            return Ok(code);
+        };
+        args.model = Some(catalog.models[selected].id.clone());
+    }
     if ["up", "switch", "down"].contains(&args.command.as_str()) && !args.parity {
         let options = llmup_runtime::application::LifecycleOptions {
             command: args.command,
@@ -556,6 +652,36 @@ async fn execute(args: Args) -> Result<u8, Box<dyn std::error::Error>> {
             bypass: args.bypass,
         };
         options.validate()?;
+        if let Some(selection) = &presentation
+            && selection.mode == llmup_cli::tui_mode::Mode::Tui
+        {
+            let description = format!(
+                "Proceed: {} {} / backend {} / port {} / context {}{}",
+                options.command,
+                options.model.as_deref().unwrap_or("owned servers"),
+                options.backend.as_deref().unwrap_or("default"),
+                options
+                    .port
+                    .map_or_else(|| "default".into(), |port| port.to_string()),
+                options
+                    .context
+                    .map_or_else(|| "default".into(), |context| context.to_string()),
+                if options.bypass {
+                    " / hardware fit bypass enabled"
+                } else {
+                    ""
+                }
+            );
+            let (selected, code) = llmup_cli::tui_view::pick(
+                &format!("{} / confirm", options.command),
+                &["Cancel".into(), description],
+                selection.color,
+            )
+            .await?;
+            if selected != Some(1) {
+                return Ok(code);
+            }
+        }
         let hardware = if options.command == "down" || options.installed {
             None
         } else if let Some(raw) = args.hardware_json {
@@ -659,7 +785,11 @@ async fn execute(args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         if args.json {
             println!("{}", serde_json::to_string_pretty(&sanitized(&report))?);
         } else {
-            print!("{text}");
+            let presentation_exit =
+                present_read_only(presentation.as_ref(), &presentation_title, &text).await?;
+            if presentation_exit != 0 {
+                return Ok(presentation_exit);
+            }
         }
         return Ok(exit);
     }
@@ -772,8 +902,29 @@ async fn execute(args: Args) -> Result<u8, Box<dyn std::error::Error>> {
     } else {
         text
     };
-    std::io::stdout().lock().write_all(output.as_bytes())?;
+    let presentation_exit =
+        present_read_only(presentation.as_ref(), &presentation_title, &output).await?;
+    if presentation_exit != 0 {
+        return Ok(presentation_exit);
+    }
     Ok(exit)
+}
+
+async fn present_read_only(
+    selection: Option<&llmup_cli::tui_mode::Selection>,
+    title: &str,
+    text: &str,
+) -> Result<u8, Box<dyn std::error::Error>> {
+    if let Some(selection) = selection
+        && selection.mode == llmup_cli::tui_mode::Mode::Tui
+    {
+        let exit = llmup_cli::tui_view::show_report(title, text, selection.color).await?;
+        if exit != 0 {
+            return Ok(exit);
+        }
+    }
+    std::io::stdout().lock().write_all(text.as_bytes())?;
+    Ok(0)
 }
 
 #[tokio::main]

@@ -50,7 +50,10 @@ floating-point fields may serialize as `8192.0` instead of `8192`. Schema and nu
 meaning are unchanged. No-op refresh preserves original bytes, including formatting.
 
 The user approved Ratatui and Crossterm on 2026-09-19 for full-screen native TUI
-work. A frozen 360-case mode-selection oracle now passes in Rust. Renderer,
-workflow integration, PTY acceptance, and final dependency review remain pending.
+work. A frozen 360-case mode-selection oracle passes in Rust. Native report
+browsing, model picking, default-cancel lifecycle confirmation, and visual chat
+are implemented with buffer/controller tests and local real-PTY acceptance.
+Core RustSec and native license checks pass. Full legacy TUI parity remains open;
+see `docs/reviews/rust-terminal-progress.md` for the precise remaining gates.
 The requested deep CLI/TUI/GUI/desktop performance report is a separate completion
 gate after migration; startup-only measurements do not fulfill it.
