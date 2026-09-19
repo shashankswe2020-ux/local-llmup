@@ -76,6 +76,7 @@ fn run_command(
     let deadline = Instant::now() + Duration::from_secs(15);
     let mut output = Vec::new();
     let mut sent = false;
+    let mut answered_cursor_queries = 0;
     let exit = loop {
         assert!(
             Instant::now() < deadline,
@@ -92,6 +93,15 @@ fn run_command(
             }
         }
         assert!(output.len() < 1024 * 1024);
+        let cursor_queries = output
+            .windows(4)
+            .filter(|bytes| *bytes == b"\x1b[6n")
+            .count();
+        while answered_cursor_queries < cursor_queries {
+            writer.write_all(b"\x1b[1;1R").unwrap();
+            writer.flush().unwrap();
+            answered_cursor_queries += 1;
+        }
         if !sent && output.windows(8).any(|bytes| bytes == b"\x1b[?1049h") {
             if let Some(keys) = keys {
                 writer.write_all(keys).unwrap();
