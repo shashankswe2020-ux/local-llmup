@@ -29,6 +29,10 @@ path = "src/catalog_bootstrap.rs"
 name = "llmup-catalog-refresh"
 path = "src/catalog_refresh.rs"
 
+[[bin]]
+name = "llmup-catalog-coverage"
+path = "src/catalog_coverage.rs"
+
 [dependencies]
 llmup-core = { path = "../llmup-core" }
 llmup-runtime = { path = "../llmup-runtime" }

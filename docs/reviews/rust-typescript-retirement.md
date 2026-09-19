@@ -6,6 +6,13 @@ R22 is verified; the PR is not ready to claim complete migration while R23-R26 r
 
 ## Deleted After Replacement
 
+- `src/catalog/coverage.ts`, `scripts/catalog-coverage.ts`, and
+  `tests/catalog/coverage.test.ts`: replaced by native coverage parsing, monitoring,
+  fixed-source bounded HTTPS collection, and JSON/text/summary reporting. Five
+  offline differential reports matched before deletion; ten native tests cover
+  parser/comparison, body limits/status/cancellation, output contracts, and safe
+  report writes. Use `cargo catalog-coverage --inventory-path <file>` for offline
+  verification. Missing repositories are alerts only, never auto-admitted.
 - `src/catalog/bootstrap.ts`, `scripts/bootstrap-catalog.ts`, and
   `tests/catalog/bootstrap.test.ts`: replaced by native bootstrap, frozen full
   oracle comparisons, independent geometry tests, and atomic CLI write tests.

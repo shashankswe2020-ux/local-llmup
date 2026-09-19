@@ -196,7 +196,7 @@ candidate still requires source and metadata review.
 ```bash
 cargo catalog-bootstrap    # regenerate from the curated snapshot (requires Rust)
 npm run catalog:enrich     # pin exact bytes and digests for known sources
-npm run catalog:coverage   # report missing upstream repositories
+cargo catalog-coverage    # report missing upstream repositories (requires Rust)
 cargo catalog-freshness   # report age and snapshot drift (Rust toolchain required)
 ```
 

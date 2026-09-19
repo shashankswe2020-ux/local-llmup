@@ -5,6 +5,7 @@ pub mod application;
 pub mod chat_service;
 pub mod command;
 pub mod context;
+pub mod coverage;
 pub mod diagnostics;
 pub mod hardware;
 pub mod harness;

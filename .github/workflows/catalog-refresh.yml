@@ -42,7 +42,7 @@ jobs:
         run: npm run catalog:enrich
 
       - name: Audit upstream catalog coverage
-        run: npm run --silent catalog:coverage
+        run: cargo catalog-coverage
 
       - name: Catalog freshness report
         run: |

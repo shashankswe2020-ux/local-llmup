@@ -64,7 +64,7 @@
     "catalog:refresh:dry-run": "tsx scripts/catalog-refresh-dry-run.ts",
     "catalog:refresh": "cargo catalog-refresh",
     "catalog:enrich": "tsx scripts/catalog-enrich.ts",
-    "catalog:coverage": "tsx scripts/catalog-coverage.ts",
+    "catalog:coverage": "cargo catalog-coverage",
     "catalog:freshness": "cargo catalog-freshness",
     "bootstrap": "cargo catalog-bootstrap",
     "tui:dependency-policy": "tsx scripts/tui-dependency-policy.ts",

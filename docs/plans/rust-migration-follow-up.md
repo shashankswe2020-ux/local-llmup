@@ -21,6 +21,11 @@ while retaining reviewed browser JavaScript. R23-R26 are still incomplete.
   frozen-oracle parity, then replace the write command and retire its TS callers.
 - [x] Replace incremental catalog write mode with `cargo catalog-refresh`;
   unchanged input is preserved byte-for-byte and changed catalogs use atomic writes.
+- [x] Replace catalog coverage collection/reporting with `cargo catalog-coverage`;
+  offline inventories support repeatable verification and the live source remains
+  fixed HTTPS with redirects refused, 15-second deadline, and a streamed 1 MiB bound.
+- [x] Add native cooked model selection and default-cancel review to accessible
+  lifecycle commands, with shared input, 256-byte answers, and cancellation tests.
 - [ ] Migrate remaining catalog refresh writes, live collectors, coverage reports,
   and maintenance issue rendering without changing curated dataset formats.
 - [ ] Finish terminal UX, capability routing, lifecycle confirmations, and PTY
@@ -57,3 +62,13 @@ Core RustSec and native license checks pass. Full legacy TUI parity remains open
 see `docs/reviews/rust-terminal-progress.md` for the precise remaining gates.
 The requested deep CLI/TUI/GUI/desktop performance report is a separate completion
 gate after migration; startup-only measurements do not fulfill it.
+
+## Verification Cadence
+
+The user requested batching remote CI after implementation work. Continue focused
+local validation after each edit; do not launch or wait for the full matrix on
+each increment. Keep changes local until the next agreed verification batch.
+No merge or release is authorized. The coverage migration matched five offline
+TypeScript reports before deletion and has four core, three response-boundary,
+and three executable tests. Its actual live request and platform certification
+remain unrun in this batch. No model dataset or memory-store layout changed.

@@ -179,6 +179,8 @@ describe("T30 workflow hardening", () => {
     expect(refresh).toContain("cargo catalog-refresh");
     expect(refresh).not.toContain("npm run catalog:refresh");
     expect(refresh).toContain("cargo catalog-freshness");
+    expect(refresh).toContain("cargo catalog-coverage");
+    expect(refresh).not.toContain("npm run --silent catalog:coverage");
     expect(refresh).not.toContain("npm run --silent catalog:freshness");
     expect(refresh).toContain("gh pr create");
     expect(refresh).toContain("catalog/auto-refresh");
