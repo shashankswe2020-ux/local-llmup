@@ -7,6 +7,18 @@ use std::{
 
 const HARDWARE: &str = r#"{"arch":"x64","platform":"linux","totalRamBytes":68719476736,"freeRamBytes":60000000000,"freeDiskBytes":500000000000,"gpu":[{"vendor":"nvidia","vramBytes":25769803776}]}"#;
 
+fn entered(output: &str) -> bool {
+    output.contains(if cfg!(windows) {
+        "\x1b[?2004h"
+    } else {
+        "\x1b[?1049h"
+    })
+}
+
+fn restored(output: &str) -> bool {
+    output.contains("\x1b[?2004l") && (cfg!(windows) || output.contains("\x1b[?1049l"))
+}
+
 struct Cleanup(Box<dyn portable_pty::Child + Send + Sync>);
 impl Drop for Cleanup {
     fn drop(&mut self) {
@@ -102,7 +114,7 @@ fn run_command(
             writer.flush().unwrap();
             answered_cursor_queries += 1;
         }
-        if !sent && output.windows(8).any(|bytes| bytes == b"\x1b[?1049h") {
+        if !sent && entered(&String::from_utf8_lossy(&output)) {
             if let Some(keys) = keys {
                 writer.write_all(keys).unwrap();
                 writer.flush().unwrap();
@@ -127,8 +139,8 @@ fn run_command(
 fn visual_report_accepts_search_and_restores_terminal_on_exit() {
     let (exit, output) = run(&["--tui"], 80, 24, Some(b"/qwen\rn\x1b[Bq"));
     assert_eq!(exit, 0, "{output}");
-    assert!(output.contains("\x1b[?1049h"));
-    assert!(output.contains("\x1b[?1049l"));
+    assert!(entered(&output));
+    assert!(restored(&output));
     assert!(output.contains("recommend"));
 }
 
@@ -136,25 +148,25 @@ fn visual_report_accepts_search_and_restores_terminal_on_exit() {
 fn small_terminal_falls_back_but_explicit_request_fails_before_rendering() {
     let (exit, output) = run(&[], 40, 10, None);
     assert_eq!(exit, 0, "{output}");
-    assert!(!output.contains("\x1b[?1049h"));
+    assert!(!entered(&output));
     let (exit, output) = run(&["--tui"], 40, 10, None);
     assert_ne!(exit, 0);
     assert!(output.contains("terminal_width"));
-    assert!(!output.contains("\x1b[?1049h"));
+    assert!(!entered(&output));
 }
 
 #[test]
 fn raw_control_c_restores_terminal_and_returns_130() {
     let (exit, output) = run(&["--tui"], 80, 24, Some(&[3]));
     assert_eq!(exit, 130, "{output}");
-    assert!(output.contains("\x1b[?1049l"));
+    assert!(restored(&output));
 }
 
 #[test]
 fn visual_chat_can_exit_without_runtime_or_state_access() {
     let (exit, output) = run_command("chat", &["--tui"], 80, 24, Some(b"\x1b"));
     assert_eq!(exit, 0, "{output}");
-    assert!(output.contains("\x1b[?1049l"));
+    assert!(restored(&output));
     assert!(output.contains("Chat session ended: 0 turns, 0 memory warnings."));
 }
 
@@ -168,6 +180,6 @@ fn model_picker_and_lifecycle_confirmation_cancel_before_side_effects() {
     ] {
         let (exit, output) = run_command(name, &extra, 80, 24, Some(b"\x1b"));
         assert_eq!(exit, 0, "{name}: {output}");
-        assert!(output.contains("\x1b[?1049l"), "{name}: {output}");
+        assert!(restored(&output), "{name}: {output}");
     }
 }
