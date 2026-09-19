@@ -338,6 +338,12 @@ production switch remain checkpoint 6; bundle generation is deliberately disable
 
 ### Merge Acceptance (2026-09-19)
 
+Superseded for the foundation PR: the user subsequently requested an intermediate
+merge and continuation in a separate PR. PR #245 merged at `c726793` on
+2026-09-19 with the incomplete retirement gate explicitly disclosed. The no-Node
+end state below still applies to completion of the migration, not to that
+authorized intermediate merge. See `rust-migration-follow-up.md` for the next work.
+
 The user's merge requirement is a complete Rust migration with no remaining Node
 code, not a partial cutover followed by cleanup after merge. `cargo native-retirement`
 is a strict inventory check and currently fails with 326 file-level blockers
