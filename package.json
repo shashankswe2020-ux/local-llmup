@@ -61,7 +61,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "catalog:refresh:dry-run": "tsx scripts/catalog-refresh-dry-run.ts",
+    "catalog:refresh:dry-run": "cargo catalog-refresh --dry-run",
     "catalog:refresh": "cargo catalog-refresh",
     "catalog:enrich": "tsx scripts/catalog-enrich.ts",
     "catalog:coverage": "cargo catalog-coverage",

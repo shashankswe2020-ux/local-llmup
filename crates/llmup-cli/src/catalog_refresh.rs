@@ -19,6 +19,8 @@ struct Args {
     catalog_path: PathBuf,
     #[arg(long)]
     now: Option<String>,
+    #[arg(long)]
+    dry_run: bool,
 }
 
 fn run(args: Args) -> Result<(), Box<dyn Error>> {
@@ -42,7 +44,11 @@ fn run(args: Args) -> Result<(), Box<dyn Error>> {
         .map(Ok)
         .unwrap_or_else(llmup_runtime::native_chat::timestamp)?;
     let result = enrich(&catalog, &candidates, Mode::Incremental, &now, None)?;
-    if serde_json::to_value(&catalog)? != serde_json::to_value(&result.catalog)? {
+    if args.dry_run {
+        if directory.read(name, 16 * 1024 * 1024, false)? != original {
+            return Err(io::Error::other("catalog changed during refresh dry-run").into());
+        }
+    } else if serde_json::to_value(&catalog)? != serde_json::to_value(&result.catalog)? {
         let encoded = format!("{}\n", serde_json::to_string_pretty(&result.catalog)?);
         Catalog::parse(&encoded)?;
         if directory.read(name, 16 * 1024 * 1024, false)? != original {
@@ -54,7 +60,8 @@ fn run(args: Args) -> Result<(), Box<dyn Error>> {
     }
     let diff = result.diff;
     eprintln!(
-        "catalog-refresh: added={} updated={} removed={} skipped={} capped={}",
+        "catalog-refresh{}: added={} updated={} removed={} skipped={} capped={}",
+        if args.dry_run { " dry-run" } else { "" },
         diff.added.len(),
         diff.updated.len(),
         diff.removed.len(),
