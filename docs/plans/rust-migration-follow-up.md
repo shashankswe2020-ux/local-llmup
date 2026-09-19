@@ -26,8 +26,12 @@ while retaining reviewed browser JavaScript. R23-R26 are still incomplete.
   fixed HTTPS with redirects refused, 15-second deadline, and a streamed 1 MiB bound.
 - [x] Add native cooked model selection and default-cancel review to accessible
   lifecycle commands, with shared input, 256-byte answers, and cancellation tests.
-- [ ] Migrate remaining catalog refresh writes, live collectors, coverage reports,
-  and maintenance issue rendering without changing curated dataset formats.
+- [x] Replace the maintenance dry-run script with `cargo catalog-refresh --dry-run`,
+  preserving exact diagnostics, source bytes, and modification times.
+- [x] Replace inline Node PR/issue body formatting and report decisions with
+  `cargo catalog-notice`, retaining the workflow's permissions and GitHub actions.
+- [ ] Migrate live artifact enrichment and its remaining registry collector without
+  changing curated dataset formats.
 - [ ] Finish terminal UX, capability routing, lifecycle confirmations, and PTY
   parity before retiring active CLI paths.
 - [ ] Replace Node browser verification and remaining tooling; rerun the strict
@@ -72,3 +76,12 @@ No merge or release is authorized. The coverage migration matched five offline
 TypeScript reports before deletion and has four core, three response-boundary,
 and three executable tests. Its actual live request and platform certification
 remain unrun in this batch. No model dataset or memory-store layout changed.
+
+The next local increment adds two compiled dry-run tests, four exact notice-core
+tests, and four notice executable tests. The native producer-to-notice pipeline
+runs offline with an empty PATH. Reports are bounded to 1 MiB and reject malformed
+timestamps, inconsistent counts/flags, unexpected sources, duplicate names, and
+unsafe repository names before any output. The catalog workflow's inline Node
+formatting is removed and `actionlint` passes, resolving its former nested-shell
+quoting failure. Its write-enabled workflow was not dispatched; pushes and the
+full platform matrix remain deferred.

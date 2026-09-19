@@ -4,5 +4,6 @@ catalog-freshness = "run --quiet --locked -p llmup-cli --bin llmup-catalog-fresh
 catalog-bootstrap = "run --quiet --locked -p llmup-cli --bin llmup-catalog-bootstrap --"
 catalog-refresh = "run --quiet --locked -p llmup-cli --bin llmup-catalog-refresh --"
 catalog-coverage = "run --quiet --locked -p llmup-cli --bin llmup-catalog-coverage --"
+catalog-notice = "run --quiet --locked -p llmup-cli --bin llmup-catalog-notice --"
 native-performance = "run --quiet --locked --release -p llmup-cli --example native-performance --"
 native-retirement = "run --quiet --locked -p llmup-cli --example retirement-check --"

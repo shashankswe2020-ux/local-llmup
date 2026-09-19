@@ -195,10 +195,16 @@ candidate still requires source and metadata review.
 
 ```bash
 cargo catalog-bootstrap    # regenerate from the curated snapshot (requires Rust)
+cargo catalog-refresh --dry-run  # preview snapshot drift without writes
 npm run catalog:enrich     # pin exact bytes and digests for known sources
 cargo catalog-coverage    # report missing upstream repositories (requires Rust)
 cargo catalog-freshness   # report age and snapshot drift (Rust toolchain required)
 ```
+
+The workflow formats its PR/issue bodies using `cargo catalog-notice <kind>
+--input <report.json>`. This command only validates and reads the report; it does
+not contact GitHub or modify files. Live artifact enrichment and the retained
+compatibility checks still require Node during migration.
 
 ---
 

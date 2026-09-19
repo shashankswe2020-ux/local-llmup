@@ -6,6 +6,14 @@ R22 is verified; the PR is not ready to claim complete migration while R23-R26 r
 
 ## Deleted After Replacement
 
+- `scripts/catalog-refresh-dry-run.ts`: replaced by `cargo catalog-refresh --dry-run`.
+  Tests verify exact legacy stderr counts, empty stdout, no temporary/state files,
+  unchanged bytes and modification times for both no-op and nonempty diffs.
+- Five inline Node blocks in the catalog workflow: replaced by the native
+  `catalog-notice` formatter for PR/freshness/coverage bodies and attention/count
+  decisions. Exact body and native report pipeline tests pass. Report validation
+  precedes PR branch mutations; shell/YAML lint now passes. GitHub publishing
+  remains in the unchanged workflow steps and was not executed during testing.
 - `src/catalog/coverage.ts`, `scripts/catalog-coverage.ts`, and
   `tests/catalog/coverage.test.ts`: replaced by native coverage parsing, monitoring,
   fixed-source bounded HTTPS collection, and JSON/text/summary reporting. Five

@@ -33,6 +33,10 @@ path = "src/catalog_refresh.rs"
 name = "llmup-catalog-coverage"
 path = "src/catalog_coverage.rs"
 
+[[bin]]
+name = "llmup-catalog-notice"
+path = "src/catalog_notice.rs"
+
 [dependencies]
 llmup-core = { path = "../llmup-core" }
 llmup-runtime = { path = "../llmup-runtime" }

@@ -75,26 +75,13 @@ jobs:
           # branch-protection ruleset that blocks force-pushes is never tripped.
           BRANCH="catalog/auto-refresh-${GITHUB_RUN_ID}"
           TITLE="chore(catalog): weekly automated refresh"
+          BODY=$(cargo catalog-notice refresh-pr --input catalog-freshness.json)
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
           git add data/models.json
           git commit -m "$TITLE"
           git push origin "$BRANCH"
-
-          BODY=$(node -e "
-            const r = require('./catalog-freshness.json');
-            const lines = [
-              'Automated weekly refresh of \`data/models.json\` — quant disk sizes and content digests refreshed from the live registry (curated fields untouched).',
-              '',
-              '- generated: ' + r.generatedAt,
-              '',
-              'Typecheck, lint, build, and the full test suite passed on this branch. Review the model changes before merging.',
-              '',
-              '_Opened automatically by the Catalog Freshness workflow._',
-            ];
-            process.stdout.write(lines.join('\n'));
-          ")
 
           # Supersede any previous open auto-refresh PR so only the latest stands.
           for number in $(gh pr list --state open --search "$TITLE in:title" --json number --jq '.[].number'); do
@@ -108,28 +95,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          NEEDS=$(node -e "process.stdout.write(String(require('./catalog-freshness.json').needsAttention))")
+          NEEDS=$(cargo catalog-notice needs-attention --input catalog-freshness.json)
           if [ "$NEEDS" != "true" ]; then
             echo "Catalog is fresh and in sync — nothing to do."
             exit 0
           fi
 
           TITLE="Catalog freshness: refresh needed"
-          BODY=$(node -e "
-            const r = require('./catalog-freshness.json');
-            const lines = [
-              'The catalog is stale but the committed registry snapshot yields no drift — a maintainer needs to add newer entries to the snapshot.',
-              '',
-              '- generated: ' + r.generatedAt,
-              '- age: ' + r.ageDays + ' day(s) (stale after ' + r.staleAfterDays + ')',
-              '- status: ' + r.status,
-              '',
-              'Update \`crates/llmup-core/fixtures/registry-snapshot.json\` with new pinned model entries; the next weekly run will open a refresh PR.',
-              '',
-              '_Filed automatically by the Catalog Freshness workflow._',
-            ];
-            process.stdout.write(lines.join('\n'));
-          ")
+          BODY=$(cargo catalog-notice freshness-issue --input catalog-freshness.json)
 
           EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
           if [ -n "$EXISTING" ]; then
@@ -145,7 +118,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TITLE="Catalog coverage: upstream models missing"
-          MISSING=$(node -e "process.stdout.write(String(require('./catalog-coverage.json').missing.length))")
+          MISSING=$(cargo catalog-notice missing-count --input catalog-coverage.json)
           EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
 
           if [ "$MISSING" = "0" ]; then
@@ -156,27 +129,7 @@ jobs:
             exit 0
           fi
 
-          BODY=$(node -e "
-            const r = require('./catalog-coverage.json');
-            const lines = [
-              'The curated catalog does not represent every repository in Ollama’s monitored local-model inventory.',
-              '',
-              '- upstream repositories: ' + r.upstreamCount,
-              '- covered repositories: ' + r.coveredCount,
-              '- missing repositories: ' + r.missing.length,
-              '- source: ' + r.source,
-              '',
-              'Missing candidates:',
-              '',
-              ...r.missing.map(name => '- \\`' + name + '\\`'),
-              '',
-                'These are discovery candidates only. Verify license, architecture, context, capabilities, quantization, and source metadata before adding an entry to \\`crates/llmup-core/fixtures/registry-snapshot.json\\`.',
-                'This repository-level audit cannot detect missing variants inside a repository that is already represented because Ollama does not expose a public tag-enumeration endpoint.',
-              '',
-              '_Updated automatically by the Catalog Freshness workflow._',
-            ];
-            process.stdout.write(lines.join('\\n'));
-          ")
+          BODY=$(cargo catalog-notice coverage-issue --input catalog-coverage.json)
 
           if [ -n "$EXISTING" ]; then
             echo "Updating existing coverage issue #$EXISTING"

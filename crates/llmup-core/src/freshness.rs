@@ -1,10 +1,11 @@
 use crate::enrich::EnrichDiff;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 pub const STALE_AFTER_DAYS: u64 = 7;
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct DriftCounts {
     pub added: usize,
     pub updated: usize,
@@ -13,15 +14,15 @@ pub struct DriftCounts {
     pub capped: usize,
 }
 
-#[derive(PartialEq, Eq, Serialize)]
+#[derive(PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Status {
     Fresh,
     Stale,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Report {
     pub generated_at: String,
     pub age_days: u64,
