@@ -70,6 +70,7 @@ jobs:
       - name: Native build
         run: |
           cargo build --workspace --locked
+          cargo build --locked -p llmup-cli --example dialog-smoke
           cargo build --manifest-path apps/desktop/src-tauri/Cargo.toml --locked
       - name: Real desktop WebView smoke
         env:
@@ -97,9 +98,9 @@ jobs:
           NO_AT_BRIDGE: "0"
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            xvfb-run -a dbus-run-session -- node scripts/rust-dialog-smoke.mjs
+            xvfb-run -a dbus-run-session -- target/debug/examples/dialog-smoke
           else
-            node scripts/rust-dialog-smoke.mjs
+            target/debug/examples/dialog-smoke.exe
           fi
       - name: Native HTTP and browser journeys
         run: npm run rust:gui:e2e

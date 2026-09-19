@@ -3,6 +3,7 @@ use serde::Serialize;
 use std::io::{Read, Write};
 
 pub mod cancellation;
+pub mod dialog_smoke;
 pub mod distribution;
 pub mod performance;
 pub mod retirement;
