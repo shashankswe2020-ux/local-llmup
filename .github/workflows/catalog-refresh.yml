@@ -43,7 +43,9 @@ jobs:
         run: npm run --silent catalog:coverage
 
       - name: Catalog freshness report
-        run: npm run --silent catalog:freshness
+        run: |
+          rustup show active-toolchain
+          cargo catalog-freshness
 
       - name: Detect catalog changes
         id: diff

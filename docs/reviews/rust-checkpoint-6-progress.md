@@ -62,8 +62,44 @@ The 917-line TypeScript registry snapshot was deleted after every retained calle
 moved to the same validated JSON in `crates/llmup-core/fixtures/`. This is not a
 format change to either curated dataset. The temporary compatibility package
 includes that JSON, and retained bootstrap/freshness/refresh scripts still work.
-Those maintenance scripts and live enrichment collectors are not yet retired.
+The refresh slice passed native macOS, Linux, and Windows verification at commit
+`d54799b` in run
+[35360845094](https://github.com/shashankswe2020-ux/local-llmup/actions/runs/35360845094).
 Native build/tests do not require Node or npm.
+
+### Native Catalog Freshness
+
+The freshness script and computation are now replaced by:
+
+```sh
+cargo catalog-freshness --json
+```
+
+The command reads the current `data/models.json` (not a compiled catalog copy),
+evaluates incremental drift against the embedded snapshot, writes
+`catalog-freshness.json`, prints the human report on stderr, and appends to
+`GITHUB_STEP_SUMMARY` when set. `--catalog-path`, `--out`, and `--now` allow explicit
+input/output paths and reproducible evaluation. Staleness is an alert, not a
+nonzero exit; invalid input or failed I/O exits unsuccessfully without inventing
+an age. Output files are written atomically, symlinked files are rejected, and
+report/summary paths cannot collide with the source catalog or each other.
+
+Four core tests preserve all eleven retired TypeScript test contracts, including
+whole-day age, clock skew, strict threshold boundaries, individual drift kinds,
+and exact report text/JSON. Four executable tests additionally cover empty-PATH
+operation, live/custom catalog paths, both report channels, repeated runs,
+summary preservation, invalid inputs, collisions, and Unix symlink rejection.
+Before deletion, three complete JSON/text reports matched the TypeScript oracle
+byte for byte at past, current, and future evaluation clocks.
+
+The weekly workflow now calls Cargo for freshness only. Bootstrap, refresh writes,
+live enrichment, coverage collection, and issue rendering still use Node. The
+freshness module, script, and migrated tests were deleted after native verification.
+Full native format/Clippy/test/build gates and retained lint/typecheck/build plus
+2,025 tests and coverage thresholds pass locally. `actionlint` still reports
+pre-existing escaped-backtick shell errors in the untouched coverage-issue block;
+running it against the committed parent reproduces the same diagnostics. The
+write-enabled weekly workflow was not dispatched during verification.
 
 ### Private Native Package
 

@@ -6,6 +6,12 @@ R22 is verified; the PR is not ready to claim complete migration while R23-R26 r
 
 ## Deleted After Replacement
 
+- `src/catalog/freshness.ts`, `scripts/catalog-freshness.ts`, and
+  `tests/catalog/freshness.test.ts`: replaced by the native freshness core and
+  `cargo catalog-freshness`. All eleven former test contracts are covered by
+  four core tests, with four executable safety/output tests. Three full reports
+  matched the retained oracle byte for byte before deletion. The weekly workflow
+  invokes Cargo directly; the transitional npm alias delegates to the same command.
 - `src/catalog/registry-snapshot.ts`: 66 unchanged records moved to the shared
   JSON snapshot under `crates/llmup-core/fixtures/`. Native `catalog --refresh`
   embeds and validates it; retained maintenance callers use a validated loader.
@@ -64,4 +70,5 @@ npm installation, not that every remaining repository workflow has been retired.
 Deletion policy: prove a replacement's behavior, migrate its callers/tests, remove
 the old implementation, then run checks. Do not delete a failing test or an active
 entry point to manufacture a passing migration. No production cutover, release,
-commit, or push was performed for these local retirement changes.
+or merge has occurred. Verified migration slices are committed and pushed only
+to the authorized feature branch for native platform verification.

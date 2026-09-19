@@ -354,7 +354,11 @@ not release activation or production routing changes.
   Native `catalog --refresh` is now complete as an offline read-only dry-run:
   90 enrichment oracle cases and four complete CLI text goldens pass. The shared
   JSON snapshot replaces the deleted TypeScript snapshot source. Native live
-  registry collection and maintenance automation remain separate unfinished work.
+  registry collection and most maintenance automation remain unfinished work.
+  Freshness reporting now runs through `cargo catalog-freshness`, with exact
+  retained report parity, eight native tests, and its former TypeScript module,
+  script, and tests retired. Bootstrap, refresh writes, collectors, and issue
+  rendering remain to migrate.
 - R24: The superseded npm preview generator has been deleted. `cargo native-dist
   package` builds native CLI/GUI executables and an unsigned checksummed archive
   with license notices; `cargo native-dist verify <directory>` checks its manifest.

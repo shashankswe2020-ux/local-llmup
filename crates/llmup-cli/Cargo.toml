@@ -17,6 +17,10 @@ path = "src/native.rs"
 name = "llmup-dist"
 path = "src/dist.rs"
 
+[[bin]]
+name = "llmup-catalog-freshness"
+path = "src/catalog_freshness.rs"
+
 [dependencies]
 llmup-core = { path = "../llmup-core" }
 llmup-runtime = { path = "../llmup-runtime" }
