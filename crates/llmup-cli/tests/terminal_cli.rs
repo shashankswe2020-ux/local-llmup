@@ -43,6 +43,9 @@ fn incompatible_modes_and_missing_remote_model_fail_before_work() {
         vec!["chat", "--accessible", "--message", "hello"],
         vec!["recommend", "--accessible"],
         vec!["chat", "--harness", "openai"],
+        vec!["up", "llama3.1:8b", "--accessible", "--json"],
+        vec!["down", "--accessible", "--no-tui"],
+        vec!["down", "--accessible"],
     ] {
         let output = Command::new(env!("CARGO_BIN_EXE_llmup-native"))
             .args(args)

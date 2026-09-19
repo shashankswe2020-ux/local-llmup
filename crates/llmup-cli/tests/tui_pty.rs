@@ -38,6 +38,17 @@ fn run_command(
     rows: u16,
     keys: Option<&[u8]>,
 ) -> (u32, String) {
+    run_scripted(name, extra, columns, rows, keys, &[])
+}
+
+fn run_scripted(
+    name: &str,
+    extra: &[&str],
+    columns: u16,
+    rows: u16,
+    keys: Option<&[u8]>,
+    answers: &[(&str, &[u8])],
+) -> (u32, String) {
     let home = tempfile::tempdir().unwrap();
     let pair = native_pty_system()
         .openpty(PtySize {
@@ -89,6 +100,7 @@ fn run_command(
     let mut output = Vec::new();
     let mut sent = false;
     let mut answered_cursor_queries = 0;
+    let mut answered_prompts = 0;
     let exit = loop {
         assert!(
             Instant::now() < deadline,
@@ -113,6 +125,13 @@ fn run_command(
             writer.write_all(b"\x1b[1;1R").unwrap();
             writer.flush().unwrap();
             answered_cursor_queries += 1;
+        }
+        if let Some((prompt, answer)) = answers.get(answered_prompts)
+            && String::from_utf8_lossy(&output).contains(prompt)
+        {
+            writer.write_all(answer).unwrap();
+            writer.flush().unwrap();
+            answered_prompts += 1;
         }
         if !sent && entered(&String::from_utf8_lossy(&output)) {
             if let Some(keys) = keys {
@@ -182,4 +201,57 @@ fn model_picker_and_lifecycle_confirmation_cancel_before_side_effects() {
         assert_eq!(exit, 0, "{name}: {output}");
         assert!(restored(&output), "{name}: {output}");
     }
+}
+
+#[test]
+fn accessible_lifecycle_defaults_to_cancel_without_raw_mode_or_state() {
+    for (name, args) in [
+        ("up", vec!["llama3.1:8b", "--accessible"]),
+        ("switch", vec!["llama3.1:8b", "--accessible"]),
+        ("down", vec!["--accessible"]),
+    ] {
+        let (exit, output) = run_scripted(
+            name,
+            &args,
+            40,
+            10,
+            None,
+            &[("Choose 1 or 2, then press Enter:", b"\r")],
+        );
+        assert_eq!(exit, 0, "{name}: {output}");
+        assert!(output.contains("1. Cancel (default)"));
+        assert!(!entered(&output));
+    }
+}
+
+#[test]
+fn accessible_model_choice_and_review_share_one_cooked_input_reader() {
+    let (exit, output) = run_scripted(
+        "up",
+        &["--accessible"],
+        40,
+        10,
+        None,
+        &[
+            ("Enter a model number, or q to cancel.", b"1\r"),
+            ("Choose 1 or 2, then press Enter:", b"1\r"),
+        ],
+    );
+    assert_eq!(exit, 0, "{output}");
+    assert!(output.contains("Confirm activation"));
+    assert!(!entered(&output));
+}
+
+#[test]
+fn accessible_confirmation_control_c_exits_130_without_state() {
+    let (exit, output) = run_scripted(
+        "down",
+        &["--accessible"],
+        40,
+        10,
+        None,
+        &[("Choose 1 or 2, then press Enter:", &[3])],
+    );
+    assert_eq!(exit, 130, "{output}");
+    assert!(!entered(&output));
 }

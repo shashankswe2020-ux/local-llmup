@@ -244,6 +244,7 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
                     tui: args.tui,
                     no_tui: args.no_tui,
                     no_color: args.no_color,
+                    accessible: args.accessible,
                     environment_no_color: std::env::var_os("NO_COLOR").is_some(),
                     ..Default::default()
                 },
@@ -259,8 +260,8 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
     if args.refresh && (args.command != "catalog" || args.parity) {
         return Err("--refresh is only supported by catalog".into());
     }
-    if args.accessible && args.command != "chat" {
-        return Err("--accessible currently requires chat".into());
+    if args.accessible && !["chat", "up", "switch", "down"].contains(&args.command.as_str()) {
+        return Err("--accessible currently requires chat or a lifecycle command".into());
     }
     if args.command != "chat"
         && (args.chat_model.is_some()
@@ -511,9 +512,12 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         if ["can-run", "up", "switch"].contains(&args.command.as_str())
             && args.model.is_none()
             && (args.installed
-                || !presentation
-                    .as_ref()
-                    .is_some_and(|selection| selection.mode == llmup_cli::tui_mode::Mode::Tui))
+                || !presentation.as_ref().is_some_and(|selection| {
+                    matches!(
+                        selection.mode,
+                        llmup_cli::tui_mode::Mode::Tui | llmup_cli::tui_mode::Mode::Accessible
+                    )
+                }))
         {
             return Err("model is required".into());
         }
@@ -620,22 +624,45 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         .unwrap_or_else(|| include_str!("../../../data/perf.json").into());
     let catalog = Catalog::parse(&catalog_raw)?;
     let perf = PerfDataset::parse(&perf_raw)?;
+    let mut cooked_input = None;
     if args.model.is_none()
         && ["can-run", "up", "switch"].contains(&args.command.as_str())
         && let Some(selection) = &presentation
-        && selection.mode == llmup_cli::tui_mode::Mode::Tui
+        && matches!(
+            selection.mode,
+            llmup_cli::tui_mode::Mode::Tui | llmup_cli::tui_mode::Mode::Accessible
+        )
     {
         let choices: Vec<_> = catalog
             .models
             .iter()
-            .map(|model| format!("{}  {}  {}", model.id, model.params, model.family))
+            .map(|model| {
+                if selection.mode == llmup_cli::tui_mode::Mode::Accessible {
+                    model.id.clone()
+                } else {
+                    format!("{}  {}  {}", model.id, model.params, model.family)
+                }
+            })
             .collect();
-        let (selected, code) = llmup_cli::tui_view::pick(
-            &format!("{} / choose model", args.command),
-            &choices,
-            selection.color,
-        )
-        .await?;
+        let (selected, code) = if selection.mode == llmup_cli::tui_mode::Mode::Accessible {
+            let input = cooked_input.get_or_insert_with(llmup_cli::accessible::stdin_answers);
+            let cancel = tokio_util::sync::CancellationToken::new();
+            let title = format!("{} / choose model", args.command);
+            let mut output = std::io::stderr();
+            let selected = tokio::select! {
+                biased;
+                signal = tokio::signal::ctrl_c() => {signal?; return Ok(130);},
+                result = llmup_cli::accessible::pick_model(&title,&choices,input,&mut output,&cancel) => result?,
+            };
+            (selected, 0)
+        } else {
+            llmup_cli::tui_view::pick(
+                &format!("{} / choose model", args.command),
+                &choices,
+                selection.color,
+            )
+            .await?
+        };
         let Some(selected) = selected else {
             return Ok(code);
         };
@@ -653,7 +680,10 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         };
         options.validate()?;
         if let Some(selection) = &presentation
-            && selection.mode == llmup_cli::tui_mode::Mode::Tui
+            && matches!(
+                selection.mode,
+                llmup_cli::tui_mode::Mode::Tui | llmup_cli::tui_mode::Mode::Accessible
+            )
         {
             let description = format!(
                 "Proceed: {} {} / backend {} / port {} / context {}{}",
@@ -672,12 +702,30 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
                     ""
                 }
             );
-            let (selected, code) = llmup_cli::tui_view::pick(
-                &format!("{} / confirm", options.command),
-                &["Cancel".into(), description],
-                selection.color,
-            )
-            .await?;
+            let (selected, code) = if selection.mode == llmup_cli::tui_mode::Mode::Accessible {
+                let input = cooked_input.get_or_insert_with(llmup_cli::accessible::stdin_answers);
+                let cancel = tokio_util::sync::CancellationToken::new();
+                let mut output = std::io::stderr();
+                let lines = vec![description];
+                let title = if options.command == "down" {
+                    "Confirm shutdown"
+                } else {
+                    "Confirm activation"
+                };
+                let accepted = tokio::select! {
+                    biased;
+                    signal = tokio::signal::ctrl_c() => {signal?; return Ok(130);},
+                    result = llmup_cli::accessible::confirm(&options.command,title,&lines,"Proceed",input,&mut output,&cancel) => result?,
+                };
+                (if accepted { Some(1) } else { None }, 0)
+            } else {
+                llmup_cli::tui_view::pick(
+                    &format!("{} / confirm", options.command),
+                    &["Cancel".into(), description],
+                    selection.color,
+                )
+                .await?
+            };
             if selected != Some(1) {
                 return Ok(code);
             }

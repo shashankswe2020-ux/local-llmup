@@ -19,6 +19,13 @@ and the requested all-surface performance certification are not complete.
 - Visual lifecycle actions have a default-cancel confirmation before hardware
   probing, runtime access, acquisition, or state mutation. Confirmation does not
   weaken digest, process ownership, loopback, or context validation.
+- Accessible `up`, `switch`, and `down` now use cooked, numbered confirmation at
+  the 40x10 terminal threshold. Empty input, EOF, and any answer other than `2`
+  cancel. Missing catalog model arguments use a numbered picker, with one shared
+  input reader across selection and confirmation. Ctrl+C exits 130 before runtime
+  work. Answers are bounded to 256 UTF-8 bytes. Model numbers use decimal integer
+  input; unlike JavaScript Number conversion, exponent/hex/fraction syntax is not
+  accepted. Installed-model activation continues to require an explicit ID.
 - Visual chat reuses the native engine. Drafts are bounded to 32 KiB, 8,192
   graphemes, and 256 lines. Backspace removes a whole grapheme; Ctrl+J inserts a
   newline; Ctrl+C clears a nonempty draft or interrupts; Escape exits.
@@ -56,7 +63,7 @@ Sources:
 
 This is not yet full legacy TUI parity. Lifecycle execution still uses its native
 plain progress path after confirmation; rich lifecycle progress/recovery screens,
-accessible read-only/picker/lifecycle workflows, and detailed model views remain.
+accessible read-only workflows, full review evidence, and detailed model views remain.
 Visual chat follows the retained completed-reply presentation, not token streaming.
 PTY cancellation is covered locally; complete platform and functional journeys
 must pass before retiring the active TypeScript TUI.
@@ -65,3 +72,8 @@ The deep performance report requested by the user must cover complete CLI/TUI/GU
 desktop journeys after migration. Existing version/startup budgets do not establish
 TUI input latency, GUI responsiveness, Tauri-vs-Electron memory, or inference speed.
 No unmeasured improvement is claimed here.
+
+The accessible prompt increment adds five unit tests and three real PTY tests for
+default cancellation, sequential prompts, and Ctrl+C without state creation or
+alternate-screen use. Cross-platform CI is intentionally deferred to the next
+batch at the user's request; local PTY results do not certify Windows behavior.

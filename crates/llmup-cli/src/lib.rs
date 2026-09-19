@@ -2,6 +2,7 @@ use llmup_core::sizing::{SizingRequest, evaluate};
 use serde::Serialize;
 use std::io::{Read, Write};
 
+pub mod accessible;
 pub mod cancellation;
 pub mod dialog_smoke;
 pub mod distribution;
