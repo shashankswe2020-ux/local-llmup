@@ -20,7 +20,7 @@ jobs:
   verify:
     name: Verify (${{ matrix.os }})
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         os: [macos-14, ubuntu-24.04, windows-2022]
     runs-on: ${{ matrix.os }}
@@ -58,7 +58,7 @@ jobs:
       - name: Lint
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Test
-        run: cargo test --workspace --locked -- --test-threads=2
+        run: cargo test --workspace --locked --no-fail-fast -- --test-threads=2
 
   build:
     name: Archive (${{ matrix.target }})
