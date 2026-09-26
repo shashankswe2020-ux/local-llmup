@@ -249,6 +249,60 @@ fn companion_version_is_available_without_environment_state_or_server() {
     assert!(!home.exists());
 }
 
+#[cfg(unix)]
+#[test]
+fn host_shuts_down_gracefully_on_interrupt_terminate_and_hangup() {
+    use std::io::{BufRead, BufReader};
+    use std::time::{Duration, Instant};
+    for signal in ["INT", "TERM", "HUP"] {
+        let directory = tempfile::tempdir().unwrap();
+        let port = std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+        let mut child = Command::new(env!("CARGO_BIN_EXE_llmup-gui"))
+            .args(["--port", &port.to_string(), "--startup-json"])
+            .env_clear()
+            .env("PATH", "")
+            .env("HOME", directory.path())
+            .env("LOCAL_LLMUP_HOME", directory.path().join("state"))
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let mut ready = String::new();
+        BufReader::new(child.stdout.take().unwrap())
+            .read_line(&mut ready)
+            .unwrap();
+        assert!(ready.contains(&format!("\"port\":{port}")), "{ready}");
+        assert!(
+            Command::new("/bin/kill")
+                .args(["-s", signal, &child.id().to_string()])
+                .status()
+                .unwrap()
+                .success()
+        );
+        let deadline = Instant::now() + Duration::from_secs(10);
+        let status = loop {
+            if let Some(status) = child.try_wait().unwrap() {
+                break status;
+            }
+            if Instant::now() > deadline {
+                let _ = child.kill();
+                panic!("{signal}: host did not shut down");
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        };
+        assert_eq!(status.code(), Some(0), "{signal}: {status:?}");
+        assert!(
+            std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).is_ok(),
+            "{signal}: port must be released"
+        );
+    }
+}
+
 #[tokio::test]
 async fn direct_defaults_and_existing_host_api_are_preserved() {
     let options = parse(&[]);

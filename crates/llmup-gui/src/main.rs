@@ -79,7 +79,22 @@ async fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
     writeln!(std::io::stdout(), "{}", options.readiness(&host).await?)?;
     std::io::stdout().flush()?;
     let shutdown = host.shutdown.clone();
+    #[cfg(unix)]
+    let (mut terminate, mut hangup) = {
+        use tokio::signal::unix::{SignalKind, signal};
+        (
+            signal(SignalKind::terminate())?,
+            signal(SignalKind::hangup())?,
+        )
+    };
     tokio::spawn(async move {
+        #[cfg(unix)]
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {},
+            _ = terminate.recv() => {},
+            _ = hangup.recv() => {},
+        }
+        #[cfg(not(unix))]
         let _ = tokio::signal::ctrl_c().await;
         shutdown.cancel();
     });

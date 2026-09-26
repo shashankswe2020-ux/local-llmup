@@ -358,6 +358,7 @@ mod native_smoke {
                 ),
                 (true, true, None, Some(" claude "), "claude", "INT", 130),
                 (true, false, None, None, "local", "TERM", 143),
+                (false, true, None, None, "local", "HUP", 129),
             ] {
                 let directory = tempfile::Builder::new()
                     .prefix("c05 native install ")
@@ -418,10 +419,12 @@ mod native_smoke {
                     .wait(Duration::from_secs(8))
                     .expect("bounded shutdown");
                 assert_eq!(status.code(), Some(code));
-                assert_eq!(
-                    receiver.recv_timeout(Duration::from_secs(1)).unwrap(),
-                    "Stopped."
-                );
+                if shutdown != "HUP" {
+                    assert_eq!(
+                        receiver.recv_timeout(Duration::from_secs(1)).unwrap(),
+                        "Stopped."
+                    );
+                }
                 assert!(matches!(
                     receiver.recv_timeout(Duration::from_secs(1)),
                     Err(mpsc::RecvTimeoutError::Disconnected)
