@@ -18,11 +18,15 @@ const TARGETS: &[&str] = &[
 const FILES: &[&str] = &[
     "llmup",
     "llmup.exe",
+    "local-llmup",
+    "local-llmup.exe",
     "llmup-gui",
     "llmup-gui.exe",
     "LICENSE",
     "marked.LICENSE.md",
     "dompurify.LICENSE",
+    "crossterm.LICENSE",
+    "CROSSTERM-PATCH.md",
     "THIRD-PARTY.md",
 ];
 
@@ -72,6 +76,24 @@ fn validate(version: &str, target: &str, names: &[&str]) -> io::Result<()> {
     {
         return Err(invalid("invalid or duplicate native artifact name"));
     }
+    let (required, foreign) = if target.contains("windows") {
+        (
+            ["llmup.exe", "local-llmup.exe", "llmup-gui.exe"],
+            ["llmup", "local-llmup", "llmup-gui"],
+        )
+    } else {
+        (
+            ["llmup", "local-llmup", "llmup-gui"],
+            ["llmup.exe", "local-llmup.exe", "llmup-gui.exe"],
+        )
+    };
+    if required.iter().any(|name| !seen.contains(name))
+        || foreign.iter().any(|name| seen.contains(name))
+    {
+        return Err(invalid(
+            "native package requires both public aliases and the GUI companion with target-correct names",
+        ));
+    }
     Ok(())
 }
 pub fn checksum(path: &Path) -> io::Result<(u64, String)> {
@@ -96,6 +118,20 @@ pub fn checksum(path: &Path) -> io::Result<(u64, String)> {
     }
     Ok((total, format!("{:x}", hash.finalize())))
 }
+fn verify_permissions(name: &str, path: &Path) -> io::Result<()> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if ["llmup", "local-llmup", "llmup-gui"].contains(&name)
+            && fs::symlink_metadata(path)?.permissions().mode() & 0o100 == 0
+        {
+            return Err(invalid("native binary must have owner execute permission"));
+        }
+    }
+    #[cfg(not(unix))]
+    let _ = (name, path);
+    Ok(())
+}
 pub fn package_directory(
     output: &Path,
     version: &str,
@@ -116,6 +152,7 @@ pub fn package_directory(
     };
     for (name, source) in files {
         let (bytes, sha256) = checksum(source)?;
+        verify_permissions(name, source)?;
         manifest.files.push(Artifact {
             name: (*name).into(),
             bytes,
@@ -162,6 +199,7 @@ pub fn verify_directory(directory: &Path) -> io::Result<Manifest> {
     let mut expected = BTreeSet::from(["manifest.json".to_owned()]);
     for file in &manifest.files {
         let (bytes, hash) = checksum(&directory.join(&file.name))?;
+        verify_permissions(&file.name, &directory.join(&file.name))?;
         if bytes != file.bytes || hash != file.sha256 {
             return Err(invalid("native artifact checksum mismatch"));
         }

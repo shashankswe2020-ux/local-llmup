@@ -79,15 +79,121 @@ pub(crate) fn cap(text: &str, maximum: usize) -> String {
         .collect()
 }
 pub fn gui_text(text: &str) -> String {
-    let mut output = String::new();
-    for part in text.split_inclusive(['\n', '\t']) {
-        let end = part.chars().last();
-        output.push_str(&llmup_core::reports::strip_control(part));
-        if matches!(end, Some('\n' | '\t')) {
-            output.push(end.unwrap_or('\n'));
+    GuiTextStream::default().push(text)
+}
+#[derive(Default, Clone, Copy, PartialEq, Eq)]
+enum Escape {
+    #[default]
+    None,
+    Started,
+    Csi,
+    Command {
+        osc: bool,
+        terminating: bool,
+    },
+}
+/// Incremental form of [`gui_text`] that keeps escape and CRLF state across chunks.
+#[derive(Default)]
+pub struct GuiTextStream {
+    escape: Escape,
+    after_cr: bool,
+}
+impl GuiTextStream {
+    pub fn push(&mut self, text: &str) -> String {
+        let mut output = String::with_capacity(text.len());
+        for character in text.chars() {
+            self.feed(character, &mut output);
+        }
+        output
+    }
+    fn feed(&mut self, character: char, output: &mut String) {
+        let after_cr = std::mem::take(&mut self.after_cr);
+        match self.escape {
+            Escape::Started => {
+                self.escape = match character {
+                    '[' => Escape::Csi,
+                    ']' => Escape::Command {
+                        osc: true,
+                        terminating: false,
+                    },
+                    'P' | 'X' | '^' | '_' => Escape::Command {
+                        osc: false,
+                        terminating: false,
+                    },
+                    '@'..='Z' | '\\'..='_' => Escape::None,
+                    _ => {
+                        self.escape = Escape::None;
+                        return self.feed(character, output);
+                    }
+                };
+                return;
+            }
+            Escape::Csi => {
+                self.escape = match character {
+                    ' '..='?' => Escape::Csi,
+                    '@'..='~' => Escape::None,
+                    _ => {
+                        self.escape = Escape::None;
+                        return self.feed(character, output);
+                    }
+                };
+                return;
+            }
+            Escape::Command { osc, terminating } => {
+                let ended = character == '\u{9c}'
+                    || (osc && character == '\u{7}')
+                    || (terminating && character == '\\');
+                self.escape = if ended {
+                    Escape::None
+                } else {
+                    Escape::Command {
+                        osc,
+                        terminating: character == '\u{1b}',
+                    }
+                };
+                return;
+            }
+            Escape::None => {}
+        }
+        match character {
+            '\n' if after_cr => {}
+            '\r' => {
+                output.push('\n');
+                self.after_cr = true;
+            }
+            '\n' | '\t' => output.push(character),
+            '\u{1b}' => self.escape = Escape::Started,
+            '\u{9b}' => self.escape = Escape::Csi,
+            '\u{9d}' => {
+                self.escape = Escape::Command {
+                    osc: true,
+                    terminating: false,
+                }
+            }
+            '\u{90}' | '\u{98}' | '\u{9e}' | '\u{9f}' => {
+                self.escape = Escape::Command {
+                    osc: false,
+                    terminating: false,
+                }
+            }
+            _ if character.is_control() || invisible(character) => {}
+            _ => output.push(character),
         }
     }
-    output
+}
+fn invisible(character: char) -> bool {
+    matches!(
+        character,
+        '\u{ad}'
+            | '\u{61c}'
+            | '\u{200b}'..='\u{200f}'
+            | '\u{2060}'
+            | '\u{202a}'..='\u{202e}'
+            | '\u{2066}'..='\u{2069}'
+            | '\u{2028}'
+            | '\u{2029}'
+            | '\u{feff}'
+    )
 }
 fn title(text: &str) -> String {
     cap(

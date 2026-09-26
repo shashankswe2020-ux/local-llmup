@@ -5,7 +5,7 @@ use llmup_core::{
 use serde_json::json;
 
 fn model() -> llmup_core::catalog::CatalogModel {
-    Catalog::parse(include_str!("../../../data/models.json"))
+    Catalog::parse(include_str!("../../llmup-core/data/models.json"))
         .unwrap()
         .models
         .into_iter()

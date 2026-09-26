@@ -9,16 +9,27 @@ and the requested all-surface performance certification are not complete.
   TTY combinations, explicit conflicts, terminal-name validation, CI, sizes,
   monochrome settings, and forced-plain behavior.
 - Read-only commands (`recommend`, `can-run`, `catalog`, `doctor`, `ls`) show a
-  bounded native report browser when eligible. Explicit `--tui` rejects unsuitable
+  bounded native view when eligible. Explicit `--tui` rejects unsuitable
   terminals before domain work. `--no-tui`, JSON, pipes, and CI stay noninteractive.
 - Report navigation supports arrows, page/home/end, horizontal scrolling,
   `/` search, next-match `n`, and quit via `q`, Escape, or Enter. The report is
   printed to stdout after the alternate-screen presentation exits normally.
+- Catalog and recommendation now use model-focused list/detail views, including
+  installed inventories. Can-run starts in the target's detail view. Search,
+  evidence scrolling, overview, modal help, and marking/comparison of up to four
+  models reuse the existing bounded evidence without recomputing advice. Safe
+  recommendation finish-print never executes a command. Normal exit prints the
+  original final report; cancellation suppresses that report.
 - Missing catalog-model arguments can be selected interactively for `can-run`,
   `up`, and `switch`. Installed-model activation still requires an explicit ID.
 - Visual lifecycle actions have a default-cancel confirmation before hardware
   probing, runtime access, acquisition, or state mutation. Confirmation does not
   weaken digest, process ownership, loopback, or context validation.
+- After confirmation, visual lifecycle execution displays observed runtime stages
+  and bounded diagnostics full-screen. Known safety warnings retain occurrence
+  counts; progress uses sourced byte counts with filenames redacted and omissions
+  counted. Cancellation waits for the runtime to return before restoring the
+  terminal. Result/recovery views never infer rollback or cleanup success.
 - Accessible `up`, `switch`, and `down` now use cooked, numbered confirmation at
   the 40x10 terminal threshold. Empty input, EOF, and any answer other than `2`
   cancel. Missing catalog model arguments use a numbered picker, with one shared
@@ -31,6 +42,13 @@ and the requested all-surface performance certification are not complete.
   once on stdout; Ctrl+C returns 130 without a final report (SIGTERM returns 143
   on Unix). Doctor retains its diagnostic exit status. No raw mode or alternate
   screen is used. Non-TTY and conflicting invocations fail before domain work.
+- Accessible recommendation and catalog support cooked search, numbered details,
+  help, and quit. Catalog refresh presents the same refreshed catalog and diff as
+  final stdout. Recommendation print completes the view without executing its
+  suggestion; interactive and final text share one ranking calculation.
+- Accessible can-run preserves verdict exits and shared picker input and shows
+  unknown requested-context fit before quitting. Installed-inventory views display
+  only native runtime evidence, including unknown metadata and throughput.
 - These read-only views preserve visible control-character escaping, NFC prose
   normalization, model-identifier escaping, and 256-byte grapheme-safe field
   truncation. Doctor shows at most 20 checks/backends with omitted-item counts;
@@ -43,8 +61,9 @@ and the requested all-surface performance certification are not complete.
   are cancelled on exit. Replies over 1 MiB are rejected. Provider errors and
   memory warnings remain visible; no error text becomes conversation context.
 - Terminal output uses stderr and restores raw mode, alternate screen, cursor,
-  and bracketed paste on normal/error exits. Event-driven rendering does not
-  redraw while idle. Plain/accessibility chat behavior remains unchanged.
+  and bracketed paste on normal/error exits. Read-only and chat rendering is
+  event-driven. Lifecycle diagnostics refresh at 100 ms while running.
+  Plain/accessibility chat behavior remains unchanged.
 
 ## Verification
 
@@ -81,10 +100,15 @@ Sources:
 
 ## Remaining Gates
 
-This is not yet full legacy TUI parity. Lifecycle execution still uses its native
-plain progress path after confirmation; rich lifecycle progress/recovery screens,
-accessible recommendation/catalog/can-run workflows, full review evidence, and
-detailed model views remain.
+This is not yet full legacy TUI parity. Lifecycle execution now consumes bounded
+runtime events for acquisition, verification, startup/attachment, activation,
+readiness, and stop, with guarded result/recovery presentation. Combined operations
+remain labeled as combined rather than pretending finer-grained observations.
+Visual execution now uses a scoped diagnostic sink; plain and accessible execution
+retain line-oriented diagnostics. Existing subprocess stderr suppression is
+unchanged, and raw backend logs are not newly captured. Detailed model views are
+implemented. Full lifecycle review evidence and complete functional parity remain.
+No progress percentages or rollback claims are fabricated when evidence is absent.
 Visual chat follows the retained completed-reply presentation, not token streaming.
 PTY cancellation is covered locally; complete platform and functional journeys
 must pass before retiring the active TypeScript TUI.
@@ -104,6 +128,27 @@ oracle test, plus three real PTY cases for `ls` help/quit, `ls` interruption, an
 doctor failure-preserving completion. TypeScript read-only code remains active
 until the remaining screens are migrated. Cross-platform verification and the
 full performance report remain deferred; no new remote CI run was launched.
+
+The following implementation-first batch adds catalog/recommendation/can-run
+controllers and installed-inventory views. Catalog and recommendation match 20/12
+frozen TypeScript cases. Can-run retains 58 frozen cases with an explicit native
+missing-geometry warning added before exit. Installed views have ten focused tests
+against actual native sizing-report shapes. Eighteen local PTY cases cover the
+combined terminal paths before the subsequent lifecycle bridge increment. The
+event integration has twelve focused runtime event tests, fourteen lifecycle
+controller checks, and two native workflow tests. This is not a
+full regression or platform certification of the batch. The user deferred deep
+review and full testing until implementation is complete.
+
+The next implementation increment connects detailed visual catalog, recommendation,
+can-run, installed-inventory, and full-screen lifecycle execution. Focused checks
+pass: 22 model-view tests (including all 58 frozen can-run cases), 11 installed-view
+tests, 19 lifecycle controller tests, and 22 local PTY journeys. New PTY coverage
+exercises catalog search/detail/back, marking/comparison/help, confirmed empty
+shutdown across confirmation/execution/result screens, and can-run verdict and
+interrupt exits. No real inference runtime or network is used. Installed visual
+adapters are covered with native report fixtures, not a live installed runtime.
+Deep review, full regression, platform coverage, and performance remain deferred.
 
 Try the experimental native entry points in a terminal at least 40x10:
 

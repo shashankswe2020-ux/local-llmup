@@ -9,7 +9,8 @@ fn dry_run_reports_changes_without_replacing_or_reformatting_input() {
     for older in [false, true] {
         let root = tempfile::tempdir().unwrap();
         let path = root.path().join("catalog.json");
-        let mut catalog = Catalog::parse(include_str!("../../../data/models.json")).unwrap();
+        let mut catalog =
+            Catalog::parse(include_str!("../../llmup-core/data/models.json")).unwrap();
         if older {
             catalog.models = catalog.models.into_iter().rev().take(2).collect();
         }

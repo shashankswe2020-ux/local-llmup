@@ -16,7 +16,7 @@ use std::{
 #[derive(Parser)]
 #[command(about = "Report catalog age and offline registry drift without changing the catalog")]
 struct Args {
-    #[arg(long, default_value = "data/models.json")]
+    #[arg(long, default_value = "crates/llmup-core/data/models.json")]
     catalog_path: PathBuf,
     #[arg(long, default_value = "catalog-freshness.json")]
     out: PathBuf,

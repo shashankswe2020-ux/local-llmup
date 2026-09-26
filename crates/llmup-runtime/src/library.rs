@@ -39,6 +39,19 @@ fn id_valid(id: &str) -> bool {
             .bytes()
             .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
 }
+
+pub fn validate_selection(agent: Option<&str>, skills: &[String]) -> Result<(), MemoryError> {
+    if agent.is_some_and(|id| !id.is_empty() && !id_valid(id))
+        || skills.iter().any(|id| !id_valid(id))
+    {
+        return Err(MemoryError("invalid library id".into()));
+    }
+    if skills.len() > 50 {
+        return Err(MemoryError("skill selection exceeds limit".into()));
+    }
+    Ok(())
+}
+
 impl LibraryItem {
     fn validate(&self) -> Result<(), MemoryError> {
         if !id_valid(&self.id)
@@ -380,9 +393,7 @@ impl Library {
         agent: Option<&str>,
         skills: &[String],
     ) -> Result<Option<String>, MemoryError> {
-        if skills.len() > 50 {
-            return Err(MemoryError("skill selection exceeds limit".into()));
-        }
+        validate_selection(agent, skills)?;
         let agent = agent
             .filter(|id| !id.is_empty())
             .map(|id| self.get(Kind::Agent, id))

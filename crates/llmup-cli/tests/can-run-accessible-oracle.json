@@ -1,0 +1,2341 @@
+[
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "ollama"
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 96.2,
+        "highTokPerSec": 178.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 5658849786,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 5658849786 of 25769803776 usable bytes\n3. Throughput\n96.2–178.7 tok/s; source offline-estimate; backend ollama\n4. Backends\nollama\nNext: local-llmup up llama3.1:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "llamacpp"
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 96.2,
+        "highTokPerSec": 178.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 5658849786,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 5658849786 of 25769803776 usable bytes\n3. Throughput\n96.2–178.7 tok/s; source offline-estimate; backend llamacpp\n4. Backends\nollama\nNext: local-llmup up llama3.1:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "ollama",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "context": 8192,
+      "contextFitKnown": true,
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 96.2,
+        "highTokPerSec": 178.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 6240517716,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 6240517716 of 25769803776 usable bytes\n3. Throughput\n96.2–178.7 tok/s; source offline-estimate; backend ollama\n4. Backends\nollama\nNext: local-llmup up llama3.1:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "context": 8192,
+      "contextFitKnown": true,
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 96.2,
+        "highTokPerSec": 178.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 6240517716,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 6240517716 of 25769803776 usable bytes\n3. Throughput\n96.2–178.7 tok/s; source offline-estimate; backend llamacpp\n4. Backends\nollama\nNext: local-llmup up llama3.1:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "ollama",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "context": 1000000,
+      "contextFitKnown": true,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": null,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "context": 1000000,
+      "contextFitKnown": true,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": null,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "ollama"
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 96.2,
+        "highTokPerSec": 178.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 6009180671,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 6009180671 of 25769803776 usable bytes\n3. Throughput\n96.2–178.7 tok/s; source offline-estimate; backend ollama\n4. Backends\nollama\nNext: local-llmup up qwen3:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "llamacpp"
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 96.2,
+        "highTokPerSec": 178.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 6009180671,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 6009180671 of 25769803776 usable bytes\n3. Throughput\n96.2–178.7 tok/s; source offline-estimate; backend llamacpp\n4. Backends\nollama\nNext: local-llmup up qwen3:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "ollama",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "context": 8192,
+      "contextFitKnown": false,
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 96.2,
+        "highTokPerSec": 178.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 6009180671,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 6009180671 of 25769803776 usable bytes\n3. Throughput\n96.2–178.7 tok/s; source offline-estimate; backend ollama\n4. Backends\nollama\nNext: local-llmup up qwen3:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "context": 8192,
+      "contextFitKnown": false,
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 96.2,
+        "highTokPerSec": 178.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 6009180671,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 6009180671 of 25769803776 usable bytes\n3. Throughput\n96.2–178.7 tok/s; source offline-estimate; backend llamacpp\n4. Backends\nollama\nNext: local-llmup up qwen3:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "ollama",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "context": 1000000,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": null,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "context": 1000000,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": null,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "ollama"
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "vram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 465094714876,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason vram-bound; 465094714876 of 25769803776 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "llamacpp"
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "vram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 465094714876,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason vram-bound; 465094714876 of 25769803776 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "ollama",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "context": 8192,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "vram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 465094714876,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason vram-bound; 465094714876 of 25769803776 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "context": 8192,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "vram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 465094714876,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason vram-bound; 465094714876 of 25769803776 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "ollama",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "context": 1000000,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": null,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 68719476736,
+      "freeRamBytes": 60000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "nvidia",
+          "vramBytes": 25769803776
+        }
+      ]
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "context": 1000000,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": null,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "ollama"
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 5658849786,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nno; quant unknown; reason ram-bound; 5658849786 of 4852516352 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "llamacpp"
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 5658849786,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nno; quant unknown; reason ram-bound; 5658849786 of 4852516352 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "ollama",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "context": 8192,
+      "contextFitKnown": true,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 6240517716,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nno; quant unknown; reason ram-bound; 6240517716 of 4852516352 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "context": 8192,
+      "contextFitKnown": true,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 6240517716,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nno; quant unknown; reason ram-bound; 6240517716 of 4852516352 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "ollama",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "context": 1000000,
+      "contextFitKnown": true,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": null,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "context": 1000000,
+      "contextFitKnown": true,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": null,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "ollama"
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 6009180671,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nno; quant unknown; reason ram-bound; 6009180671 of 4852516352 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "llamacpp"
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 6009180671,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nno; quant unknown; reason ram-bound; 6009180671 of 4852516352 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "ollama",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "context": 8192,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 6009180671,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nno; quant unknown; reason ram-bound; 6009180671 of 4852516352 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "context": 8192,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 6009180671,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nno; quant unknown; reason ram-bound; 6009180671 of 4852516352 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "ollama",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "context": 1000000,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": null,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "context": 1000000,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": null,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "ollama"
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 465094714876,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason ram-bound; 465094714876 of 4852516352 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "llamacpp"
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 465094714876,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason ram-bound; 465094714876 of 4852516352 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "ollama",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "context": 8192,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 465094714876,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason ram-bound; 465094714876 of 4852516352 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "context": 8192,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 465094714876,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason ram-bound; 465094714876 of 4852516352 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "ollama",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "context": 1000000,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": null,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "x64",
+      "platform": "linux",
+      "totalRamBytes": 8589934592,
+      "freeRamBytes": 7000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": []
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "context": 1000000,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": null,
+      "usableBytes": 4852516352,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "ollama"
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 20.9,
+        "highTokPerSec": 38.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 5658849786,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 5658849786 of 36507222016 usable bytes\n3. Throughput\n20.9–38.7 tok/s; source offline-estimate; backend ollama\n4. Backends\nollama\nNext: local-llmup up llama3.1:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "llamacpp"
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 20.9,
+        "highTokPerSec": 38.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 5658849786,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 5658849786 of 36507222016 usable bytes\n3. Throughput\n20.9–38.7 tok/s; source offline-estimate; backend llamacpp\n4. Backends\nollama\nNext: local-llmup up llama3.1:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "ollama",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "context": 8192,
+      "contextFitKnown": true,
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 20.9,
+        "highTokPerSec": 38.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 6240517716,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 6240517716 of 36507222016 usable bytes\n3. Throughput\n20.9–38.7 tok/s; source offline-estimate; backend ollama\n4. Backends\nollama\nNext: local-llmup up llama3.1:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "context": 8192,
+      "contextFitKnown": true,
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 20.9,
+        "highTokPerSec": 38.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 6240517716,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 6240517716 of 36507222016 usable bytes\n3. Throughput\n20.9–38.7 tok/s; source offline-estimate; backend llamacpp\n4. Backends\nollama\nNext: local-llmup up llama3.1:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "ollama",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "context": 1000000,
+      "contextFitKnown": true,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": null,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "llama3.1:8b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "llama3.1:8b",
+      "context": 1000000,
+      "contextFitKnown": true,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": null,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "ollama"
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 20.9,
+        "highTokPerSec": 38.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 6009180671,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 6009180671 of 36507222016 usable bytes\n3. Throughput\n20.9–38.7 tok/s; source offline-estimate; backend ollama\n4. Backends\nollama\nNext: local-llmup up qwen3:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "llamacpp"
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 20.9,
+        "highTokPerSec": 38.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 6009180671,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 6009180671 of 36507222016 usable bytes\n3. Throughput\n20.9–38.7 tok/s; source offline-estimate; backend llamacpp\n4. Backends\nollama\nNext: local-llmup up qwen3:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "ollama",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "context": 8192,
+      "contextFitKnown": false,
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 20.9,
+        "highTokPerSec": 38.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 6009180671,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 6009180671 of 36507222016 usable bytes\n3. Throughput\n20.9–38.7 tok/s; source offline-estimate; backend ollama\n4. Backends\nollama\nNext: local-llmup up qwen3:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "context": 8192,
+      "contextFitKnown": false,
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 20.9,
+        "highTokPerSec": 38.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 6009180671,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 6009180671 of 36507222016 usable bytes\n3. Throughput\n20.9–38.7 tok/s; source offline-estimate; backend llamacpp\n4. Backends\nollama\nNext: local-llmup up qwen3:8b\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "ollama",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "context": 1000000,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": null,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "qwen3:8b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "qwen3:8b",
+      "context": 1000000,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": null,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nqwen3:8b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "ollama"
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 465094714876,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason ram-bound; 465094714876 of 36507222016 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "llamacpp"
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 465094714876,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason ram-bound; 465094714876 of 36507222016 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "ollama",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "context": 8192,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 465094714876,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason ram-bound; 465094714876 of 36507222016 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 8192
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "context": 8192,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "ram-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": 465094714876,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason ram-bound; 465094714876 of 36507222016 usable bytes\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "ollama",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "context": 1000000,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": null,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend ollama\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "hardware": {
+      "arch": "arm64",
+      "platform": "darwin",
+      "totalRamBytes": 38654705664,
+      "freeRamBytes": 30000000000,
+      "freeDiskBytes": 500000000000,
+      "gpu": [
+        {
+          "vendor": "apple",
+          "vramBytes": 0
+        }
+      ]
+    },
+    "query": "deepseek-r1:671b",
+    "options": {
+      "backend": "llamacpp",
+      "context": 1000000
+    },
+    "report": {
+      "modelId": "deepseek-r1:671b",
+      "context": 1000000,
+      "contextFitKnown": false,
+      "runnable": "no",
+      "throughput": {
+        "lowTokPerSec": 0,
+        "highTokPerSec": 0,
+        "known": false
+      },
+      "quant": null,
+      "reason": "context-bound",
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "llamacpp",
+      "requiredBytes": null,
+      "usableBytes": 36507222016,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": "not-evaluated-model-does-not-fit"
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\ndeepseek-r1:671b\n2. Verdict\nno; quant unknown; reason context-bound; does not fit: context-bound\n3. Throughput\nunknown; source offline-estimate; not-evaluated-model-does-not-fit; backend llamacpp\nUnknown reason: not-evaluated-model-does-not-fit\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "report": {
+      "modelId": "unsafe; $(command)",
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 96.2,
+        "highTokPerSec": 178.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 5658849786,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nunsafe\\u{3B}\\u{20}\\u{24}\\u{28}command\\u{29}\n2. Verdict\nyes; quant Q4_K_M; reason none; 5658849786 of 25769803776 usable bytes\n3. Throughput\n96.2–178.7 tok/s; source offline-estimate; backend ollama\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "report": {
+      "modelId": "../model",
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 96.2,
+        "highTokPerSec": 178.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 5658849786,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\n../model\n2. Verdict\nyes; quant Q4_K_M; reason none; 5658849786 of 25769803776 usable bytes\n3. Throughput\n96.2–178.7 tok/s; source offline-estimate; backend ollama\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "report": {
+      "modelId": "Qwen3:8b",
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 96.2,
+        "highTokPerSec": 178.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "ollama"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 5658849786,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\n\\u{51}wen3:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 5658849786 of 25769803776 usable bytes\n3. Throughput\n96.2–178.7 tok/s; source offline-estimate; backend ollama\n4. Backends\nollama\n5. Controls\nCommands: ? help; q quit\n"
+  },
+  {
+    "report": {
+      "modelId": "llama3.1:8b",
+      "runnable": "yes",
+      "throughput": {
+        "lowTokPerSec": 96.2,
+        "highTokPerSec": 178.7,
+        "known": true
+      },
+      "quant": "Q4_K_M",
+      "reason": null,
+      "backends": [
+        "backend-0",
+        "backend-1",
+        "backend-2",
+        "backend-3",
+        "backend-4",
+        "backend-5",
+        "backend-6",
+        "backend-7",
+        "backend-8",
+        "backend-9",
+        "backend-10",
+        "backend-11"
+      ],
+      "throughputBackend": "ollama",
+      "requiredBytes": 5658849786,
+      "usableBytes": 25769803776,
+      "throughputEvidence": {
+        "source": "offline-estimate",
+        "unknownReason": null
+      }
+    },
+    "expected": "local-llmup / Can Run / Accessible\n1. Target\nllama3.1:8b\n2. Verdict\nyes; quant Q4_K_M; reason none; 5658849786 of 25769803776 usable bytes\n3. Throughput\n96.2–178.7 tok/s; source offline-estimate; backend ollama\n4. Backends\nbackend-0, backend-1, backend-2, backend-3, backend-4, backend-5, backend-6, backend-7, backend-8, backend-9 (+2 more)\nNext: local-llmup up llama3.1:8b\n5. Controls\nCommands: ? help; q quit\n"
+  }
+]

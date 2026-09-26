@@ -19,7 +19,7 @@ use tokio_util::sync::CancellationToken;
 #[derive(Parser)]
 #[command(about = "Report monitored upstream Ollama repositories missing from the curated catalog")]
 struct Args {
-    #[arg(long, default_value = "data/models.json")]
+    #[arg(long, default_value = "crates/llmup-core/data/models.json")]
     catalog_path: PathBuf,
     #[arg(long)]
     inventory_path: Option<PathBuf>,

@@ -1,0 +1,777 @@
+{
+  "sourceSha256": {
+    "scripts/rust-workflow-parity.ts": "49431ee0a9e86d6e5218893c2e5c64f96c133cfb8274b9b37d94fbfd5dd843fd",
+    "src/memory/store.ts": "838b481f14fca16bffb45d2b114da25db5e5abc003a6707dd77de33e24e43a6e",
+    "src/memory/capture.ts": "ea2106a9d720de352e4400525ea99b1b771b6d590ff9b092a0e02582fde372fb",
+    "src/memory/migrate.ts": "ca677ca85dcde706aeb8f99c6086516335ba295bd45820e37469f1c11cace079",
+    "src/library/frontmatter.ts": "565c6e3bfc0df3d798dc024c583a4e5471b76317819192a88f9395c70b72313a",
+    "src/library/service.ts": "0ea26d1b4213b6d732490561a74255a8f5e79df6537a54078591275537f9614e",
+    "src/mcp/store.ts": "9da1969d8d3a962b3097de5baee21ab9ba40323b22d976e19df61f49da2956d9",
+    "src/gui/session-repository.ts": "76a1180844a18c6c1c789591a346a50d653696a950730e2408d49f1b090629d2",
+    "src/gui/workspace/service.ts": "402eb07563e8a6effd2b967a2f4703b2c76d9cfba0f9152fc17414f73201a91b",
+    "src/gui/workspace/edit-proposal.ts": "5f44cd9fa02cd568292d7669b85f41f6d0896c0eabe0021d4e326dc26df32cd4"
+  },
+  "seedHome": [
+    {
+      "path": "agents/builder.md",
+      "text": "---\nname: Builder\nenabled: true\nskills: review\n---\n\nBuild carefully.\n",
+      "modifiedMs": 1789996078610.8445,
+      "mode": 384
+    },
+    {
+      "path": "connectors.json",
+      "text": "{\n  \"schemaVersion\": 1,\n  \"connectors\": [\n    {\n      \"id\": \"fixture\",\n      \"name\": \"Fixture\",\n      \"transport\": \"stdio\",\n      \"command\": \"never-launched\",\n      \"args\": [],\n      \"env\": {\n        \"TEST_FLAG\": \"fixture\"\n      }\n    }\n  ]\n}\n",
+      "modifiedMs": 1789996078611.762,
+      "mode": 384
+    },
+    {
+      "path": "gui-sessions/0c2aa966-eb43-44fa-9841-c29684a749c1.json",
+      "text": "{\n  \"schemaVersion\": 1,\n  \"id\": \"0c2aa966-eb43-44fa-9841-c29684a749c1\",\n  \"title\": \"helloworldvalue\",\n  \"createdAt\": \"2026-09-17T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-17T00:00:00.000Z\",\n  \"revision\": 1,\n  \"archived\": false,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"hello\\nworld\\tvalue\",\n      \"at\": \"2026-09-17T00:00:00.000Z\"\n    }\n  ]\n}\n",
+      "modifiedMs": 1789996078613.4731,
+      "mode": 384
+    },
+    {
+      "path": "memory/bridge-model/conversation.jsonl",
+      "text": "{\"role\":\"user\",\"content\":\"My name is Ada.\",\"ts\":\"2026-09-17T00:00:00.000Z\"}\n{\"role\":\"assistant\",\"content\":\"Hello.\",\"ts\":\"2026-09-17T00:00:00.000Z\"}\n",
+      "modifiedMs": 1789996078607.6448,
+      "mode": 384
+    },
+    {
+      "path": "memory/bridge-model/facts.json",
+      "text": "{\n  \"schemaVersion\": 1,\n  \"facts\": [\n    {\n      \"text\": \"name = Ada\",\n      \"ts\": \"2026-09-17T00:00:00.000Z\"\n    }\n  ]\n}\n",
+      "modifiedMs": 1789996078607.8643,
+      "mode": 384
+    },
+    {
+      "path": "memory/bridge-model/meta.json",
+      "text": "{\n  \"schemaVersion\": 1,\n  \"modelId\": \"bridge:model\",\n  \"createdAt\": \"2026-09-21T13:07:58.605Z\"\n}\n",
+      "modifiedMs": 1789996078606.8079,
+      "mode": 384
+    },
+    {
+      "path": "skills/review/SKILL.md",
+      "text": "---\nname: Review\nenabled: true\n---\n\nCheck boundaries.\n",
+      "modifiedMs": 1789996078610.4915,
+      "mode": 384
+    }
+  ],
+  "seedWorkspace": [
+    {
+      "path": "file.txt",
+      "text": "before\ncontext\n",
+      "modifiedMs": 1789996078614.6982,
+      "mode": 420
+    }
+  ],
+  "requests": [
+    {
+      "op": "slug",
+      "id": "Owner/Model:Q4_K_M"
+    },
+    {
+      "op": "slug",
+      "id": " model---name "
+    },
+    {
+      "op": "slug",
+      "id": "../evil"
+    },
+    {
+      "op": "slug",
+      "id": "CON.json"
+    },
+    {
+      "op": "slug",
+      "id": "modelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodel"
+    },
+    {
+      "op": "slug",
+      "id": "unicode-é-model"
+    },
+    {
+      "op": "facts",
+      "text": "My name is Ada. I live in Paris. I work as a developer."
+    },
+    {
+      "op": "facts",
+      "text": "I prefer Rust. Remember that backups matter."
+    },
+    {
+      "op": "facts",
+      "text": "My name is Ada. My name is ada."
+    },
+    {
+      "op": "facts",
+      "text": "ordinary conversation"
+    },
+    {
+      "op": "facts",
+      "text": "éMy name is Ada."
+    },
+    {
+      "op": "document",
+      "raw": "plain body"
+    },
+    {
+      "op": "document",
+      "raw": "---\nname: Test\nenabled: false\n---\n\nbody\n"
+    },
+    {
+      "op": "document",
+      "raw": "---\nname: \"quoted\\\"value\"\n---\nbody"
+    },
+    {
+      "op": "document",
+      "raw": "---\n  name: ignored\n---\nbody"
+    },
+    {
+      "op": "document",
+      "raw": "---\nnot closed"
+    },
+    {
+      "op": "migration",
+      "source": {
+        "turns": [
+          {
+            "role": "user",
+            "content": "old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old ",
+            "ts": "old"
+          },
+          {
+            "role": "assistant",
+            "content": "recent",
+            "ts": "new"
+          }
+        ],
+        "systemPrompt": "persona",
+        "factsText": "{ \"schemaVersion\": 1, \"facts\": [] }\n",
+        "factsPresent": true
+      },
+      "context": 1
+    },
+    {
+      "op": "migration",
+      "source": {
+        "turns": [
+          {
+            "role": "user",
+            "content": "old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old ",
+            "ts": "old"
+          },
+          {
+            "role": "assistant",
+            "content": "recent",
+            "ts": "new"
+          }
+        ],
+        "systemPrompt": "persona",
+        "factsText": "{ \"schemaVersion\": 1, \"facts\": [] }\n",
+        "factsPresent": true
+      },
+      "context": 128
+    },
+    {
+      "op": "migration",
+      "source": {
+        "turns": [
+          {
+            "role": "user",
+            "content": "old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old ",
+            "ts": "old"
+          },
+          {
+            "role": "assistant",
+            "content": "recent",
+            "ts": "new"
+          }
+        ],
+        "systemPrompt": "persona",
+        "factsText": "{ \"schemaVersion\": 1, \"facts\": [] }\n",
+        "factsPresent": true
+      },
+      "context": 300
+    },
+    {
+      "op": "migration",
+      "source": {
+        "turns": [
+          {
+            "role": "user",
+            "content": "old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old ",
+            "ts": "old"
+          },
+          {
+            "role": "assistant",
+            "content": "recent",
+            "ts": "new"
+          }
+        ],
+        "systemPrompt": "persona",
+        "factsText": "{ \"schemaVersion\": 1, \"facts\": [] }\n",
+        "factsPresent": true
+      },
+      "context": 8192
+    },
+    {
+      "op": "memory",
+      "home": "<HOME>",
+      "model": "bridge:model"
+    },
+    {
+      "op": "library",
+      "home": "<HOME>",
+      "agent": "builder",
+      "skills": [
+        "review"
+      ]
+    },
+    {
+      "op": "connectors",
+      "home": "<HOME>"
+    },
+    {
+      "op": "session",
+      "home": "<HOME>",
+      "id": "0c2aa966-eb43-44fa-9841-c29684a749c1"
+    },
+    {
+      "op": "session-search",
+      "home": "<HOME>",
+      "query": "hello"
+    },
+    {
+      "op": "session-search",
+      "home": "<HOME>",
+      "query": "absent"
+    },
+    {
+      "op": "session-search",
+      "home": "<HOME>",
+      "query": " world "
+    },
+    {
+      "op": "search",
+      "root": "<WORKSPACE>",
+      "query": "",
+      "limit": 10
+    },
+    {
+      "op": "search",
+      "root": "<WORKSPACE>",
+      "query": " FILE ",
+      "limit": 10
+    },
+    {
+      "op": "search",
+      "root": "<WORKSPACE>",
+      "query": "absent",
+      "limit": 10
+    },
+    {
+      "op": "read",
+      "root": "<WORKSPACE>",
+      "path": "file.txt"
+    },
+    {
+      "op": "read",
+      "root": "<WORKSPACE>",
+      "path": "file.txt",
+      "range": {
+        "startLine": 2,
+        "endLine": 2
+      }
+    },
+    {
+      "op": "read",
+      "root": "<WORKSPACE>",
+      "path": "file.txt",
+      "range": {
+        "startLine": 1,
+        "endLine": 100
+      }
+    },
+    {
+      "op": "review",
+      "root": "<WORKSPACE>",
+      "operations": [
+        {
+          "op": "update",
+          "path": "file.txt",
+          "baseHash": "600af6d7fece67b5bc5b3f319dc4b57b109207ee9d1fe05b279f9f61b052acd5",
+          "hunks": [
+            {
+              "start": 1,
+              "end": 1,
+              "lines": [
+                "after"
+              ]
+            }
+          ]
+        },
+        {
+          "op": "create",
+          "path": "new.txt",
+          "text": "new\n"
+        }
+      ]
+    }
+  ],
+  "expected": [
+    "owner-model-q4_k_m",
+    "model-name",
+    "evil",
+    "con.json",
+    "modelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelmodelm-3bda53aa8fedff3a",
+    "unicode-model",
+    [
+      "name = Ada",
+      "location = Paris",
+      "occupation = a developer"
+    ],
+    [
+      "preference = Rust",
+      "backups matter"
+    ],
+    [
+      "name = Ada"
+    ],
+    [],
+    [
+      "name = Ada"
+    ],
+    {
+      "fields": {},
+      "body": "plain body"
+    },
+    {
+      "fields": {
+        "name": "Test",
+        "enabled": "false"
+      },
+      "body": "body"
+    },
+    {
+      "fields": {
+        "name": "quoted\"value"
+      },
+      "body": "body"
+    },
+    {
+      "fields": {},
+      "body": "body"
+    },
+    {
+      "fields": {},
+      "body": "---\nnot closed"
+    },
+    {
+      "turns": [
+        {
+          "role": "system",
+          "content": "[2 earlier turns omitted during migration]",
+          "ts": "old"
+        }
+      ],
+      "systemPrompt": "persona",
+      "factsText": "{ \"schemaVersion\": 1, \"facts\": [] }\n",
+      "factsPresent": true,
+      "summary": {
+        "turnsCarried": 0,
+        "turnsSummarized": 2,
+        "vectorsReembedded": 0,
+        "strategy": "truncate",
+        "embeddingStrategy": "none"
+      }
+    },
+    {
+      "turns": [
+        {
+          "role": "system",
+          "content": "[2 earlier turns omitted during migration]",
+          "ts": "old"
+        }
+      ],
+      "systemPrompt": "persona",
+      "factsText": "{ \"schemaVersion\": 1, \"facts\": [] }\n",
+      "factsPresent": true,
+      "summary": {
+        "turnsCarried": 0,
+        "turnsSummarized": 2,
+        "vectorsReembedded": 0,
+        "strategy": "truncate",
+        "embeddingStrategy": "none"
+      }
+    },
+    {
+      "turns": [
+        {
+          "role": "system",
+          "content": "[1 earlier turns omitted during migration]",
+          "ts": "old"
+        },
+        {
+          "role": "assistant",
+          "content": "recent",
+          "ts": "new"
+        }
+      ],
+      "systemPrompt": "persona",
+      "factsText": "{ \"schemaVersion\": 1, \"facts\": [] }\n",
+      "factsPresent": true,
+      "summary": {
+        "turnsCarried": 1,
+        "turnsSummarized": 1,
+        "vectorsReembedded": 0,
+        "strategy": "truncate",
+        "embeddingStrategy": "none"
+      }
+    },
+    {
+      "turns": [
+        {
+          "role": "user",
+          "content": "old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old old ",
+          "ts": "old"
+        },
+        {
+          "role": "assistant",
+          "content": "recent",
+          "ts": "new"
+        }
+      ],
+      "systemPrompt": "persona",
+      "factsText": "{ \"schemaVersion\": 1, \"facts\": [] }\n",
+      "factsPresent": true,
+      "summary": {
+        "turnsCarried": 2,
+        "turnsSummarized": 0,
+        "vectorsReembedded": 0,
+        "strategy": "none",
+        "embeddingStrategy": "none"
+      }
+    },
+    {
+      "turns": [
+        {
+          "role": "user",
+          "content": "My name is Ada.",
+          "ts": "2026-09-17T00:00:00.000Z"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello.",
+          "ts": "2026-09-17T00:00:00.000Z"
+        }
+      ],
+      "factsText": "{\n  \"schemaVersion\": 1,\n  \"facts\": [\n    {\n      \"text\": \"name = Ada\",\n      \"ts\": \"2026-09-17T00:00:00.000Z\"\n    }\n  ]\n}\n",
+      "factsPresent": true
+    },
+    {
+      "agents": [
+        {
+          "id": "builder",
+          "name": "Builder",
+          "description": "",
+          "enabled": true,
+          "body": "Build carefully.",
+          "skills": [
+            "review"
+          ]
+        }
+      ],
+      "skills": [
+        {
+          "id": "review",
+          "name": "Review",
+          "description": "",
+          "enabled": true,
+          "body": "Check boundaries.",
+          "skills": []
+        }
+      ],
+      "prompt": "Build carefully.\n\n# Skills\nApply these skills when relevant:\n\n## Review\nCheck boundaries."
+    },
+    {
+      "schemaVersion": 1,
+      "connectors": [
+        {
+          "id": "fixture",
+          "name": "Fixture",
+          "transport": "stdio",
+          "command": "never-launched",
+          "args": [],
+          "env": {
+            "TEST_FLAG": "fixture"
+          }
+        }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "0c2aa966-eb43-44fa-9841-c29684a749c1",
+      "title": "helloworldvalue",
+      "createdAt": "2026-09-17T00:00:00.000Z",
+      "updatedAt": "2026-09-17T00:00:00.000Z",
+      "revision": 1,
+      "archived": false,
+      "messages": [
+        {
+          "role": "user",
+          "content": "hello\nworld\tvalue",
+          "at": "2026-09-17T00:00:00.000Z"
+        }
+      ]
+    },
+    [
+      {
+        "summary": {
+          "id": "0c2aa966-eb43-44fa-9841-c29684a749c1",
+          "title": "helloworldvalue",
+          "createdAt": "2026-09-17T00:00:00.000Z",
+          "updatedAt": "2026-09-17T00:00:00.000Z",
+          "revision": 1,
+          "archived": false,
+          "messageCount": 1
+        },
+        "snippet": "helloworldvalue"
+      }
+    ],
+    [],
+    [
+      {
+        "summary": {
+          "id": "0c2aa966-eb43-44fa-9841-c29684a749c1",
+          "title": "helloworldvalue",
+          "createdAt": "2026-09-17T00:00:00.000Z",
+          "updatedAt": "2026-09-17T00:00:00.000Z",
+          "revision": 1,
+          "archived": false,
+          "messageCount": 1
+        },
+        "snippet": "helloworldvalue"
+      }
+    ],
+    {
+      "results": [
+        {
+          "name": "file.txt",
+          "path": "file.txt",
+          "size": 15
+        }
+      ],
+      "nextCursor": null,
+      "scanTruncated": false
+    },
+    {
+      "results": [
+        {
+          "name": "file.txt",
+          "path": "file.txt",
+          "size": 15
+        }
+      ],
+      "nextCursor": null,
+      "scanTruncated": false
+    },
+    {
+      "results": [],
+      "nextCursor": null,
+      "scanTruncated": false
+    },
+    {
+      "path": "file.txt",
+      "content": "before\ncontext\n",
+      "hash": "600af6d7fece67b5bc5b3f319dc4b57b109207ee9d1fe05b279f9f61b052acd5",
+      "size": 15,
+      "truncated": false
+    },
+    {
+      "path": "file.txt",
+      "content": "context",
+      "hash": "ea7792a26f405e2ae9c6f49ca93bbe6076ceac0a1fc53d83426c7d7f2d9377e4",
+      "size": 7,
+      "truncated": false,
+      "range": {
+        "startLine": 2,
+        "endLine": 2
+      }
+    },
+    {
+      "path": "file.txt",
+      "content": "before\ncontext\n",
+      "hash": "600af6d7fece67b5bc5b3f319dc4b57b109207ee9d1fe05b279f9f61b052acd5",
+      "size": 15,
+      "truncated": false,
+      "range": {
+        "startLine": 1,
+        "endLine": 3
+      }
+    },
+    {
+      "files": [
+        {
+          "path": "file.txt",
+          "op": "update",
+          "baseHash": "600af6d7fece67b5bc5b3f319dc4b57b109207ee9d1fe05b279f9f61b052acd5",
+          "resultHash": "437239c39af231af1d11616544299c47989ac8e35621b7ddd38f5d6446029d92",
+          "added": 1,
+          "removed": 1,
+          "hunks": [
+            {
+              "header": "@@ -1,1 +1,1 @@",
+              "lines": [
+                {
+                  "type": "del",
+                  "text": "before"
+                },
+                {
+                  "type": "add",
+                  "text": "after"
+                },
+                {
+                  "type": "context",
+                  "text": "context"
+                },
+                {
+                  "type": "context",
+                  "text": ""
+                }
+              ]
+            }
+          ],
+          "warnings": []
+        },
+        {
+          "path": "new.txt",
+          "op": "create",
+          "resultHash": "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c",
+          "added": 2,
+          "removed": 0,
+          "hunks": [
+            {
+              "header": "@@ +1,2 @@",
+              "lines": [
+                {
+                  "type": "add",
+                  "text": "new"
+                },
+                {
+                  "type": "add",
+                  "text": ""
+                }
+              ]
+            }
+          ],
+          "warnings": []
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "afterNative": {
+    "turns": [
+      {
+        "role": "user",
+        "content": "My name is Ada.",
+        "ts": "2026-09-17T00:00:00.000Z"
+      },
+      {
+        "role": "assistant",
+        "content": "Hello.",
+        "ts": "2026-09-17T00:00:00.000Z"
+      },
+      {
+        "role": "user",
+        "content": "I prefer Rust.",
+        "ts": "2026-09-17T00:00:00.000Z"
+      },
+      {
+        "role": "assistant",
+        "content": "Recorded.",
+        "ts": "2026-09-17T00:00:00.000Z"
+      }
+    ],
+    "factsText": "{\n  \"schemaVersion\": 1,\n  \"facts\": [\n    {\n      \"text\": \"name = Ada\",\n      \"ts\": \"2026-09-17T00:00:00.000Z\"\n    },\n    {\n      \"text\": \"preference = Rust\",\n      \"ts\": \"2026-09-17T00:00:00.000Z\"\n    }\n  ]\n}\n",
+    "factsPresent": true
+  },
+  "migrationHome": [
+    {
+      "path": "agents/builder.md",
+      "text": "---\nname: Builder\nenabled: true\nskills: review\n---\n\nBuild carefully.\n",
+      "modifiedMs": 1789996078610.8445,
+      "mode": 384
+    },
+    {
+      "path": "connectors.json",
+      "text": "{\n  \"schemaVersion\": 1,\n  \"connectors\": [\n    {\n      \"transport\": \"stdio\",\n      \"id\": \"fixture\",\n      \"name\": \"Fixture\",\n      \"command\": \"never-launched\",\n      \"args\": [],\n      \"env\": {\n        \"TEST_FLAG\": \"fixture\"\n      }\n    }\n  ]\n}\n",
+      "modifiedMs": 1789996079092.418,
+      "mode": 384
+    },
+    {
+      "path": "gui-sessions/0c2aa966-eb43-44fa-9841-c29684a749c1.json",
+      "text": "{\n  \"schemaVersion\": 1,\n  \"id\": \"0c2aa966-eb43-44fa-9841-c29684a749c1\",\n  \"title\": \"helloworldvalue\",\n  \"createdAt\": \"2026-09-17T00:00:00.000Z\",\n  \"updatedAt\": \"2026-09-17T00:00:00.000Z\",\n  \"revision\": 1,\n  \"archived\": false,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"hello\\nworld\\tvalue\",\n      \"at\": \"2026-09-17T00:00:00.000Z\"\n    }\n  ]\n}\n",
+      "modifiedMs": 1789996078613.4731,
+      "mode": 384
+    },
+    {
+      "path": "memory/bridge-model/conversation.jsonl",
+      "text": "{\"role\":\"user\",\"content\":\"My name is Ada.\",\"ts\":\"2026-09-17T00:00:00.000Z\"}\n{\"role\":\"assistant\",\"content\":\"Hello.\",\"ts\":\"2026-09-17T00:00:00.000Z\"}\n{\"role\":\"user\",\"content\":\"I prefer Rust.\",\"ts\":\"2026-09-17T00:00:00.000Z\"}\n{\"role\":\"assistant\",\"content\":\"Recorded.\",\"ts\":\"2026-09-17T00:00:00.000Z\"}\n{\"role\":\"user\",\"content\":\"Remember that rollback matters.\",\"ts\":\"2026-09-17T00:00:00.000Z\"}\n{\"role\":\"assistant\",\"content\":\"Noted.\",\"ts\":\"2026-09-17T00:00:00.000Z\"}\n",
+      "modifiedMs": 1789996079188.9275,
+      "mode": 384
+    },
+    {
+      "path": "memory/bridge-model/facts.json",
+      "text": "{\n  \"schemaVersion\": 1,\n  \"facts\": [\n    {\n      \"text\": \"name = Ada\",\n      \"ts\": \"2026-09-17T00:00:00.000Z\"\n    },\n    {\n      \"text\": \"preference = Rust\",\n      \"ts\": \"2026-09-17T00:00:00.000Z\"\n    },\n    {\n      \"text\": \"rollback matters\",\n      \"ts\": \"2026-09-17T00:00:00.000Z\"\n    }\n  ]\n}\n",
+      "modifiedMs": 1789996079189.2158,
+      "mode": 384
+    },
+    {
+      "path": "memory/bridge-model/meta.json",
+      "text": "{\n  \"schemaVersion\": 1,\n  \"modelId\": \"bridge:model\",\n  \"createdAt\": \"2026-09-21T13:07:58.605Z\"\n}\n",
+      "modifiedMs": 1789996079149.901,
+      "mode": 384
+    },
+    {
+      "path": "skills/review/SKILL.md",
+      "text": "---\nname: Review\nenabled: true\n---\n\nCheck boundaries.\n",
+      "modifiedMs": 1789996078610.4915,
+      "mode": 384
+    }
+  ],
+  "beforeMigration": {
+    "turns": [
+      {
+        "role": "user",
+        "content": "My name is Ada.",
+        "ts": "2026-09-17T00:00:00.000Z"
+      },
+      {
+        "role": "assistant",
+        "content": "Hello.",
+        "ts": "2026-09-17T00:00:00.000Z"
+      },
+      {
+        "role": "user",
+        "content": "I prefer Rust.",
+        "ts": "2026-09-17T00:00:00.000Z"
+      },
+      {
+        "role": "assistant",
+        "content": "Recorded.",
+        "ts": "2026-09-17T00:00:00.000Z"
+      },
+      {
+        "role": "user",
+        "content": "Remember that rollback matters.",
+        "ts": "2026-09-17T00:00:00.000Z"
+      },
+      {
+        "role": "assistant",
+        "content": "Noted.",
+        "ts": "2026-09-17T00:00:00.000Z"
+      }
+    ],
+    "factsText": "{\n  \"schemaVersion\": 1,\n  \"facts\": [\n    {\n      \"text\": \"name = Ada\",\n      \"ts\": \"2026-09-17T00:00:00.000Z\"\n    },\n    {\n      \"text\": \"preference = Rust\",\n      \"ts\": \"2026-09-17T00:00:00.000Z\"\n    },\n    {\n      \"text\": \"rollback matters\",\n      \"ts\": \"2026-09-17T00:00:00.000Z\"\n    }\n  ]\n}\n",
+    "factsPresent": true
+  }
+}

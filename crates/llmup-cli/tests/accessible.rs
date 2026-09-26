@@ -98,6 +98,24 @@ async fn unsafe_labels_and_oversized_answers_cannot_inject_terminal_controls_or_
     );
 }
 
+#[test]
+fn oversized_cooked_input_is_rejected_before_reading_the_entire_paste() {
+    let mut input = Cursor::new(format!("{}\n2\n", "x".repeat(1_000_000)));
+    let error = read_answer(&mut input).unwrap_err();
+    assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+    assert_eq!(error.to_string(), "answer exceeds 256 bytes");
+    assert_eq!(input.position(), 259);
+    for ending in ["", "\n", "\r\n"] {
+        let valid = "\u{e9}".repeat(128);
+        assert_eq!(
+            read_answer(&mut Cursor::new(format!("{valid}{ending}"))).unwrap(),
+            Some(valid.clone())
+        );
+        let error = read_answer(&mut Cursor::new(format!("{valid}x{ending}"))).unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::InvalidInput);
+    }
+}
+
 #[tokio::test]
 async fn picker_has_exact_cooked_output_and_retries_invalid_numbers() {
     let mut output = Vec::new();

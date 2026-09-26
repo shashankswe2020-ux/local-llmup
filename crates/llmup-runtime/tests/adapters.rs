@@ -321,6 +321,36 @@ async fn ollama_startup_binds_custom_loopback_port_and_cleans_untrusted_readines
             control.env.lock().unwrap()["OLLAMA_MODELS"],
             store.path().to_str().unwrap()
         );
+        let allowed = [
+            "PATH",
+            "HOME",
+            "USER",
+            "LOGNAME",
+            "LANG",
+            "LC_ALL",
+            "LC_CTYPE",
+            "TMPDIR",
+            "TMP",
+            "TEMP",
+            "SYSTEMROOT",
+            "WINDIR",
+            "COMSPEC",
+            "PATHEXT",
+            "OLLAMA_HOST",
+            "OLLAMA_MODELS",
+        ];
+        let leaked: Vec<_> = control
+            .env
+            .lock()
+            .unwrap()
+            .keys()
+            .filter(|key| !allowed.contains(&key.as_str()))
+            .cloned()
+            .collect();
+        assert!(
+            leaked.is_empty(),
+            "ambient variables reached the daemon: {leaked:?}"
+        );
     }
 }
 #[async_trait::async_trait]
@@ -497,4 +527,94 @@ async fn mlx_never_attaches_to_an_existing_listener() {
             .await
             .is_err()
     );
+}
+
+#[test]
+fn mlx_accepts_only_the_framework_host_of_the_resolved_interpreter() {
+    use llmup_runtime::special_adapters::mlx_process_executable;
+    let framework =
+        "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14";
+    let host = PathBuf::from(format!(
+        "{framework}/Resources/Python.app/Contents/MacOS/Python"
+    ));
+    for interpreter in ["python3.14", "python3"] {
+        let binary = PathBuf::from(format!("{framework}/bin/{interpreter}"));
+        assert_eq!(mlx_process_executable(&binary), host);
+    }
+    for plain in [
+        "/usr/bin/python3",
+        "/opt/venv/bin/python3",
+        "/Library/Frameworks/Python.framework/Versions/3.12/bin/pip3",
+        "/tmp/Python.framework/bin/python3",
+        "/tmp/Versions/3.12/bin/python3",
+    ] {
+        assert_eq!(
+            mlx_process_executable(&PathBuf::from(plain)),
+            PathBuf::from(plain),
+            "{plain}"
+        );
+    }
+}
+
+#[test]
+fn lm_studio_trust_matches_windows_paths_case_insensitively_without_widening() {
+    use llmup_runtime::special_adapters::trusted_executable;
+    let trusted = vec![
+        PathBuf::from(r"\\?\C:\Users\Me\AppData\Local\Programs\LM Studio\LM Studio.exe"),
+        PathBuf::from(r"C:\Users\Me\AppData\Local/Programs/LM Studio/llmster.exe"),
+    ];
+    for observed in [
+        r"c:\users\me\appdata\local\programs\lm studio\lm studio.exe",
+        r"C:\Users\Me\AppData\Local\Programs\LM Studio\llmster.exe",
+    ] {
+        assert!(trusted_executable(&trusted, observed, true), "{observed}");
+    }
+    for observed in [
+        r"C:\Users\Me\AppData\Local\Programs\LM Studio\evil.exe",
+        r"D:\Users\Me\AppData\Local\Programs\LM Studio\LM Studio.exe",
+        "LM Studio.exe",
+    ] {
+        assert!(!trusted_executable(&trusted, observed, true), "{observed}");
+    }
+    let unix = vec![PathBuf::from("/usr/bin/llmster")];
+    assert!(trusted_executable(&unix, "/usr/bin/llmster", false));
+    assert!(!trusted_executable(&unix, "/usr/bin/LLMSTER", false));
+    assert!(!trusted_executable(
+        &[PathBuf::from("llmster")],
+        "llmster",
+        false
+    ));
+}
+
+#[test]
+fn mlx_model_directories_must_be_data_only() {
+    use llmup_runtime::special_adapters::validate_mlx_directory;
+    let directory = |config: serde_json::Value| {
+        let root = tempfile::tempdir().unwrap();
+        std::fs::write(root.path().join("config.json"), config.to_string()).unwrap();
+        std::fs::write(root.path().join("tokenizer_config.json"), "{}").unwrap();
+        std::fs::write(root.path().join("model.safetensors"), "weights").unwrap();
+        root
+    };
+    let clean = directory(json!({"model_type":"llama"}));
+    validate_mlx_directory(clean.path()).unwrap();
+    for config in [
+        json!({"model_type":"llama","model_file":"model.py"}),
+        json!({"model_type":"llama","model_file":"/tmp/outside.py"}),
+        json!({"auto_map":{"AutoModel":"model.CustomModel"}}),
+        json!({"trust_remote_code":true}),
+    ] {
+        let root = directory(config.clone());
+        assert!(validate_mlx_directory(root.path()).is_err(), "{config}");
+    }
+    let code = directory(json!({"model_type":"llama"}));
+    std::fs::write(
+        code.path().join("model.py"),
+        "raise RuntimeError('must not execute')",
+    )
+    .unwrap();
+    assert!(validate_mlx_directory(code.path()).is_err());
+    let empty = directory(json!({"model_type":"llama"}));
+    std::fs::remove_file(empty.path().join("model.safetensors")).unwrap();
+    assert!(validate_mlx_directory(empty.path()).is_err());
 }

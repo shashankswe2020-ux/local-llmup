@@ -24,4 +24,4 @@ if ! ollama show "$ollama_model" >/dev/null 2>&1; then
 fi
 
 printf '%s\n' "For this local coding integration smoke test, reply with exactly: OPENCODE_HARNESS_OK. Do not use tools." |
-  npx tsx src/cli.ts chat --harness opencode --model "$model"
+  cargo llmup chat --harness opencode --model "$model"

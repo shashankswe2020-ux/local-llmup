@@ -27,6 +27,40 @@ pub fn timestamp() -> Result<String, HarnessError> {
         .format(&time::format_description::well_known::Rfc3339)
         .map_err(|_| HarnessError::Invalid)
 }
+
+fn local_model(
+    requested: Option<&str>,
+    active: &crate::state::ServerState,
+) -> Result<(String, String), HarnessError> {
+    let runtime_id = active
+        .runtime_model_id
+        .as_deref()
+        .unwrap_or(&active.model_id);
+    let Some(requested) = requested else {
+        return Ok((runtime_id.into(), active.model_id.clone()));
+    };
+    if requested == active.model_id || requested == runtime_id {
+        return Ok((runtime_id.into(), active.model_id.clone()));
+    }
+    let catalog = llmup_core::catalog::Catalog::parse(llmup_core::MODELS_JSON)
+        .map_err(|_| HarnessError::Invalid)?;
+    let resolved =
+        llmup_core::catalog::resolve(&catalog, requested).map_err(|_| HarnessError::Invalid)?;
+    if active.backend != "ollama" && resolved.model.id != active.model_id {
+        return Err(HarnessError::Invalid);
+    }
+    let runtime_id = if resolved.model.id == active.model_id {
+        runtime_id.to_owned()
+    } else {
+        resolved
+            .model
+            .source
+            .ollama
+            .clone()
+            .ok_or(HarnessError::Invalid)?
+    };
+    Ok((runtime_id, resolved.model.id.clone()))
+}
 pub async fn run(
     options: &NativeChatOptions,
     cancel: &CancellationToken,
@@ -101,21 +135,14 @@ pub async fn run_with_history(
     if !harness.available().await {
         return Err(HarnessError::Unavailable);
     }
-    let model = options.model.clone().unwrap_or_else(|| {
-        if options.provider == "local" {
-            active
-                .as_ref()
-                .map(|active| {
-                    active
-                        .runtime_model_id
-                        .clone()
-                        .unwrap_or_else(|| active.model_id.clone())
-                })
-                .unwrap_or_default()
-        } else {
-            String::new()
-        }
-    });
+    let (model, memory_owner) = if options.provider == "local" {
+        local_model(
+            options.model.as_deref(),
+            active.as_ref().ok_or(HarnessError::Unavailable)?,
+        )?
+    } else {
+        (options.model.clone().unwrap_or_default(), String::new())
+    };
     let mut messages = Vec::new();
     if let Some(prompt) = Library::new(&config.home)
         .compose(options.agent.as_deref(), &options.skills)
@@ -127,12 +154,7 @@ pub async fn run_with_history(
         });
     }
     let memory = if options.provider == "local" && options.capture {
-        let owner = active
-            .as_ref()
-            .ok_or(HarnessError::Unavailable)?
-            .model_id
-            .clone();
-        let memory = MemoryStore::open(&config.home, &owner, &timestamp()?)
+        let memory = MemoryStore::open(&config.home, &memory_owner, &timestamp()?)
             .map_err(|_| HarnessError::Invalid)?;
         let source = memory.load().map_err(|_| HarnessError::Invalid)?;
         if let Some(persona) = source.system_prompt {
@@ -229,4 +251,60 @@ pub async fn run_with_history(
         );
     }
     Ok(serde_json::json!({"content":response,"harness":options.provider,"memoryCaptured":captured}))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn active(backend: &str) -> crate::state::ServerState {
+        serde_json::from_value(serde_json::json!({
+            "backend": backend, "modelId": "llama3.1:8b", "endpoint": "http://127.0.0.1:11434",
+            "port": 11434, "ownedByUs": false
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn local_cli_model_resolves_fuzzy_ids_and_keeps_memory_with_selected_model() {
+        let current = active("ollama");
+        assert_eq!(
+            local_model(Some("llama3.1:8"), &current).unwrap(),
+            ("llama3.1:8b".into(), "llama3.1:8b".into())
+        );
+        assert!(local_model(Some("llama3.1"), &current).is_err());
+        assert_eq!(
+            local_model(Some("qwen2.5:7b"), &current).unwrap(),
+            ("qwen2.5:7b".into(), "qwen2.5:7b".into())
+        );
+        assert!(local_model(Some("unknown-fixture-model"), &current).is_err());
+    }
+
+    #[test]
+    fn installed_context_variants_do_not_require_catalog_resolution() {
+        let mut current = active("ollama");
+        current.model_id = "uncatalogued:local".into();
+        current.runtime_model_id = Some("llmup-context-test:65536".into());
+        for requested in [
+            None,
+            Some("uncatalogued:local"),
+            Some("llmup-context-test:65536"),
+        ] {
+            assert_eq!(
+                local_model(requested, &current).unwrap(),
+                (
+                    "llmup-context-test:65536".into(),
+                    "uncatalogued:local".into()
+                )
+            );
+        }
+    }
+
+    #[test]
+    fn single_model_backends_reject_other_models_before_inference() {
+        for backend in ["mlx", "llamacpp", "lmstudio"] {
+            assert!(local_model(Some("qwen2.5:7b"), &active(backend)).is_err());
+            assert!(local_model(Some("llama3.1:8"), &active(backend)).is_ok());
+        }
+    }
 }

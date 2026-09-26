@@ -98,6 +98,27 @@ pub struct LmStudioAdapter<'runtime> {
     pub commands: &'runtime dyn CommandRunner,
     pub token: Option<String>,
 }
+/// Windows reports `C:\...` while canonical paths are `\\?\C:\...`, and file names are case-insensitive.
+pub fn trusted_executable(trusted: &[PathBuf], observed: &str, windows: bool) -> bool {
+    let normalize = |path: &str| {
+        let path = path.replace('/', "\\");
+        path.strip_prefix("\\\\?\\")
+            .map(str::to_owned)
+            .unwrap_or(path)
+            .to_lowercase()
+    };
+    trusted.iter().any(|path| {
+        let Some(path) = path.to_str() else {
+            return false;
+        };
+        if windows {
+            let path = normalize(path);
+            path.as_bytes().get(1) == Some(&b':') && path == normalize(observed)
+        } else {
+            Path::new(path).is_absolute() && path == observed
+        }
+    })
+}
 impl LmStudioAdapter<'_> {
     async fn checked(
         &self,
@@ -114,11 +135,11 @@ impl LmStudioAdapter<'_> {
             })
             .ok_or_else(|| BackendError("exact delegated path required".into()))?;
         let before = listener(self.probe, &input.endpoint, cancel).await?;
-        if !self
-            .trusted_executables
-            .iter()
-            .any(|path| path.is_absolute() && path.to_str() == Some(&before.identity.executable))
-        {
+        if !trusted_executable(
+            &self.trusted_executables,
+            &before.identity.executable,
+            cfg!(windows),
+        ) {
             return Err(BackendError("untrusted LM Studio executable".into()));
         }
         let greeting = request(
@@ -251,9 +272,11 @@ impl BackendAdapter for LmStudioAdapter<'_> {
         "lmstudio"
     }
     fn trusts(&self, identity: &ProcessIdentity) -> bool {
-        self.trusted_executables
-            .iter()
-            .any(|path| path.is_absolute() && path.to_str() == Some(identity.executable.as_str()))
+        trusted_executable(
+            &self.trusted_executables,
+            &identity.executable,
+            cfg!(windows),
+        )
     }
     async fn serve(
         &self,
@@ -297,6 +320,34 @@ pub struct MlxAdapter<'runtime> {
     pub control: &'runtime dyn ProcessControl,
     pub commands: &'runtime dyn CommandRunner,
     pub token: Option<String>,
+}
+/// macOS framework builds run `bin/python3.x` as `Resources/Python.app/Contents/MacOS/Python`.
+pub fn mlx_process_executable(binary: &Path) -> PathBuf {
+    fn name(path: Option<&Path>) -> Option<&str> {
+        path.and_then(Path::file_name)
+            .and_then(|name| name.to_str())
+    }
+    let bin = binary.parent();
+    let version = bin.and_then(Path::parent);
+    let versions = version.and_then(Path::parent);
+    let framework = versions.and_then(Path::parent);
+    let interpreter = name(Some(binary)).is_some_and(|name| {
+        name.strip_prefix("python").is_some_and(|rest| {
+            rest.chars()
+                .all(|character| character.is_ascii_digit() || character == '.')
+        })
+    });
+    match version {
+        Some(version)
+            if interpreter
+                && name(bin) == Some("bin")
+                && name(versions) == Some("Versions")
+                && name(framework) == Some("Python.framework") =>
+        {
+            version.join("Resources/Python.app/Contents/MacOS/Python")
+        }
+        _ => binary.to_path_buf(),
+    }
 }
 pub fn validate_mlx_directory(root: &Path) -> Result<(), BackendError> {
     if !root.is_absolute()
@@ -353,7 +404,9 @@ pub fn validate_mlx_directory(root: &Path) -> Result<(), BackendError> {
         let value: Value =
             serde_json::from_str(&raw).map_err(|_| BackendError("invalid MLX config".into()))?;
         if !value.is_object()
-            || value.get("auto_map").is_some_and(|value| !value.is_null())
+            || ["auto_map", "model_file"]
+                .iter()
+                .any(|key| value.get(key).is_some_and(|value| !value.is_null()))
             || value.get("trust_remote_code") == Some(&Value::Bool(true))
         {
             return Err(BackendError("MLX remote code config forbidden".into()));
@@ -439,6 +492,7 @@ impl BackendAdapter for MlxAdapter<'_> {
     }
     fn trusts(&self, identity: &ProcessIdentity) -> bool {
         self.binary.to_str() == Some(identity.executable.as_str())
+            || mlx_process_executable(&self.binary).to_str() == Some(identity.executable.as_str())
     }
     async fn ready_handle(
         &self,
@@ -532,7 +586,7 @@ impl BackendAdapter for MlxAdapter<'_> {
         let observed = wait_owned_with_timeout(
             child,
             &input.endpoint,
-            self.binary
+            mlx_process_executable(&self.binary)
                 .to_str()
                 .ok_or_else(|| BackendError("invalid interpreter path".into()))?,
             self.probe,

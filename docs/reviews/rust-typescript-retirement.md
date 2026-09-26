@@ -6,6 +6,32 @@ R22 is verified; the PR is not ready to claim complete migration while R23-R26 r
 
 ## Deleted After Replacement
 
+- `scripts/rust-fit-parity.ts`: replaced by
+  `cargo test --locked -p llmup-cli --test fit_parity`. A frozen independent
+  TypeScript oracle preserves all 2,849 sizing cases, exact numeric comparisons,
+  original batch boundaries, and validation/argument exits. Three native tests pass.
+- `scripts/rust-advice-parity.ts`: replaced by
+  `cargo test --locked -p llmup-cli --test advice_parity`. The frozen oracle retains
+  78 reports, 5,148 verdicts, and 9,126 resolver/can-run cases, including 918
+  resolution and 162 validation errors. Two native tests preserve text/JSON,
+  ordering, sanitization, and the original numeric tolerance.
+- `scripts/rust-gui-parity.ts`: replaced by
+  `cargo test --locked -p llmup-gui --test recommendation_parity`. Three native
+  tests cover all 24 GUI recommendation contracts through the native GUI owner,
+  with structural/order checks and the original numeric tolerance. Frozen oracle
+  fixtures record independent TypeScript provenance and source hashes. These
+  three gates no longer compare against live TypeScript on each run; intentional
+  contract/data changes require explicit baseline review and recapture.
+- `src/tui/screens/chat.tsx`: unused screen with no source/test imports; native
+  `tui_chat` provides the active experimental visual chat path. Four native chat
+  tests pass. Its stale generated JS, source map, and declaration were removed
+  from `dist` as well. Remaining chat-entry/limits modules are not deleted because
+  their boundary contracts still need reconciliation.
+- `scripts/verify-release-identity.ts` and
+  `tests/shipping/release-identity.test.ts`: replaced by
+  `cargo verify-release-identity` with ten native tests and 100 frozen result/error
+  cases. Package/workflow callers use the native replacement; release policy and
+  permissions are unchanged.
 - `src/catalog/registry-collector.ts`, `scripts/catalog-enrich.ts`, and
   `tests/catalog/registry-collector.test.ts`: replaced by native manifest parsing,
   HTTPS transport, quant-only updates, and `cargo catalog-enrich`. Seventeen native
@@ -96,6 +122,8 @@ npm installation, not that every remaining repository workflow has been retired.
   the user-facing offline catalog-refresh command itself is now native.
 - Node-based browser drivers, parity scripts, and workflows still need native
   replacements before removing all npm manifests and the TypeScript toolchain.
+  Sizing, advice, and GUI recommendation parity are now native frozen-oracle tests;
+  state interoperability and workflow parity still retain their TypeScript drivers.
 - R22 actual Linux/Windows folder-selection tests now pass (run `35355772910`).
   Signing/notarization, desktop dependency review, and remaining runtime smoke
   gates are not passed.
@@ -105,3 +133,10 @@ the old implementation, then run checks. Do not delete a failing test or an acti
 entry point to manufacture a passing migration. No production cutover, release,
 or merge has occurred. Verified migration slices are committed and pushed only
 to the authorized feature branch for native platform verification.
+
+Latest local deletion batch: retirement inventory reports 309 remaining blockers,
+down from 315 before the release-identity and three parity-script/screen removals.
+The inventory is intentionally still failing. Native replacement checks, retained
+TypeScript typecheck, and the retained build pass. Deep review, full regression,
+cross-platform checks, and all-surface performance remain deferred at the user's
+request. No push, merge, production cutover, or release was performed in this batch.

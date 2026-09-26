@@ -77,5 +77,18 @@ mod tests {
         assert_eq!(status("0.11.4", Some("0.11.3"))["state"], "current");
         assert_eq!(status("0.11.4", Some("0.12.0-beta"))["state"], "unknown");
         assert_eq!(status("0.11.4", None)["releaseUrl"], Value::Null);
+        assert_eq!(
+            status("0.11.2", Some("v0.12.0")),
+            json!({"currentVersion":"0.11.2","latestVersion":"0.12.0","state":"update-available","releaseUrl":"https://github.com/shashankswe2020-ux/local-llmup/releases"})
+        );
+        for tag in ["v0.11.2", "v0.10.9"] {
+            assert_eq!(status("0.11.2", Some(tag))["state"], "current", "{tag}");
+            assert_eq!(status("0.11.2", Some(tag))["releaseUrl"], Value::Null);
+        }
+        let unknown = json!({"currentVersion":"0.11.2","latestVersion":null,"state":"unknown","releaseUrl":null});
+        for tag in ["latest", "v0.12", "v0.12.0-beta.1", "1.2.3.4"] {
+            assert_eq!(status("0.11.2", Some(tag)), unknown, "{tag}");
+        }
+        assert_eq!(status("unknown", Some("v0.12.0"))["state"], "unknown");
     }
 }

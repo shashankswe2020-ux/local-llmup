@@ -514,10 +514,13 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
     if let Some(name) = path.strip_prefix("/api/images/")
         && method == "GET"
     {
-        let image = checked(llmup_runtime::context::read_artifact(
-            &host.home.join("artifacts"),
-            name,
-        ))?;
+        let image = match llmup_runtime::context::read_artifact(&host.home.join("artifacts"), name)
+        {
+            Err(error) if error.0 == llmup_runtime::context::ARTIFACT_NOT_FOUND => {
+                return Err(missing());
+            }
+            result => checked(result)?,
+        };
         return Ok((
             [
                 (header::CONTENT_TYPE, image.content_type),

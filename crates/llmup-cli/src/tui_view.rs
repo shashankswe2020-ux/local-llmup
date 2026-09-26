@@ -1,6 +1,6 @@
 use crossterm::{
     cursor::{Hide, Show},
-    event::{Event, EventStream, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
+    event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -160,49 +160,97 @@ pub fn render(frame: &mut Frame<'_>, view: &mut ReportView) {
     frame.render_widget(Paragraph::new(status), footer);
 }
 
-pub(crate) struct RestoreTerminal;
-impl Drop for RestoreTerminal {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum TerminalResource {
+    Raw,
+    Alternate,
+    Cursor,
+    Paste,
+}
+
+const TERMINAL_RESOURCES: [TerminalResource; 4] = [
+    TerminalResource::Raw,
+    TerminalResource::Alternate,
+    TerminalResource::Cursor,
+    TerminalResource::Paste,
+];
+
+pub(crate) trait TerminalControl {
+    fn raw(&self) -> io::Result<bool>;
+    fn set(&mut self, resource: TerminalResource, enabled: bool) -> io::Result<()>;
+}
+
+pub(crate) struct SystemTerminal;
+
+impl TerminalControl for SystemTerminal {
+    fn raw(&self) -> io::Result<bool> {
+        crossterm::terminal::is_raw_mode_enabled()
+    }
+    fn set(&mut self, resource: TerminalResource, enabled: bool) -> io::Result<()> {
+        match (resource, enabled) {
+            (TerminalResource::Raw, true) => enable_raw_mode(),
+            (TerminalResource::Raw, false) => disable_raw_mode(),
+            (TerminalResource::Alternate, true) => execute!(io::stderr(), EnterAlternateScreen),
+            (TerminalResource::Alternate, false) => execute!(io::stderr(), LeaveAlternateScreen),
+            (TerminalResource::Cursor, true) => execute!(io::stderr(), Hide),
+            (TerminalResource::Cursor, false) => execute!(io::stderr(), Show),
+            (TerminalResource::Paste, true) => {
+                execute!(io::stderr(), crossterm::event::EnableBracketedPaste)
+            }
+            (TerminalResource::Paste, false) => {
+                execute!(io::stderr(), crossterm::event::DisableBracketedPaste)
+            }
+        }
+    }
+}
+
+pub(crate) struct RestoreTerminal<Control: TerminalControl = SystemTerminal> {
+    control: Control,
+    initially_raw: bool,
+    acquired: usize,
+}
+
+impl<Control: TerminalControl> RestoreTerminal<Control> {
+    fn acquire(control: Control) -> io::Result<Self> {
+        let initially_raw = control.raw()?;
+        let mut restore = Self {
+            control,
+            initially_raw,
+            acquired: 0,
+        };
+        for resource in TERMINAL_RESOURCES {
+            restore.acquired += 1;
+            restore.control.set(resource, true)?;
+        }
+        Ok(restore)
+    }
+}
+
+impl<Control: TerminalControl> Drop for RestoreTerminal<Control> {
     fn drop(&mut self) {
-        let _ = execute!(
-            io::stderr(),
-            crossterm::event::DisableBracketedPaste,
-            Show,
-            LeaveAlternateScreen
-        );
-        let _ = disable_raw_mode();
+        for resource in TERMINAL_RESOURCES[..self.acquired].iter().rev() {
+            let enabled = *resource == TerminalResource::Raw && self.initially_raw;
+            let _ = self.control.set(*resource, enabled);
+        }
     }
 }
 
 pub(crate) fn enter_terminal()
 -> io::Result<(Terminal<CrosstermBackend<io::Stderr>>, RestoreTerminal)> {
-    enable_raw_mode()?;
-    let restore = RestoreTerminal;
-    execute!(
-        io::stderr(),
-        EnterAlternateScreen,
-        Hide,
-        crossterm::event::EnableBracketedPaste
-    )?;
+    let restore = RestoreTerminal::acquire(SystemTerminal)?;
     let terminal = Terminal::new(CrosstermBackend::new(io::stderr()))?;
     Ok((terminal, restore))
 }
 
 pub async fn show_report(title: &str, text: &str, color: bool) -> io::Result<u8> {
     let mut view = ReportView::new(title, text, color)?;
+    let mut signals = crate::cancellation::TerminalSignals::new()?;
     let (mut terminal, _restore) = enter_terminal()?;
-    let mut events = EventStream::new();
-    #[cfg(unix)]
-    let mut terminate = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+    let mut events = crate::terminal_events::terminal_events();
     loop {
         terminal.draw(|frame| render(frame, &mut view))?;
         let event = tokio::select! {
-            _ = tokio::signal::ctrl_c() => return Ok(130),
-            _ = async {
-                #[cfg(unix)]
-                terminate.recv().await;
-                #[cfg(not(unix))]
-                std::future::pending::<()>().await;
-            } => return Ok(143),
+            code = signals.recv() => return code,
             event = events.next() => event.ok_or_else(|| io::Error::other("terminal input ended"))??,
         };
         if let Event::Key(key) = event {
@@ -214,26 +262,67 @@ pub async fn show_report(title: &str, text: &str, color: bool) -> io::Result<u8>
         }
     }
 }
-pub async fn pick(title: &str, choices: &[String], color: bool) -> io::Result<(Option<usize>, u8)> {
-    if choices.is_empty() || choices.iter().any(|choice| choice.contains(['\n', '\r'])) {
-        return Err(io::Error::other("invalid terminal choices"));
+pub(crate) async fn next_navigation_event(
+    events: &mut (impl futures_util::Stream<Item = io::Result<Event>> + Unpin),
+) -> io::Result<Event> {
+    let event = events
+        .next()
+        .await
+        .ok_or_else(|| io::Error::other("terminal input ended"))??;
+    let Event::Key(escape) = event else {
+        return Ok(event);
+    };
+    if escape.code != KeyCode::Esc || escape.kind == KeyEventKind::Release {
+        return Ok(event);
     }
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_millis(50);
+    let mut bracket = false;
+    loop {
+        let Ok(next) = tokio::time::timeout_at(deadline, events.next()).await else {
+            return Ok(event);
+        };
+        let next = next.ok_or_else(|| io::Error::other("terminal input ended"))??;
+        let Event::Key(mut key) = next else {
+            continue;
+        };
+        if key.kind == KeyEventKind::Release {
+            continue;
+        }
+        if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
+            return Ok(next);
+        }
+        if key
+            .modifiers
+            .intersects(KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SUPER)
+        {
+            return Ok(event);
+        }
+        match (bracket, key.code) {
+            (false, KeyCode::Char('[')) => bracket = true,
+            (true, KeyCode::Char('H' | 'F')) => {
+                key.code = if key.code == KeyCode::Char('H') {
+                    KeyCode::Home
+                } else {
+                    KeyCode::End
+                };
+                return Ok(Event::Key(key));
+            }
+            _ => return Ok(event),
+        }
+    }
+}
+
+pub async fn pick(title: &str, choices: &[String], color: bool) -> io::Result<(Option<usize>, u8)> {
+    crate::accessible::validate_picker_choices(choices, 8192)?;
     let mut view = ReportView::new(title, &choices.join("\n"), color)?;
+    let mut signals = crate::cancellation::TerminalSignals::new()?;
     let (mut terminal, _restore) = enter_terminal()?;
-    let mut events = EventStream::new();
-    #[cfg(unix)]
-    let mut terminate = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+    let mut events = crate::terminal_events::terminal_events();
     loop {
         terminal.draw(|frame| render(frame, &mut view))?;
         let event = tokio::select! {
-            _ = tokio::signal::ctrl_c() => return Ok((None,130)),
-            _ = async {
-                #[cfg(unix)]
-                terminate.recv().await;
-                #[cfg(not(unix))]
-                std::future::pending::<()>().await;
-            } => return Ok((None,143)),
-            event = events.next() => event.ok_or_else(|| io::Error::other("terminal input ended"))??,
+            code = signals.recv() => return Ok((None, code?)),
+            event = next_navigation_event(&mut events) => event?,
         };
         if let Event::Key(key) = event {
             if key.kind == KeyEventKind::Release {
@@ -246,6 +335,110 @@ pub async fn pick(title: &str, choices: &[String], color: bool) -> io::Result<(O
                 key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c');
             if handle_key(&mut view, key) {
                 return Ok((None, if interrupted { 130 } else { 0 }));
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod resource_tests {
+    use super::*;
+    use std::{cell::RefCell, rc::Rc};
+
+    #[derive(Default)]
+    struct State {
+        raw: bool,
+        calls: Vec<(TerminalResource, bool)>,
+    }
+
+    struct Control {
+        state: Rc<RefCell<State>>,
+        fail: Option<(TerminalResource, bool)>,
+    }
+
+    impl TerminalControl for Control {
+        fn raw(&self) -> io::Result<bool> {
+            Ok(self.state.borrow().raw)
+        }
+        fn set(&mut self, resource: TerminalResource, enabled: bool) -> io::Result<()> {
+            let mut state = self.state.borrow_mut();
+            state.calls.push((resource, enabled));
+            if resource == TerminalResource::Raw {
+                state.raw = enabled;
+            }
+            if self.fail == Some((resource, enabled)) {
+                return Err(io::Error::other("injected failure after mutation"));
+            }
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn partial_acquisition_restores_each_owned_resource_and_original_raw_mode() {
+        use TerminalResource::*;
+        for fail in [Raw, Alternate, Cursor, Paste] {
+            let state = Rc::new(RefCell::new(State::default()));
+            assert!(
+                RestoreTerminal::acquire(Control {
+                    state: state.clone(),
+                    fail: Some((fail, true))
+                })
+                .is_err()
+            );
+            let state = state.borrow();
+            assert!(!state.raw);
+            for resource in [Raw, Alternate, Cursor, Paste] {
+                let acquired = state.calls.contains(&(resource, true));
+                assert_eq!(
+                    state
+                        .calls
+                        .iter()
+                        .filter(|call| **call == (resource, false))
+                        .count(),
+                    usize::from(acquired)
+                );
+            }
+        }
+        let state = Rc::new(RefCell::new(State {
+            raw: true,
+            ..Default::default()
+        }));
+        drop(
+            RestoreTerminal::acquire(Control {
+                state: state.clone(),
+                fail: None,
+            })
+            .unwrap(),
+        );
+        assert!(state.borrow().raw);
+        assert!(!state.borrow().calls.contains(&(Raw, false)));
+    }
+
+    #[test]
+    fn restoration_continues_after_independent_output_failure_and_repeated_sessions() {
+        use TerminalResource::*;
+        for failed in [Paste, Cursor, Alternate, Raw] {
+            let state = Rc::new(RefCell::new(State::default()));
+            for _ in 0..20 {
+                let restore = RestoreTerminal::acquire(Control {
+                    state: state.clone(),
+                    fail: Some((failed, false)),
+                })
+                .unwrap();
+                assert!(state.borrow().raw);
+                drop(restore);
+                assert!(!state.borrow().raw);
+            }
+            for resource in [Raw, Alternate, Cursor, Paste] {
+                assert_eq!(
+                    state
+                        .borrow()
+                        .calls
+                        .iter()
+                        .filter(|call| **call == (resource, false))
+                        .count(),
+                    20
+                );
             }
         }
     }

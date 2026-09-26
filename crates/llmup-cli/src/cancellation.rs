@@ -4,6 +4,46 @@ use std::fmt;
 pub const CLEANUP_TIMEOUT_MS: u64 = 30_000;
 pub const LOCK_TIMEOUT_MS: u64 = 10_000;
 
+pub struct TerminalSignals {
+    #[cfg(unix)]
+    interrupt: tokio::signal::unix::Signal,
+    #[cfg(unix)]
+    terminate: tokio::signal::unix::Signal,
+    #[cfg(unix)]
+    hangup: tokio::signal::unix::Signal,
+}
+
+impl TerminalSignals {
+    pub fn new() -> std::io::Result<Self> {
+        Ok(Self {
+            #[cfg(unix)]
+            interrupt: tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt())?,
+            #[cfg(unix)]
+            terminate: tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?,
+            #[cfg(unix)]
+            hangup: tokio::signal::unix::signal(tokio::signal::unix::SignalKind::hangup())?,
+        })
+    }
+
+    pub async fn recv(&mut self) -> std::io::Result<u8> {
+        #[cfg(unix)]
+        {
+            let (received, code) = tokio::select! {
+                received = self.interrupt.recv() => (received, 130),
+                received = self.terminate.recv() => (received, 143),
+                received = self.hangup.recv() => (received, 129),
+            };
+            received.ok_or_else(|| std::io::Error::other("terminal signal stream ended"))?;
+            Ok(code)
+        }
+        #[cfg(not(unix))]
+        {
+            tokio::signal::ctrl_c().await?;
+            Ok(130)
+        }
+    }
+}
+
 pub fn exit_code_for_signal(signal: Option<&str>) -> Option<u8> {
     match signal {
         Some("SIGHUP") => Some(129),

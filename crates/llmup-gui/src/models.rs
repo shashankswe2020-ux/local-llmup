@@ -11,9 +11,74 @@ use llmup_runtime::{
     application::{LifecycleOptions, run_native_with_config},
     state::{Config, StateStore},
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeMap, io::Read, sync::Arc};
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AdviceRequest {
+    hardware: llmup_core::sizing::Hardware,
+    #[serde(default)]
+    options: JsonAdviceOptions,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct JsonAdviceOptions {
+    context: Option<f64>,
+    context_percent: Option<u8>,
+    backend: Option<String>,
+    limit: Option<usize>,
+}
+
+#[derive(Serialize)]
+pub struct AdviceResponse {
+    models: Vec<Value>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum AdviceError {
+    InvalidArguments,
+    InvalidRequest,
+    RequestTooLarge,
+    InternalError,
+}
+
+pub fn advice_json(reader: impl Read) -> Result<AdviceResponse, AdviceError> {
+    const MAX_BYTES: usize = 64 * 1024;
+    let mut input = Vec::new();
+    reader
+        .take((MAX_BYTES + 1) as u64)
+        .read_to_end(&mut input)
+        .map_err(|_| AdviceError::InvalidRequest)?;
+    if input.len() > MAX_BYTES {
+        return Err(AdviceError::RequestTooLarge);
+    }
+    let request: AdviceRequest =
+        serde_json::from_slice(&input).map_err(|_| AdviceError::InvalidRequest)?;
+    let limit = request.options.limit.unwrap_or(8);
+    if !(1..=100).contains(&limit) {
+        return Err(AdviceError::InvalidRequest);
+    }
+    let options = AdviceOptions {
+        context: request.options.context,
+        context_percent: request.options.context_percent,
+        backend: request.options.backend,
+        ..Default::default()
+    };
+    options
+        .validate()
+        .map_err(|_| AdviceError::InvalidRequest)?;
+    let catalog =
+        Catalog::parse(llmup_core::MODELS_JSON).map_err(|_| AdviceError::InternalError)?;
+    let perf = PerfDataset::parse(llmup_core::PERF_JSON).map_err(|_| AdviceError::InternalError)?;
+    let models = recommended(&catalog, &request.hardware, &perf, &options, limit)
+        .map_err(|_| AdviceError::InvalidRequest)?;
+    Ok(AdviceResponse { models })
+}
+
 fn active(host: &Host) -> Result<Value, crate::routes::ApiError> {
     let store = StateStore::new(Config::from_home(&host.home).map_err(|_| bad())?);
     Ok(match store.read().map_err(|_| bad())?.active {
@@ -35,12 +100,13 @@ pub fn recommended(
     hardware: &llmup_core::sizing::Hardware,
     perf: &PerfDataset,
     options: &AdviceOptions,
+    limit: usize,
 ) -> Result<Vec<Value>, llmup_core::sizing::ValidationError> {
     let report = recommend_detailed(catalog, hardware, perf, options)?;
     let entries = report["ranked"]
         .as_array()
         .ok_or_else(|| llmup_core::sizing::ValidationError("ranked models missing".into()))?;
-    entries.iter().take(8).map(|entry|{
+    entries.iter().take(limit).map(|entry|{
         let source=catalog.models.iter().find(|model|entry["id"]==model.id).ok_or_else(||llmup_core::sizing::ValidationError("ranked model absent".into()))?;
         let source=serde_json::to_value(source).map_err(|_|llmup_core::sizing::ValidationError("invalid model".into()))?;
         let mut model=json!({});
@@ -84,7 +150,7 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
     if path == "/api/hardware" && method == "GET" {
         return Ok(json_response(json!({"hardware":hardware})));
     }
-    let catalog = Catalog::parse(include_str!("../../../data/models.json")).map_err(|_| bad())?;
+    let catalog = Catalog::parse(llmup_core::MODELS_JSON).map_err(|_| bad())?;
     if path == "/api/models/recommended" && method == "GET" {
         let query: BTreeMap<String, String> = url
             .query_pairs()
@@ -111,9 +177,8 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
             ..Default::default()
         };
         options.validate().map_err(|_| bad())?;
-        let perf =
-            PerfDataset::parse(include_str!("../../../data/perf.json")).map_err(|_| bad())?;
-        let models = recommended(&catalog, &hardware, &perf, &options).map_err(|_| bad())?;
+        let perf = PerfDataset::parse(llmup_core::PERF_JSON).map_err(|_| bad())?;
+        let models = recommended(&catalog, &hardware, &perf, &options, 8).map_err(|_| bad())?;
         return Ok(json_response(
             json!({"models":models,"runtime":query.get("runtime"),"contextPreset":query.get("context")}),
         ));

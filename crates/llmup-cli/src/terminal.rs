@@ -8,6 +8,31 @@ const MAX_LINE_BYTES: usize = 32 * 1024;
 const MAX_DRAFT_GRAPHEMES: usize = 8192;
 const MAX_RESPONSE_BYTES: usize = 1024 * 1024;
 
+pub(crate) fn validate_draft(draft: &str) -> io::Result<()> {
+    if draft.len() > MAX_LINE_BYTES {
+        return Err(io::Error::other(format!(
+            "Draft exceeds {MAX_LINE_BYTES} byte limit ({} bytes)",
+            draft.len()
+        )));
+    }
+    for (actual, limit, unit, plural) in [
+        (
+            draft.graphemes(true).count(),
+            MAX_DRAFT_GRAPHEMES,
+            "grapheme",
+            "graphemes",
+        ),
+        (draft.split('\n').count(), 256, "line", "lines"),
+    ] {
+        if actual > limit {
+            return Err(io::Error::other(format!(
+                "Draft exceeds {limit} {unit} limit ({actual} {plural})"
+            )));
+        }
+    }
+    Ok(())
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
     Plain,
@@ -114,15 +139,9 @@ pub async fn run_chat(
         if turn.trim().is_empty() {
             continue;
         }
-        if turn.len() > MAX_LINE_BYTES
-            || turn.graphemes(true).count() > MAX_DRAFT_GRAPHEMES
-            || turn.lines().count() > 256
-        {
+        if let Err(error) = validate_draft(&turn) {
             summary.failed_turns += 1;
-            writeln!(
-                diagnostic,
-                "chat: draft exceeds 32768 bytes, 8192 graphemes, or 256 lines"
-            )?;
+            writeln!(diagnostic, "chat: {error}")?;
             continue;
         }
         let mut context = history.clone();
@@ -203,4 +222,56 @@ pub async fn run_chat(
         )?;
     }
     Ok(summary)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn draft_validation_matches_legacy_inclusive_limits_and_diagnostics() {
+        assert_eq!(MAX_LINE_BYTES, 32768);
+        assert_eq!(MAX_DRAFT_GRAPHEMES, 8192);
+        assert_eq!(MAX_RESPONSE_BYTES, 1048576);
+        let family = "\u{1f468}\u{200d}\u{1f469}\u{200d}\u{1f467}\u{200d}\u{1f466}";
+        assert_eq!(family.graphemes(true).count(), 1);
+        for draft in [
+            String::new(),
+            "Hello, world!".into(),
+            "a".repeat(8192),
+            "\u{1f600}".repeat(8192),
+            family.repeat(100),
+            "x\n".repeat(255),
+        ] {
+            validate_draft(&draft).unwrap();
+        }
+        for (draft, error) in [
+            (
+                "a".repeat(40000),
+                "Draft exceeds 32768 byte limit (40000 bytes)",
+            ),
+            (
+                "\u{1f600}".repeat(8193),
+                "Draft exceeds 32768 byte limit (32772 bytes)",
+            ),
+            (
+                "a".repeat(32768),
+                "Draft exceeds 8192 grapheme limit (32768 graphemes)",
+            ),
+            (
+                "a".repeat(9000),
+                "Draft exceeds 8192 grapheme limit (9000 graphemes)",
+            ),
+            (
+                "\n".repeat(9000),
+                "Draft exceeds 8192 grapheme limit (9000 graphemes)",
+            ),
+            (
+                "x\n".repeat(299),
+                "Draft exceeds 256 line limit (300 lines)",
+            ),
+        ] {
+            assert_eq!(validate_draft(&draft).unwrap_err().to_string(), error);
+        }
+    }
 }

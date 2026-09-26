@@ -15,7 +15,7 @@ use std::{
 #[derive(Parser)]
 #[command(about = "Incrementally refresh a catalog from the offline registry snapshot")]
 struct Args {
-    #[arg(long, default_value = "data/models.json")]
+    #[arg(long, default_value = "crates/llmup-core/data/models.json")]
     catalog_path: PathBuf,
     #[arg(long)]
     now: Option<String>,

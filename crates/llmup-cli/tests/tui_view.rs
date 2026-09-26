@@ -2,6 +2,37 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use llmup_cli::tui_view::{ReportView, handle_key, render};
 use ratatui::{Terminal, backend::TestBackend};
 
+#[tokio::test]
+async fn invalid_picker_choices_fail_before_terminal_or_cooked_output() {
+    for choices in [
+        vec![],
+        (0..1001).map(|index| format!("model:{index}")).collect(),
+        vec!["x".repeat(8193)],
+        vec![String::new()],
+        vec!["duplicate".into(), "duplicate".into()],
+        vec!["unsafe\x1b[2J".into()],
+    ] {
+        let error = llmup_cli::tui_view::pick("Choose", &choices, false)
+            .await
+            .unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::InvalidInput);
+        let (_sender, mut input) = tokio::sync::mpsc::channel(1);
+        let mut output = Vec::new();
+        assert!(
+            llmup_cli::accessible::pick_model(
+                "Choose",
+                &choices,
+                &mut input,
+                &mut output,
+                &tokio_util::sync::CancellationToken::new()
+            )
+            .await
+            .is_err()
+        );
+        assert!(output.is_empty());
+    }
+}
+
 #[test]
 fn navigation_search_and_input_bounds_are_deterministic() {
     let mut view = ReportView::new("Catalog", "alpha\nbeta\ngamma\n", false).unwrap();

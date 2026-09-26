@@ -3,7 +3,13 @@ name = "llmup-core"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-publish.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Deterministic, offline hardware-fit scoring, catalog and sizing engine for local-llmup."
+keywords = ["llm", "local-ai", "hardware", "ollama"]
+categories = ["science"]
+include = ["src/**", "data/**", "fixtures/bootstrap-metadata.json", "Cargo.toml"]
 
 [dependencies]
 serde.workspace = true

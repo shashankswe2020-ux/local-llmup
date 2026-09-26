@@ -385,3 +385,179 @@ async fn migration_copy_preserves_source_and_move_removes_only_after_verificatio
     assert!(!source.dir.exists());
     assert_eq!(target.load().unwrap(), moved.load().unwrap());
 }
+
+fn private_fixture(path: &std::path::Path, bytes: &[u8]) {
+    std::fs::write(path, bytes).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    }
+}
+
+#[test]
+fn logical_memory_files_reject_invalid_utf8_and_oversized_persona() {
+    for (name, bytes) in [
+        ("facts.json", vec![0xff]),
+        ("system.md", vec![b'x'; 64 * 1024 + 1]),
+    ] {
+        let home = tempfile::tempdir().unwrap();
+        let store = MemoryStore::open(home.path(), "source", "now").unwrap();
+        private_fixture(&store.dir.join(name), &bytes);
+        assert!(store.load().is_err(), "{name}");
+        assert_eq!(std::fs::read(store.dir.join(name)).unwrap(), bytes);
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn logical_memory_files_and_embedding_directories_reject_symlink_escape() {
+    use std::os::unix::fs::symlink;
+    for name in ["facts.json", "conversation.jsonl", "embeddings"] {
+        let home = tempfile::tempdir().unwrap();
+        let store = MemoryStore::open(home.path(), "source", "now").unwrap();
+        let external = home.path().join("external");
+        if name == "embeddings" {
+            std::fs::create_dir(&external).unwrap();
+            private_fixture(&external.join("vectors.jsonl"), b"outside");
+        } else {
+            private_fixture(&external, b"outside");
+        }
+        let path = store.dir.join(name);
+        if path.is_file() {
+            std::fs::remove_file(&path).unwrap();
+        }
+        symlink(&external, &path).unwrap();
+        assert!(store.load().is_err(), "{name}");
+        assert!(
+            std::fs::symlink_metadata(path)
+                .unwrap()
+                .file_type()
+                .is_symlink()
+        );
+        let sentinel = if name == "embeddings" {
+            external.join("vectors.jsonl")
+        } else {
+            external
+        };
+        assert_eq!(std::fs::read(sentinel).unwrap(), b"outside");
+    }
+}
+
+#[test]
+fn missing_source_memory_is_not_created_by_reading() {
+    let home = tempfile::tempdir().unwrap();
+    assert!(MemoryStore::existing(home.path(), "absent").is_err());
+    assert!(MemoryStore::snapshot(home.path(), "absent").is_err());
+    assert!(!home.path().join("memory/absent").exists());
+}
+
+#[tokio::test]
+async fn migration_preserves_embedding_bytes_or_explicitly_drops_unsupported_vectors() {
+    use llmup_runtime::memory::{CaptureOptions, MigrationOptions};
+    let home = tempfile::tempdir().unwrap();
+    let source = MemoryStore::open(home.path(), "source", "now").unwrap();
+    let embedder = EmbeddingFixture {
+        model: "embedding",
+        dimension: 2,
+    };
+    let cancel = tokio_util::sync::CancellationToken::new();
+    source
+        .capture(
+            "question",
+            "answer",
+            CaptureOptions {
+                timestamp: "now",
+                embedder: Some(&embedder),
+                embedding_unsupported: false,
+            },
+            &cancel,
+        )
+        .await
+        .unwrap();
+    let before = source.load().unwrap();
+    for unsupported in [false, true] {
+        let target = source
+            .migrate(
+                if unsupported { "vectorless" } else { "reuse" },
+                "now",
+                MigrationOptions {
+                    context: 8192,
+                    embedder: None,
+                    target_dimension: None,
+                    summarizer: None,
+                    embedding_unsupported: unsupported,
+                },
+                false,
+                &cancel,
+            )
+            .await
+            .unwrap();
+        if unsupported {
+            assert!(target.load().unwrap().embedding.is_none());
+            assert_eq!(
+                target.read_meta().unwrap().embedding_unsupported,
+                Some(true)
+            );
+            assert!(!target.dir.join("embeddings/vectors.jsonl").exists());
+        } else {
+            assert_eq!(
+                serde_json::to_value(target.load().unwrap().embedding).unwrap(),
+                serde_json::to_value(&before.embedding).unwrap()
+            );
+        }
+        assert_eq!(source.load().unwrap(), before);
+    }
+}
+
+#[tokio::test]
+async fn source_drift_and_under_lock_failure_prevent_migration_commit() {
+    use llmup_runtime::memory::{CaptureOptions, MemoryError, MigrationOptions};
+    let home = tempfile::tempdir().unwrap();
+    let source = MemoryStore::open(home.path(), "source", "now").unwrap();
+    let cancel = tokio_util::sync::CancellationToken::new();
+    let options = || MigrationOptions {
+        context: 8192,
+        embedder: None,
+        target_dimension: None,
+        summarizer: None,
+        embedding_unsupported: false,
+    };
+    let prepared = source
+        .prepare_migration("target", options(), &cancel)
+        .await
+        .unwrap();
+    source
+        .capture(
+            "concurrent",
+            "reply",
+            CaptureOptions {
+                timestamp: "now",
+                embedder: None,
+                embedding_unsupported: false,
+            },
+            &cancel,
+        )
+        .await
+        .unwrap();
+    assert!(
+        source
+            .commit_migration(prepared, "now", false, &cancel)
+            .is_err()
+    );
+    assert!(!home.path().join("memory/target").exists());
+    let before = source.load().unwrap();
+    let prepared = source
+        .prepare_migration("target", options(), &cancel)
+        .await
+        .unwrap();
+    assert!(
+        source
+            .commit_migration_with(prepared, "now", false, &cancel, || Err(MemoryError(
+                "runtime changed under lock".into()
+            )))
+            .is_err()
+    );
+    assert_eq!(source.load().unwrap(), before);
+    assert!(!home.path().join("memory/target").exists());
+}

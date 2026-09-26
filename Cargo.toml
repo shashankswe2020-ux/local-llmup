@@ -1,13 +1,15 @@
 [workspace]
 members = ["crates/llmup-core", "crates/llmup-cli", "crates/llmup-runtime", "crates/llmup-gui"]
 resolver = "3"
-exclude = ["apps/desktop/src-tauri"]
+exclude = ["apps/desktop/src-tauri", "vendor/crossterm"]
 
 [workspace.package]
-version = "0.11.4"
+version = "1.0.0"
 edition = "2024"
 rust-version = "1.98"
-publish = false
+license = "MIT"
+repository = "https://github.com/shashankswe2020-ux/local-llmup"
+homepage = "https://github.com/shashankswe2020-ux/local-llmup"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }

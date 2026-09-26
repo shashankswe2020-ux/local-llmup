@@ -9,3 +9,8 @@ pub mod ranking;
 pub mod registry_collector;
 pub mod reports;
 pub mod sizing;
+
+/// Curated, cited model catalog bundled into every release.
+pub const MODELS_JSON: &str = include_str!("../data/models.json");
+/// Curated throughput dataset bundled into every release.
+pub const PERF_JSON: &str = include_str!("../data/perf.json");

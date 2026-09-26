@@ -1,5 +1,6 @@
 use llmup_runtime::{
     acquire::{Acquisition, DownloadResponse, DownloadTransport},
+    application::events::{LifecycleObserver, LifecycleScope, LifecycleStage, LifecycleStatus},
     command::{CommandRunner, OllamaCommandContext},
     pull::{PullRequest, PullService},
 };
@@ -133,29 +134,114 @@ async fn ollama_pull_uses_discrete_argv_and_verifies_manifest_blobs() {
         gguf: None,
         mlx: None,
     };
+    let (observer, mut events) = LifecycleObserver::channel();
     let result = service
-        .pull_at(
+        .pull_at_observed(
             &request,
             Path::new("/fake/ollama"),
             "http://127.0.0.1:59125",
             &CancellationToken::new(),
+            Some(&observer),
         )
         .await
         .unwrap();
     assert!(result.digest_verified);
     assert!(result.local_manifest_digest.is_some());
+    for stage in [LifecycleStage::Acquisition, LifecycleStage::Verification] {
+        for status in [LifecycleStatus::Started, LifecycleStatus::Completed] {
+            let event = events.try_recv().unwrap();
+            assert_eq!(event.scope, LifecycleScope::Runtime);
+            assert_eq!((event.stage, event.status), (stage, status));
+        }
+    }
+    assert!(events.try_recv().is_err());
     std::fs::write(blobs.join(format!("sha256-{sha}")), b"corrupt!").unwrap();
     assert!(
         service
-            .pull_at(
+            .pull_at_observed(
                 &request,
                 Path::new("/fake/ollama"),
                 "http://127.0.0.1:59125",
-                &CancellationToken::new()
+                &CancellationToken::new(),
+                Some(&observer),
             )
             .await
             .is_err()
     );
+    for (stage, status) in [
+        (LifecycleStage::Acquisition, LifecycleStatus::Started),
+        (LifecycleStage::Acquisition, LifecycleStatus::Completed),
+        (LifecycleStage::Verification, LifecycleStatus::Started),
+        (LifecycleStage::Verification, LifecycleStatus::Failed),
+    ] {
+        let event = events.try_recv().unwrap();
+        assert_eq!((event.stage, event.status), (stage, status));
+    }
+    assert!(events.try_recv().is_err());
+}
+
+#[tokio::test]
+async fn runtime_events_ollama_pull_failure_never_starts_verification() {
+    struct FailedPull;
+    #[async_trait::async_trait]
+    impl CommandRunner for FailedPull {
+        async fn run(
+            &self,
+            _binary: &Path,
+            _args: &[String],
+            _cancel: &CancellationToken,
+            _timeout: Duration,
+        ) -> Result<String, String> {
+            panic!("unexpected command")
+        }
+        async fn run_ollama(
+            &self,
+            _binary: &Path,
+            _args: &[String],
+            _context: &OllamaCommandContext,
+            _cancel: &CancellationToken,
+            _timeout: Duration,
+        ) -> Result<String, String> {
+            Err("mock pull failed".into())
+        }
+    }
+    let root = tempfile::tempdir().unwrap();
+    let acquisition = Acquisition::new(root.path()).unwrap();
+    let service = PullService {
+        acquisition: &acquisition,
+        download: &Download,
+        commands: &FailedPull,
+        ollama_models: root.path(),
+        studio_models: root.path(),
+    };
+    let request = PullRequest {
+        backend: "ollama".into(),
+        model_id: "test:latest".into(),
+        expected_bytes: 8,
+        expected_sha256: None,
+        gguf: None,
+        mlx: None,
+    };
+    let (observer, mut events) = LifecycleObserver::channel();
+    let error = service
+        .pull_at_observed(
+            &request,
+            Path::new("/fake/ollama"),
+            "http://127.0.0.1:59125",
+            &CancellationToken::new(),
+            Some(&observer),
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(error.0, "mock pull failed");
+    for status in [LifecycleStatus::Started, LifecycleStatus::Failed] {
+        let event = events.try_recv().unwrap();
+        assert_eq!(
+            (event.stage, event.status),
+            (LifecycleStage::Acquisition, status)
+        );
+    }
+    assert!(events.try_recv().is_err());
 }
 #[async_trait::async_trait]
 impl DownloadTransport for Download {

@@ -1,0 +1,272 @@
+use super::{TestResult, click, fresh_session, send, wait_for};
+use fantoccini::Client;
+use serde_json::{Value, json};
+use std::time::Duration;
+
+const VISIBLE: &str = "((node) => Boolean(node && node.getClientRects().length > 0))";
+
+async fn control(client: &Client, path: &str, body: &str) -> TestResult {
+    let status = client
+        .execute_async(
+            "const done = arguments[arguments.length - 1]; fetch(arguments[0], {method: 'POST', body: arguments[1]}).then((r) => done(r.status), () => done(0));",
+            vec![json!(path), json!(body)],
+        )
+        .await?;
+    if status != json!(204) {
+        return Err(format!("fixture control {path} returned {status}").into());
+    }
+    Ok(())
+}
+
+async fn fetch_json(client: &Client, path: &str) -> Result<Value, Box<dyn std::error::Error>> {
+    Ok(client
+        .execute_async(
+            "const done = arguments[arguments.length - 1]; fetch(arguments[0]).then((r) => r.json()).then(done, () => done(null));",
+            vec![json!(path)],
+        )
+        .await?)
+}
+
+async fn accept_confirm(client: &Client) -> Result<String, Box<dyn std::error::Error>> {
+    let text = tokio::time::timeout(Duration::from_secs(15), async {
+        loop {
+            if let Ok(text) = client.get_alert_text().await {
+                return text;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    })
+    .await
+    .map_err(|_| "timed out waiting for the confirmation dialog")?;
+    client.accept_alert().await?;
+    Ok(text)
+}
+
+async fn wait_for_start(client: &Client, expected: &Value, exact: bool) -> TestResult {
+    let fields = expected
+        .as_object()
+        .ok_or("expected start must be an object")?;
+    tokio::time::timeout(Duration::from_secs(15), async {
+        loop {
+            let starts = fetch_json(client, "/__fixture/model-starts").await?;
+            if starts.as_array().is_some_and(|starts| {
+                starts.iter().any(|start| {
+                    (!exact || start.as_object().map(serde_json::Map::len) == Some(fields.len()))
+                        && fields
+                            .iter()
+                            .all(|(key, value)| start.get(key) == Some(value))
+                })
+            }) {
+                return Ok::<(), Box<dyn std::error::Error>>(());
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    })
+    .await
+    .map_err(|_| format!("model start {expected} was never requested"))?
+}
+
+async fn open_models(client: &Client, origin: &str) -> TestResult {
+    client.goto(origin).await?;
+    click(client, ".rail-item[data-view=\"models\"]").await?;
+    wait_for(
+        client,
+        &format!("{VISIBLE}(document.querySelector('.model-card-item'))"),
+    )
+    .await
+}
+
+async fn open_first_detail(client: &Client) -> TestResult {
+    click(
+        client,
+        ".model-card-item button[aria-label^=\"View performance details for\"]",
+    )
+    .await?;
+    wait_for(client, &format!("{VISIBLE}(document.querySelector('#model-detail-title')) && {VISIBLE}(document.querySelector('#model-detail-back'))")).await
+}
+
+pub async fn details(client: &Client, origin: &str, artifacts: &std::path::Path) -> TestResult {
+    open_models(client, origin).await?;
+    let name = client
+        .execute(
+            "return document.querySelector('.model-card-item .model-card-title').textContent;",
+            vec![],
+        )
+        .await?;
+    open_first_detail(client).await?;
+    let failed = client
+        .execute(
+            &format!("const visible = {VISIBLE}; const failed = []; const check = (label, ok) => {{ if (!ok) failed.push(label); }};
+                const heading = (name) => [...document.querySelectorAll('#model-detail h1, #model-detail h2, #model-detail h3, #model-detail h4')].some((node) => node.textContent.trim() === name && visible(node));
+                check('detail', visible(document.querySelector('#model-detail')));
+                check('catalog hidden', !visible(document.querySelector('#model-catalog-panel')));
+                check('title', document.querySelector('#model-detail-title').textContent === arguments[0]);
+                for (const name of ['Recommendation score', 'Performance & fit', 'Model profile', 'Quantization options', 'Catalog evidence']) check(name, heading(name));
+                check('score rows', document.querySelectorAll('.model-score-row').length === 5);
+                check('quant row', visible(document.querySelector('.model-quant-table tbody tr')));
+                check('evidence note', [...document.querySelectorAll('#model-detail *')].some((node) => node.children.length === 0 && node.textContent.includes('no benchmark result is implied') && visible(node)));
+                return failed;"),
+            vec![name],
+        )
+        .await?;
+    if failed != json!([]) {
+        return Err(format!("model detail failed: {failed}").into());
+    }
+    std::fs::write(
+        artifacts.join("model-detail-desktop.png"),
+        client.screenshot().await?,
+    )?;
+    click(client, "#model-detail-back").await?;
+    wait_for(client, &format!("{VISIBLE}(document.querySelector('#model-catalog-panel')) && !{VISIBLE}(document.querySelector('#model-detail'))")).await?;
+
+    control(client, "/__fixture/recommended-context", "65536").await?;
+    click(client, "#refresh-models").await?;
+    wait_for(client, "document.querySelector('.model-card-item .model-card-meta')?.textContent.includes('65,536 context tokens')").await?;
+    open_first_detail(client).await?;
+    let start = client
+        .execute(
+            "const button = [...document.querySelectorAll('#model-detail button')].find((node) => node.textContent.trim() === 'Start model'); if (button) button.dataset.fixtureStart = 'true'; return Boolean(button);",
+            vec![],
+        )
+        .await?;
+    if start != json!(true) {
+        return Err("model detail has no Start model button".into());
+    }
+    click(client, "#model-detail button[data-fixture-start]").await?;
+    accept_confirm(client).await?;
+    wait_for_start(client, &json!({"context": 65536}), false).await?;
+    control(client, "/__fixture/recommended-context", "").await
+}
+
+pub async fn narrow_details(
+    client: &Client,
+    origin: &str,
+    artifacts: &std::path::Path,
+) -> TestResult {
+    open_models(client, origin).await?;
+    open_first_detail(client).await?;
+    wait_for(client, &format!("[...document.querySelectorAll('#model-detail h3')].some((node) => node.textContent.trim() === 'Quantization options' && {VISIBLE}(node)) && getComputedStyle(document.querySelector('.model-detail-metrics')).gridTemplateColumns.length > 0 && document.documentElement.scrollWidth <= innerWidth")).await?;
+    std::fs::write(
+        artifacts.join("model-detail-mobile.png"),
+        client.screenshot().await?,
+    )?;
+    Ok(())
+}
+
+pub async fn installed(
+    client: &Client,
+    origin: &str,
+    width: u32,
+    artifacts: &std::path::Path,
+) -> TestResult {
+    open_models(client, origin).await?;
+    client
+        .execute(
+            "const set = (id, value) => { const node = document.querySelector(id); node.value = value; node.dispatchEvent(new Event(node.tagName === 'SELECT' ? 'change' : 'input', {bubbles: true})); };
+             set('#model-source', 'installed'); set('#context-window', 'custom'); set('#context-tokens', '65536'); set('#installed-port', '11435');",
+            vec![],
+        )
+        .await?;
+    click(client, "#refresh-models").await?;
+    wait_for(client, &format!("[...document.querySelectorAll('#recommended-list .model-card-title')].some((node) => node.textContent === 'gemma4:e4b-it-qat' && {VISIBLE}(node)) && document.querySelector('#recommended-list').textContent.includes('Context fit unknown')")).await?;
+    click(client, "#models-fit-only").await?;
+    wait_for(
+        client,
+        "document.querySelector('#recommended-list').textContent.includes('No installed models match')",
+    )
+    .await?;
+    click(client, "#models-fit-only").await?;
+    click(client, "#model-bypass").await?;
+    wait_for(client, "(() => { const start = [...document.querySelectorAll('#recommended-list button')].find((node) => node.textContent === 'Start'); return start && !start.disabled && document.documentElement.scrollWidth <= innerWidth; })()").await?;
+    std::fs::write(
+        artifacts.join(format!("installed-{width}.png")),
+        client.screenshot().await?,
+    )?;
+    click(client, "#recommended-list .model-card-actions button").await?;
+    let prompt = accept_confirm(client).await?;
+    if !prompt.contains("65536") || !prompt.contains("integrity") {
+        return Err(format!(
+            "installed start confirmation is missing context or integrity: {prompt}"
+        )
+        .into());
+    }
+    wait_for_start(
+        client,
+        &json!({"model": "gemma4:e4b-it-qat", "backend": "ollama", "context": 65536, "bypass": true, "installed": true, "port": 11435}),
+        true,
+    )
+    .await
+}
+
+pub async fn tools(client: &Client, origin: &str) -> TestResult {
+    client.goto(origin).await?;
+    control(client, "/__fixture/tools", "attach").await?;
+    let result = async {
+        for approve in [true, false] {
+            fresh_session(client).await?;
+            send(client, "use the TOOL please").await?;
+            let decision = if approve { "Approve" } else { "Deny" };
+            wait_for(client, &format!("document.querySelector('.tool-card')?.textContent.includes('demo_tool') && [...document.querySelectorAll('.tool-card button')].some((node) => node.textContent === {})", json!(decision))).await?;
+            client
+                .execute(
+                    "[...document.querySelectorAll('.tool-card button')].find((node) => node.textContent === arguments[0]).dataset.fixtureDecision = 'true';",
+                    vec![json!(decision)],
+                )
+                .await?;
+            click(client, ".tool-card button[data-fixture-decision]").await?;
+            if approve {
+                wait_for(client, "document.querySelector('.tool-card')?.textContent.includes('Used demo_tool') && [...document.querySelectorAll('.message.assistant')].at(-1)?.textContent.includes('Tool finished. Done.')").await?;
+            } else {
+                wait_for(client, "(() => { const card = document.querySelector('.tool-card'); return card?.textContent.includes('denied') && !card.textContent.includes('Used demo_tool'); })()").await?;
+            }
+        }
+        Ok::<(), Box<dyn std::error::Error>>(())
+    }
+    .await;
+    wait_for(client, super::RUN_SETTLED).await?;
+    control(client, "/__fixture/tools", "detach").await?;
+    result
+}
+
+pub async fn workspace(client: &Client, origin: &str) -> TestResult {
+    client.goto(origin).await?;
+    let path = fetch_json(client, "/__fixture/workspace").await?;
+    let path = path.as_str().ok_or("fixture workspace path unavailable")?;
+    fresh_session(client).await?;
+    wait_for(
+        client,
+        &format!("{VISIBLE}(document.querySelector('#context-bar'))"),
+    )
+    .await?;
+    click(client, "#context-add").await?;
+    wait_for(
+        client,
+        &format!("{VISIBLE}(document.querySelector('#context-root-path'))"),
+    )
+    .await?;
+    let root = client
+        .find(fantoccini::Locator::Css("#context-root-path"))
+        .await?;
+    root.clear().await?;
+    root.send_keys(path).await?;
+    click(client, "#context-root-add").await?;
+    wait_for(
+        client,
+        &format!("{VISIBLE}(document.querySelector('#context-search'))"),
+    )
+    .await?;
+    client
+        .find(fantoccini::Locator::Css("#context-search"))
+        .await?
+        .send_keys("app")
+        .await?;
+    wait_for(client, &format!("(() => {{ const result = [...document.querySelectorAll('.context-result')].find((node) => node.textContent.includes('src/app.ts')); if (result && {VISIBLE}(result)) result.dataset.fixtureResult = 'true'; return Boolean(result?.dataset.fixtureResult); }})()")).await?;
+    click(client, ".context-result[data-fixture-result]").await?;
+    wait_for(client, &format!("[...document.querySelectorAll('.context-chip')].some((node) => node.textContent.includes('app.ts') && {VISIBLE}(node))")).await?;
+    send(client, "review this file").await?;
+    wait_for(
+        client,
+        "document.querySelector('.context-ledger')?.textContent.includes('1 of 1')",
+    )
+    .await
+}

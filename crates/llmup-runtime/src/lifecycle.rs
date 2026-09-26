@@ -394,6 +394,26 @@ impl Lifecycle<'_> {
         &self,
         cancel: &CancellationToken,
     ) -> Result<Option<ServerState>, BackendError> {
+        self.down_with_target(cancel, || Ok(None)).await
+    }
+    pub async fn down_with_target(
+        &self,
+        cancel: &CancellationToken,
+        resolve_target: impl FnOnce() -> Result<Option<String>, BackendError> + Send,
+    ) -> Result<Option<ServerState>, BackendError> {
+        if cancel.is_cancelled() {
+            return Err(BackendError("cancelled".into()));
+        }
+        if self
+            .store
+            .read()
+            .map_err(|error| BackendError(error.to_string()))?
+            .active
+            .is_none()
+        {
+            return Ok(None);
+        }
+        let guard = self.lock(cancel).await?;
         let prepared = self
             .store
             .read()
@@ -401,6 +421,14 @@ impl Lifecycle<'_> {
         let Some(active) = &prepared.active else {
             return Ok(None);
         };
+        if let Some(target) = resolve_target()?
+            && target != active.model_id
+        {
+            return Err(BackendError(format!(
+                "{target} is not the active model ({})",
+                active.model_id
+            )));
+        }
         let operation = if active.owned_by_us {
             Operation::Down
         } else {
@@ -409,7 +437,6 @@ impl Lifecycle<'_> {
         let live = self.live(&prepared, cancel).await?;
         let approved = Confirmation::prepare(operation, &prepared, None, live.as_ref())
             .map_err(|error| BackendError(error.to_string()))?;
-        let guard = self.lock(cancel).await?;
         let current = self
             .store
             .read()
@@ -420,6 +447,9 @@ impl Lifecycle<'_> {
         approved
             .verify(&current_snapshot)
             .map_err(|error| BackendError(error.to_string()))?;
+        if cancel.is_cancelled() {
+            return Err(BackendError("cancelled".into()));
+        }
         self.store
             .compare_and_write(&guard, &current, &RuntimeState::default())
             .map_err(|error| BackendError(error.to_string()))?;

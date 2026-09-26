@@ -10,9 +10,9 @@ fn command(root: &std::path::Path) -> Command {
 }
 
 fn fixture(root: &std::path::Path) -> String {
-    fs::create_dir(root.join("data")).unwrap();
-    let catalog = include_str!("../../../data/models.json");
-    fs::write(root.join("data/models.json"), catalog).unwrap();
+    fs::create_dir_all(root.join("crates/llmup-core/data")).unwrap();
+    let catalog = include_str!("../../llmup-core/data/models.json");
+    fs::write(root.join("crates/llmup-core/data/models.json"), catalog).unwrap();
     catalog.into()
 }
 
@@ -46,7 +46,7 @@ fn offline_freshness_writes_reports_without_modifying_catalog() {
         format!("Existing summary\n### Catalog freshness\n\n```\n{human}```\n")
     );
     assert_eq!(
-        fs::read_to_string(root.path().join("data/models.json")).unwrap(),
+        fs::read_to_string(root.path().join("crates/llmup-core/data/models.json")).unwrap(),
         before
     );
     let repeat = command(root.path()).output().unwrap();
@@ -97,7 +97,7 @@ fn invalid_input_and_conflicting_outputs_fail_before_writing() {
     let root = tempfile::tempdir().unwrap();
     let before = fixture(root.path());
     for args in [
-        vec!["--out", "data/models.json"],
+        vec!["--out", "crates/llmup-core/data/models.json"],
         vec!["--now", "invalid"],
         vec!["--unknown"],
     ] {
@@ -106,20 +106,23 @@ fn invalid_input_and_conflicting_outputs_fail_before_writing() {
         assert!(output.stdout.is_empty());
         assert!(!root.path().join("catalog-freshness.json").exists());
         assert_eq!(
-            fs::read_to_string(root.path().join("data/models.json")).unwrap(),
+            fs::read_to_string(root.path().join("crates/llmup-core/data/models.json")).unwrap(),
             before
         );
     }
     let output = command(root.path())
-        .env("GITHUB_STEP_SUMMARY", root.path().join("data/models.json"))
+        .env(
+            "GITHUB_STEP_SUMMARY",
+            root.path().join("crates/llmup-core/data/models.json"),
+        )
         .output()
         .unwrap();
     assert!(!output.status.success());
     assert_eq!(
-        fs::read_to_string(root.path().join("data/models.json")).unwrap(),
+        fs::read_to_string(root.path().join("crates/llmup-core/data/models.json")).unwrap(),
         before
     );
-    fs::write(root.path().join("data/models.json"), "{}").unwrap();
+    fs::write(root.path().join("crates/llmup-core/data/models.json"), "{}").unwrap();
     assert!(!command(root.path()).output().unwrap().status.success());
     assert!(!root.path().join("catalog-freshness.json").exists());
 }
@@ -130,13 +133,13 @@ fn report_symlinks_are_rejected_without_touching_targets() {
     let root = tempfile::tempdir().unwrap();
     let before = fixture(root.path());
     std::os::unix::fs::symlink(
-        "data/models.json",
+        "crates/llmup-core/data/models.json",
         root.path().join("catalog-freshness.json"),
     )
     .unwrap();
     assert!(!command(root.path()).output().unwrap().status.success());
     assert_eq!(
-        fs::read_to_string(root.path().join("data/models.json")).unwrap(),
+        fs::read_to_string(root.path().join("crates/llmup-core/data/models.json")).unwrap(),
         before
     );
 }

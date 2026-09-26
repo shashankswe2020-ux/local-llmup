@@ -1,5 +1,10 @@
 # Rust Migration Follow-Up
 
+Execution update (2026-09-19): the user approved implementation and retirement of
+the npm CLI for future versions. Use [CLI Migration Completion Plan](cli-migration-completion.md) for the approved
+task breakdown, approval decisions, dependencies, retirement order and acceptance
+gates. The sections below are historical progress, not combined certification.
+
 Base: PR #245, merged as `c726793` on 2026-09-19 at the user's request.
 Branch: `feature/rust-migration-follow-up`. This follow-up is not authorized to
 merge automatically or publish a release.
@@ -28,8 +33,22 @@ while retaining reviewed browser JavaScript. R23-R26 are still incomplete.
   lifecycle commands, with shared input, 256-byte answers, and cancellation tests.
 - [x] Port accessible active-server and diagnostic views with numbered evidence,
   cooked help/quit, unchanged plain-output/exit contracts, Unicode escaping/NFC
-  parity, and real-PTY tests. Shared TypeScript read-only views remain until
-  recommendation/catalog/can-run and their search/detail behavior are native.
+  parity, and real-PTY tests.
+- [x] Implement native accessible recommendation, catalog, and can-run views,
+  including search/details where applicable and explicit unknown-context evidence.
+- [x] Implement accessible installed-inventory recommendation and can-run views
+  from native runtime metadata, retaining unknowns and original exit codes.
+- [x] Implement detailed visual model browsing with search, evidence, help, and
+  bounded comparison for catalog/recommendation and installed inventories; route
+  can-run through a target detail view while preserving verdict exits.
+- [x] Connect full-screen lifecycle execution to actual runtime stage events and
+  a scoped diagnostic sink, preserving safety warnings and cancellation cleanup.
+- [x] Replace release-identity validation with a native command and frozen parity
+  cases; retain existing workflow permissions and release policy.
+- [x] Retire TypeScript sizing, advice, and GUI recommendation parity drivers in
+  favor of native frozen-oracle tests with the original case counts and contracts.
+- [x] Delete the unused TypeScript chat screen and its generated build artifacts
+  after checking callers and native chat coverage.
 - [x] Replace the maintenance dry-run script with `cargo catalog-refresh --dry-run`,
   preserving exact diagnostics, source bytes, and modification times.
 - [x] Replace inline Node PR/issue body formatting and report decisions with
@@ -100,3 +119,61 @@ typed JSON normalization. `--manifest-fixture` is strictly offline and never fal
 back to live requests; `--dry-run` reports without writing. Live registry requests
 and cross-platform certification were not run in this local batch. The workflow
 still retains Node-based compatibility quality gates; it has not been dispatched.
+
+## Implementation-First Batch
+
+The user requested implementation before deep review and full testing. Concurrent
+agents selected with `GPT-6 Astra (copilot)` implemented independent components;
+only focused checks accompany subsequent changes. No remote CI, push, merge, or
+release is authorized by this change in cadence.
+
+Accessible catalog and recommendation have 20 and 12 frozen legacy cases;
+can-run has 58. The can-run screen intentionally adds the missing-geometry warning
+before exit, while preserving the frozen legacy output otherwise. Recommendations
+now calculate evidence once for interactive and final output and suppress unsafe
+or truncated executable suggestions. Installed views use native runtime evidence
+instead of substituting curated metadata and have ten focused component tests.
+Temporary Node fixture exporters are removed.
+
+Lifecycle execution now has cancellation-aware running/result/recovery presentation
+and waits for the runtime operation after cancellation. It does not claim rollback
+success or fabricate detailed stages. Structured runtime events now report actual
+acquisition, verification, startup/attachment, activation, readiness, and stop
+operations through a bounded nonblocking 64-event channel without string payloads.
+The CLI consumes and drains those events. Visual execution now uses a bounded
+diagnostic sink and full-screen progress; plain/accessibility stderr behavior is
+preserved. Safety warnings retain counts, download filenames are redacted, and
+omitted progress is counted. Existing raw subprocess logging policy is unchanged. Twelve
+focused runtime event tests, fourteen lifecycle controller tests, and two native
+workflow tests pass; full orchestration/platform coverage is still pending.
+The release-identity replacement
+has ten native tests, including 100 frozen result/error cases; the former script
+and mirrored TypeScript test are removed. Full regression, independent deep review,
+cross-platform certification, and all-surface performance measurements remain
+pending for this batch. R23-R26 are not complete.
+
+The next terminal increment adds 22 focused visual-model tests, 11 installed-view
+tests, 19 lifecycle controller tests, and 22 local PTY journeys. Model views reuse
+existing evidence and support help, filtering, details, and four-model comparison;
+no command suggestions execute. Visual can-run preserves success/no-fit exits and
+returns 130 without final stdout on interruption. Confirmed shutdown with isolated
+empty state exercises all three terminal screens without touching a runtime.
+Installed visual routing is implemented but has no live-runtime PTY certification
+in this batch. These focused checks do not replace the deferred full verification.
+
+## Verified Deletions
+
+The user explicitly requested removal of migrated TypeScript files. Three parity
+drivers are now deleted and their transitional npm aliases invoke Cargo tests;
+the native commands also run directly without npm. Coverage is retained as 2,849
+sizing cases, 78 advice reports/5,148 verdicts/9,126 resolver checks, and 24 GUI
+recommendation contracts. Expectations were frozen from the independent retained
+TypeScript implementations before deletion, with provenance and source hashes.
+The unreferenced `src/tui/screens/chat.tsx` and its generated artifacts are removed.
+
+Replacement checks, native chat tests, retained typecheck, and retained build pass.
+The current retirement inventory reports 309 blockers (315 before this and the
+release-identity deletions). Active TypeScript enrichment, CLI/GUI/runtime callers,
+state/workflow interoperability drivers, and browser verification remain until
+their consumers and coverage are migrated. No full test/review pass or remote CI
+was started; release and production-cutover gates remain unchanged.

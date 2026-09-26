@@ -112,7 +112,7 @@ pub fn render(kind: &str, raw: &str) -> Result<String, ValidationError> {
         "refresh-pr" => {
             let report = freshness(raw)?;
             Ok(format!(
-                "Automated weekly refresh of `data/models.json` \u{2014} quant disk sizes and content digests refreshed from the live registry (curated fields untouched).\n\n- generated: {}\n\nTypecheck, lint, build, and the full test suite passed on this branch. Review the model changes before merging.\n\n_Opened automatically by the Catalog Freshness workflow._",
+                "Automated weekly refresh of `crates/llmup-core/data/models.json` \u{2014} quant disk sizes and content digests refreshed from the live registry (curated fields untouched).\n\n- generated: {}\n\nTypecheck, lint, build, and the full test suite passed on this branch. Review the model changes before merging.\n\n_Opened automatically by the Catalog Freshness workflow._",
                 report.generated_at
             ))
         }

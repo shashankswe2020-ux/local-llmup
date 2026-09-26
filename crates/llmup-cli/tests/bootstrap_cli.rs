@@ -13,8 +13,8 @@ fn command(root: &Path) -> Command {
 #[test]
 fn native_bootstrap_is_offline_deterministic_and_matches_oracle() {
     let root = tempfile::tempdir().unwrap();
-    fs::create_dir(root.path().join("data")).unwrap();
-    let path = root.path().join("data/models.json");
+    fs::create_dir_all(root.path().join("crates/llmup-core/data")).unwrap();
+    let path = root.path().join("crates/llmup-core/data/models.json");
     let output = command(root.path()).output().unwrap();
     assert!(
         output.status.success(),
@@ -44,7 +44,7 @@ fn preview_never_writes_and_invalid_options_preserve_existing_data() {
     let output = command(root.path()).arg("--dry-run").output().unwrap();
     assert!(output.status.success());
     Catalog::parse(std::str::from_utf8(&output.stdout).unwrap()).unwrap();
-    assert!(!root.path().join("data").exists());
+    assert!(!root.path().join("crates/llmup-core/data").exists());
     let path = root.path().join("catalog.json");
     fs::write(&path, "original").unwrap();
     for args in [vec!["--unknown"], vec!["--now", "invalid"]] {

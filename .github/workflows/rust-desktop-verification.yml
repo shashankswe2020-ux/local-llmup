@@ -11,9 +11,8 @@ on:
       - Cargo.lock
       - crates/**
       - apps/desktop/src-tauri/**
-      - src/gui/static/**
-      - tests/e2e-native/**
-      - playwright.rust.config.ts
+      - crates/llmup-gui/static/**
+      - scripts/native-browser-journeys.sh
       - scripts/rust-dialog-smoke.*
       - vendor/**
       - .cargo/**
@@ -40,13 +39,21 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
     steps:
-      - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
-      - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
-        with:
-          node-version: 22.x
-          cache: npm
+      - name: Fetch exact revision without an action runtime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\r\n')
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL}/.extraheader"
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $AUTH"
+          git fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          unset AUTH GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GH_TOKEN
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Install Linux native WebView dependencies
         if: runner.os == 'Linux'
         run: |
@@ -84,10 +91,6 @@ jobs:
           else
             apps/desktop/src-tauri/target/debug/llmup-desktop --smoke-test
           fi
-      - name: Install retained browser verification tooling
-        run: npm ci
-      - name: Install browser
-        run: npx playwright install --with-deps chromium
       - name: Actual native folder dialogs
         if: runner.os != 'macOS'
         timeout-minutes: 3
@@ -103,8 +106,20 @@ jobs:
             target/debug/examples/dialog-smoke.exe
           fi
       - name: Native HTTP and browser journeys
-        run: npm run rust:gui:e2e
+        # Uses the runner image's preinstalled Chrome and matching ChromeDriver.
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            chrome=$(command -v google-chrome)
+            driver="$CHROMEWEBDRIVER/chromedriver"
+          elif [[ "$RUNNER_OS" == "Windows" ]]; then
+            chrome="C:/Program Files/Google/Chrome/Application/chrome.exe"
+            driver="$(cygpath -u "$CHROMEWEBDRIVER")/chromedriver.exe"
+          else
+            chrome="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+            driver="$CHROMEWEBDRIVER/chromedriver"
+          fi
+          bash scripts/native-browser-journeys.sh "$chrome" "$driver" "$RUNNER_TEMP/rust-browser"
       - name: Verification summary
         if: always()
         run: |
-          printf '## R22: %s\n\nCommit: %s\n\nNative builds run before npm dependencies are installed. Consult each step result for native tests, real WebView and folder-dialog checks, and retained browser journeys. Signing and release publication are not performed.\n' "$RUNNER_OS" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          printf '## R22: %s\n\nCommit: %s\n\nOnly native tooling is installed. Consult each step result for native tests, real WebView and folder-dialog checks, and native browser journeys. Signing and release publication are not performed.\n' "$RUNNER_OS" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

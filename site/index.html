@@ -51,7 +51,7 @@
       <span class="sticker s3"></span>
       <div class="frame">
         <div class="hero-badge">
-          <span>v0.11.4</span>
+          <span>v1.0.0</span>
           &middot; Browser GUI &middot; Agents &amp; Skills &middot; MCP Tools &middot; 4 Backends
         </div>
         <h1>Which local LLMs will<br />run on <em>your machine</em>?</h1>
@@ -166,7 +166,7 @@
     <!-- Catalog -->
     <section class="section catalog-section" id="catalog">
       <div class="frame">
-        <div class="section-label">Curated model catalog &middot; v0.11.4</div>
+        <div class="section-label">Curated model catalog &middot; v1.0.0</div>
         <h2 class="section-title">66 models. Evidence attached.</h2>
         <p class="section-sub">The catalog is an offline, reviewable dataset &mdash; not a scrape. Every entry ties model identity and capabilities to architecture, context, quantization, artifact size, integrity, and official sources.</p>
 
@@ -269,9 +269,8 @@
             </div>
             <p class="dl-note">Installers build for macOS, Windows &amp; Linux on every release via CI. They're ad-hoc signed, not notarized: on macOS right-click&nbsp;&#9656;&nbsp;Open (or if it's blocked, clear quarantine with <code>xattr&nbsp;-dr&nbsp;com.apple.quarantine&nbsp;/Applications/local-llmup.app</code>); on Windows choose &ldquo;More&nbsp;info&nbsp;&#9656;&nbsp;Run&nbsp;anyway&rdquo;. Prefer source? Build any target:</p>
             <pre class="dl-code"><code>git clone https://github.com/shashankswe2020-ux/local-llmup
-cd local-llmup/apps/desktop
-npm install &amp;&amp; npm start          <span class="dl-cmt"># run the app</span>
-npm run package:mac              <span class="dl-cmt"># or :win / :linux</span></code></pre>
+cd local-llmup
+cargo run --manifest-path apps/desktop/src-tauri/Cargo.toml --locked  <span class="dl-cmt"># run the app</span></code></pre>
           </div>
         </div>
       </div>
@@ -395,7 +394,7 @@ npm run package:mac              <span class="dl-cmt"># or :win / :linux</span><
       <div class="frame">
         <div class="section-label">Quick start</div>
         <h2 class="section-title">From zero to running in minutes</h2>
-        <p class="section-sub">Node.js 18+. No API keys, no cloud accounts. For lifecycle commands you need at least one backend &mdash; Ollama is the recommended default.</p>
+        <p class="section-sub">Native Rust binaries. No API keys, no cloud accounts. For lifecycle commands you need at least one backend &mdash; Ollama is the recommended default.</p>
         <div class="quickstart reveal">
           <div class="qs-card">
             <span class="qs-num">01</span>
@@ -553,7 +552,7 @@ npm run package:mac              <span class="dl-cmt"># or :win / :linux</span><
         <div class="footer">
           <div>
             <div class="footer-mark">local-llmup</div>
-            <div class="footer-meta">MIT License &middot; v0.11.4 &middot; Node.js 18+</div>
+            <div class="footer-meta">MIT License &middot; v1.0.0 &middot; Native Rust</div>
           </div>
           <nav class="footer-links">
             <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>

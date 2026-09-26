@@ -1,6 +1,7 @@
 use crate::{
     acquire::{Acquisition, Artifact, DownloadTransport, SizePolicy, hash_file},
     adapters::{BackendAdapter, BackendError, ServeRequest, model_id},
+    application::events::{LifecycleObserver, LifecycleScope, LifecycleStage, observe},
     command::{CommandRunner, OllamaCommandContext},
     ollama_installed::{model_path, verify_manifest},
     state::secure_read,
@@ -100,6 +101,17 @@ impl PullService<'_> {
         endpoint: &str,
         cancel: &CancellationToken,
     ) -> Result<PreparedModel, BackendError> {
+        self.pull_at_observed(request, binary, endpoint, cancel, None)
+            .await
+    }
+    pub async fn pull_at_observed(
+        &self,
+        request: &PullRequest,
+        binary: &Path,
+        endpoint: &str,
+        cancel: &CancellationToken,
+        observer: Option<&LifecycleObserver>,
+    ) -> Result<PreparedModel, BackendError> {
         model_id(&request.model_id)?;
         if request.expected_bytes == 0
             || request.expected_bytes > 9007199254740991
@@ -121,30 +133,48 @@ impl PullService<'_> {
         match request.backend.as_str() {
             "ollama" => {
                 let context = OllamaCommandContext::new(endpoint, self.ollama_models)?;
-                self.commands
-                    .run_ollama(
-                        binary,
-                        &["pull".into(), "--".into(), request.model_id.clone()],
-                        &context,
-                        cancel,
-                        Duration::from_secs(1800),
-                    )
-                    .await?;
-                let path = model_path(self.ollama_models, &request.model_id)
-                    .map_err(|error| BackendError(error.to_string()))?;
-                let raw = secure_read(&path, 4 * 1024 * 1024, false)
-                    .map_err(|error| BackendError(error.to_string()))?;
-                let digest = format!("{:x}", Sha256::digest(raw.as_bytes()));
-                verify_manifest(
-                    self.ollama_models,
-                    &request.model_id,
-                    &digest,
-                    request.expected_sha256.as_deref(),
-                    Some(request.expected_bytes),
-                    cancel,
+                observe(
+                    observer,
+                    LifecycleScope::Runtime,
+                    LifecycleStage::Acquisition,
+                    async {
+                        self.commands
+                            .run_ollama(
+                                binary,
+                                &["pull".into(), "--".into(), request.model_id.clone()],
+                                &context,
+                                cancel,
+                                Duration::from_secs(1800),
+                            )
+                            .await
+                            .map_err(BackendError)
+                    },
                 )
-                .await
-                .map_err(|error| BackendError(error.to_string()))?;
+                .await?;
+                let digest = observe(
+                    observer,
+                    LifecycleScope::Runtime,
+                    LifecycleStage::Verification,
+                    async {
+                        let path = model_path(self.ollama_models, &request.model_id)
+                            .map_err(|error| BackendError(error.to_string()))?;
+                        let raw = secure_read(&path, 4 * 1024 * 1024, false)
+                            .map_err(|error| BackendError(error.to_string()))?;
+                        let digest = format!("{:x}", Sha256::digest(raw.as_bytes()));
+                        verify_manifest(
+                            self.ollama_models,
+                            &request.model_id,
+                            &digest,
+                            request.expected_sha256.as_deref(),
+                            Some(request.expected_bytes),
+                            cancel,
+                        )
+                        .await
+                        .map_err(|error| BackendError(error.to_string()))?;
+                        Ok(digest)
+                    },
+                )
+                .await?;
                 result.digest_verified = request.expected_sha256.is_some();
                 result.local_manifest_digest = Some(digest);
             }
@@ -170,10 +200,18 @@ impl PullService<'_> {
                     sha256: source.sha256.clone(),
                     bytes: ceiling,
                 };
-                let acquired = self
-                    .acquisition
-                    .acquire_sized(&artifact, SizePolicy::Ceiling, self.download, cancel)
-                    .await?;
+                let acquired = observe(
+                    observer,
+                    LifecycleScope::Runtime,
+                    LifecycleStage::AcquisitionVerification,
+                    async {
+                        self.acquisition
+                            .acquire_sized(&artifact, SizePolicy::Ceiling, self.download, cancel)
+                            .await
+                            .map_err(BackendError)
+                    },
+                )
+                .await?;
                 result.model_path = Some(acquired.path);
                 result.digest_verified = true;
             }
@@ -183,9 +221,18 @@ impl PullService<'_> {
                 })?;
                 let files = repository_artifacts(source, &request.backend, request.expected_bytes)?;
                 result.model_path = Some(
-                    self.acquisition
-                        .repository(&files, self.download, cancel)
-                        .await?,
+                    observe(
+                        observer,
+                        LifecycleScope::Runtime,
+                        LifecycleStage::AcquisitionVerification,
+                        async {
+                            self.acquisition
+                                .repository(&files, self.download, cancel)
+                                .await
+                                .map_err(BackendError)
+                        },
+                    )
+                    .await?,
                 );
                 result.digest_verified = true;
             }
@@ -224,31 +271,46 @@ impl PullService<'_> {
                     return Err(BackendError("ambiguous LM Studio model selection".into()));
                 }
                 let local = studio_path(self.studio_models, &selected.path)?;
-                if let Some(source) = &request.gguf {
-                    let (digest, bytes) = hash_file(&local, cancel).await?;
-                    if !digest.eq_ignore_ascii_case(&source.sha256)
-                        || bytes < request.expected_bytes.div_ceil(2)
-                    {
-                        return Err(BackendError("delegated GGUF integrity mismatch".into()));
-                    }
-                    result.digest_verified = true;
-                } else if let Some(source) = &request.mlx {
-                    let files = repository_artifacts(source, "mlx", request.expected_bytes)?;
-                    for artifact in files {
-                        let path = studio_path(&local, &artifact.file)?;
-                        let (digest, bytes) = hash_file(&path, cancel).await?;
-                        if !digest.eq_ignore_ascii_case(&artifact.sha256) || bytes != artifact.bytes
-                        {
-                            return Err(BackendError("delegated MLX integrity mismatch".into()));
+                observe(
+                    observer,
+                    LifecycleScope::Runtime,
+                    LifecycleStage::Verification,
+                    async {
+                        if let Some(source) = &request.gguf {
+                            let (digest, bytes) = hash_file(&local, cancel).await?;
+                            if !digest.eq_ignore_ascii_case(&source.sha256)
+                                || bytes < request.expected_bytes.div_ceil(2)
+                            {
+                                return Err(BackendError(
+                                    "delegated GGUF integrity mismatch".into(),
+                                ));
+                            }
+                            result.digest_verified = true;
+                        } else if let Some(source) = &request.mlx {
+                            let files =
+                                repository_artifacts(source, "mlx", request.expected_bytes)?;
+                            for artifact in files {
+                                let path = studio_path(&local, &artifact.file)?;
+                                let (digest, bytes) = hash_file(&path, cancel).await?;
+                                if !digest.eq_ignore_ascii_case(&artifact.sha256)
+                                    || bytes != artifact.bytes
+                                {
+                                    return Err(BackendError(
+                                        "delegated MLX integrity mismatch".into(),
+                                    ));
+                                }
+                            }
+                            crate::special_adapters::validate_mlx_directory(&local)?;
+                            result.digest_verified = true;
+                        } else {
+                            return Err(BackendError(
+                                "delegated model needs catalog integrity evidence".into(),
+                            ));
                         }
-                    }
-                    crate::special_adapters::validate_mlx_directory(&local)?;
-                    result.digest_verified = true;
-                } else {
-                    return Err(BackendError(
-                        "delegated model needs catalog integrity evidence".into(),
-                    ));
-                }
+                        Ok(())
+                    },
+                )
+                .await?;
                 result.model_path = Some(PathBuf::from(selected.path));
             }
             _ => return Err(BackendError("unknown backend".into())),

@@ -16,9 +16,9 @@ fn command(root: &Path) -> Command {
 #[test]
 fn no_op_preserves_input_bytes_and_reports_exact_counts() {
     let root = tempfile::tempdir().unwrap();
-    fs::create_dir(root.path().join("data")).unwrap();
-    let path = root.path().join("data/models.json");
-    let original = include_str!("../../../data/models.json");
+    fs::create_dir_all(root.path().join("crates/llmup-core/data")).unwrap();
+    let path = root.path().join("crates/llmup-core/data/models.json");
+    let original = include_str!("../../llmup-core/data/models.json");
     fs::write(&path, original).unwrap();
     let output = command(root.path()).output().unwrap();
     assert!(
@@ -38,7 +38,7 @@ fn no_op_preserves_input_bytes_and_reports_exact_counts() {
 #[test]
 fn older_catalog_is_enriched_then_becomes_a_byte_identical_no_op() {
     let root = tempfile::tempdir().unwrap();
-    let mut catalog = Catalog::parse(include_str!("../../../data/models.json")).unwrap();
+    let mut catalog = Catalog::parse(include_str!("../../llmup-core/data/models.json")).unwrap();
     catalog.models = catalog.models.into_iter().rev().take(2).collect();
     let path = root.path().join("older.json");
     fs::write(&path, serde_json::to_vec(&catalog).unwrap()).unwrap();
@@ -81,7 +81,7 @@ fn rejects_invalid_input_before_writing() {
         );
         assert_eq!(fs::read_to_string(&path).unwrap(), text);
     }
-    let original = include_str!("../../../data/models.json");
+    let original = include_str!("../../llmup-core/data/models.json");
     fs::write(&path, original).unwrap();
     assert!(
         !command(root.path())
@@ -99,7 +99,7 @@ fn rejects_invalid_input_before_writing() {
 fn rejects_catalog_symlinks() {
     let root = tempfile::tempdir().unwrap();
     let path = root.path().join("catalog.json");
-    let original = include_str!("../../../data/models.json");
+    let original = include_str!("../../llmup-core/data/models.json");
     fs::write(&path, original).unwrap();
     std::os::unix::fs::symlink(&path, root.path().join("link.json")).unwrap();
     assert!(

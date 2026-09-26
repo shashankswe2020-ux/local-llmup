@@ -17,7 +17,7 @@ use tokio_util::sync::CancellationToken;
     about = "Refresh curated quant sizes and digests from the Ollama registry; never adds models"
 )]
 struct Args {
-    #[arg(long, default_value = "data/models.json")]
+    #[arg(long, default_value = "crates/llmup-core/data/models.json")]
     catalog_path: PathBuf,
     #[arg(long)]
     manifest_fixture: Option<PathBuf>,

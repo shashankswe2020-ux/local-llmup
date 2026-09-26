@@ -49,6 +49,43 @@ fn installed_sizing_keeps_unknown_geometry_and_enforces_context_caps() {
     );
 }
 
+#[test]
+fn discrete_gpu_sizing_reports_weights_only_fit_honestly_and_rejects_large_kv() {
+    const GIB: u64 = 1 << 30;
+    let hardware: llmup_core::sizing::Hardware = serde_json::from_value(json!({"arch":"x64","platform":"linux","totalRamBytes":32*GIB,"freeRamBytes":24*GIB,"freeDiskBytes":0,"gpu":[{"vendor":"nvidia","vramBytes":8*GIB}]})).unwrap();
+    let mut model = parse_inventory(
+        json!({"models":[{"name":"gemma4:e4b-it-qat","digest":"a".repeat(64),"size":3*GIB}]}),
+    )
+    .unwrap()
+    .remove(0);
+    model.context_length = Some(131_072);
+    let size = |model: &llmup_runtime::ollama_installed::InstalledModel, context| {
+        llmup_runtime::ollama_installed::size_installed(model, &hardware, Some(context)).unwrap()
+    };
+    let unknown = size(&model, 65_536);
+    assert_eq!(
+        (
+            &unknown["fit"],
+            &unknown["weightsFit"],
+            &unknown["requiredBytes"],
+            &unknown["context"],
+            &unknown["memoryKind"]
+        ),
+        (
+            &json!("unknown"),
+            &json!(true),
+            &json!(null),
+            &json!(65_536),
+            &json!("vram")
+        )
+    );
+    assert_eq!(size(&model, 262_144)["fit"], "no");
+    model.kv_bytes_per_token = Some(16_384);
+    assert_eq!(size(&model, 65_536)["fit"], "yes");
+    model.kv_bytes_per_token = Some(262_144);
+    assert_eq!(size(&model, 65_536)["fit"], "no");
+}
+
 #[tokio::test]
 async fn verifies_every_local_blob_and_preserves_catalog_integrity() {
     let root = tempfile::tempdir().unwrap();
@@ -104,6 +141,32 @@ async fn verifies_every_local_blob_and_preserves_catalog_integrity() {
             &digest,
             None,
             Some(1000),
+            &cancel
+        )
+        .await
+        .is_err()
+    );
+    let actual = bytes.len() as u64;
+    // Catalog sizes are estimates: larger pulls and pulls down to half the estimate are benign.
+    for expected in [1, actual / 2, actual * 38 / 49 + 1, actual * 2] {
+        verify_manifest(
+            root.path(),
+            "test:latest",
+            &digest,
+            None,
+            Some(expected),
+            &cancel,
+        )
+        .await
+        .unwrap_or_else(|error| panic!("expected {expected}: {error}"));
+    }
+    assert!(
+        verify_manifest(
+            root.path(),
+            "test:latest",
+            &digest,
+            None,
+            Some(actual * 2 + 2),
             &cancel
         )
         .await

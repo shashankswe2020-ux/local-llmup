@@ -1,0 +1,27 @@
+{
+  "plain": {
+    "recommend": "../../tests/fixtures/noninteractive/recommend-plain.txt",
+    "can-run": "../../tests/fixtures/noninteractive/can-run-plain.txt",
+    "up": "../../tests/fixtures/noninteractive/up-plain.txt",
+    "chat": "../../tests/fixtures/noninteractive/chat-plain.txt",
+    "gui": "../../tests/fixtures/noninteractive/gui-plain.txt",
+    "down": "../../tests/fixtures/noninteractive/down-plain.txt",
+    "switch": "../../tests/fixtures/noninteractive/switch-plain.txt",
+    "migrate": "../../tests/fixtures/noninteractive/migrate-plain.txt",
+    "ls": "../../tests/fixtures/noninteractive/ls-plain.txt",
+    "catalog": "../../tests/fixtures/noninteractive/catalog-plain.txt",
+    "doctor": "../../tests/fixtures/noninteractive/doctor-plain.txt"
+  },
+  "json": {
+    "recommend": "../../tests/fixtures/noninteractive/recommend-json.json",
+    "can-run": "../../tests/fixtures/noninteractive/can-run-json.json",
+    "up": "fixtures/noninteractive/up-json.json",
+    "chat": "fixtures/noninteractive/chat-json.json",
+    "gui": "../../tests/fixtures/noninteractive/gui-json.json",
+    "down": "fixtures/noninteractive/down-json.json",
+    "switch": "fixtures/noninteractive/switch-json.json",
+    "migrate": "fixtures/noninteractive/migrate-json.json",
+    "ls": "fixtures/noninteractive/ls-json.json",
+    "doctor": "../../tests/fixtures/noninteractive/doctor-json.json"
+  }
+}

@@ -79,3 +79,17 @@ fn windows_prefers_nvidia_measurements_without_duplicate_cards() {
     assert_eq!(merged.len(), 2);
     assert_eq!(merged[1]["vram"], 24576);
 }
+
+#[cfg(unix)]
+#[tokio::test]
+async fn detection_stays_within_its_probe_budget_on_a_cold_process() {
+    let started = std::time::Instant::now();
+    let (hardware, _) = llmup_runtime::hardware::detect().await.unwrap();
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(3),
+        "{:?}",
+        started.elapsed()
+    );
+    assert!(hardware.total_ram_bytes > 0.0);
+    assert!(hardware.free_disk_bytes > 0.0);
+}

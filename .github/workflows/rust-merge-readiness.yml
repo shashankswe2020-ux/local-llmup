@@ -20,8 +20,21 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - name: Fetch exact revision without an action runtime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\r\n')
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL}/.extraheader"
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $AUTH"
+          git fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          unset AUTH GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GH_TOKEN
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Rust toolchain
         run: rustup show active-toolchain
       - name: Validate gate behavior
@@ -44,8 +57,21 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-      - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - name: Fetch exact revision without an action runtime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\r\n')
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL}/.extraheader"
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $AUTH"
+          git fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          unset AUTH GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GH_TOKEN
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Rust toolchain
         run: rustup show active-toolchain
       - name: Validate budget behavior

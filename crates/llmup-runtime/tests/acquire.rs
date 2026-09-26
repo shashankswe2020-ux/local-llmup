@@ -56,6 +56,47 @@ fn download_dns_rejects_private_mixed_mapped_and_special_addresses() {
         );
     }
     assert!(public_addresses(Vec::new()).is_err());
+    let socket = |address: &str| -> std::net::SocketAddr {
+        std::net::SocketAddr::new(address.parse().unwrap(), 443)
+    };
+    for address in [
+        "0.0.0.1",
+        "10.0.0.1",
+        "127.0.0.1",
+        "100.64.0.1",
+        "169.254.0.1",
+        "172.16.0.1",
+        "192.168.0.1",
+        "192.0.0.8",
+        "192.0.2.1",
+        "198.18.0.1",
+        "198.19.0.1",
+        "198.51.100.1",
+        "203.0.113.1",
+        "224.0.0.1",
+        "::",
+        "4000::1",
+        "2001:1::1",
+        "2001:db8::1",
+        "::ffff:192.168.0.1",
+    ] {
+        assert!(
+            public_addresses(vec![socket(address)]).is_err(),
+            "{address}"
+        );
+    }
+    for address in [
+        "8.8.8.8",
+        "172.32.0.1",
+        "169.253.0.1",
+        "198.51.101.1",
+        "203.0.114.1",
+        "2001:4860::1",
+        "2606:4700::1",
+        "::ffff:8.8.8.8",
+    ] {
+        assert!(public_addresses(vec![socket(address)]).is_ok(), "{address}");
+    }
     assert!(
         public_addresses(vec![
             "8.8.8.8:443".parse().unwrap(),

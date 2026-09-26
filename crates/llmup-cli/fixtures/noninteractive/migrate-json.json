@@ -1,0 +1,1 @@
+{"from":"llama3.1:8b","to":"qwen2.5:14b","dryRun":false,"move":false,"summary":{"turnsCarried":2,"turnsSummarized":0,"vectorsReembedded":0,"strategy":"none","embeddingStrategy":"none"}}

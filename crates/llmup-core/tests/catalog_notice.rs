@@ -14,7 +14,7 @@ fn freshness_flags_and_notice_bodies_match_existing_workflow_contracts() {
     assert_eq!(render("needs-attention", &report).unwrap(), "true");
     assert_eq!(
         render("refresh-pr", &report).unwrap(),
-        "Automated weekly refresh of `data/models.json` \u{2014} quant disk sizes and content digests refreshed from the live registry (curated fields untouched).\n\n- generated: 2026-09-01T02:44:54.336Z\n\nTypecheck, lint, build, and the full test suite passed on this branch. Review the model changes before merging.\n\n_Opened automatically by the Catalog Freshness workflow._"
+        "Automated weekly refresh of `crates/llmup-core/data/models.json` \u{2014} quant disk sizes and content digests refreshed from the live registry (curated fields untouched).\n\n- generated: 2026-09-01T02:44:54.336Z\n\nTypecheck, lint, build, and the full test suite passed on this branch. Review the model changes before merging.\n\n_Opened automatically by the Catalog Freshness workflow._"
     );
     assert_eq!(
         render("freshness-issue", &report).unwrap(),

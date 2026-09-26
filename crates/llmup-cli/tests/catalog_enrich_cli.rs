@@ -2,7 +2,7 @@ use llmup_core::catalog::Catalog;
 use std::{fs, path::Path, process::Command};
 
 fn setup(root: &Path) -> Catalog {
-    let mut catalog = Catalog::parse(include_str!("../../../data/models.json")).unwrap();
+    let mut catalog = Catalog::parse(include_str!("../../llmup-core/data/models.json")).unwrap();
     catalog.models.retain(|model| model.id == "llama3.1:8b");
     fs::write(
         root.join("catalog.json"),

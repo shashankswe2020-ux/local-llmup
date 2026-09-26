@@ -11,7 +11,7 @@ fn candidate(id: &str, date: &str) -> Value {
 fn embedded_snapshot_is_structurally_valid_and_matches_catalog_refresh_contract() {
     let candidates = parse_candidates(include_str!("../fixtures/registry-snapshot.json")).unwrap();
     assert_eq!(candidates.len(), 66);
-    let catalog = Catalog::parse(include_str!("../../../data/models.json")).unwrap();
+    let catalog = Catalog::parse(include_str!("../../llmup-core/data/models.json")).unwrap();
     let result = enrich(
         &catalog,
         &candidates,
@@ -84,7 +84,7 @@ fn invalid_existing_catalogs_and_null_candidate_fields_fail_closed() {
         )
         .is_err()
     );
-    let mut catalog = Catalog::parse(include_str!("../../../data/models.json")).unwrap();
+    let mut catalog = Catalog::parse(include_str!("../../llmup-core/data/models.json")).unwrap();
     catalog.models[0].open_weight = false;
     assert!(
         enrich(

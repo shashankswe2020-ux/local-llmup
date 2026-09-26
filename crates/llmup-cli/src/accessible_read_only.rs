@@ -29,6 +29,168 @@ fn line(value: &str) -> io::Result<String> {
     single_line(value)
 }
 
+#[derive(Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+enum Runnable {
+    Yes,
+    Slow,
+    No,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct Throughput {
+    known: bool,
+    low_tok_per_sec: f64,
+    high_tok_per_sec: f64,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct ThroughputEvidence {
+    source: String,
+    unknown_reason: Option<String>,
+}
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct CanRunEvidence {
+    model_id: String,
+    runnable: Runnable,
+    throughput: Throughput,
+    quant: Option<String>,
+    reason: Option<String>,
+    backends: Vec<String>,
+    throughput_backend: String,
+    required_bytes: Option<f64>,
+    usable_bytes: f64,
+    throughput_evidence: ThroughputEvidence,
+    context: Option<f64>,
+    context_fit_known: Option<bool>,
+}
+
+pub fn can_run_screen(report: &Value) -> io::Result<String> {
+    if report["backends"]
+        .as_array()
+        .is_some_and(|values| values.len() > 1000)
+    {
+        return Err(io::Error::other("backend list exceeds 1000 entries"));
+    }
+    let report: CanRunEvidence =
+        serde_json::from_value(report.clone()).map_err(io::Error::other)?;
+    let valid_bytes = |value: f64| {
+        value.is_finite()
+            && (0.0..=9_007_199_254_740_991.0).contains(&value)
+            && value.fract() == 0.0
+    };
+    let unknown_reason = if report.runnable == Runnable::No {
+        "not-evaluated-model-does-not-fit"
+    } else {
+        "no-sourced-performance-profile"
+    };
+    let throughput = &report.throughput;
+    let valid_throughput = throughput.low_tok_per_sec.is_finite()
+        && throughput.high_tok_per_sec.is_finite()
+        && throughput.low_tok_per_sec >= 0.0
+        && throughput.high_tok_per_sec >= throughput.low_tok_per_sec
+        && if throughput.known {
+            report.throughput_evidence.unknown_reason.is_none()
+        } else {
+            throughput.low_tok_per_sec == 0.0
+                && throughput.high_tok_per_sec == 0.0
+                && report.throughput_evidence.unknown_reason.as_deref() == Some(unknown_reason)
+        };
+    if !valid_bytes(report.usable_bytes)
+        || report
+            .required_bytes
+            .is_some_and(|value| !valid_bytes(value))
+        || !valid_throughput
+        || report.throughput_evidence.source != "offline-estimate"
+        || !llmup_core::catalog::BACKENDS.contains(&report.throughput_backend.as_str())
+        || report.context.is_some_and(|value| {
+            !value.is_finite() || value.fract() != 0.0 || !(1.0..=10_000_000.0).contains(&value)
+        })
+        || report.context.is_some() != report.context_fit_known.is_some()
+        || (report.runnable == Runnable::Yes && !throughput.known)
+        || (report.runnable == Runnable::No
+            && (throughput.known
+                || report.quant.is_some()
+                || !report.reason.as_deref().is_some_and(|reason| {
+                    ["ram-bound", "vram-bound", "disk-bound", "context-bound"].contains(&reason)
+                })))
+        || (report.runnable != Runnable::No
+            && (report.required_bytes.is_none()
+                || report.quant.as_ref().is_none_or(|quant| quant.is_empty())
+                || report.reason.is_some()))
+    {
+        return Err(io::Error::other("invalid or inconsistent can-run evidence"));
+    }
+    let verdict = match report.runnable {
+        Runnable::Yes => "yes",
+        Runnable::Slow => "slow",
+        Runnable::No => "no",
+    };
+    let fit = match report.required_bytes {
+        Some(required) => format!("{required} of {} usable bytes", report.usable_bytes),
+        None => format!(
+            "does not fit: {}",
+            report.reason.as_deref().unwrap_or("unknown")
+        ),
+    };
+    let (label, source, unknown) = if throughput.known {
+        (
+            format!(
+                "{}\u{2013}{} tok/s",
+                throughput.low_tok_per_sec, throughput.high_tok_per_sec
+            ),
+            "offline-estimate".into(),
+            String::new(),
+        )
+    } else {
+        (
+            "unknown".into(),
+            format!("offline-estimate; {unknown_reason}"),
+            format!("\nUnknown reason: {unknown_reason}"),
+        )
+    };
+    let mut backends = report
+        .backends
+        .iter()
+        .take(10)
+        .map(|backend| line(backend))
+        .collect::<io::Result<Vec<_>>>()?
+        .join(", ");
+    if backends.is_empty() {
+        backends = "none".into();
+    }
+    if report.backends.len() > 10 {
+        backends.push_str(&format!(" (+{} more)", report.backends.len() - 10));
+    }
+    let safe_id = !report.model_id.is_empty()
+        && !report.model_id.starts_with('-')
+        && report.model_id.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || b"._:/-".contains(&byte)
+        })
+        && !report.model_id.split('/').any(|part| part == "..");
+    let next = if report.runnable != Runnable::No && safe_id {
+        format!("\nNext: local-llmup up {}", report.model_id)
+    } else {
+        String::new()
+    };
+    let context_warning = if report.context_fit_known == Some(false) {
+        "\nRequested context fit unknown: attention geometry unavailable"
+    } else {
+        ""
+    };
+    Ok(bounded_document(format!(
+        "local-llmup / Can Run / Accessible\n1. Target\n{}\n2. Verdict\n{verdict}; quant {}; reason {}; {}{context_warning}\n3. Throughput\n{}; source {}; backend {}{unknown}\n4. Backends\n{backends}{next}\n5. Controls\nCommands: ? help; q quit\n",
+        identifier(&report.model_id)?,
+        line(report.quant.as_deref().unwrap_or("unknown"))?,
+        line(report.reason.as_deref().unwrap_or("none"))?,
+        line(&fit)?,
+        line(&label)?,
+        line(&source)?,
+        line(&report.throughput_backend)?
+    )))
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Check {

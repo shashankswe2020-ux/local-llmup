@@ -2,6 +2,46 @@
 
 ## Unreleased
 
+## 1.0.0 - 2026-09-26
+
+### Native Rust release
+
+- `local-llmup` is now a native Rust application. The TypeScript sources, npm
+  package, Electron shell, and every Node.js build, test and CI dependency are
+  retired; `cargo native-retirement` fails if any return.
+- Install from crates.io: `cargo install llmup-cli --locked --bin llmup --bin local-llmup`
+  and `cargo install llmup-gui --locked`. The npm package receives no further
+  releases; commands, flags, JSON output and `~/.local-llmup` state are unchanged.
+- Measured against the published 0.11.4 on an Apple M4 Max: startup is about 24×
+  faster (5.8 ms vs 139.6 ms), advice commands 1.4–1.7× faster, and peak memory
+  falls from about 72 MiB to 15 MiB. Advice JSON is equivalent.
+- The curated dataset moved to `crates/llmup-core/data/` and the vendored browser
+  libraries to `crates/llmup-gui/vendor/` so they ship inside the published crates.
+- The bounded-input crossterm patch is published as `llmup-crossterm`; Ratatui
+  keeps upstream crossterm for rendering only, and a test pins that all terminal
+  input goes through the patched parser.
+
+### Fixes found during the migration
+
+- Hardware detection no longer times out on macOS: free disk space comes from
+  `statvfs` instead of a purgeable-space query that could take 30+ seconds.
+- Auto-selection and `doctor` never choose attach-only LM Studio as the default.
+- MLX model directories that name a custom loader (`model_file`) are rejected.
+- Windows LM Studio executables are trusted regardless of path prefix, separator
+  or case differences.
+- `switch` and `down` reject a `--backend` or `LOCAL_LLMUP_BACKEND` that conflicts
+  with the active server instead of ignoring it.
+- Provider text after an SSE `[DONE]` terminator is no longer shown.
+- Memory stores readable by group or other users now fail closed.
+
+### CI
+
+- All workflows run without Node-backed actions: an exact-revision `git fetch`
+  replaces checkout, Pages publishes the `gh-pages` branch, and the backlog
+  workflow uses `gh project item-add`. The Node TUI compatibility matrix is removed.
+- Browser client unit suites (run reducer, SSE framing, Markdown policy,
+  calculator template, live telemetry) now run in real Chrome through WebDriver.
+
 ## 0.11.4 - 2026-09-17
 
 ### Development Tooling

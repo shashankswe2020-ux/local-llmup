@@ -31,7 +31,7 @@ fn snapshot_entries_build_independently_and_have_pinned_family_offsets() {
 fn committed_curated_fields_match_bootstrap_without_overwriting_live_quant_facts() {
     let candidates = parse_candidates(include_str!("../fixtures/registry-snapshot.json")).unwrap();
     let actual = build_catalog(&candidates, BOOTSTRAP_CLOCK).unwrap();
-    let committed = Catalog::parse(include_str!("../../../data/models.json")).unwrap();
+    let committed = Catalog::parse(include_str!("../../llmup-core/data/models.json")).unwrap();
     let skeleton = |catalog: Catalog| {
         let mut value = serde_json::to_value(catalog).unwrap();
         value.as_object_mut().unwrap().remove("generatedAt");
@@ -125,7 +125,7 @@ fn preserves_exact_geometry_and_unknown_attention_honesty_gate() {
 
 #[test]
 fn reproduces_every_curated_catalog_proxy() {
-    let catalog = Catalog::parse(include_str!("../../../data/models.json")).unwrap();
+    let catalog = Catalog::parse(include_str!("../../llmup-core/data/models.json")).unwrap();
     for model in catalog.models {
         assert_eq!(
             Some(derive_benchmark_proxy(&model.family, &model.params).unwrap()),

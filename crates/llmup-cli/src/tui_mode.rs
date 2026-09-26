@@ -83,6 +83,24 @@ pub fn capture() -> Capabilities {
             .map(|value| (name.to_string(), value))
     })
     .collect();
+    capture_snapshot(
+        (
+            std::io::stdin().is_terminal(),
+            std::io::stdout().is_terminal(),
+            std::io::stderr().is_terminal(),
+        ),
+        crossterm::terminal::size().unwrap_or((0, 0)),
+        &environment,
+        cfg!(windows),
+    )
+}
+
+fn capture_snapshot(
+    terminals: (bool, bool, bool),
+    size: (u16, u16),
+    environment: &BTreeMap<String, String>,
+    windows: bool,
+) -> Capabilities {
     let term = environment
         .get("TERM")
         .filter(|value| !value.is_empty())
@@ -96,8 +114,8 @@ pub fn capture() -> Capabilities {
     let valid = term
         .as_deref()
         .is_some_and(|term| valid_term(term) && !term.eq_ignore_ascii_case("dumb"));
-    let (columns, rows) = crossterm::terminal::size().unwrap_or((0, 0));
-    let unicode = if cfg!(windows) {
+    let (columns, rows) = size;
+    let unicode = if windows {
         environment.contains_key("WT_SESSION")
             || environment
                 .get("TERM_PROGRAM")
@@ -112,14 +130,14 @@ pub fn capture() -> Capabilities {
             })
     };
     Capabilities {
-        stdin_tty: std::io::stdin().is_terminal(),
-        stdout_tty: std::io::stdout().is_terminal(),
-        stderr_tty: std::io::stderr().is_terminal(),
+        stdin_tty: terminals.0,
+        stdout_tty: terminals.1,
+        stderr_tty: terminals.2,
         columns: if columns <= 10000 { columns } else { 0 },
         rows: if rows <= 10000 { rows } else { 0 },
         color_depth: if valid { 4 } else { 1 },
         unicode: valid && unicode,
-        ci: detect_ci(&environment),
+        ci: detect_ci(environment),
         term,
     }
 }
@@ -203,4 +221,60 @@ pub fn resolve(options: &Options, capabilities: &Capabilities) -> Result<Selecti
         explicit,
         None,
     ))
+}
+
+#[cfg(test)]
+mod capture_tests {
+    use super::*;
+
+    #[test]
+    fn captured_environment_preserves_eligibility_and_safe_defaults() {
+        let environment = BTreeMap::from([
+            ("TERM".into(), "xterm-256color".into()),
+            ("LANG".into(), "en_US.UTF-8".into()),
+            ("GITHUB_ACTIONS".into(), "true".into()),
+        ]);
+        let captured = capture_snapshot((true, true, true), (100, 30), &environment, false);
+        assert!(captured.stdin_tty && captured.stdout_tty && captured.stderr_tty);
+        assert_eq!((captured.columns, captured.rows), (100, 30));
+        assert!(captured.unicode && captured.ci);
+        assert!(captured.color_depth > 1);
+        assert_eq!(captured.term.as_deref(), Some("xterm-256color"));
+
+        let empty = capture_snapshot(
+            (false, false, false),
+            (10001, 10001),
+            &BTreeMap::new(),
+            true,
+        );
+        assert!(!empty.stdin_tty && !empty.stdout_tty && !empty.stderr_tty);
+        assert_eq!((empty.columns, empty.rows, empty.color_depth), (0, 0, 1));
+        assert!(!empty.unicode && !empty.ci);
+        assert!(empty.term.is_none());
+    }
+
+    #[test]
+    fn captured_term_bounds_locale_precedence_and_windows_unicode_are_conservative() {
+        for length in [129, 256, 257, 10000] {
+            let environment = BTreeMap::from([("TERM".into(), "x".repeat(length))]);
+            let captured = capture_snapshot((true, true, true), (80, 24), &environment, false);
+            assert_eq!(
+                resolve(&Options::default(), &captured).unwrap().reason,
+                Some("term_invalid")
+            );
+            assert_eq!(captured.color_depth, 1);
+            assert!(!captured.unicode);
+        }
+        let mut environment = BTreeMap::from([
+            ("TERM".into(), "xterm".into()),
+            ("LANG".into(), "en_US.UTF-8".into()),
+            ("LC_ALL".into(), "C".into()),
+        ]);
+        assert!(!capture_snapshot((true, true, true), (80, 24), &environment, false).unicode);
+        assert!(!capture_snapshot((true, true, true), (80, 24), &environment, true).unicode);
+        environment.insert("WT_SESSION".into(), String::new());
+        assert!(capture_snapshot((true, true, true), (80, 24), &environment, true).unicode);
+        environment.insert("TERM".into(), "dumb".into());
+        assert!(!capture_snapshot((true, true, true), (80, 24), &environment, true).unicode);
+    }
 }

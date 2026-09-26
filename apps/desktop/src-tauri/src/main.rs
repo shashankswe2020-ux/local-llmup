@@ -153,18 +153,28 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn picker_ipc_is_scoped_to_the_launch_document_and_window() {
-        let home = tempfile::tempdir().unwrap();
-        let host = llmup_gui::Host::new(home.path(), 43210).unwrap();
+    fn mock_app(
+        home: &std::path::Path,
+        picker: DirectoryPicker,
+    ) -> (tauri::App<tauri::test::MockRuntime>, String) {
+        let host = llmup_gui::Host::new(home, 43210).unwrap();
         let entry = format!("{}/", host.origin());
         let app = tauri::test::mock_builder()
             .manage(HostState(host))
-            .manage(DirectoryPicker::Fixture(Some(home.path().to_path_buf())))
+            .manage(picker)
             .invoke_handler(tauri::generate_handler![select_workspace_directory])
             .build(tauri::generate_context!())
             .unwrap();
         app.add_capability(picker_capability(&entry)).unwrap();
+        (app, entry)
+    }
+    #[test]
+    fn picker_ipc_is_scoped_to_the_launch_document_and_window() {
+        let home = tempfile::tempdir().unwrap();
+        let (app, entry) = mock_app(
+            home.path(),
+            DirectoryPicker::Fixture(Some(home.path().to_path_buf())),
+        );
         let main = tauri::WebviewWindowBuilder::new(
             &app,
             "main",
@@ -232,5 +242,44 @@ mod tests {
         ] {
             assert!(!authorized_url(&url.parse().unwrap(), origin));
         }
+    }
+    #[test]
+    fn cancelled_picker_grants_no_directory() {
+        let home = tempfile::tempdir().unwrap();
+        let (app, entry) = mock_app(home.path(), DirectoryPicker::Fixture(None));
+        let main = tauri::WebviewWindowBuilder::new(
+            &app,
+            "main",
+            tauri::WebviewUrl::External(entry.parse().unwrap()),
+        )
+        .build()
+        .unwrap();
+        let result = tauri::test::get_ipc_response(
+            &main,
+            tauri::webview::InvokeRequest {
+                cmd: "select_workspace_directory".into(),
+                callback: tauri::ipc::CallbackFn(0),
+                error: tauri::ipc::CallbackFn(1),
+                url: entry.parse().unwrap(),
+                body: tauri::ipc::InvokeBody::default(),
+                headers: Default::default(),
+                invoke_key: tauri::test::INVOKE_KEY.into(),
+            },
+        );
+        assert_eq!(
+            result.unwrap().deserialize::<Option<String>>().unwrap(),
+            None
+        );
+    }
+    #[test]
+    fn desktop_product_name_is_filesystem_safe() {
+        let config: serde_json::Value =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        let name = config["productName"].as_str().unwrap();
+        assert_eq!(name, "local-llmup");
+        assert!(
+            name.bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || b"._ -".contains(&byte))
+        );
     }
 }

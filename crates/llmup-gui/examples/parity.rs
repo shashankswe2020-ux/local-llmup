@@ -18,12 +18,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if requests.len() > 1024 {
         return Err("request limit".into());
     }
-    let catalog = llmup_core::catalog::Catalog::parse(include_str!("../../../data/models.json"))?;
-    let perf = llmup_core::catalog::PerfDataset::parse(include_str!("../../../data/perf.json"))?;
+    let catalog =
+        llmup_core::catalog::Catalog::parse(include_str!("../../llmup-core/data/models.json"))?;
+    let perf =
+        llmup_core::catalog::PerfDataset::parse(include_str!("../../llmup-core/data/perf.json"))?;
     let results = requests
         .iter()
         .map(|request| {
-            llmup_gui::models::recommended(&catalog, &request.hardware, &perf, &request.options)
+            llmup_gui::models::recommended(&catalog, &request.hardware, &perf, &request.options, 8)
         })
         .collect::<Result<Vec<_>, _>>()?;
     serde_json::to_writer(std::io::stdout(), &results)?;

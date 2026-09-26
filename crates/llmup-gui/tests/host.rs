@@ -20,6 +20,13 @@ async fn artifacts_are_sandboxed_and_vendor_assets_are_embedded() {
         "/vendor/marked.min.js",
         "/vendor/dompurify.min.js",
         "/static/chat.js",
+        "/static/calculator-runtime.js",
+        "/static/calculator-template.js",
+        "/static/markdown.js",
+        "/static/run-reducer.js",
+        "/static/sse.js",
+        "/static/telemetry.js",
+        "/static/styles.css",
     ] {
         let response = router(host.clone())
             .oneshot(
@@ -64,6 +71,28 @@ async fn artifacts_are_sandboxed_and_vendor_assets_are_embedded() {
             .unwrap();
         assert!(response.status().is_client_error(), "{path}");
     }
+}
+
+#[test]
+fn desktop_embeds_crate_owned_assets_without_root_src() {
+    let config: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../apps/desktop/src-tauri/tauri.conf.json"
+    ))
+    .unwrap();
+    assert_eq!(
+        config["build"]["frontendDist"],
+        "../../../crates/llmup-gui/static"
+    );
+    assert!(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("static/index.html")
+            .is_file()
+    );
+    assert!(
+        !std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../src/gui/static")
+            .exists()
+    );
 }
 
 #[tokio::test]

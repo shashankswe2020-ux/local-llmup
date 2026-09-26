@@ -235,10 +235,20 @@ pub fn read_artifact(root: &Path, name: &str) -> Result<ArtifactImage, Workspace
         "svg" => "image/svg+xml",
         _ => return Err(WorkspaceError("unsupported artifact type".into())),
     };
-    let directory = crate::secure_fs::Directory::open(root)?;
-    let content = directory.read(Path::new(name), 12 * 1024 * 1024, false)?;
+    let missing = |error: std::io::Error| {
+        if error.kind() == std::io::ErrorKind::NotFound {
+            WorkspaceError(ARTIFACT_NOT_FOUND.into())
+        } else {
+            error.into()
+        }
+    };
+    let directory = crate::secure_fs::Directory::open(root).map_err(missing)?;
+    let content = directory
+        .read(Path::new(name), 12 * 1024 * 1024, false)
+        .map_err(missing)?;
     Ok(ArtifactImage {
         content,
         content_type,
     })
 }
+pub const ARTIFACT_NOT_FOUND: &str = "artifact not found";

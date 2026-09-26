@@ -147,6 +147,50 @@ async fn long_sessions_keep_only_twenty_inference_messages() {
 }
 
 struct FailureThenReply(Mutex<usize>);
+#[tokio::test]
+async fn invalid_drafts_never_reach_provider_and_next_valid_turn_succeeds() {
+    for mode in [Mode::Plain, Mode::Accessible] {
+        for (draft, error) in [
+            (
+                "a".repeat(32769),
+                "Draft exceeds 32768 byte limit (32769 bytes)",
+            ),
+            (
+                "a".repeat(8193),
+                "Draft exceeds 8192 grapheme limit (8193 graphemes)",
+            ),
+            (
+                "line\n".repeat(256),
+                "Draft exceeds 256 line limit (257 lines)",
+            ),
+        ] {
+            let engine = Fake(Mutex::new(Vec::new()));
+            let (sender, receiver) = tokio::sync::mpsc::channel(2);
+            sender.send(Ok(draft)).await.unwrap();
+            sender.send(Ok("valid".into())).await.unwrap();
+            drop(sender);
+            let mut diagnostic = Vec::new();
+            let summary = run_chat(
+                receiver,
+                &engine,
+                mode,
+                &CancellationToken::new(),
+                &mut Vec::new(),
+                &mut diagnostic,
+            )
+            .await
+            .unwrap();
+            assert_eq!(summary.turns, 1);
+            assert_eq!(summary.failed_turns, 1);
+            let calls = engine.0.lock().unwrap();
+            assert_eq!(calls.len(), 1);
+            assert_eq!(calls[0].len(), 1);
+            assert_eq!(calls[0][0].content, "valid");
+            assert!(String::from_utf8(diagnostic).unwrap().contains(error));
+        }
+    }
+}
+
 impl ChatEngine for FailureThenReply {
     async fn reply(
         &self,
@@ -187,4 +231,110 @@ async fn failed_turns_do_not_enter_history_and_report_failure_status() {
         String::from_utf8(output).unwrap(),
         "Chat session ended: 1 turn, 1 memory warning.\n"
     );
+}
+
+struct Replies(Mutex<std::collections::VecDeque<ChatReply>>);
+impl ChatEngine for Replies {
+    async fn reply(
+        &self,
+        _: &[HarnessMessage],
+        _: &CancellationToken,
+    ) -> Result<ChatReply, String> {
+        Ok(self.0.lock().unwrap().pop_front().unwrap())
+    }
+}
+
+#[tokio::test]
+async fn response_utf8_limit_is_inclusive_and_oversized_turns_do_not_block_recovery() {
+    for content in [
+        "a".repeat(1048576),
+        "a".repeat(1048577),
+        "\u{1f600}".repeat(262145),
+    ] {
+        let rejected = content.len() > 1048576;
+        let engine = Replies(Mutex::new(std::collections::VecDeque::from([
+            ChatReply {
+                content,
+                memory_warning: false,
+            },
+            ChatReply {
+                content: "recovered".into(),
+                memory_warning: false,
+            },
+        ])));
+        let (sender, receiver) = tokio::sync::mpsc::channel(2);
+        sender.send(Ok("first".into())).await.unwrap();
+        sender.send(Ok("second".into())).await.unwrap();
+        drop(sender);
+        let mut output = Vec::new();
+        let mut diagnostic = Vec::new();
+        let summary = run_chat(
+            receiver,
+            &engine,
+            Mode::Plain,
+            &CancellationToken::new(),
+            &mut output,
+            &mut diagnostic,
+        )
+        .await
+        .unwrap();
+        assert_eq!(summary.turns, if rejected { 1 } else { 2 });
+        assert_eq!(summary.failed_turns, usize::from(rejected));
+        if rejected {
+            assert_eq!(output, b"recovered\n");
+            assert!(
+                String::from_utf8(diagnostic)
+                    .unwrap()
+                    .contains("response exceeds 1 MiB")
+            );
+        } else {
+            assert_eq!(output.len(), 1048576 + 1 + "recovered\n".len());
+        }
+    }
+}
+
+#[tokio::test]
+async fn session_summaries_preserve_zero_singular_plural_and_memory_warnings() {
+    for (turns, warnings, expected) in [
+        (0, 0, "Chat session ended: 0 turns, 0 memory warnings.\n"),
+        (1, 0, "Chat session ended: 1 turn, 0 memory warnings.\n"),
+        (5, 0, "Chat session ended: 5 turns, 0 memory warnings.\n"),
+        (3, 1, "Chat session ended: 3 turns, 1 memory warning.\n"),
+        (7, 4, "Chat session ended: 7 turns, 4 memory warnings.\n"),
+    ] {
+        let engine = Replies(Mutex::new(
+            (0..turns)
+                .map(|index| ChatReply {
+                    content: "reply".into(),
+                    memory_warning: index < warnings,
+                })
+                .collect(),
+        ));
+        let (sender, receiver) = tokio::sync::mpsc::channel(10);
+        for _ in 0..turns {
+            sender.send(Ok("question".into())).await.unwrap();
+        }
+        drop(sender);
+        let mut output = Vec::new();
+        let mut diagnostic = Vec::new();
+        let summary = run_chat(
+            receiver,
+            &engine,
+            Mode::Accessible,
+            &CancellationToken::new(),
+            &mut output,
+            &mut diagnostic,
+        )
+        .await
+        .unwrap();
+        assert_eq!(String::from_utf8(output).unwrap(), expected);
+        assert_eq!(summary.turns, turns);
+        assert_eq!(summary.memory_warnings, warnings);
+        let diagnostic = String::from_utf8(diagnostic).unwrap();
+        assert_eq!(diagnostic.matches("Waiting for response...").count(), turns);
+        assert_eq!(
+            diagnostic.matches("failed to record memory").count(),
+            warnings
+        );
+    }
 }

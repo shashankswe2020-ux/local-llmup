@@ -276,8 +276,24 @@ pub async fn detect() -> Result<(Hardware, Vec<String>), ValidationError> {
     let measurements = tokio::task::spawn_blocking(|| {
         let mut system = sysinfo::System::new();
         system.refresh_memory();
-        let disks = sysinfo::Disks::new_with_refreshed_list();
-        (system.total_memory(), system.available_memory(), system.free_memory(), disks.iter().map(|disk| json!({"mount":disk.mount_point().to_string_lossy(),"available":disk.available_space()})).collect::<Vec<_>>())
+        // macOS computes "important usage" capacity for sysinfo disks, which can take tens of seconds.
+        #[cfg(unix)]
+        let disks = rustix::fs::statvfs("/")
+            .map(|stats| {
+                vec![json!({"mount":"/","available":stats.f_bavail.saturating_mul(stats.f_frsize)})]
+            })
+            .unwrap_or_default();
+        #[cfg(not(unix))]
+        let disks = sysinfo::Disks::new_with_refreshed_list()
+            .iter()
+            .map(|disk| json!({"mount":disk.mount_point().to_string_lossy(),"available":disk.available_space()}))
+            .collect::<Vec<_>>();
+        (
+            system.total_memory(),
+            system.available_memory(),
+            system.free_memory(),
+            disks,
+        )
     });
     let (total, available, free, disks) =
         tokio::time::timeout(Duration::from_secs(3), measurements)

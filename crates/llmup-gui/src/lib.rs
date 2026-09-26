@@ -10,6 +10,7 @@ mod approval;
 mod chat;
 pub mod engine;
 pub mod models;
+pub mod options;
 mod routes;
 mod runtime;
 mod telemetry;
@@ -31,8 +32,7 @@ use tokio::sync::Mutex;
 use tokio_util::sync::CancellationToken;
 
 pub const MAX_REQUEST_BYTES: usize = 64 * 1024;
-static ASSETS: include_dir::Dir<'_> =
-    include_dir::include_dir!("$CARGO_MANIFEST_DIR/../../src/gui/static");
+static ASSETS: include_dir::Dir<'_> = include_dir::include_dir!("$CARGO_MANIFEST_DIR/static");
 
 pub struct Host {
     pub inference_usage:
@@ -244,8 +244,8 @@ async fn asset(axum::extract::Path(path): axum::extract::Path<String>) -> Respon
 }
 async fn vendor(axum::extract::Path(name): axum::extract::Path<String>) -> Response {
     let bytes: &'static [u8] = match name.as_str() {
-        "marked.min.js" => include_bytes!("../../../vendor/gui/marked.min.js"),
-        "dompurify.min.js" => include_bytes!("../../../vendor/gui/dompurify.min.js"),
+        "marked.min.js" => include_bytes!("../vendor/marked.min.js"),
+        "dompurify.min.js" => include_bytes!("../vendor/dompurify.min.js"),
         _ => return error(StatusCode::NOT_FOUND, "not found"),
     };
     ([(header::CONTENT_TYPE, "application/javascript")], bytes).into_response()

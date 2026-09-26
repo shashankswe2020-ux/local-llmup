@@ -39,6 +39,18 @@ pub struct Config {
     pub lock: PathBuf,
     pub staging: PathBuf,
 }
+/// A non-blank `LOCAL_LLMUP_HOME` wins; otherwise `~/.local-llmup` under the user's home.
+pub fn resolve_home(
+    custom: Option<&str>,
+    user_home: Option<std::ffi::OsString>,
+) -> Result<PathBuf, StateError> {
+    match custom.map(str::trim).filter(|value| !value.is_empty()) {
+        Some(value) => Ok(PathBuf::from(value)),
+        None => user_home
+            .map(|home| PathBuf::from(home).join(".local-llmup"))
+            .ok_or_else(|| error("io", "cannot determine home directory")),
+    }
+}
 impl Config {
     pub fn from_home(home: impl AsRef<Path>) -> Result<Self, StateError> {
         let home = std::path::absolute(home).map_err(io)?;
@@ -50,17 +62,10 @@ impl Config {
         })
     }
     pub fn load() -> Result<Self, StateError> {
-        let custom = std::env::var("LOCAL_LLMUP_HOME")
-            .ok()
-            .filter(|value| !value.trim().is_empty());
-        let home = match custom {
-            Some(value) => PathBuf::from(value.trim()),
-            None => std::env::var_os("HOME")
-                .or_else(|| std::env::var_os("USERPROFILE"))
-                .map(|home| PathBuf::from(home).join(".local-llmup"))
-                .ok_or_else(|| error("io", "cannot determine home directory"))?,
-        };
-        Self::from_home(home)
+        Self::from_home(resolve_home(
+            std::env::var("LOCAL_LLMUP_HOME").ok().as_deref(),
+            std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE")),
+        )?)
     }
     pub fn user_backend(&self) -> Result<Option<String>, StateError> {
         #[derive(Deserialize)]

@@ -15,7 +15,7 @@ use std::{
 #[derive(Parser)]
 #[command(about = "Rebuild the catalog from the frozen offline snapshot and pinned metadata")]
 struct Args {
-    #[arg(long, default_value = "data/models.json")]
+    #[arg(long, default_value = "crates/llmup-core/data/models.json")]
     out: PathBuf,
     #[arg(long, default_value = BOOTSTRAP_CLOCK)]
     now: String,

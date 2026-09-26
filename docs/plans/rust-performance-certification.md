@@ -5,8 +5,18 @@ performance and improvement report, not a completed benchmark report.
 
 ## Measurement Rules
 
-- Compare pinned release builds of the retained baseline and completed native
-  candidate on the same machine, OS, runtime/model revisions, inputs, and settings.
+- User direction (2026-09-22): run comparative performance testing after migration
+  is complete, against a pinned published `local-llmup` npm package, not a rebuilt
+  legacy checkout. No comparative benchmarks are authorized by intermediate
+  migration checkpoints.
+- Record the exact published package version, registry URL, tarball integrity and
+  hash, installed dependency lock/resolution, Node version and platform. Install
+  the baseline in an isolated external prefix; do not restore Node dependencies or
+  launchers to the migrated repository. Do not use a moving `latest` tag as evidence.
+- Compare that untouched published baseline with the pinned native release build
+  on the same machine, OS, runtime/model revisions, inputs, and settings. Record
+  dataset hashes: changed catalogs or unsupported baseline options are confounders,
+  not improvements. Use common workloads and explicit exceptions where necessary.
 - Record commit and binary hashes, toolchain, CPU/GPU/RAM, power mode, model digest,
   context, hardware-detection mode, sample count, failures, and raw samples.
 - Separate cold filesystem/cache launches, warm process launches, first inference,

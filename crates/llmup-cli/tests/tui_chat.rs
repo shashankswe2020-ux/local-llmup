@@ -111,6 +111,82 @@ fn drafts_are_bounded_and_backspace_removes_whole_graphemes() {
 }
 
 #[test]
+fn rendered_reply_escapes_controls_without_mutating_conversation_content() {
+    let mut view = ChatView::new("local");
+    view.insert("question").unwrap();
+    view.submit().unwrap();
+    let raw = "first\r\nsecond\u{1b}[31m\u{202e}end";
+    view.finish(Ok(ChatReply {
+        content: raw.into(),
+        memory_warning: false,
+    }));
+    let mut terminal = Terminal::new(TestBackend::new(100, 24)).unwrap();
+    terminal.draw(|frame| render(frame, &view, false)).unwrap();
+    let text: String = terminal
+        .backend()
+        .buffer()
+        .content
+        .iter()
+        .map(|cell| cell.symbol())
+        .collect();
+    assert!(text.contains("second\\u{1B}[31m\\u{202E}end"), "{text}");
+    assert!(!text.contains(['\u{1b}', '\u{202e}', '\r']));
+    assert_eq!(view.history().last().unwrap().content, raw);
+}
+
+#[test]
+fn draft_limits_preserve_inclusive_boundaries_and_error_precedence() {
+    for accepted in [
+        "a".repeat(8192),
+        "\u{1f600}".repeat(8192),
+        "line\n".repeat(255),
+    ] {
+        let mut view = ChatView::new("local");
+        view.insert(&accepted).unwrap();
+        assert_eq!(view.draft(), accepted);
+    }
+    for (draft, expected) in [
+        (
+            "a".repeat(32769),
+            "Draft exceeds 32768 byte limit (32769 bytes)",
+        ),
+        (
+            "\u{1f600}".repeat(8193),
+            "Draft exceeds 32768 byte limit (32772 bytes)",
+        ),
+        (
+            "a".repeat(32768),
+            "Draft exceeds 8192 grapheme limit (32768 graphemes)",
+        ),
+        (
+            "a".repeat(8193),
+            "Draft exceeds 8192 grapheme limit (8193 graphemes)",
+        ),
+        (
+            "line\n".repeat(256),
+            "Draft exceeds 256 line limit (257 lines)",
+        ),
+    ] {
+        let mut view = ChatView::new("local");
+        assert_eq!(view.insert(&draft).unwrap_err().to_string(), expected);
+        assert_eq!(view.draft(), "");
+        assert!(view.submit().is_err());
+    }
+}
+
+#[test]
+fn appending_a_trailing_newline_cannot_exceed_the_line_limit() {
+    let mut view = ChatView::new("local");
+    view.insert(&"line\n".repeat(255)).unwrap();
+    let before = view.draft().to_owned();
+    assert_eq!(
+        view.insert("\n").unwrap_err().to_string(),
+        "Draft exceeds 256 line limit (257 lines)"
+    );
+    assert_eq!(view.draft(), before);
+}
+
+#[test]
 fn only_successful_bounded_turns_enter_context() {
     let mut view = ChatView::new("local");
     view.insert("question").unwrap();

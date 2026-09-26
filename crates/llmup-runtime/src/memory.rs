@@ -295,6 +295,13 @@ impl MemoryStore {
                 return Err(MemoryError("unsafe memory directory".into()));
             }
         }
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if fs::metadata(&self.dir)?.permissions().mode() & 0o077 != 0 {
+                return Err(MemoryError("memory store permissions are too broad".into()));
+            }
+        }
         if !self
             .dir
             .canonicalize()?

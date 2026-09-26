@@ -1,9 +1,9 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "local-llmup",
-  "version": "0.11.4",
+  "version": "1.0.0",
   "identifier": "org.localllmup.desktop",
-  "build": { "frontendDist": "../../../src/gui/static" },
+  "build": { "frontendDist": "../../../crates/llmup-gui/static" },
   "app": {
     "windows": [],
     "withGlobalTauri": false,

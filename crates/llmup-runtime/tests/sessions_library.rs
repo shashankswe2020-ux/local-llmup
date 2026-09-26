@@ -171,3 +171,151 @@ fn library_roundtrips_frontmatter_and_composes_enabled_skills_in_order() {
     assert!(root.path().join("skills/rust/SKILL.md").exists());
     assert!(root.path().join("agents/engineer.md").exists());
 }
+fn message(role: &str, content: &str) -> StoredMessage {
+    StoredMessage {
+        role: role.into(),
+        content: content.into(),
+        at: "2026-09-24T00:00:00Z".into(),
+        attachments: None,
+    }
+}
+#[test]
+fn appended_text_keeps_line_structure_and_derives_the_title_once() {
+    let root = tempfile::tempdir().unwrap();
+    let repository = SessionRepository::new(root.path());
+    let session = repository.create("", "2026-09-24T00:00:00Z").unwrap();
+    assert_eq!(
+        (
+            session.title.as_str(),
+            session.revision,
+            session.messages.len()
+        ),
+        ("New chat", 0, 0)
+    );
+    let updated = repository
+        .append(
+            &session.id,
+            message(
+                "user",
+                "## Result\r\n\r\n```ts\rconst x = 1;\r```\t\u{0}\u{1b}[31m\u{202e}",
+            ),
+            Some(0),
+        )
+        .unwrap();
+    assert_eq!(
+        updated.messages[0].content,
+        "## Result\n\n```ts\nconst x = 1;\n```\t"
+    );
+    let titled = repository.create("", "2026-09-24T00:00:00Z").unwrap();
+    let first = repository
+        .append(
+            &titled.id,
+            message("user", "How do I run this model?"),
+            Some(0),
+        )
+        .unwrap();
+    assert_eq!(
+        (first.title.as_str(), first.revision),
+        ("How do I run this model?", 1)
+    );
+    let later = repository
+        .append(&titled.id, message("user", "second question"), Some(1))
+        .unwrap();
+    assert_eq!(later.title, "How do I run this model?");
+}
+#[test]
+fn session_and_message_lists_page_with_cursors() {
+    let root = tempfile::tempdir().unwrap();
+    let repository = SessionRepository::new(root.path());
+    for index in 0..5 {
+        repository
+            .create(&format!("s{index}"), &format!("2026-09-24T00:00:0{index}Z"))
+            .unwrap();
+    }
+    let (first, next) = repository.list(false, 0, 2).unwrap();
+    assert_eq!(first.len(), 2);
+    assert_eq!(first[0].title, "s4");
+    assert_eq!(next.as_deref(), Some("2"));
+    let (_, next) = repository.list(false, 2, 2).unwrap();
+    assert_eq!(next.as_deref(), Some("4"));
+    let (last, next) = repository.list(false, 4, 2).unwrap();
+    assert_eq!((last.len(), last[0].title.as_str(), next), (1, "s0", None));
+
+    let session = repository
+        .create("messages", "2026-09-24T00:00:09Z")
+        .unwrap();
+    for index in 0..30 {
+        repository
+            .append(&session.id, message("user", &format!("m{index}")), None)
+            .unwrap();
+    }
+    let (page, next) = repository.messages(&session.id, 0, 2).unwrap();
+    assert_eq!(
+        (
+            page[0].content.as_str(),
+            page[1].content.as_str(),
+            next.as_deref()
+        ),
+        ("m0", "m1", Some("2"))
+    );
+    let (all, next) = repository.messages(&session.id, 0, 500).unwrap();
+    assert_eq!((all.len(), next), (30, None));
+}
+#[test]
+fn malformed_ids_and_corrupt_or_foreign_session_files_fail_closed() {
+    let root = tempfile::tempdir().unwrap();
+    let repository = SessionRepository::new(root.path());
+    let kept = repository.create("kept", "2026-09-24T00:00:00Z").unwrap();
+    for id in [
+        "../../etc/passwd",
+        "..%2f..%2fsecret",
+        "",
+        &kept.id.to_uppercase(),
+    ] {
+        assert!(repository.get(id).is_err(), "{id}");
+        assert!(repository.messages(id, 0, 10).is_err(), "{id}");
+    }
+    let directory = root.path().join("gui-sessions");
+    let corrupt = uuid::Uuid::new_v4().to_string();
+    std::fs::write(directory.join(format!("{corrupt}.json")), "{not json").unwrap();
+    let foreign = repository
+        .create("foreign", "2026-09-24T00:00:01Z")
+        .unwrap();
+    let path = directory.join(format!("{}.json", foreign.id));
+    let raw = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(
+        &path,
+        raw.replace("\"schemaVersion\": 1", "\"schemaVersion\": 99"),
+    )
+    .unwrap();
+    assert!(repository.get(&corrupt).is_err());
+    assert!(repository.get(&foreign.id).is_err());
+    let listed = repository.list(false, 0, 50).unwrap().0;
+    assert_eq!(
+        listed
+            .iter()
+            .map(|session| session.id.as_str())
+            .collect::<Vec<_>>(),
+        [kept.id.as_str()]
+    );
+    repository.remove(&kept.id).unwrap();
+    repository.remove(&kept.id).unwrap();
+    assert!(repository.get(&kept.id).unwrap().is_none());
+}
+#[cfg(unix)]
+#[test]
+fn symlinked_session_files_are_not_followed() {
+    let root = tempfile::tempdir().unwrap();
+    let outside = tempfile::tempdir().unwrap();
+    let repository = SessionRepository::new(root.path());
+    let session = repository.create("linked", "2026-09-24T00:00:00Z").unwrap();
+    let path = root
+        .path()
+        .join("gui-sessions")
+        .join(format!("{}.json", session.id));
+    let target = outside.path().join("session.json");
+    std::fs::rename(&path, &target).unwrap();
+    std::os::unix::fs::symlink(&target, &path).unwrap();
+    assert!(repository.get(&session.id).is_err());
+    assert!(repository.list(false, 0, 50).unwrap().0.is_empty());
+}

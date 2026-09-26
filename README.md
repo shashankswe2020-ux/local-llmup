@@ -1,9 +1,8 @@
 # local-llmup
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-339933.svg?logo=node.js&logoColor=white)](https://nodejs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/tests-1800%2B%20passing-brightgreen.svg)](#development)
+[![Rust](https://img.shields.io/badge/Rust-1.98.1-000000.svg?logo=rust)](https://www.rust-lang.org)
+[![Tests](https://img.shields.io/badge/tests-780%2B%20passing-brightgreen.svg)](#development)
 [![Backends](https://img.shields.io/badge/backends-Ollama%20%7C%20llama.cpp%20%7C%20MLX%20%7C%20LM%20Studio-000000.svg)](#supported-backends)
 
 > **Know which local LLMs will actually run on your machine — before you download anything.**
@@ -56,6 +55,7 @@ integrity status, capabilities, and catalog sources. Unknown inputs stay
   - [Table of Contents](#table-of-contents)
   - [Install](#install)
     - [Docker](#docker)
+  - [Performance (1.0 native vs. 0.11.4 Node)](#performance-10-native-vs-0114-node)
   - [Quick Start](#quick-start)
   - [Model Catalog](#model-catalog)
     - [Catalog Enrichment](#catalog-enrichment)
@@ -83,31 +83,48 @@ integrity status, capabilities, and catalog sources. Unknown inputs stay
 
 ## Install
 
-```bash
-npm install -g local-llmup
-```
-
-Or run without installing:
+`local-llmup` 1.0 is a native Rust application published on crates.io. With
+Rust 1.98 or newer ([rustup](https://rustup.rs)):
 
 ```bash
-npx local-llmup
+cargo install llmup-cli --locked --bin llmup --bin local-llmup
+cargo install llmup-gui --locked
 ```
 
-**Requirements:** Node.js 18+ · No API keys · No cloud accounts
+This installs the `llmup` and `local-llmup` aliases plus the `llmup-gui`
+companion that `llmup gui` launches. Install both into the same Cargo `bin`
+directory (the default) so the CLI can find the GUI beside it. The binaries need
+no Node.js, Python or compiler at runtime.
+
+From a checkout, use the same pinned toolchain:
+
+```bash
+cargo install --locked --path crates/llmup-cli --bin llmup --bin local-llmup
+cargo install --locked --path crates/llmup-gui
+cargo llmup          # or run without installing
+```
+
+**Upgrading from the npm package (0.x).** The Node.js package is retired and
+receives no further releases. Remove it with `npm uninstall -g local-llmup`, then
+install with Cargo as above. Commands, flags, `--json` output and the
+`~/.local-llmup` state directory are unchanged, so active servers and chat memory
+carry over. Signed native archives and desktop installers are not part of 1.0.
 
 ### Docker
 
-Pull the multi-platform CLI image from GitHub Container Registry:
+Historical multi-platform CLI images remain available from GitHub Container Registry:
 
 ```bash
 docker pull ghcr.io/shashankswe2020-ux/local-llmup:latest
 docker run --rm ghcr.io/shashankswe2020-ux/local-llmup:latest
 ```
 
-The image is published for `linux/amd64` and `linux/arm64`. Its default command
+Those images target `linux/amd64` and `linux/arm64` and predate the native
+release. The current Dockerfile builds the native binaries; a native image has not
+been published yet. Its default command
 prints JSON recommendations and advice remains offline. Hardware detection sees
 the container's resources, not necessarily the complete host, so use the native
-or npm installation for host-accurate recommendations. The browser GUI remains
+installation for host-accurate recommendations. The browser GUI remains
 loopback-only and is not exposed from the container.
 
 For lifecycle commands (`up`, `down`, `chat`, `switch`, `migrate`), you need at
@@ -116,6 +133,28 @@ least one backend installed:
 - [llama.cpp](https://github.com/ggml-org/llama.cpp) (`brew install llama.cpp`)
 - [MLX](https://github.com/ml-explore/mlx-lm) (`pip install "mlx-lm==0.31.3"`, Apple Silicon only)
 - [LM Studio](https://lmstudio.ai) (attach-only, bring your own server)
+
+---
+
+## Performance (1.0 native vs. 0.11.4 Node)
+
+Measured on an Apple M4 Max (36 GB, macOS 26.5) against the published
+`local-llmup@0.11.4` running on Node.js 26: medians of 30 interleaved runs,
+peak RSS from `/usr/bin/time -l`, isolated state directories. Advice output
+(`recommend` and `can-run` JSON) was byte-for-byte equivalent after key ordering.
+
+| Command | 0.11.4 (Node) | 1.0 (native) | Speedup | Peak RSS (Node → native) |
+|---------|---------------|--------------|---------|--------------------------|
+| `--version` | 139.6 ms | 5.8 ms | 23.9× | 68.1 → 8.1 MiB |
+| `recommend --json` | 548.7 ms | 326.8 ms | 1.7× | 72.3 → 15.0 MiB |
+| `recommend --max-context --json` | 508.9 ms | 375.6 ms | 1.4× | 72.0 → 15.0 MiB |
+| `can-run qwen3:8b --json` | 550.8 ms | 333.3 ms | 1.7× | 71.8 → 15.0 MiB |
+| `doctor --json` | 849.9 ms | 691.0 ms | 1.2× | backend probes dominate |
+
+Advice itself takes about 19 ms; roughly 300 ms of each advice command is the
+operating system's GPU query (`system_profiler` on macOS), which both versions
+perform. Install size drops from 51 MB of `node_modules` plus a Node runtime to a
+single 12.6 MB `llmup` binary. Results vary by machine and runtime version.
 
 ---
 
@@ -179,7 +218,7 @@ artifact metadata:
   quantization, and official source IDs to
   `crates/llmup-core/fixtures/registry-snapshot.json`.
 2. **Bootstrap.** `cargo catalog-bootstrap` deterministically generates
-  `data/models.json` from that pinned snapshot.
+  `crates/llmup-core/data/models.json` from that pinned snapshot.
 3. **Enrich.** `cargo catalog-enrich` resolves already-curated Ollama sources
   and pins exact model-layer bytes and SHA-256 digests. It never invents or
   changes curated architecture facts.
@@ -203,8 +242,7 @@ cargo catalog-freshness   # report age and snapshot drift (Rust toolchain requir
 
 The workflow formats its PR/issue bodies using `cargo catalog-notice <kind>
 --input <report.json>`. This command only validates and reads the report; it does
-not contact GitHub or modify files. Catalog maintenance commands are native;
-the retained compatibility checks still require Node during migration.
+not contact GitHub or modify files. All catalog maintenance commands are native.
 
 `cargo catalog-enrich --dry-run` checks live manifests without writing the catalog.
 For offline verification, add `--manifest-fixture <file.json>`: the file maps exact
@@ -218,8 +256,8 @@ changed catalogs are schema-validated and written atomically.
 
 ## Terminal UI
 
-v0.6.0 introduces a full interactive terminal UI that activates automatically
-when running in a capable terminal (TTY with ≥60 columns, ≥16 rows).
+The interactive terminal UI activates automatically when running in a capable
+terminal (TTY with ≥60 columns, ≥16 rows).
 
 ### Features
 
@@ -272,7 +310,7 @@ The UI auto-selects the best mode for your terminal:
 
 | Mode | When | Behavior |
 |------|------|----------|
-| **Visual** | TTY ≥60×16 | Full Ink-rendered interactive UI |
+| **Visual** | TTY ≥60×16 | Full-screen native interactive UI |
 | **Accessible** | `--accessible` or `TERM_PROGRAM=screen-reader` | Line-oriented cooked input |
 | **Plain** | Non-TTY, piped, `--json`, `--no-tui` | Traditional text output |
 
@@ -486,7 +524,7 @@ flowchart TD
 
 | Principle | Implementation |
 |-----------|---------------|
-| **Offline** | Zero network calls. Curated dataset in `data/` |
+| **Offline** | Zero network calls. Curated dataset in `crates/llmup-core/data/` |
 | **Deterministic** | Same hardware → same output, always |
 | **Memory-bandwidth model** | tok/s from hardware bandwidth × model size |
 | **KV-cache aware** | `--context N` includes fp16 KV (GQA-correct geometry) |
@@ -570,55 +608,46 @@ verify the weights, then serve and migrate without guessing.
 
 ## Development
 
-Use Node.js 22.12+ for development and tests (Vitest 5). The published CLI
-continues to support Node.js 18+.
+Use the pinned Rust toolchain (`rust-toolchain.toml`). No Node.js is required for
+building, testing or releasing.
 
 ```bash
-npm install          # Install dependencies
-npm run build        # Compile TypeScript
-npm test             # 1850 tests (Vitest)
-npm run typecheck    # tsc --noEmit
-npm run lint         # ESLint
-npm run format       # Prettier
-npm run dev          # Dev mode (tsx src/cli.ts)
-cargo catalog-bootstrap  # Regenerate data/models.json
+cargo build --workspace --locked
+cargo test --workspace --locked -- --test-threads=2
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo fmt --all -- --check
+cargo native-retirement  # Fails if any Node/TypeScript tooling returns
+cargo llmup              # Native development CLI
+cargo state-parity
+cargo workflow-parity
+cargo catalog-bootstrap  # Regenerate crates/llmup-core/data/models.json
+```
+
+Browser client modules and journeys run in real Chrome through WebDriver:
+
+```bash
+scripts/native-browser-journeys.sh "$CHROME" "$CHROMEDRIVER"
 ```
 
 ### Architecture
 
-```
-src/
-├── cli.ts, bin.ts       Entry points & CLI wiring
-├── commands/            One file per subcommand
-├── advisor/             Scoring, throughput, verdict engine
-├── hardware/            Detection + memory math (KV-cache sizing)
-├── catalog/             Model catalog, schema, enrichment
-├── backend/             Ollama, llama.cpp, MLX, LM Studio adapters
-├── ranking/             Fit + rank + weights
-├── memory/              Conversation memory capture & migration
-├── state/               Active-model / server state
-└── tui/                 Terminal UI (Ink 5 + React 18)
-    ├── screens/         Visual components (recommend, chat, lifecycle, doctor)
-    ├── session.ts       Terminal resource ownership & restoration
-    ├── capabilities.ts  Mode selection (visual/accessible/plain)
-    ├── cancellation.ts  Signal handling + compensation
-    ├── chat-limits.ts   Draft validation & session summary
-    └── keys.ts          Keyboard binding definitions
+```text
+crates/llmup-core/       Offline catalog, sizing, advice and ranking (+ data/)
+crates/llmup-runtime/    Runtime adapters, state, memory, tools and workspace
+crates/llmup-cli/        Native public aliases, terminal UI and maintenance
+crates/llmup-gui/        Rust HTTP/SSE host and embedded static browser assets
+vendor/crossterm/        llmup-crossterm: crossterm with bounded input parsing
+apps/desktop/src-tauri/  Native desktop (separate Cargo project)
 ```
 
 ### Testing Philosophy
 
 - **TDD.** Failing test → minimal implementation → refactor.
-- **All mocked.** No real network/Ollama/filesystem in Vitest tests.
-- **129 test files, 1850 assertions.** Unit > integration > e2e.
-- **Coverage gates.** 80% lines+branches on core modules.
-- **Runtime smoke.** Real backend processes tested separately via production builds.
-
-### DeepGit Verification (2026-08-30)
-
-- Build: passed (`npm run build`)
-- Tests: **1850/1850 passed** across 129 files (`npm test`)
-- Production dependency audit: passed (0 vulnerabilities; covered by the package budget gate)
+- **All mocked.** No real network, models or inference in the test suite.
+- **Frozen oracles.** Advice, fit and state behaviour are pinned against
+  outputs captured from the 0.x implementation.
+- **Unit > integration > e2e.** Browser and desktop journeys run separately.
+- **Runtime smoke.** Real backend processes are tested separately via production builds.
 
 ---
 

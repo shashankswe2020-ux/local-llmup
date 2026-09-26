@@ -3,11 +3,17 @@ name = "llmup-gui"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-publish.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Loopback-only local browser workspace for local-llmup (`llmup gui`)."
+keywords = ["llm", "local-ai", "gui", "ollama"]
+categories = ["command-line-utilities"]
+include = ["src/**", "static/**", "vendor/**", "Cargo.toml"]
 
 [dependencies]
-llmup-runtime = { path = "../llmup-runtime" }
-llmup-core = { path = "../llmup-core" }
+llmup-runtime = { path = "../llmup-runtime", version = "1.0.0" }
+llmup-core = { path = "../llmup-core", version = "1.0.0" }
 axum = { version = "0.8", features = ["json", "query", "tokio", "http1"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync", "signal"] }
 tokio-util = { version = "0.7", features = ["rt"] }
@@ -24,6 +30,8 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
 tempfile = "3"
+fantoccini = { version = "=0.22.1", default-features = false }
+hyper-util = { version = "0.1", features = ["client-legacy", "http1", "tokio"] }
 
 [lints]
 workspace = true

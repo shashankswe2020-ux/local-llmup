@@ -31,7 +31,7 @@ fn mock() -> MockTransport {
     MockTransport {calls:Mutex::new(Vec::new()),fail_first:false,status:200,declared:None,body:serde_json::json!({"layers":[{"mediaType":"application/vnd.ollama.image.model","digest":format!("sha256:{}","a".repeat(64)),"size":6_000_000_000_u64}]}).to_string()}
 }
 fn catalog() -> Catalog {
-    let mut catalog = Catalog::parse(include_str!("../../../data/models.json")).unwrap();
+    let mut catalog = Catalog::parse(include_str!("../../llmup-core/data/models.json")).unwrap();
     catalog
         .models
         .retain(|model| ["llama3.1:8b", "qwen3:8b"].contains(&model.id.as_str()));

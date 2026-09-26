@@ -1,18 +1,25 @@
+mod terminal_events;
 use llmup_core::sizing::{SizingRequest, evaluate};
 use serde::Serialize;
 use std::io::{Read, Write};
 
 pub mod accessible;
+pub mod accessible_catalog;
+pub mod accessible_installed;
 pub mod accessible_read_only;
+pub mod accessible_recommend;
 pub mod accessible_text;
 pub mod cancellation;
 pub mod dialog_smoke;
 pub mod distribution;
+pub mod gui_launcher;
 pub mod performance;
 pub mod retirement;
 pub mod terminal;
 pub mod tui_chat;
+pub mod tui_lifecycle;
 pub mod tui_mode;
+pub mod tui_models;
 pub mod tui_view;
 
 pub const MAX_INPUT_BYTES: usize = 8 * 1024 * 1024;

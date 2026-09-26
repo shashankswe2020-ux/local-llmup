@@ -3,8 +3,8 @@ use std::{io, sync::OnceLock};
 use unicode_normalization::UnicodeNormalization;
 use unicode_segmentation::UnicodeSegmentation;
 
-fn truncate(value: &str, already_truncated: bool) -> String {
-    if value.len() <= 256 && !already_truncated {
+fn truncate(value: &str, already_truncated: bool, limit: usize) -> String {
+    if value.len() <= limit && !already_truncated {
         return value.into();
     }
     static ESCAPE: OnceLock<Regex> = OnceLock::new();
@@ -20,7 +20,7 @@ fn truncate(value: &str, already_truncated: bool) -> String {
     units.extend(value[offset..].graphemes(true));
     let mut output = String::new();
     for unit in units {
-        if output.len() + unit.len() > 253 {
+        if output.len() + unit.len() > limit - 3 {
             break;
         }
         output.push_str(unit);
@@ -29,7 +29,7 @@ fn truncate(value: &str, already_truncated: bool) -> String {
     output
 }
 
-fn escape(value: &str, action: bool) -> io::Result<String> {
+fn escape(value: &str, action: bool, multiline: bool, limit: usize) -> io::Result<String> {
     if value.len() > 1024 * 1024 {
         return Err(io::Error::other("terminal text exceeds 1 MiB"));
     }
@@ -56,9 +56,9 @@ fn escape(value: &str, action: bool) -> io::Result<String> {
                     if characters.peek() == Some(&'\n') {
                         characters.next();
                     }
-                    "\\n".into()
+                    if multiline { "\n" } else { "\\n" }.into()
                 }
-                '\n' => "\\n".into(),
+                '\n' => if multiline { "\n" } else { "\\n" }.into(),
                 '\t' => "  ".into(),
                 value
                     if value.is_control()
@@ -70,7 +70,7 @@ fn escape(value: &str, action: bool) -> io::Result<String> {
                 value => value.to_string(),
             }
         };
-        if escaped.len() + replacement.len() > 1280 {
+        if escaped.len() + replacement.len() > limit + 1024 {
             truncated = true;
             break;
         }
@@ -81,12 +81,18 @@ fn escape(value: &str, action: bool) -> io::Result<String> {
     } else {
         escaped.nfc().collect()
     };
-    Ok(truncate(&normalized, truncated))
+    Ok(truncate(&normalized, truncated, limit))
 }
 
 pub fn single_line(value: &str) -> io::Result<String> {
-    escape(value, false)
+    escape(value, false, false, 256)
 }
 pub fn identifier(value: &str) -> io::Result<String> {
-    escape(value, true)
+    escape(value, true, false, 256)
+}
+pub fn multiline(value: &str) -> io::Result<String> {
+    escape(value, false, true, 8192)
+}
+pub fn chat_message(value: &str) -> io::Result<String> {
+    escape(value, false, true, 65536)
 }

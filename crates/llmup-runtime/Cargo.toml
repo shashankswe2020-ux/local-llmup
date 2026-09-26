@@ -3,10 +3,16 @@ name = "llmup-runtime"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-publish.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Hardware detection, backend adapters, lifecycle, memory and harness runtime for local-llmup."
+keywords = ["llm", "local-ai", "ollama", "llama-cpp"]
+categories = ["command-line-utilities"]
+include = ["src/**", "Cargo.toml"]
 
 [dependencies]
-llmup-core = { path = "../llmup-core" }
+llmup-core = { path = "../llmup-core", version = "1.0.0" }
 serde.workspace = true
 serde_json.workspace = true
 uuid = { version = "1", features = ["v4"] }

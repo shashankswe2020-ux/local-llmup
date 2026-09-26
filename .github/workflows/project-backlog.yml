@@ -12,11 +12,23 @@ permissions:
 jobs:
   add-to-project:
     name: Add issue or PR to backlog project
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     if: ${{ vars.BACKLOG_PROJECT_URL != '' }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Add to GitHub Project
-        uses: actions/add-to-project@v2.0.0
-        with:
-          project-url: ${{ vars.BACKLOG_PROJECT_URL }}
-          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+        env:
+          GH_TOKEN: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          PROJECT_URL: ${{ vars.BACKLOG_PROJECT_URL }}
+          ITEM_URL: ${{ github.event.issue.html_url || github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+          pattern='^https://github\.com/(orgs|users)/([A-Za-z0-9-]+)/projects/([0-9]+)/?$'
+          if [[ ! "$PROJECT_URL" =~ $pattern ]]; then
+            echo "::error::BACKLOG_PROJECT_URL must be a GitHub project URL"
+            exit 1
+          fi
+          gh project item-add "${BASH_REMATCH[3]}" --owner "${BASH_REMATCH[2]}" --url "$ITEM_URL"

@@ -1,5 +1,5 @@
 use crate::terminal::{ChatReply, ChatSummary};
-use crossterm::event::{Event, EventStream};
+use crossterm::event::Event;
 use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use futures_util::{Stream, StreamExt};
 use llmup_runtime::{harness::HarnessMessage, sessions::gui_text};
@@ -82,23 +82,16 @@ pub async fn run_chat(
     cancel: &CancellationToken,
 ) -> io::Result<(ChatSummary, u8)> {
     let mut view = ChatView::new(title);
+    let mut signals = crate::cancellation::TerminalSignals::new()?;
     let (mut terminal, _restore) = crate::tui_view::enter_terminal()?;
-    let mut events = EventStream::new();
-    #[cfg(unix)]
-    let mut terminate = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+    let mut events = crate::terminal_events::terminal_events();
     let result = tokio::select! {
         result = drive(&mut terminal, &mut events, engine, &mut view, color, cancel) => result,
-        result = tokio::signal::ctrl_c() => result.map(|()| 130),
-        _ = async {
-            #[cfg(unix)]
-            terminate.recv().await;
-            #[cfg(not(unix))]
-            std::future::pending::<()>().await;
-        } => Ok(143),
+        result = signals.recv() => result,
     };
     cancel.cancel();
     let code = result?;
-    view.summary.cancelled = code == 130 || code == 143;
+    view.summary.cancelled = matches!(code, 129 | 130 | 143);
     Ok((view.summary, code))
 }
 
@@ -140,16 +133,15 @@ impl ChatView {
         &self.summary
     }
     pub fn insert(&mut self, text: &str) -> io::Result<()> {
-        if self.draft.len() + text.len() > 32768 {
-            return Err(io::Error::other("draft exceeds 32 KiB"));
+        let bytes = self.draft.len().saturating_add(text.len());
+        if bytes > 32768 {
+            return Err(io::Error::other(format!(
+                "Draft exceeds 32768 byte limit ({bytes} bytes)"
+            )));
         }
         let text = gui_text(text);
         let next = format!("{}{text}", self.draft);
-        if next.graphemes(true).count() > 8192 || next.lines().count() > 256 {
-            return Err(io::Error::other(
-                "draft exceeds 8192 graphemes or 256 lines",
-            ));
-        }
+        crate::terminal::validate_draft(&next)?;
         self.draft = next;
         self.error = None;
         Ok(())
@@ -253,6 +245,37 @@ pub fn handle_key(view: &mut ChatView, key: KeyEvent) -> InputAction {
     InputAction::Continue
 }
 
+fn transcript_lines(view: &ChatView) -> Vec<String> {
+    let pending = view.pending.as_ref().map(|turn| {
+        (
+            ">",
+            crate::accessible_text::multiline(turn)
+                .unwrap_or_else(|_| "[draft exceeds display limits]".into()),
+        )
+    });
+    let history = view.history.iter().rev().take(10).map(|message| {
+        (
+            if message.role == "user" { ">" } else { " " },
+            crate::accessible_text::chat_message(&message.content)
+                .unwrap_or_else(|_| "[message exceeds display limits]".into()),
+        )
+    });
+    let mut retained_bytes = 0usize;
+    let mut lines = Vec::new();
+    'messages: for (prefix, visible) in pending.into_iter().chain(history) {
+        for line in visible.lines().rev() {
+            let bytes = prefix.len() + 1 + line.len() + 1;
+            if retained_bytes + bytes > 192 * 1024 {
+                break 'messages;
+            }
+            retained_bytes += bytes;
+            lines.push(format!("{prefix} {line}"));
+        }
+    }
+    lines.reverse();
+    lines
+}
+
 pub fn render(frame: &mut Frame<'_>, view: &ChatView, color: bool) {
     let [header, transcript, status, input] = Layout::vertical([
         Constraint::Length(1),
@@ -270,28 +293,7 @@ pub fn render(frame: &mut Frame<'_>, view: &ChatView, color: bool) {
         Paragraph::new(format!("local-llmup / chat / {}", view.title)).style(accent),
         header,
     );
-    let mut lines: Vec<String> = view
-        .history
-        .iter()
-        .rev()
-        .take(10)
-        .collect::<Vec<_>>()
-        .into_iter()
-        .rev()
-        .flat_map(|message| {
-            let visible: String = gui_text(&message.content).chars().take(500).collect();
-            visible
-                .lines()
-                .map(|line| format!("{} {line}", if message.role == "user" { ">" } else { " " }))
-                .collect::<Vec<_>>()
-        })
-        .collect();
-    if let Some(turn) = &view.pending {
-        lines.push(format!(
-            "> {}",
-            gui_text(turn).chars().take(500).collect::<String>()
-        ));
-    }
+    let lines = transcript_lines(view);
     let mut state = ListState::default().with_selected(lines.len().checked_sub(1));
     frame.render_stateful_widget(
         List::new(lines.into_iter().map(ListItem::new).collect::<Vec<_>>()),
@@ -317,4 +319,58 @@ pub fn render(frame: &mut Frame<'_>, view: &ChatView, color: bool) {
         .collect::<Vec<_>>()
         .join("\n");
     frame.render_widget(Paragraph::new(format!("> {draft}")).style(accent), input);
+}
+
+#[cfg(test)]
+mod display_tests {
+    use super::*;
+
+    #[test]
+    fn newline_heavy_transcript_and_pending_draft_share_the_display_budget() {
+        let mut view = ChatView::new("local");
+        for _ in 0..5 {
+            view.insert("question").unwrap();
+            view.submit().unwrap();
+            view.finish(Ok(crate::terminal::ChatReply {
+                content: "\n".repeat(65536),
+                memory_warning: false,
+            }));
+        }
+        view.insert("pending\r\nlast line").unwrap();
+        view.submit().unwrap();
+        let lines = transcript_lines(&view);
+        assert!(lines.iter().map(|line| line.len() + 1).sum::<usize>() <= 192 * 1024);
+        assert_eq!(lines.last().unwrap(), "> last line");
+        assert!(lines.iter().all(|line| !line.contains(['\r', '\n'])));
+        assert_eq!(view.history.len(), 10);
+    }
+
+    #[test]
+    fn transcript_budget_keeps_latest_rows_without_mutating_history() {
+        let mut view = ChatView::new("local");
+        for index in 0..6 {
+            view.insert("question").unwrap();
+            view.submit().unwrap();
+            view.finish(Ok(crate::terminal::ChatReply {
+                content: format!("{}\nLATEST-{index}", "x".repeat(60 * 1024)),
+                memory_warning: false,
+            }));
+        }
+        let before: Vec<_> = view
+            .history
+            .iter()
+            .map(|message| message.content.clone())
+            .collect();
+        let lines = transcript_lines(&view);
+        assert!(lines.iter().map(|line| line.len() + 1).sum::<usize>() <= 192 * 1024);
+        assert!(lines.last().unwrap().contains("LATEST-5"));
+        assert!(lines.iter().filter(|line| line.len() > 1024).count() < 6);
+        assert_eq!(
+            before,
+            view.history
+                .iter()
+                .map(|message| message.content.clone())
+                .collect::<Vec<_>>()
+        );
+    }
 }

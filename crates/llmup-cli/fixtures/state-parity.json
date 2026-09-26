@@ -1,0 +1,216 @@
+{
+  "sourceSha256": {
+    "driver": "82fe7f4be07b6bf788dea2674294140ba4dd83c082aef0fa1416a87ef16db40f",
+    "state": "ef979b63ecacc7fbbea925b7e6eaef0232b7065fec14c10a07e82dac7b114403",
+    "ls": "34f83e38c72f911c78c29315e9c11442036c054c51aa16d56de8cad92d538970"
+  },
+  "contracts": [
+    {
+      "input": {
+        "schemaVersion": 2,
+        "active": null
+      },
+      "normalized": {
+        "schemaVersion": 2,
+        "active": null
+      },
+      "ls": {
+        "type": "empty"
+      },
+      "text": "No active model.\n"
+    },
+    {
+      "input": {
+        "schemaVersion": 2,
+        "active": {
+          "modelId": "test:latest",
+          "endpoint": "http://127.0.0.1:18080",
+          "port": 18080,
+          "pid": 123,
+          "processExecutable": "/fake/runtime",
+          "processStartedAt": "2026-09-17 01:02:03",
+          "backend": "llamacpp",
+          "ownedByUs": true
+        }
+      },
+      "normalized": {
+        "schemaVersion": 2,
+        "active": {
+          "backend": "llamacpp",
+          "modelId": "test:latest",
+          "endpoint": "http://127.0.0.1:18080",
+          "port": 18080,
+          "ownedByUs": true,
+          "pid": 123,
+          "processExecutable": "/fake/runtime",
+          "processStartedAt": "2026-09-17 01:02:03"
+        }
+      },
+      "ls": {
+        "type": "active",
+        "modelId": "test:latest",
+        "backend": "llamacpp",
+        "endpoint": "http://127.0.0.1:18080",
+        "port": 18080,
+        "ownedByUs": true
+      },
+      "text": "Model        Backend   Endpoint                 Port  Status\ntest:latest  llamacpp  http://127.0.0.1:18080  18080  owned\n"
+    },
+    {
+      "input": {
+        "schemaVersion": 2,
+        "active": {
+          "modelId": "test:latest",
+          "endpoint": "http://127.0.0.1:18080",
+          "port": 18080,
+          "pid": 123,
+          "processExecutable": "/fake/runtime",
+          "processStartedAt": "2026-09-17 01:02:03",
+          "backend": "mlx",
+          "ownedByUs": true,
+          "authToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "normalized": {
+        "schemaVersion": 2,
+        "active": {
+          "backend": "mlx",
+          "modelId": "test:latest",
+          "endpoint": "http://127.0.0.1:18080",
+          "port": 18080,
+          "ownedByUs": true,
+          "pid": 123,
+          "processExecutable": "/fake/runtime",
+          "processStartedAt": "2026-09-17 01:02:03",
+          "authToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "ls": {
+        "type": "active",
+        "modelId": "test:latest",
+        "backend": "mlx",
+        "endpoint": "http://127.0.0.1:18080",
+        "port": 18080,
+        "ownedByUs": true
+      },
+      "text": "Model        Backend  Endpoint                 Port  Status\ntest:latest  mlx      http://127.0.0.1:18080  18080  owned\n"
+    },
+    {
+      "input": {
+        "schemaVersion": 2,
+        "active": {
+          "modelId": "test:latest",
+          "endpoint": "http://127.0.0.1:18080",
+          "port": 18080,
+          "pid": 123,
+          "processExecutable": "/fake/runtime",
+          "processStartedAt": "2026-09-17 01:02:03",
+          "backend": "lmstudio",
+          "ownedByUs": false,
+          "modelPath": "owner/model/weights.gguf"
+        }
+      },
+      "normalized": {
+        "schemaVersion": 2,
+        "active": {
+          "backend": "lmstudio",
+          "modelId": "test:latest",
+          "endpoint": "http://127.0.0.1:18080",
+          "port": 18080,
+          "modelPath": "owner/model/weights.gguf",
+          "ownedByUs": false,
+          "pid": 123,
+          "processExecutable": "/fake/runtime",
+          "processStartedAt": "2026-09-17 01:02:03"
+        }
+      },
+      "ls": {
+        "type": "active",
+        "modelId": "test:latest",
+        "backend": "lmstudio",
+        "endpoint": "http://127.0.0.1:18080",
+        "port": 18080,
+        "ownedByUs": false
+      },
+      "text": "Model        Backend   Endpoint                 Port  Status\ntest:latest  lmstudio  http://127.0.0.1:18080  18080  attached\n"
+    },
+    {
+      "input": {
+        "schemaVersion": 1,
+        "active": {
+          "modelId": "legacy:latest",
+          "endpoint": "http://127.0.0.1:11434",
+          "port": 11434,
+          "ownedByUs": false,
+          "pid": 0
+        }
+      },
+      "normalized": {
+        "schemaVersion": 2,
+        "active": {
+          "backend": "ollama",
+          "modelId": "legacy:latest",
+          "endpoint": "http://127.0.0.1:11434",
+          "port": 11434,
+          "ownedByUs": false
+        }
+      },
+      "ls": {
+        "type": "active",
+        "modelId": "legacy:latest",
+        "backend": "ollama",
+        "endpoint": "http://127.0.0.1:11434",
+        "port": 11434,
+        "ownedByUs": false
+      },
+      "text": "Model          Backend  Endpoint                 Port  Status\nlegacy:latest  ollama   http://127.0.0.1:11434  11434  attached\n"
+    },
+    {
+      "input": {
+        "schemaVersion": 2,
+        "active": {
+          "backend": "ollama",
+          "modelId": "gemma4:e4b-it-qat",
+          "runtimeModelId": "llmup-context-test:65536",
+          "context": 65536,
+          "endpoint": "http://127.0.0.1:11435",
+          "port": 11435,
+          "ownedByUs": false,
+          "pid": 123,
+          "processExecutable": "/fake/ollama",
+          "processStartedAt": "test-start",
+          "integrity": "local-manifest",
+          "localManifestDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "normalized": {
+        "schemaVersion": 2,
+        "active": {
+          "backend": "ollama",
+          "modelId": "gemma4:e4b-it-qat",
+          "runtimeModelId": "llmup-context-test:65536",
+          "context": 65536,
+          "integrity": "local-manifest",
+          "localManifestDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "endpoint": "http://127.0.0.1:11435",
+          "port": 11435,
+          "ownedByUs": false,
+          "pid": 123,
+          "processExecutable": "/fake/ollama",
+          "processStartedAt": "test-start"
+        }
+      },
+      "ls": {
+        "type": "active",
+        "modelId": "gemma4:e4b-it-qat",
+        "runtimeModelId": "llmup-context-test:65536",
+        "context": 65536,
+        "backend": "ollama",
+        "endpoint": "http://127.0.0.1:11435",
+        "port": 11435,
+        "ownedByUs": false
+      },
+      "text": "Model              Backend  Endpoint                 Port  Status\ngemma4:e4b-it-qat  ollama   http://127.0.0.1:11435  11435  attached\nRuntime model: llmup-context-test:65536\nContext: 65536 tokens\n"
+    }
+  ]
+}

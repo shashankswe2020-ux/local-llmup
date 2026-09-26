@@ -15,3 +15,21 @@ fn runs_enforce_one_active_turn_and_reject_late_completion() {
     drop(next);
     assert!(runs.begin("session", &CancellationToken::new()).is_ok());
 }
+#[test]
+fn settled_runs_cannot_be_cancelled_and_new_runs_get_fresh_ids() {
+    let runs = RunCoordinator::default();
+    let first = runs.begin("session", &CancellationToken::new()).unwrap();
+    assert_eq!(
+        runs.active_id("session").unwrap().as_deref(),
+        Some(first.id())
+    );
+    first.commit(|| Ok(())).unwrap();
+    assert!(runs.active_id("session").unwrap().is_none());
+    assert!(!runs.cancel("session", None).unwrap());
+    assert!(!runs.cancel("session", Some(first.id())).unwrap());
+    let second = runs.begin("session", &CancellationToken::new()).unwrap();
+    assert_ne!(second.id(), first.id());
+    assert!(runs.cancel("session", None).unwrap());
+    assert!(!runs.cancel("session", None).unwrap());
+    assert!(runs.begin("other", &CancellationToken::new()).is_ok());
+}

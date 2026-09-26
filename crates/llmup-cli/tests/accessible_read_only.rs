@@ -64,6 +64,34 @@ fn active_server_screen_preserves_numbered_legacy_evidence() {
 }
 
 #[test]
+fn doctor_projection_preserves_score_axes_and_escapes_evidence_once() {
+    let report = json!({
+        "ok": false,
+        "checks": [{"name":"state", "status":"fail", "detail":"bad\n\u{1b}[31mstate"}],
+        "backends": [{"name":"ollama", "installed":false, "version":null,
+            "isDefault":false, "installHint":"run\ninstaller"}],
+        "hardwareScore": {"total":73, "sub":{"vram":60,"ram":80,"compute":70,"storage":90}, "bottleneck":"vram"}
+    });
+    let text = llmup_cli::accessible_read_only::doctor_screen(&report).unwrap();
+    for evidence in [
+        "73/100",
+        "VRAM 60",
+        "RAM 80",
+        "Compute 70",
+        "Storage 90",
+        "bad\\n\\u{1B}[31mstate",
+        "run\\ninstaller",
+    ] {
+        assert!(text.contains(evidence), "missing {evidence}: {text}");
+    }
+    assert!(!text.contains('\u{1b}'));
+    assert_eq!(
+        text,
+        llmup_cli::accessible_read_only::doctor_screen(&report).unwrap()
+    );
+}
+
+#[test]
 fn invalid_or_unsafe_report_is_rejected_before_display() {
     for report in [
         json!({}),

@@ -22,6 +22,12 @@ use serde_json::{Value, json};
 use std::{path::PathBuf, time::Duration};
 use tokio_util::sync::CancellationToken;
 
+pub mod events;
+use events::{
+    LifecycleObserver, LifecycleScope, LifecycleStage, LifecycleWarning, ObservedAdapter,
+    download_progress, observe, warning,
+};
+
 pub struct LifecycleOptions {
     pub command: String,
     pub model: Option<String>,
@@ -46,22 +52,22 @@ impl LifecycleOptions {
             return Err(BackendError("invalid lifecycle options".into()));
         }
         if self.command == "down" || self.command == "doctor" {
-            if self.model.is_some()
+            if (self.command == "doctor" && self.model.is_some())
                 || self.backend.is_some()
                 || self.port.is_some()
                 || self.context.is_some()
                 || self.installed
                 || self.bypass
             {
-                return Err(BackendError(
-                    "down does not accept model or selection options".into(),
-                ));
+                return Err(BackendError(format!(
+                    "{} does not accept selection options",
+                    self.command
+                )));
             }
-        } else {
-            let query = self
-                .model
-                .as_deref()
-                .ok_or_else(|| BackendError("model is required".into()))?;
+        } else if self.model.is_none() {
+            return Err(BackendError("model is required".into()));
+        }
+        if let Some(query) = self.model.as_deref() {
             if query.trim().is_empty() || query.len() > 8192 || query.chars().any(char::is_control)
             {
                 return Err(BackendError("invalid model reference".into()));
@@ -111,6 +117,7 @@ struct ContextActivation<'runtime> {
     root: PathBuf,
     http: &'runtime NativeTransport,
     probe: &'runtime NativeProcessProbe,
+    observer: Option<&'runtime LifecycleObserver>,
 }
 #[async_trait::async_trait]
 impl Activation for ContextActivation<'_> {
@@ -148,20 +155,36 @@ impl Activation for ContextActivation<'_> {
         {
             return Err(BackendError("installed source changed; retry".into()));
         }
-        verify_manifest(
-            &self.root,
-            &model.id,
-            &model.digest,
-            self.expected_sha.as_deref(),
-            self.expected_bytes,
-            cancel,
+        observe(
+            self.observer,
+            LifecycleScope::Runtime,
+            LifecycleStage::Verification,
+            async {
+                verify_manifest(
+                    &self.root,
+                    &model.id,
+                    &model.digest,
+                    self.expected_sha.as_deref(),
+                    self.expected_bytes,
+                    cancel,
+                )
+                .await
+                .map_err(|error| BackendError(error.to_string()))
+            },
         )
-        .await
-        .map_err(|error| BackendError(error.to_string()))?;
-        let runtime = support
-            .activate(&handle.endpoint, &model, self.context, cancel)
-            .await
-            .map_err(|error| BackendError(error.to_string()))?;
+        .await?;
+        let runtime = observe(
+            self.observer,
+            LifecycleScope::Runtime,
+            LifecycleStage::Activation,
+            async {
+                support
+                    .activate(&handle.endpoint, &model, self.context, cancel)
+                    .await
+                    .map_err(|error| BackendError(error.to_string()))
+            },
+        )
+        .await?;
         let final_model = support
             .inspect(&handle.endpoint, &self.source, cancel)
             .await
@@ -189,6 +212,194 @@ fn compatible(model: &CatalogModel, backend: &str) -> bool {
         "lmstudio" => model.source.gguf.is_some() || model.source.mlx.is_some(),
         _ => false,
     }
+}
+fn backend_known(backend: &str) -> bool {
+    llmup_core::catalog::BACKENDS.contains(&backend)
+}
+/// Index into the resolved runtime binaries: ollama, llama-server, python3, lms.
+fn backend_index(backend: &str) -> usize {
+    match backend {
+        "llamacpp" => 1,
+        "mlx" => 2,
+        "lmstudio" => 3,
+        _ => 0,
+    }
+}
+/// Attach-intent commands follow the active backend; a conflicting override must fail, not be ignored.
+pub fn check_attach_override(
+    command: &str,
+    active: &str,
+    flag: Option<&str>,
+    env: Option<&str>,
+) -> Result<(), BackendError> {
+    if let Some(backend) = flag
+        && backend != active
+    {
+        return Err(BackendError(format!(
+            "{command} cannot change the active backend from {active} to {backend}; use up --backend {backend}"
+        )));
+    }
+    if let Some(backend) = env.map(str::trim).filter(|value| !value.is_empty())
+        && backend != active
+    {
+        return Err(BackendError(format!(
+            "LOCAL_LLMUP_BACKEND={} conflicts with the active {active} server; unset it or use up",
+            strip_control(backend)
+        )));
+    }
+    Ok(())
+}
+/// Flag, then non-blank `LOCAL_LLMUP_BACKEND`, then the user config default.
+pub fn preferred_backend(
+    flag: Option<&str>,
+    env: Option<&str>,
+    user: Option<&str>,
+) -> Option<String> {
+    flag.or(env.filter(|value| !value.trim().is_empty()))
+        .or(user)
+        .map(str::to_owned)
+}
+/// Backends compatible with the model, in auto-selection order; MLX leads only on Apple Silicon.
+/// Attach-only LM Studio is never auto-selected (spec Q1).
+pub fn auto_backend_order(model: &CatalogModel, hardware: &Hardware) -> Vec<&'static str> {
+    let apple = hardware.platform == llmup_core::sizing::Platform::Darwin
+        && hardware.arch == llmup_core::sizing::CpuArch::Arm64;
+    let order: &[&str] = if apple {
+        &["mlx", "ollama", "llamacpp"]
+    } else {
+        &["ollama", "llamacpp"]
+    };
+    order
+        .iter()
+        .copied()
+        .filter(|name| compatible(model, name))
+        .collect()
+}
+pub fn check_backend(
+    model: &CatalogModel,
+    backend: &str,
+    hardware: &Hardware,
+    installed: bool,
+) -> Result<(), BackendError> {
+    if !llmup_core::catalog::BACKENDS.contains(&backend) {
+        return Err(BackendError("invalid backend selection".into()));
+    }
+    validate_backend_platform(backend, hardware.platform.clone(), hardware.arch.clone())?;
+    if backend == "lmstudio" && model.source.gguf.is_none() && model.source.mlx.is_some() {
+        validate_backend_platform("mlx", hardware.platform.clone(), hardware.arch.clone())?;
+    }
+    if !installed || !compatible(model, backend) {
+        return Err(BackendError(
+            "backend is unavailable or model source is unsupported".into(),
+        ));
+    }
+    Ok(())
+}
+#[derive(Debug, Clone, Copy)]
+pub struct PlanOptions {
+    pub simple_switch: bool,
+    pub bypass: bool,
+    pub context: Option<u32>,
+}
+#[derive(Debug)]
+pub struct QuantPlan {
+    pub quant: llmup_core::sizing::Quantization,
+    pub estimated_fit: bool,
+}
+/// Picks the quantization to pull and enforces fit, bypass and disk preflight before any side effect.
+pub fn plan_quantization(
+    model: &CatalogModel,
+    explicit: Option<&llmup_core::sizing::Quantization>,
+    backend: &str,
+    hardware: &Hardware,
+    options: PlanOptions,
+) -> Result<QuantPlan, BackendError> {
+    if options.simple_switch && backend != "ollama" {
+        return Err(BackendError(
+            "single-model and delegated runtimes require up to replace models".into(),
+        ));
+    }
+    if options.context.is_some() && backend != "ollama" {
+        return Err(BackendError(
+            "explicit runtime context currently requires Ollama".into(),
+        ));
+    }
+    let mut sizing = model.sizing();
+    if let Some(quant) = explicit {
+        sizing.quantizations = vec![quant.clone()];
+    }
+    let fit = evaluate(&SizingRequest {
+        model: sizing,
+        hardware: hardware.clone(),
+        context: options.context.map(f64::from),
+    })
+    .map_err(|error| BackendError(error.to_string()))?;
+    if !options.simple_switch
+        && explicit.is_none()
+        && backend != "lmstudio"
+        && fit.fit.reason == Some("disk-bound")
+    {
+        return Err(BackendError("insufficient disk space".into()));
+    }
+    let quant = if options.simple_switch {
+        explicit.or_else(|| model.quantizations.first()).cloned()
+    } else {
+        explicit.cloned().or(fit.fit.quant.clone()).or_else(|| {
+            if options.bypass {
+                model
+                    .quantizations
+                    .iter()
+                    .min_by(|left, right| left.disk_bytes.total_cmp(&right.disk_bytes))
+                    .cloned()
+            } else {
+                None
+            }
+        })
+    }
+    .ok_or_else(|| {
+        BackendError("model does not fit; use --bypass to override estimated fit".into())
+    })?;
+    if !options.simple_switch
+        && backend != "lmstudio"
+        && quant.disk_bytes > hardware.free_disk_bytes
+    {
+        return Err(BackendError("insufficient disk space".into()));
+    }
+    if !options.simple_switch
+        && !fit.fit.fits
+        && !options.bypass
+        && (options.context.is_some() || explicit.is_none())
+    {
+        return Err(BackendError(
+            "model does not fit requested context; use --bypass".into(),
+        ));
+    }
+    Ok(QuantPlan {
+        quant,
+        estimated_fit: !options.simple_switch && !fit.fit.fits,
+    })
+}
+fn catalog_pull_request(
+    model: &CatalogModel,
+    quant: &llmup_core::sizing::Quantization,
+    backend: &str,
+) -> Result<PullRequest, BackendError> {
+    Ok(PullRequest {
+        backend: backend.into(),
+        model_id: if backend == "ollama" {
+            model
+                .source
+                .ollama
+                .clone()
+                .ok_or_else(|| BackendError("missing Ollama source".into()))?
+        } else {
+            model.id.clone()
+        },
+        expected_bytes: quant.disk_bytes as u64,
+        expected_sha256: quant.sha256.clone(),
+        gguf: model.source.gguf.clone(),
+        mlx: model.source.mlx.clone(),
+    })
 }
 pub fn validate_backend_platform(
     backend: &str,
@@ -241,8 +452,17 @@ pub async fn run_native(
     hardware: Option<&Hardware>,
     cancel: &CancellationToken,
 ) -> Result<(Value, String), BackendError> {
+    run_native_observed(options, catalog, hardware, cancel, None).await
+}
+pub async fn run_native_observed(
+    options: &LifecycleOptions,
+    catalog: &Catalog,
+    hardware: Option<&Hardware>,
+    cancel: &CancellationToken,
+    observer: Option<&LifecycleObserver>,
+) -> Result<(Value, String), BackendError> {
     let config = Config::load().map_err(|error| BackendError(error.to_string()))?;
-    run_native_with_config(options, catalog, hardware, cancel, config).await
+    run_native_with_config_observed(options, catalog, hardware, cancel, config, observer).await
 }
 pub async fn run_native_with_config(
     options: &LifecycleOptions,
@@ -251,16 +471,52 @@ pub async fn run_native_with_config(
     cancel: &CancellationToken,
     config: Config,
 ) -> Result<(Value, String), BackendError> {
+    run_native_with_config_observed(options, catalog, hardware, cancel, config, None).await
+}
+pub async fn run_native_with_config_observed(
+    options: &LifecycleOptions,
+    catalog: &Catalog,
+    hardware: Option<&Hardware>,
+    cancel: &CancellationToken,
+    config: Config,
+    observer: Option<&LifecycleObserver>,
+) -> Result<(Value, String), BackendError> {
     options.validate()?;
+    let observer = observer.filter(|_| options.command != "doctor");
     let store = StateStore::new(config.clone());
     let prior = store
         .read()
         .map_err(|error| BackendError(error.to_string()))?;
-    if options.command == "down" && prior.active.is_none() {
-        return Ok((
-            json!({"type":"no-active"}),
-            "No active server to stop.\n".into(),
-        ));
+    if options.command == "switch" {
+        let active = prior
+            .active
+            .as_ref()
+            .ok_or_else(|| BackendError("no active server to switch; run up first".into()))?;
+        check_attach_override(
+            "switch",
+            &active.backend,
+            options.backend.as_deref(),
+            std::env::var("LOCAL_LLMUP_BACKEND").ok().as_deref(),
+        )?;
+        if options.context.is_none()
+            && !options.bypass
+            && let Some(port) = options.port
+            && port != active.port
+        {
+            return Err(BackendError(format!(
+                "switch without --context or --bypass cannot change the active port; use up --port {port}"
+            )));
+        }
+    }
+    if options.command == "down"
+        && let Some(active) = &prior.active
+    {
+        check_attach_override(
+            "down",
+            &active.backend,
+            None,
+            std::env::var("LOCAL_LLMUP_BACKEND").ok().as_deref(),
+        )?;
     }
     let home = std::env::var_os("HOME")
         .or_else(|| std::env::var_os("USERPROFILE"))
@@ -298,6 +554,12 @@ pub async fn run_native_with_config(
         commands: &commands,
         token: std::env::var("LM_API_TOKEN").ok(),
     };
+    let acquisition_daemon =
+        ObservedAdapter::new(&ollama, observer, LifecycleScope::AcquisitionDaemon);
+    let ollama = ObservedAdapter::new(&ollama, observer, LifecycleScope::Runtime);
+    let llama = ObservedAdapter::new(&llama, observer, LifecycleScope::Runtime);
+    let mlx = ObservedAdapter::new(&mlx, observer, LifecycleScope::Runtime);
+    let studio = ObservedAdapter::new(&studio, observer, LifecycleScope::Runtime);
     let registry = Registry::new(vec![&ollama, &llama, &mlx, &studio]);
     let lifecycle = Lifecycle {
         store: &store,
@@ -362,8 +624,25 @@ pub async fn run_native_with_config(
         ));
     }
     if options.command == "down" {
-        let stopped = lifecycle.down(cancel).await?;
-        let active = stopped.ok_or_else(|| BackendError("active state disappeared".into()))?;
+        let stopped = lifecycle
+            .down_with_target(cancel, || {
+                options
+                    .model
+                    .as_deref()
+                    .map(|query| {
+                        resolve(catalog, query)
+                            .map(|resolved| resolved.model.id.clone())
+                            .map_err(|error| BackendError(error.message))
+                    })
+                    .transpose()
+            })
+            .await?;
+        let Some(active) = stopped else {
+            return Ok((
+                json!({"type":"no-active"}),
+                "No active server to stop.\n".into(),
+            ));
+        };
         return Ok((
             json!({"type":if active.owned_by_us{"stopped"}else{"detached"},"modelId":active.model_id,"endpoint":active.endpoint}),
             if active.owned_by_us {
@@ -385,17 +664,10 @@ pub async fn run_native_with_config(
         .model
         .as_deref()
         .ok_or_else(|| BackendError("model required".into()))?;
-    if options.command == "switch" && prior.active.is_none() {
-        return Err(BackendError(
-            "no active server to switch; run up first".into(),
-        ));
-    }
     let installed_fallback = options.bypass
         && resolve(catalog, query).is_err_and(|error| error.code == "MODEL_RESOLUTION_ERROR");
     if options.installed || installed_fallback {
-        eprintln!(
-            "up: bypassing estimated fit; local content integrity is not catalog verification; throughput may be unknown"
-        );
+        warning(observer, LifecycleWarning::InstalledBypass);
         if options
             .backend
             .as_ref()
@@ -460,6 +732,7 @@ pub async fn run_native_with_config(
             root: ollama_root,
             http: &http,
             probe: &probe,
+            observer,
         };
         let request = ServeRequest {
             model_id: model.id,
@@ -494,17 +767,15 @@ pub async fn run_native_with_config(
     let hardware =
         hardware.ok_or_else(|| BackendError("hardware required for model selection".into()))?;
     let simple_switch = options.command == "switch" && options.context.is_none() && !options.bypass;
-    let configured = options
-        .backend
-        .clone()
-        .or_else(|| {
-            std::env::var("LOCAL_LLMUP_BACKEND")
-                .ok()
-                .filter(|value| !value.trim().is_empty())
-        })
-        .or(config
-            .user_backend()
-            .map_err(|error| BackendError(error.to_string()))?);
+    let env_backend = std::env::var("LOCAL_LLMUP_BACKEND").ok();
+    let user_backend = config
+        .user_backend()
+        .map_err(|error| BackendError(error.to_string()))?;
+    let configured = preferred_backend(
+        options.backend.as_deref(),
+        env_backend.as_deref(),
+        user_backend.as_deref(),
+    );
     let backend = if options.command == "switch" {
         prior
             .active
@@ -515,16 +786,10 @@ pub async fn run_native_with_config(
     } else if let Some(backend) = configured {
         backend
     } else {
-        let priority = if hardware.platform == llmup_core::sizing::Platform::Darwin
-            && hardware.arch == llmup_core::sizing::CpuArch::Arm64
-        {
-            vec![("mlx", 2), ("ollama", 0), ("llamacpp", 1), ("lmstudio", 3)]
-        } else {
-            vec![("ollama", 0), ("llamacpp", 1), ("lmstudio", 3)]
-        };
         let mut selected = None;
-        for (name, index) in priority {
-            if compatible(model, name) && paths[index].is_some() {
+        for name in auto_backend_order(model, hardware) {
+            let index = backend_index(name);
+            if paths[index].is_some() {
                 let args = if name == "mlx" {
                     vec![
                         "-I".into(),
@@ -547,105 +812,36 @@ pub async fn run_native_with_config(
         }
         selected.ok_or_else(|| BackendError("no installed backend supports this model".into()))?
     };
-    let index = match backend.as_str() {
-        "ollama" => 0,
-        "llamacpp" => 1,
-        "mlx" => 2,
-        "lmstudio" => 3,
-        _ => return Err(BackendError("invalid backend selection".into())),
-    };
-    validate_backend_platform(&backend, hardware.platform.clone(), hardware.arch.clone())?;
-    if backend == "lmstudio" && model.source.gguf.is_none() && model.source.mlx.is_some() {
-        validate_backend_platform("mlx", hardware.platform.clone(), hardware.arch.clone())?;
-    }
-    if paths[index].is_none() || !compatible(model, &backend) {
-        return Err(BackendError(
-            "backend is unavailable or model source is unsupported".into(),
-        ));
-    }
-    if simple_switch && backend != "ollama" {
-        return Err(BackendError(
-            "single-model and delegated runtimes require up to replace models".into(),
-        ));
-    }
-    if options.context.is_some() && backend != "ollama" {
-        return Err(BackendError(
-            "explicit runtime context currently requires Ollama".into(),
-        ));
-    }
-    let mut sizing = model.sizing();
-    if let Some(quant) = resolved.quant {
-        sizing.quantizations = vec![quant.clone()];
-    }
-    let fit = evaluate(&SizingRequest {
-        model: sizing,
-        hardware: hardware.clone(),
-        context: options.context.map(f64::from),
-    })
-    .map_err(|error| BackendError(error.to_string()))?;
-    let quant = if simple_switch {
-        resolved
-            .quant
-            .or_else(|| model.quantizations.first())
-            .cloned()
-    } else {
-        resolved
-            .quant
-            .cloned()
-            .or(fit.fit.quant.clone())
-            .or_else(|| {
-                if options.bypass {
-                    model
-                        .quantizations
-                        .iter()
-                        .min_by(|left, right| left.disk_bytes.total_cmp(&right.disk_bytes))
-                        .cloned()
-                } else {
-                    None
-                }
-            })
-    }
-    .ok_or_else(|| {
-        BackendError("model does not fit; use --bypass to override estimated fit".into())
-    })?;
-    if !simple_switch && backend != "lmstudio" && quant.disk_bytes > hardware.free_disk_bytes {
-        return Err(BackendError("insufficient disk space".into()));
-    }
-    if !simple_switch
-        && !fit.fit.fits
-        && !options.bypass
-        && (options.context.is_some() || resolved.quant.is_none())
-    {
-        return Err(BackendError(
-            "model does not fit requested context; use --bypass".into(),
-        ));
-    }
-    let reviewed = lifecycle.review(&model.id, cancel).await?;
-    let pull_request = PullRequest {
-        backend: backend.clone(),
-        model_id: if backend == "ollama" {
-            model
-                .source
-                .ollama
-                .clone()
-                .ok_or_else(|| BackendError("missing Ollama source".into()))?
-        } else {
-            model.id.clone()
+    check_backend(
+        model,
+        &backend,
+        hardware,
+        backend_known(&backend) && paths[backend_index(&backend)].is_some(),
+    )?;
+    let index = backend_index(&backend);
+    let plan = plan_quantization(
+        model,
+        resolved.quant,
+        &backend,
+        hardware,
+        PlanOptions {
+            simple_switch,
+            bypass: options.bypass,
+            context: options.context,
         },
-        expected_bytes: quant.disk_bytes as u64,
-        expected_sha256: quant.sha256.clone(),
-        gguf: model.source.gguf.clone(),
-        mlx: model.source.mlx.clone(),
-    };
-    if !simple_switch && !fit.fit.fits {
-        eprintln!(
-            "up: requested quantization may not fit this hardware; continuing because it was explicitly requested"
-        );
+    )?;
+    let quant = plan.quant;
+    let reviewed = lifecycle.review(&model.id, cancel).await?;
+    let pull_request = catalog_pull_request(model, &quant, &backend)?;
+    if plan.estimated_fit {
+        warning(observer, LifecycleWarning::EstimatedFit);
     }
-    let acquisition =
-        Acquisition::new(config.home.join("cache"))?.with_progress(|completed, total, file| {
-            eprintln!("  {}: {completed}/{total} bytes", strip_control(file))
-        });
+    let diagnostics = observer.and_then(|observer| observer.diagnostics.clone());
+    let acquisition = Acquisition::new(config.home.join("cache"))?.with_progress(
+        move |completed, total, file| {
+            download_progress(diagnostics.as_ref(), completed, total, file)
+        },
+    );
     let download = HfTransport::new()?;
     let studio_root = home.join(".lmstudio/models");
     let pulls = PullService {
@@ -671,14 +867,14 @@ pub async fn run_native_with_config(
         });
     let endpoint = format!("http://127.0.0.1:{port}");
     let pull_binary = binary(index);
-    let pull = pulls.pull_at(&pull_request, &pull_binary, &endpoint, cancel);
+    let pull = pulls.pull_at_observed(&pull_request, &pull_binary, &endpoint, cancel, observer);
     let prepared = if backend == "ollama" {
-        crate::pull::with_ollama_daemon(&ollama, &endpoint, cancel, pull).await?
+        crate::pull::with_ollama_daemon(&acquisition_daemon, &endpoint, cancel, pull).await?
     } else {
         pull.await?
     };
     if !prepared.digest_verified {
-        eprintln!("up: weights passed a size-floor check; no catalog SHA-256 was available");
+        warning(observer, LifecycleWarning::SizeOnly);
     }
     if simple_switch {
         let active = lifecycle
@@ -706,6 +902,7 @@ pub async fn run_native_with_config(
             root: ollama_root,
             http: &http,
             probe: &probe,
+            observer,
         };
         lifecycle
             .replace_with(&backend, &request, &reviewed, cancel, &activation)
@@ -844,4 +1041,67 @@ pub async fn installed_inventory(
         ),
         exit,
     ))
+}
+
+#[cfg(test)]
+mod acquisition_contract_tests {
+    use super::*;
+
+    #[test]
+    fn catalog_pull_preserves_quant_digest_size_and_runtime_model_id() {
+        let mut catalog = Catalog::parse(llmup_core::MODELS_JSON).unwrap();
+        let model = catalog
+            .models
+            .iter_mut()
+            .find(|model| model.source.ollama.is_some())
+            .unwrap();
+        model.quantizations[0].sha256 = Some("b".repeat(64));
+        model.quantizations[0].disk_bytes = 5_000_000_000.0;
+        let id = model.id.clone();
+        let quant_query = format!("{id}-{}", model.quantizations[0].name);
+        for query in [&id, &quant_query] {
+            let resolved = resolve(&catalog, query).unwrap();
+            let quant = resolved.quant.unwrap_or(&resolved.model.quantizations[0]);
+            let request = catalog_pull_request(resolved.model, quant, "ollama").unwrap();
+            assert_eq!(request.expected_sha256, Some("b".repeat(64)));
+            assert_eq!(request.expected_bytes, 5_000_000_000);
+            assert_eq!(Some(request.model_id), resolved.model.source.ollama);
+        }
+        let model = &mut catalog.models[0];
+        model.source.ollama = None;
+        assert!(catalog_pull_request(model, &model.quantizations[0], "ollama").is_err());
+    }
+
+    #[test]
+    fn success_lines_strip_controls_and_report_integrity_and_ownership() {
+        let active = ServerState {
+            backend: "ollama".into(),
+            model_id: "evil\u{1b}[31m\nid".into(),
+            endpoint: "http://127.0.0.1:11434".into(),
+            port: 11434,
+            owned_by_us: true,
+            pid: Some(7),
+            runtime_model_id: Some("variant\u{7}".into()),
+            context: Some(65_536),
+            integrity: None,
+            local_manifest_digest: None,
+            model_path: None,
+            process_executable: None,
+            process_started_at: None,
+            auth_token: None,
+        };
+        let (report, text) = up_output(&active, "size-only");
+        assert_eq!(
+            (report["ownership"].as_str(), report["integrity"].as_str()),
+            (Some("owned"), Some("size-only"))
+        );
+        assert!(
+            !text
+                .chars()
+                .any(|character| character.is_control() && character != '\n'),
+            "{text:?}"
+        );
+        assert_eq!(text.lines().count(), 2, "{text:?}");
+        assert!(text.ends_with("(context 65536)\n"));
+    }
 }

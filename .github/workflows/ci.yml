@@ -9,58 +9,46 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
-    name: Test, Lint, Coverage & Build
-    runs-on: ubuntu-latest
-
+    name: Retirement, Format, Lint, Test, Package & Build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
     steps:
-      - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - name: Fetch exact revision without an action runtime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\r\n')
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL}/.extraheader"
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $AUTH"
+          git fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          unset AUTH GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GH_TOKEN
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
-      - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
-        with:
-          node-version: 22.x
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Type check
-        run: npm run typecheck
-
+      - name: Verify pinned toolchain
+        run: rustup show active-toolchain
+      - name: Require complete retirement
+        run: cargo native-retirement
+      - name: Format
+        run: cargo fmt --all -- --check
       - name: Lint
-        run: npm run lint
-
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Test
+        run: cargo test --workspace --locked -- --test-threads=2
+      - name: Package publishable crates
+        run: cargo package --workspace --locked --allow-dirty --no-verify
       - name: Build
-        run: npm run build
-
-      - name: Coverage gate
-        run: npm run test:cov
-
-  e2e:
-    name: End-to-End (real browser)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
-
-      - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
-        with:
-          node-version: 22.x
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
-
-      - name: Build
-        run: npm run build
-
-      - name: End-to-end tests
-        run: npm run test:e2e
+        run: cargo build --workspace --locked

@@ -3,10 +3,10 @@ use std::{fs, process::Command};
 #[test]
 fn native_report_producers_feed_native_workflow_decisions_without_node() {
     let root = tempfile::tempdir().unwrap();
-    fs::create_dir(root.path().join("data")).unwrap();
+    fs::create_dir_all(root.path().join("crates/llmup-core/data")).unwrap();
     fs::write(
-        root.path().join("data/models.json"),
-        include_str!("../../../data/models.json"),
+        root.path().join("crates/llmup-core/data/models.json"),
+        include_str!("../../llmup-core/data/models.json"),
     )
     .unwrap();
     fs::write(
@@ -56,8 +56,8 @@ fn native_report_producers_feed_native_workflow_decisions_without_node() {
         assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
     }
     assert_eq!(
-        fs::read_to_string(root.path().join("data/models.json")).unwrap(),
-        include_str!("../../../data/models.json")
+        fs::read_to_string(root.path().join("crates/llmup-core/data/models.json")).unwrap(),
+        include_str!("../../llmup-core/data/models.json")
     );
 }
 

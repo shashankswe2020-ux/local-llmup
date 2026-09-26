@@ -216,7 +216,8 @@ pub async fn handle(host: Arc<Host>, request: Request) -> ApiResult {
             let mut disclosures=host.disclosures.lock().await.clone();
             let service=ChatService{sessions:&host.sessions,library:&host.library,workspace:&workspace,disclosures:&mut disclosures};
             let harness=SelectedEngine{name:provider,engine:host.engine.as_ref()};
-            let mut sink=|text:&str| sender.try_send(event(json!({"type":"delta","content":llmup_runtime::sessions::gui_text(text)}))).map_err(|_|HarnessError::Cancelled);
+            let mut text=llmup_runtime::sessions::GuiTextStream::default();
+            let mut sink=|delta:&str| {let content=text.push(delta); if content.is_empty(){return Ok(());} sender.try_send(event(json!({"type":"delta","content":content}))).map_err(|_|HarnessError::Cancelled)};
             let result=if provider=="local" && !host.connectors.lock().await.tools().is_empty() {
                 let expected=llmup_runtime::state::Config::from_home(&host.home).and_then(|config|llmup_runtime::state::StateStore::new(config).read());
                 match expected {

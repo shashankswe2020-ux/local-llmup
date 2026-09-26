@@ -30,22 +30,26 @@ pub fn stdin_answers() -> mpsc::Receiver<io::Result<String>> {
     let (sender, receiver) = mpsc::channel(1);
     std::thread::spawn(move || {
         let mut input = io::stdin().lock();
-        loop {
-            match read_answer(&mut input) {
-                Ok(Some(line)) => {
-                    if sender.blocking_send(Ok(line)).is_err() {
-                        break;
-                    }
-                }
-                Ok(None) => break,
-                Err(error) => {
-                    let _ = sender.blocking_send(Err(error));
+        forward_answers(&mut input, sender);
+    });
+    receiver
+}
+
+fn forward_answers(input: &mut impl BufRead, sender: mpsc::Sender<io::Result<String>>) {
+    loop {
+        match read_answer(input) {
+            Ok(Some(line)) => {
+                if sender.blocking_send(Ok(line)).is_err() {
                     break;
                 }
             }
+            Ok(None) => break,
+            Err(error) => {
+                let _ = sender.blocking_send(Err(error));
+                break;
+            }
         }
-    });
-    receiver
+    }
 }
 
 pub(crate) async fn answer(
@@ -76,17 +80,15 @@ fn safe_label(label: &str) -> io::Result<String> {
     Ok(strip_control(label))
 }
 
-pub async fn pick_model(
-    title: &str,
-    choices: &[String],
-    input: &mut mpsc::Receiver<io::Result<String>>,
-    output: &mut impl Write,
-    cancel: &CancellationToken,
-) -> io::Result<Option<usize>> {
+pub(crate) fn validate_picker_choices(choices: &[String], label_bytes: usize) -> io::Result<()> {
+    let mut unique = std::collections::BTreeSet::new();
     if choices.is_empty()
-        || choices.len() > 10000
+        || choices.len() > 1000
         || choices.iter().any(|choice| {
-            choice.is_empty() || choice.len() > 256 || choice.chars().any(char::is_control)
+            choice.trim().is_empty()
+                || choice.len() > label_bytes
+                || choice.chars().any(char::is_control)
+                || !unique.insert(choice)
         })
     {
         return Err(io::Error::new(
@@ -94,6 +96,17 @@ pub async fn pick_model(
             "invalid model choices",
         ));
     }
+    Ok(())
+}
+
+pub async fn pick_model(
+    title: &str,
+    choices: &[String],
+    input: &mut mpsc::Receiver<io::Result<String>>,
+    output: &mut impl Write,
+    cancel: &CancellationToken,
+) -> io::Result<Option<usize>> {
+    validate_picker_choices(choices, 256)?;
     writeln!(output, "{}", safe_label(title)?)?;
     for (index, choice) in choices.iter().take(20).enumerate() {
         writeln!(output, "{}. {}", index + 1, safe_label(choice)?)?;
@@ -167,4 +180,57 @@ pub async fn confirm(
     Ok(answer(input, cancel)
         .await?
         .is_some_and(|line| line.trim() == "2"))
+}
+
+#[cfg(test)]
+mod reader_tests {
+    use super::*;
+    use std::{io::Cursor, time::Duration};
+
+    #[test]
+    fn forwarding_stops_after_oversize_without_delivering_a_truncated_command() {
+        let (sender, mut receiver) = mpsc::channel(1);
+        let worker = std::thread::spawn(move || {
+            let mut input = Cursor::new(format!("{}\n2\n", "x".repeat(1_000_000)));
+            forward_answers(&mut input, sender);
+            input.position()
+        });
+        assert_eq!(
+            receiver.blocking_recv().unwrap().unwrap_err().kind(),
+            io::ErrorKind::InvalidInput
+        );
+        assert!(receiver.blocking_recv().is_none());
+        assert_eq!(worker.join().unwrap(), 259);
+    }
+
+    #[test]
+    fn forwarding_preserves_lines_applies_backpressure_and_stops_on_receiver_close() {
+        let (sender, mut receiver) = mpsc::channel(1);
+        let (finished, completion) = std::sync::mpsc::channel();
+        let worker = std::thread::spawn(move || {
+            let mut input = Cursor::new("line\r\n".repeat(1000));
+            forward_answers(&mut input, sender);
+            finished.send(input.position()).unwrap();
+        });
+        for _ in 0..200 {
+            assert_eq!(receiver.blocking_recv().unwrap().unwrap(), "line");
+        }
+        assert!(matches!(
+            completion.try_recv(),
+            Err(std::sync::mpsc::TryRecvError::Empty)
+        ));
+        drop(receiver);
+        let consumed = completion.recv_timeout(Duration::from_secs(2)).unwrap();
+        assert!(
+            consumed <= 202 * 6,
+            "read beyond queued and in-flight lines: {consumed}"
+        );
+        worker.join().unwrap();
+
+        let (sender, mut receiver) = mpsc::channel(2);
+        forward_answers(&mut Cursor::new("one\r\ntwo\n"), sender);
+        assert_eq!(receiver.blocking_recv().unwrap().unwrap(), "one");
+        assert_eq!(receiver.blocking_recv().unwrap().unwrap(), "two");
+        assert!(receiver.blocking_recv().is_none());
+    }
 }

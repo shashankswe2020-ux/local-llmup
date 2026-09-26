@@ -8,10 +8,9 @@ use llmup_runtime::{
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
-use std::{
-    io::{Read, Write},
-    path::PathBuf,
-};
+#[cfg(not(test))]
+use std::io::{Read, Write};
+use std::path::PathBuf;
 use tokio_util::sync::CancellationToken;
 
 #[derive(Deserialize)]
@@ -72,16 +71,24 @@ enum Request {
         query: String,
     },
 }
+#[cfg(not(test))]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut raw = String::new();
     std::io::stdin()
         .take(8 * 1024 * 1024 + 1)
         .read_to_string(&mut raw)?;
+    let results = evaluate(&raw).await?;
+    serde_json::to_writer(std::io::stdout().lock(), &results)?;
+    std::io::stdout().write_all(b"\n")?;
+    Ok(())
+}
+
+pub async fn evaluate(raw: &str) -> Result<Value, Box<dyn std::error::Error>> {
     if raw.len() > 8 * 1024 * 1024 {
         return Err("bridge input limit".into());
     }
-    let requests: Vec<Request> = serde_json::from_str(&raw)?;
+    let requests: Vec<Request> = serde_json::from_str(raw)?;
     if requests.len() > 4096 {
         return Err("bridge request limit".into());
     }
@@ -128,7 +135,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         });
     }
-    serde_json::to_writer(std::io::stdout().lock(), &Value::Array(results))?;
-    std::io::stdout().write_all(b"\n")?;
-    Ok(())
+    Ok(Value::Array(results))
 }

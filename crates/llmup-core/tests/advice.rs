@@ -9,8 +9,8 @@ use serde_json::json;
 fn scores_hardware_and_preserves_unknown_backend_evidence() {
     let hardware: Hardware = serde_json::from_value(json!({"arch":"x64","platform":"linux","totalRamBytes":68719476736_u64,"freeRamBytes":60000000000_u64,"freeDiskBytes":214748364800_u64,"gpu":[{"vendor":"nvidia","vramBytes":25769803776_u64}]})).unwrap();
     assert_eq!(hardware_score(&hardware)["total"], 100);
-    let catalog = Catalog::parse(include_str!("../../../data/models.json")).unwrap();
-    let perf = PerfDataset::parse(include_str!("../../../data/perf.json")).unwrap();
+    let catalog = Catalog::parse(include_str!("../../llmup-core/data/models.json")).unwrap();
+    let perf = PerfDataset::parse(include_str!("../../llmup-core/data/perf.json")).unwrap();
     let model = catalog
         .models
         .iter()

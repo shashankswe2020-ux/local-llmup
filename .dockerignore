@@ -3,6 +3,9 @@
 .vscode
 node_modules
 dist
+target
+**/target
+src
 coverage
 apps
 assets

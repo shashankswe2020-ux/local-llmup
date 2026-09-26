@@ -1,21 +1,37 @@
 const BROWSER_SCRIPTS: &[&str] = &[
-    "src/gui/static/calculator-runtime.js",
-    "src/gui/static/calculator-template.js",
-    "src/gui/static/chat.js",
-    "src/gui/static/markdown.js",
-    "src/gui/static/run-reducer.js",
-    "src/gui/static/sse.js",
-    "src/gui/static/telemetry.js",
+    "crates/llmup-gui/static/calculator-runtime.js",
+    "crates/llmup-gui/static/calculator-template.js",
+    "crates/llmup-gui/static/chat.js",
+    "crates/llmup-gui/static/markdown.js",
+    "crates/llmup-gui/static/run-reducer.js",
+    "crates/llmup-gui/static/sse.js",
+    "crates/llmup-gui/static/telemetry.js",
     "site/main.js",
     "apps/desktop/src-tauri/src/dialog-smoke.js",
-    "vendor/gui/dompurify.min.js",
-    "vendor/gui/marked.min.js",
+    "crates/llmup-gui/vendor/dompurify.min.js",
+    "crates/llmup-gui/vendor/marked.min.js",
 ];
+
+// Minified vendors use `node:` as an object key, so only module-loading forms count.
+fn imports_node_api(text: &str) -> bool {
+    let compact: String = text
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect();
+    ["from", "require(", "import("].iter().any(|loader| {
+        ["\"node:", "'node:", "`node:"]
+            .iter()
+            .any(|quote| compact.contains(&format!("{loader}{quote}")))
+    })
+}
 
 pub fn check_file(path: &str, text: &str) -> Vec<&'static str> {
     let name = path.rsplit('/').next().unwrap_or(path);
     let extension = name.rsplit('.').next().unwrap_or("");
     let mut failures = Vec::new();
+    if path.starts_with("src/") {
+        failures.push("root src directory must be empty after native migration");
+    }
     let browser = BROWSER_SCRIPTS.contains(&path);
     if ["ts", "tsx", "jsx", "mjs", "cjs"].contains(&extension) || (extension == "js" && !browser) {
         failures.push("Node/TypeScript source or unreviewed JavaScript remains");
@@ -41,7 +57,7 @@ pub fn check_file(path: &str, text: &str) -> Vec<&'static str> {
         failures.push("Node package or toolchain configuration remains");
     }
     if browser
-        && (text.contains("node:")
+        && (imports_node_api(text)
             || text
                 .lines()
                 .next()
@@ -55,6 +71,24 @@ pub fn check_file(path: &str, text: &str) -> Vec<&'static str> {
         || path == "apps/desktop/src-tauri/tauri.conf.json";
     if executable_config {
         let lower = text.to_ascii_lowercase();
+        if path.starts_with(".github/workflows/")
+            && [
+                "actions/checkout@",
+                "actions/configure-pages@",
+                "actions/upload-pages-artifact@",
+                "actions/deploy-pages@",
+                "actions/add-to-project@",
+                "actions/upload-artifact@",
+                "actions/download-artifact@",
+                "actions/cache@",
+                "actions/github-script@",
+                "softprops/action-gh-release@",
+            ]
+            .iter()
+            .any(|action| lower.contains(action))
+        {
+            failures.push("workflow still references a Node-backed action");
+        }
         let has_command = lower
             .split(|character: char| {
                 !character.is_ascii_alphanumeric() && character != '-' && character != '_'

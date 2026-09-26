@@ -62,6 +62,44 @@ fn config_reads_are_strict_bounded_and_allow_absent_or_blank_preferences() {
         std::fs::write(&path, raw).unwrap();
         assert!(config.user_backend().is_err());
     }
+    std::fs::write(&path, "{not json").unwrap();
+    assert!(config.user_backend().is_err());
+    std::fs::write(&path, r#"{"schemaVersion":1,"defaultBackend":"lmstudio"}"#).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+    }
+    assert_eq!(config.user_backend().unwrap(), Some("lmstudio".into()));
+    std::fs::remove_file(&path).unwrap();
+    std::fs::create_dir(&path).unwrap();
+    assert!(config.user_backend().is_err());
+}
+
+#[test]
+fn home_resolution_trims_overrides_and_falls_back_to_the_user_home() {
+    use llmup_runtime::state::resolve_home;
+    let user = || Some(std::ffi::OsString::from("/users/me"));
+    assert_eq!(
+        resolve_home(None, user()).unwrap(),
+        std::path::Path::new("/users/me/.local-llmup")
+    );
+    for blank in ["", "   "] {
+        assert_eq!(
+            resolve_home(Some(blank), user()).unwrap(),
+            std::path::Path::new("/users/me/.local-llmup")
+        );
+    }
+    assert_eq!(
+        resolve_home(Some("  /custom/home "), user()).unwrap(),
+        std::path::Path::new("/custom/home")
+    );
+    assert!(resolve_home(None, None).is_err());
+    let relative = Config::from_home(resolve_home(Some("relative-home"), user()).unwrap()).unwrap();
+    assert!(relative.home.is_absolute() && relative.home.ends_with("relative-home"));
+    assert_eq!(relative.state, relative.home.join("state.json"));
+    assert_eq!(relative.lock, relative.home.join("lock"));
+    assert_eq!(relative.staging, relative.home.join(".staging"));
 }
 
 #[cfg(unix)]

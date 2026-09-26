@@ -1,10 +1,10 @@
 use std::{fs, path::Path, process::Command};
 
 fn setup(root: &Path) {
-    fs::create_dir(root.join("data")).unwrap();
+    fs::create_dir_all(root.join("crates/llmup-core/data")).unwrap();
     fs::write(
-        root.join("data/models.json"),
-        include_str!("../../../data/models.json"),
+        root.join("crates/llmup-core/data/models.json"),
+        include_str!("../../llmup-core/data/models.json"),
     )
     .unwrap();
     fs::write(root.join("inventory.go"),"var libraryModels = []string{\n \"gemma4\",\n \"qwen3\",\n \"qwen999\",\n \"unmonitored\",\n}\n").unwrap();
@@ -24,7 +24,7 @@ fn offline_report_matches_legacy_contract_and_preserves_inputs() {
     let root = tempfile::tempdir().unwrap();
     setup(root.path());
     let inventory = fs::read(root.path().join("inventory.go")).unwrap();
-    let catalog = fs::read(root.path().join("data/models.json")).unwrap();
+    let catalog = fs::read(root.path().join("crates/llmup-core/data/models.json")).unwrap();
     let summary = root.path().join("summary.md");
     fs::write(&summary, "Existing\n").unwrap();
     let output = command(root.path())
@@ -59,7 +59,7 @@ fn offline_report_matches_legacy_contract_and_preserves_inputs() {
         inventory
     );
     assert_eq!(
-        fs::read(root.path().join("data/models.json")).unwrap(),
+        fs::read(root.path().join("crates/llmup-core/data/models.json")).unwrap(),
         catalog
     );
     let repeat = command(root.path()).output().unwrap();
@@ -73,7 +73,7 @@ fn offline_report_matches_legacy_contract_and_preserves_inputs() {
 fn symlink_report_cannot_modify_catalog() {
     let root = tempfile::tempdir().unwrap();
     setup(root.path());
-    let catalog = root.path().join("data/models.json");
+    let catalog = root.path().join("crates/llmup-core/data/models.json");
     let original = fs::read(&catalog).unwrap();
     std::os::unix::fs::symlink(&catalog, root.path().join("catalog-coverage.json")).unwrap();
     assert!(!command(root.path()).output().unwrap().status.success());
@@ -84,7 +84,7 @@ fn symlink_report_cannot_modify_catalog() {
 fn invalid_inventory_and_path_collisions_fail_before_writes() {
     let root = tempfile::tempdir().unwrap();
     setup(root.path());
-    for path in ["inventory.go", "data/models.json"] {
+    for path in ["inventory.go", "crates/llmup-core/data/models.json"] {
         let before = fs::read(root.path().join(path)).unwrap();
         assert!(
             !command(root.path())

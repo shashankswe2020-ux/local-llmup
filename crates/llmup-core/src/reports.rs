@@ -97,6 +97,20 @@ pub fn table(columns: &[(&str, bool)], rows: Vec<Vec<String>>) -> String {
         .join("\n")
 }
 
+pub fn safe_recommendation_command(report: &Value) -> Option<&str> {
+    let id = report["ranked"].as_array()?.first()?["id"].as_str()?;
+    let command = report["command"].as_str()?;
+    (!id.is_empty()
+        && !id.starts_with('-')
+        && id.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || b"._:/-".contains(&byte)
+        })
+        && !id.split('/').any(|part| part == "..")
+        && command.len() <= 256
+        && command.strip_prefix("local-llmup up ") == Some(id))
+    .then_some(command)
+}
+
 pub fn recommendation_text(report: &Value, options: &AdviceOptions) -> String {
     let ranked = report["ranked"].as_array().cloned().unwrap_or_default();
     let misses = report["wontFit"].as_array().cloned().unwrap_or_default();
@@ -194,8 +208,8 @@ pub fn recommendation_text(report: &Value, options: &AdviceOptions) -> String {
             })
             .collect();
         sections.push(table(&columns, rows));
-        if let Some(command) = report["command"].as_str() {
-            sections.push(format!("Run the top pick:  {}", strip_control(command)));
+        if let Some(command) = safe_recommendation_command(report) {
+            sections.push(format!("Run the top pick:  {command}"));
         }
     }
     if !misses.is_empty() {
@@ -223,6 +237,23 @@ pub fn can_run(
     query: &str,
     options: &AdviceOptions,
 ) -> Result<(Value, String), ValidationError> {
+    let report = can_run_report(catalog, hardware, perf, query, options)?;
+    Ok((report.json, report.text))
+}
+
+pub struct CanRunReport {
+    pub json: Value,
+    pub text: String,
+    pub evidence: Value,
+}
+
+pub fn can_run_report(
+    catalog: &Catalog,
+    hardware: &Hardware,
+    perf: &PerfDataset,
+    query: &str,
+    options: &AdviceOptions,
+) -> Result<CanRunReport, ValidationError> {
     options.validate()?;
     let resolved = resolve(catalog, query).map_err(|error| ValidationError(error.message))?;
     let mut model = resolved.model.clone();
@@ -293,7 +324,23 @@ pub fn can_run(
             }
         ));
     }
-    Ok((sanitized(&output), lines.join("\n")))
+    let unknown_reason = if report["throughput"]["known"] == true {
+        Value::Null
+    } else if report["runnable"] == "no" {
+        json!("not-evaluated-model-does-not-fit")
+    } else {
+        json!("no-sourced-performance-profile")
+    };
+    let mut evidence = json!({"modelId":model.id,"runnable":report["runnable"],"quant":report["quant"]["name"],"reason":report["reason"],"throughput":report["throughput"],"backends":supported,"throughputBackend":backend,"requiredBytes":report["requiredBytes"],"usableBytes":report["usableBytes"],"throughputEvidence":{"source":"offline-estimate","unknownReason":unknown_reason}});
+    if let Some(context) = options.context {
+        evidence["context"] = json!(context);
+        evidence["contextFitKnown"] = json!(model.kv_bytes_per_token.is_some());
+    }
+    Ok(CanRunReport {
+        json: sanitized(&output),
+        text: lines.join("\n"),
+        evidence,
+    })
 }
 
 pub fn catalog_text(

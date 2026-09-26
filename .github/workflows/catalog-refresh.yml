@@ -16,22 +16,27 @@ permissions:
 jobs:
   refresh:
     name: Weekly catalog refresh
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        shell: bash
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
-        with:
-          node-version: 22.x
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
+      - name: Fetch main history without an action runtime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\r\n')
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL}/.extraheader"
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $AUTH"
+          git fetch --no-tags origin "$GITHUB_SHA"
+          unset AUTH GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GH_TOKEN
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
       - name: Refresh catalog from the registry snapshot
         run: |
@@ -52,7 +57,7 @@ jobs:
       - name: Detect catalog changes
         id: diff
         run: |
-          if git diff --quiet -- data/models.json; then
+          if git diff --quiet -- crates/llmup-core/data/models.json; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -61,10 +66,8 @@ jobs:
       - name: Validate the refreshed catalog
         if: steps.diff.outputs.changed == 'true'
         run: |
-          npm run typecheck
-          npm run lint
-          npm run build
-          npm test
+          cargo test --locked -p llmup-core --test catalog
+          cargo build --workspace --locked
 
       - name: Open the catalog refresh PR
         if: steps.diff.outputs.changed == 'true'
@@ -79,9 +82,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          git add data/models.json
+          git add crates/llmup-core/data/models.json
           git commit -m "$TITLE"
-          git push origin "$BRANCH"
+          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\r\n')
+          git -c "http.${GITHUB_SERVER_URL}/.extraheader=AUTHORIZATION: basic $AUTH" push origin "$BRANCH"
+          unset AUTH
 
           # Supersede any previous open auto-refresh PR so only the latest stands.
           for number in $(gh pr list --state open --search "$TITLE in:title" --json number --jq '.[].number'); do

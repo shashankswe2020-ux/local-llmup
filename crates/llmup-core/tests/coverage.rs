@@ -4,7 +4,7 @@ use llmup_core::{
 };
 
 fn catalog(sources: &[&str]) -> Catalog {
-    let mut catalog = Catalog::parse(include_str!("../../../data/models.json")).unwrap();
+    let mut catalog = Catalog::parse(include_str!("../../llmup-core/data/models.json")).unwrap();
     let template = catalog.models[0].clone();
     catalog.models = sources
         .iter()

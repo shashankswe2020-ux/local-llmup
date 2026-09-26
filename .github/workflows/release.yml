@@ -1,189 +1,58 @@
-name: Release
+name: Native Release Verification
 
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 permissions:
-  contents: write
-  packages: write
+  contents: read
 
 jobs:
-  container:
-    name: Publish Docker image
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
-
-      - name: Login to GitHub Container Registry
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: echo "$GHCR_TOKEN" | docker login ghcr.io --username "${{ github.actor }}" --password-stdin
-
-      - name: Build and publish multi-platform image
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
-          VERSION="${RELEASE_TAG#v}"
-          docker buildx create --use
-          docker buildx build \
-            --platform linux/amd64,linux/arm64 \
-            --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
-            --label "org.opencontainers.image.revision=${GITHUB_SHA}" \
-            --label "org.opencontainers.image.version=${VERSION}" \
-            --tag "${IMAGE}:${RELEASE_TAG}" \
-            --tag "${IMAGE}:${VERSION}" \
-            --tag "${IMAGE}:latest" \
-            --push \
-            .
-
-  release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
-        with:
-          node-version: 22.x
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
-
-      - name: Enforce dependency policy
-        run: npm run tui:dependency-policy
-
-      - name: Production audit
-        run: npm audit --omit=dev --audit-level=low
-
-      - name: Generate production SBOM
-        run: npm sbom --omit=dev --sbom-format=cyclonedx > tui-production-sbom.json
-
-      - name: Type check
-        run: npm run typecheck
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Build
-        run: npm run build
-
-      - name: Test
-        run: npm test
-
-      - name: Enforce package budgets
-        run: npm run tui:package-budget
-
-      - name: Pack verified artifact
-        id: pack
-        run: |
-          npm pack --ignore-scripts --json > pack.json
-          PACKAGE_FILE=$(node -e 'const [p]=require("./pack.json"); process.stdout.write(p.filename)')
-          echo "package_file=$PACKAGE_FILE" >> "$GITHUB_OUTPUT"
-
-      - name: Verify exact packed artifact
-        run: npm publish "${{ steps.pack.outputs.package_file }}" --dry-run --ignore-scripts --json
-
-      - name: Verify release identity
-        run: npm run verify:release-identity -- "$GITHUB_REF_NAME" pack.json
-
-      - name: Extract release notes from CHANGELOG
-        id: changelog
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          # Extract the section for this version from CHANGELOG.md
-          NOTES=$(awk -v ver="$VERSION" '
-            /^## / {
-              if (found) exit
-              if ($0 == "## " ver || index($0, "## " ver " -") == 1) found=1
-              next
-            }
-            found { print }
-          ' CHANGELOG.md)
-          # Use a delimiter to handle multiline output
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "notes<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$NOTES" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
-        with:
-          body: |
-            ${{ steps.changelog.outputs.notes }}
-
-            ---
-
-            📦 **npm:** [`local-llmup@${{ github.ref_name }}`](https://www.npmjs.com/package/local-llmup/v/${{ steps.changelog.outputs.version }})
-
-            Install: `npm install -g local-llmup` or use `npx local-llmup`
-
-            🐳 **Docker:** `docker pull ghcr.io/${{ github.repository }}:${{ github.ref_name }}`
-          generate_release_notes: false
-          files: |
-            ${{ steps.pack.outputs.package_file }}
-            tui-production-sbom.json
-          fail_on_unmatched_files: true
-
-  desktop:
-    name: Desktop installer (${{ matrix.os }})
-    needs: release
-    runs-on: ${{ matrix.os }}
+  verify:
+    name: Native candidate (${{ matrix.os }})
     strategy:
-      # Build every platform even if one fails, so partial releases still ship.
       fail-fast: false
       matrix:
-        include:
-          - os: macos-latest
-            flag: "--mac"
-          - os: windows-latest
-            flag: "--win"
-          - os: ubuntu-latest
-            flag: "--linux"
+        os: [macos-14, ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     defaults:
       run:
-        # Git Bash on the Windows runner lets the Unix-y npm build scripts run.
         shell: bash
-    env:
-      # Make npm run package scripts through bash on Windows too.
-      npm_config_script_shell: bash
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
-        with:
-          node-version: 22.x
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            apps/desktop/package-lock.json
-
-      - name: Install root dependencies
-        run: npm ci
-
-      - name: Install desktop dependencies
-        working-directory: apps/desktop
-        run: npm ci
-
-      - name: Build and publish installer
-        working-directory: apps/desktop
-        # `npm run build` rebuilds the CLI + main; electron-builder uploads the
-        # installer to the release whose tag matches the desktop package version.
-        run: npm run build && npx --no-install electron-builder ${{ matrix.flag }} --publish always
+      - name: Fetch exact revision without an action runtime
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\r\n')
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL}/.extraheader"
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $AUTH"
+          git fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          unset AUTH GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GH_TOKEN
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Verify pinned toolchain
+        run: rustup show active-toolchain
+      - name: Require complete retirement
+        run: cargo native-retirement
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Lint
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Test
+        run: cargo test --workspace --locked -- --test-threads=2
+      - name: Build
+        run: cargo build --workspace --locked
+      - name: Verify local unsigned archive
+        run: cargo native-dist package
+      - name: Publication blocked
+        run: |
+          printf '%s\n' '::error::Publication blocked pending signing, installer, security, performance and platform acceptance.'
+          exit 1

@@ -313,7 +313,15 @@ impl<'runtime> RemoteHarness<'runtime> {
             let mut redactor = crate::redaction::StreamRedactor::new(
                 self.key.iter().map(|key| key.expose().to_owned()),
             );
+            let mut done = false;
             consume_sse(response.body, self.maximum, &mut |frame| {
+                if done {
+                    return Ok(());
+                }
+                if frame_is_done(frame) {
+                    done = true;
+                    return Ok(());
+                }
                 let text = redactor.push(&parse_frame(self.provider, frame)?);
                 if output.len() + text.len() > self.maximum {
                     return Err(HarnessError::Limit);
@@ -411,14 +419,20 @@ pub async fn consume_sse(
     }
     Ok(())
 }
-fn parse_frame(provider: Provider, frame: &str) -> Result<String, HarnessError> {
-    let raw = frame
+fn frame_data(frame: &str) -> String {
+    frame
         .lines()
         .filter_map(|line| line.strip_prefix("data:"))
         .collect::<Vec<_>>()
-        .join("\n");
+        .join("\n")
+}
+fn frame_is_done(frame: &str) -> bool {
+    frame_data(frame).trim() == "[DONE]"
+}
+fn parse_frame(provider: Provider, frame: &str) -> Result<String, HarnessError> {
+    let raw = frame_data(frame);
     let raw = raw.trim();
-    if raw.is_empty() || raw == "[DONE]" {
+    if raw.is_empty() {
         return Ok(String::new());
     }
     let value: Value = match serde_json::from_str(raw) {
