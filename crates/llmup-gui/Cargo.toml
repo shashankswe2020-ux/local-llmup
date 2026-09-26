@@ -17,8 +17,8 @@ bin-dir = "local-llmup-{ target }/{ bin }{ binary-ext }"
 pkg-fmt = "tgz"
 
 [dependencies]
-llmup-runtime = { path = "../llmup-runtime", version = "1.0.0" }
-llmup-core = { path = "../llmup-core", version = "1.0.0" }
+llmup-runtime = { path = "../llmup-runtime", version = "1.0.1" }
+llmup-core = { path = "../llmup-core", version = "1.0.1" }
 axum = { version = "0.8", features = ["json", "query", "tokio", "http1"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "sync", "signal"] }
 tokio-util = { version = "0.7", features = ["rt"] }
