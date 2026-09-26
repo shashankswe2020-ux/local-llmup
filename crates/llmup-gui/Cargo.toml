@@ -11,6 +11,11 @@ keywords = ["llm", "local-ai", "gui", "ollama"]
 categories = ["command-line-utilities"]
 include = ["src/**", "static/**", "vendor/**", "Cargo.toml"]
 
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/local-llmup-{ target }{ archive-suffix }"
+bin-dir = "local-llmup-{ target }/{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
 [dependencies]
 llmup-runtime = { path = "../llmup-runtime", version = "1.0.0" }
 llmup-core = { path = "../llmup-core", version = "1.0.0" }

@@ -189,6 +189,8 @@ fn vendored_browser_libraries_match_their_pinned_hashes_and_licenses() {
 fn readme_documents_native_install_and_primary_workflows() {
     let readme = read("README.md");
     for required in [
+        "brew install shashankswe2020-ux/tap/local-llmup",
+        "cargo binstall llmup-cli llmup-gui",
         "cargo install llmup-cli --locked",
         "cargo install llmup-gui --locked",
         "llmup recommend",
@@ -203,4 +205,32 @@ fn readme_documents_native_install_and_primary_workflows() {
         assert!(!readme.contains(forbidden), "{forbidden}");
     }
     assert!(read("site/index.html").contains("docker pull ghcr.io/shashankswe2020-ux/local-llmup"));
+}
+
+#[test]
+fn site_downloads_every_release_archive_through_stable_latest_links() {
+    let site = read("site/index.html");
+    for target in [
+        "aarch64-apple-darwin",
+        "x86_64-apple-darwin",
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc",
+    ] {
+        let url = format!(
+            "https://github.com/shashankswe2020-ux/local-llmup/releases/latest/download/{}.tar.gz",
+            llmup_cli::distribution::release_archive_stem(target).unwrap()
+        );
+        assert!(site.contains(&url), "{url}");
+    }
+    assert!(site.contains("releases/latest/download/SHA256SUMS"));
+    for stale in [
+        "releases/download/v0.",
+        ".dmg",
+        ".AppImage",
+        "setup.exe",
+        "Electron",
+    ] {
+        assert!(!site.contains(stale), "{stale}");
+    }
 }

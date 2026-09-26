@@ -83,18 +83,34 @@ integrity status, capabilities, and catalog sources. Unknown inputs stay
 
 ## Install
 
-`local-llmup` 1.0 is a native Rust application published on crates.io. With
-Rust 1.98 or newer ([rustup](https://rustup.rs)):
+`local-llmup` is a native Rust application. Every install puts the `llmup` and
+`local-llmup` aliases next to the `llmup-gui` companion that `llmup gui`
+launches; the binaries need no Node.js, Python or compiler at runtime.
+
+**Homebrew** (macOS and Linux):
 
 ```bash
+brew install shashankswe2020-ux/tap/local-llmup
+```
+
+**Prebuilt archives** for macOS (Apple Silicon, Intel), Linux (x64, ARM64) and
+Windows (x64) are attached to every
+[GitHub release](https://github.com/shashankswe2020-ux/local-llmup/releases/latest)
+with a `SHA256SUMS` file. Unpack one and put the folder on your `PATH`. Archives
+are unsigned; on macOS run `xattr -dr com.apple.quarantine local-llmup-*` after
+unpacking.
+
+**Cargo** — prebuilt with [cargo-binstall](https://github.com/cargo-bins/cargo-binstall),
+or from source with Rust 1.98 or newer ([rustup](https://rustup.rs)):
+
+```bash
+cargo binstall llmup-cli llmup-gui
 cargo install llmup-cli --locked --bin llmup --bin local-llmup
 cargo install llmup-gui --locked
 ```
 
-This installs the `llmup` and `local-llmup` aliases plus the `llmup-gui`
-companion that `llmup gui` launches. Install both into the same Cargo `bin`
-directory (the default) so the CLI can find the GUI beside it. The binaries need
-no Node.js, Python or compiler at runtime.
+Install both crates into the same Cargo `bin` directory (the default) so the CLI
+can find the GUI beside it.
 
 From a checkout, use the same pinned toolchain:
 
@@ -108,7 +124,7 @@ cargo llmup          # or run without installing
 receives no further releases. Remove it with `npm uninstall -g local-llmup`, then
 install with Cargo as above. Commands, flags, `--json` output and the
 `~/.local-llmup` state directory are unchanged, so active servers and chat memory
-carry over. Signed native archives and desktop installers are not part of 1.0.
+carry over. Signed archives and desktop installers are not released yet.
 
 ### Docker
 

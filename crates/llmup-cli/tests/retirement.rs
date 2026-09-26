@@ -122,37 +122,78 @@ fn rejects_node_backed_actions_even_without_node_commands() {
 }
 
 #[test]
-fn release_cutover_is_native_read_only_and_does_not_publish() {
+fn release_publishes_only_verified_tagged_archives_without_node() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     assert!(!root.join(".github/workflows/npm-publish.yml").exists());
     let workflow = std::fs::read_to_string(root.join(".github/workflows/release.yml")).unwrap();
     assert!(check_file(".github/workflows/release.yml", &workflow).is_empty());
-    for forbidden in [
-        "uses:",
-        "contents: write",
-        "packages: write",
-        "--publish",
-        "--push",
-        "gh release create",
-    ] {
+    for forbidden in ["uses:", "packages: write", "--force", "npm "] {
         assert!(!workflow.contains(forbidden), "{forbidden}");
     }
+    let (header, jobs) = workflow.split_once("\njobs:\n").unwrap();
+    assert!(header.contains("tags:\n      - \"v*\""));
+    assert!(header.contains("permissions:\n  contents: read\n"));
+    let job = |name: &str| {
+        let mut body = String::new();
+        let mut inside = false;
+        for line in jobs.lines() {
+            let is_key = line.len() > 3
+                && line.starts_with("  ")
+                && !line.starts_with("   ")
+                && line.ends_with(':');
+            if is_key {
+                inside = line.trim_end_matches(':').trim() == name;
+            }
+            if inside {
+                body.push_str(line);
+                body.push('\n');
+            }
+        }
+        assert!(!body.is_empty(), "missing job {name}");
+        body
+    };
+    let verify = job("verify");
+    assert!(!verify.contains("contents: write"));
     for required in [
-        "contents: read",
+        "test \"$GITHUB_REF_NAME\" = \"v$version\"",
         "cargo native-retirement",
         "cargo fmt --all -- --check",
         "cargo clippy --workspace --all-targets --locked -- -D warnings",
         "cargo test --workspace --locked",
-        "cargo build --workspace --locked",
-        "cargo native-dist package",
-        "git rev-parse HEAD",
-        "$GITHUB_SHA",
-        "Publication blocked",
         "macos-14",
         "ubuntu-24.04",
         "windows-2022",
     ] {
-        assert!(workflow.contains(required), "{required}");
+        assert!(verify.contains(required), "verify: {required}");
+    }
+    let build = job("build");
+    assert!(build.contains("needs: verify"));
+    for target in [
+        "aarch64-apple-darwin",
+        "x86_64-apple-darwin",
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc",
+    ] {
+        assert!(build.contains(&format!("target: {target} }}")), "{target}");
+    }
+    assert!(build.contains("cargo native-dist package --target"));
+    assert!(build.contains("if: startsWith(github.ref, 'refs/tags/v')"));
+    assert!(build.contains("--draft --verify-tag"));
+    let publish = job("publish");
+    assert!(publish.contains("needs: build"));
+    assert!(publish.contains("if: startsWith(github.ref, 'refs/tags/v')"));
+    assert!(publish.contains("test \"$(ls *.tar.gz | wc -l)\" -eq 5"));
+    assert!(publish.contains("sha256sum -c SHA256SUMS"));
+    assert!(publish.contains("cargo native-dist formula"));
+    let checked = publish.find("sha256sum -c SHA256SUMS").unwrap();
+    let published = publish.find("--draft=false").unwrap();
+    assert!(
+        checked < published,
+        "checksums must be verified before publication"
+    );
+    for step in [verify, build, publish] {
+        assert!(step.contains("git rev-parse HEAD") && step.contains("$GITHUB_SHA"));
     }
 }
 
