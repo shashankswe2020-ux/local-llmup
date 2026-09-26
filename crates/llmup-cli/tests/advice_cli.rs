@@ -285,3 +285,35 @@ fn doctor_reports_corrupt_state_without_mutation_or_lock_creation() {
     assert_eq!(std::fs::read_to_string(path).unwrap(), "invalid state");
     assert!(!root.path().join("lock").exists());
 }
+
+#[cfg(unix)]
+#[test]
+fn commands_run_within_a_windows_sized_main_thread_stack() {
+    // Windows gives the main thread 1 MiB; ulimit -s caps the Unix main thread the same way.
+    for args in [
+        "catalog --all --no-tui",
+        "recommend --no-tui",
+        "doctor --no-tui --json",
+        "plan llama3.1:8b",
+    ] {
+        let root = tempfile::tempdir().unwrap();
+        let output = Command::new("/bin/sh")
+            .args([
+                "-c",
+                &format!("ulimit -s 1024 && exec \"$0\" {args} --hardware-json \"$1\"",),
+                env!("CARGO_BIN_EXE_llmup"),
+                HARDWARE,
+            ])
+            .env("PATH", "/usr/bin:/bin")
+            .env("LOCAL_LLMUP_HOME", root.path().join("home"))
+            .output()
+            .unwrap();
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(!stderr.contains("overflowed its stack"), "{args}: {stderr}");
+        assert!(
+            output.status.code().is_some(),
+            "{args}: {:?}",
+            output.status
+        );
+    }
+}
