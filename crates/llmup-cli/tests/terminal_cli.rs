@@ -95,11 +95,21 @@ fn accessible_cancellation_with_state(
         assert!(output.len() < 1024 * 1024);
     };
     drop(writer);
+    // ConPTY only reaches EOF once the child handle and master are released.
+    drop(child);
     drop(pair.master);
-    for bytes in receiver.iter() {
-        output.extend_from_slice(&bytes);
+    let drain_deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        match receiver.recv_timeout(Duration::from_millis(50)) {
+            Ok(bytes) => output.extend_from_slice(&bytes),
+            Err(mpsc::RecvTimeoutError::Disconnected) => {
+                reader_thread.join().unwrap();
+                break;
+            }
+            Err(mpsc::RecvTimeoutError::Timeout) if Instant::now() >= drain_deadline => break,
+            Err(mpsc::RecvTimeoutError::Timeout) => {}
+        }
     }
-    reader_thread.join().unwrap();
     if let Some(prior) = prior {
         assert_eq!(std::fs::read(unused.join("state.json")).unwrap(), prior);
         assert!(!unused.join("lock").exists());
