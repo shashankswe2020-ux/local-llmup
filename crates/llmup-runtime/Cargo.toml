@@ -7,8 +7,8 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 description = "Hardware detection, backend adapters, lifecycle, memory and harness runtime for local-llmup."
-keywords = ["llm", "local-ai", "ollama", "llama-cpp"]
-categories = ["command-line-utilities"]
+keywords = ["llm", "ollama", "llama-cpp", "mlx", "local-llm"]
+categories = ["artificial-intelligence"]
 include = ["src/**", "Cargo.toml"]
 
 [dependencies]

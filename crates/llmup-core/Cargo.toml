@@ -6,9 +6,9 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-description = "Deterministic, offline hardware-fit scoring, catalog and sizing engine for local-llmup."
-keywords = ["llm", "local-ai", "hardware", "ollama"]
-categories = ["science"]
+description = "Deterministic, offline LLM memory and VRAM sizing, KV-cache estimation, hardware-fit scoring and model catalog for local-llmup."
+keywords = ["llm", "vram", "kv-cache", "quantization", "local-llm"]
+categories = ["artificial-intelligence"]
 include = ["src/**", "data/**", "fixtures/bootstrap-metadata.json", "fixtures/registry-snapshot.json", "Cargo.toml"]
 
 [dependencies]

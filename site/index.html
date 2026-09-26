@@ -3,11 +3,75 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>local-llmup — Hardware-aware CLI for local LLMs</title>
-    <meta name="description" content="Know which local LLMs will run on your machine — yes/slow/no + est. tok/s — before you download anything. Browser GUI, interactive TUI, 4 backends, integrity-verified installs." />
-    <meta property="og:title" content="local-llmup" />
-    <meta property="og:description" content="Hardware-aware CLI for local LLMs. Browser GUI, interactive TUI, runnability verdicts, 4 backends, portable memory." />
+    <title>local-llmup — Which local LLMs can your PC or Mac run?</title>
+    <meta name="description" content="Free open-source tool that checks your GPU VRAM and RAM and tells you which local LLMs will run — yes, slow or no with tok/s — before you download." />
+    <link rel="canonical" href="https://shashankswe2020-ux.github.io/local-llmup/" />
+    <meta name="robots" content="index, follow" />
+    <link rel="icon" type="image/png" href="assets/app-icon.png" />
+    <link rel="apple-touch-icon" href="assets/app-icon.png" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="local-llmup" />
+    <meta property="og:url" content="https://shashankswe2020-ux.github.io/local-llmup/" />
+    <meta property="og:title" content="local-llmup — Which local LLMs can your PC or Mac run?" />
+    <meta property="og:description" content="Hardware-aware local LLM checker and launcher. yes / slow / no verdicts with estimated tok/s before you download, then verified installs across Ollama, llama.cpp, MLX and LM Studio." />
+    <meta property="og:image" content="https://shashankswe2020-ux.github.io/local-llmup/assets/model-performance.png" />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="1299" />
+    <meta property="og:image:alt" content="local-llmup model details: recommendation score, hardware fit, estimated tok/s and memory required" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="local-llmup — Which local LLMs can your PC or Mac run?" />
+    <meta name="twitter:description" content="yes / slow / no verdicts with estimated tok/s for local LLMs on your hardware, before you download anything." />
+    <meta name="twitter:image" content="https://shashankswe2020-ux.github.io/local-llmup/assets/model-performance.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "local-llmup",
+        "alternateName": "llmup",
+        "description": "Hardware-aware CLI, terminal UI and browser GUI that tells you which local LLMs will run on your machine, with yes / slow / no verdicts and estimated tokens per second, then installs, verifies and serves them.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "macOS, Linux, Windows",
+        "softwareVersion": "1.0.0",
+        "license": "https://opensource.org/licenses/MIT",
+        "url": "https://shashankswe2020-ux.github.io/local-llmup/",
+        "downloadUrl": "https://github.com/shashankswe2020-ux/local-llmup/releases/latest",
+        "installUrl": "https://crates.io/crates/llmup-cli",
+        "screenshot": "https://shashankswe2020-ux.github.io/local-llmup/assets/model-performance.png",
+        "sameAs": [
+          "https://github.com/shashankswe2020-ux/local-llmup",
+          "https://crates.io/crates/llmup-cli"
+        ],
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How do I find out which LLMs my computer can run?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Install local-llmup and run llmup. It detects your GPU, VRAM, RAM and free disk, ranks every catalog model that fits with a yes, slow or no verdict and estimated tokens per second, and lists the models that don't fit with the reason. llmup can-run <model> checks a single model." }
+          },
+          {
+            "@type": "Question",
+            "name": "How much VRAM do I need to run an 8B, 14B, 32B or 70B model?",
+            "acceptedAnswer": { "@type": "Answer", "text": "At Q4_K_M and default context, local-llmup estimates about 5.3 GiB for Llama 3.1 8B, 9.9 GiB for Qwen3 14B, 21.6 GiB for Qwen3 32B and 45.5 GiB for Llama 3.3 70B. Longer contexts add KV cache on top." }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I run local LLMs on a Mac with Apple Silicon?",
+            "acceptedAnswer": { "@type": "Answer", "text": "Yes. Apple Silicon GPUs share unified memory with the CPU, so local-llmup sizes models against system memory and auto-selects MLX for models with an MLX build, then Ollama, then llama.cpp." }
+          },
+          {
+            "@type": "Question",
+            "name": "Does local-llmup send my data anywhere?",
+            "acceptedAnswer": { "@type": "Answer", "text": "No. Recommendations, can-run and doctor make no network calls and use a bundled offline catalog. Model servers and the browser GUI bind to 127.0.0.1 only." }
+          }
+        ]
+      }
+    </script>
     <meta name="theme-color" content="#f5f2e9" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -35,8 +99,9 @@
             <a class="opt" href="#connectors">Connectors</a>
             <a class="opt" href="#tui">TUI</a>
             <a class="opt" href="#commands">Commands</a>
+            <a class="opt" href="#faq">FAQ</a>
             <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
-            <a class="opt" href="https://www.npmjs.com/package/local-llmup">npm</a>
+            <a class="opt" href="https://crates.io/crates/llmup-cli">crates.io</a>
             <a href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
             <a class="nav-cta" href="#quickstart">Get started &rarr;</a>
           </div>
@@ -73,10 +138,10 @@
           <a class="btn btn-secondary" href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
         </div>
         <div class="install-options">
-          <div class="install-strip" data-install="npm install -g local-llmup">
+          <div class="install-strip" data-install="brew install shashankswe2020-ux/tap/local-llmup">
             <span class="prompt">$</span>
-            <span>npm install -g local-llmup</span>
-            <button class="copy-btn" type="button" aria-label="Copy npm install command">
+            <span>brew install shashankswe2020-ux/tap/local-llmup</span>
+            <button class="copy-btn" type="button" aria-label="Copy Homebrew install command">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg>
             </button>
           </div>
@@ -127,7 +192,7 @@
           <article class="feature">
             <div class="ficon-tile c-blue"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="8" width="36" height="30" rx="1"/><path d="M14 20l6 4-6 4M26 28h8"/></svg></div>
             <h3>Interactive terminal UI</h3>
-            <p>A full Ink-rendered TUI activates automatically in capable terminals &mdash; searchable model list, keyboard navigation, doctor dashboard, real-time lifecycle progress. Falls back to plain text in CI or piped mode.</p>
+            <p>A native terminal UI activates automatically in capable terminals &mdash; searchable model list, keyboard navigation, doctor dashboard, real-time lifecycle progress. Falls back to plain text in CI or piped mode.</p>
           </article>
           <article class="feature">
             <div class="ficon-tile c-gold"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="16" width="40" height="18" rx="1"/><path d="M4 24h40M12 16V8M24 16V8M36 16V8"/></svg></div>
@@ -334,7 +399,7 @@ cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl
       <div class="frame">
         <div class="section-label">Terminal UI</div>
         <h2 class="section-title">A real TUI &mdash; not just pretty text</h2>
-        <p class="section-sub">v0.6 brings a full Ink 5 + React 18 terminal UI that activates automatically when your terminal is &ge;60&times;16. Screen-reader accessible mode and plain-text fallback always available.</p>
+        <p class="section-sub">A native Rust terminal UI activates automatically when your terminal is &ge;60&times;16. Screen-reader accessible mode and plain-text fallback always available.</p>
 
         <div class="screenshots">
           <!-- Recommend -->
@@ -403,8 +468,8 @@ cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl
           <div class="qs-card">
             <span class="qs-num">01</span>
             <h3>Install</h3>
-            <div class="qs-install" data-install="npm install -g local-llmup"><code>npm install -g local-llmup</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
-            <p>Or try without installing: <code>npx local-llmup</code></p>
+            <div class="qs-install" data-install="brew install shashankswe2020-ux/tap/local-llmup"><code>brew install shashankswe2020-ux/tap/local-llmup</code><button class="copy-btn" type="button" aria-label="Copy Homebrew install command"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
+            <p>Or with Cargo: <code>cargo binstall llmup-cli llmup-gui</code></p>
           </div>
           <div class="qs-card">
             <span class="qs-num">02</span>
@@ -550,6 +615,33 @@ cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl
       </div>
     </section>
 
+    <!-- FAQ -->
+    <section class="section" id="faq">
+      <div class="frame">
+        <div class="section-label">FAQ</div>
+        <h2 class="section-title">Which local LLMs can my computer run?</h2>
+        <p class="section-sub">Short answers to the questions people ask before running models locally. Figures are local-llmup&rsquo;s offline estimates, not benchmarks.</p>
+        <div class="faq reveal">
+          <details class="faq-item" open>
+            <summary>How do I find out which LLMs my computer can run?</summary>
+            <p>Install local-llmup and run <code>llmup</code>. It detects your GPU, VRAM, RAM and free disk, ranks every catalog model that fits with a <strong>yes</strong>, <strong>slow</strong> or <strong>no</strong> verdict and estimated tokens per second, and lists the models that don&rsquo;t fit with the reason. <code>llmup can-run &lt;model&gt;</code> checks a single model.</p>
+          </details>
+          <details class="faq-item">
+            <summary>How much VRAM do I need to run an 8B, 14B, 32B or 70B model?</summary>
+            <p>At <code>Q4_K_M</code> and default context, local-llmup estimates about 5.3&nbsp;GiB for Llama&nbsp;3.1&nbsp;8B, 9.9&nbsp;GiB for Qwen3&nbsp;14B, 21.6&nbsp;GiB for Qwen3&nbsp;32B and 45.5&nbsp;GiB for Llama&nbsp;3.3&nbsp;70B. Longer contexts add KV cache on top.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Can I run local LLMs on a Mac with Apple Silicon?</summary>
+            <p>Yes. Apple Silicon GPUs share unified memory with the CPU, so local-llmup sizes models against system memory and auto-selects MLX for models with an MLX build, then Ollama, then llama.cpp.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Does local-llmup send my data anywhere?</summary>
+            <p>No. Recommendations, <code>can-run</code> and <code>doctor</code> make no network calls and use a bundled offline catalog. Model servers and the browser GUI bind to <code>127.0.0.1</code> only.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
     <!-- Footer -->
     <footer>
       <div class="frame">
@@ -561,7 +653,7 @@ cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl
           <nav class="footer-links">
             <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
             <a href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
-            <a href="https://www.npmjs.com/package/local-llmup">npm</a>
+            <a href="https://crates.io/crates/llmup-cli">crates.io</a>
             <a href="https://github.com/shashankswe2020-ux/local-llmup/blob/main/CHANGELOG.md">Changelog</a>
             <a href="https://github.com/shashankswe2020-ux/local-llmup/blob/main/LICENSE">MIT</a>
           </nav>

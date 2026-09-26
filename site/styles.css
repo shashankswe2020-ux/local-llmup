@@ -556,6 +556,22 @@ h1 em {
 }
 .cmd-head .cmd-name { border-right-color: var(--paper); }
 
+/* ── FAQ ───────────────────────────────────────────────────────── */
+.faq {
+  display: grid; margin-top: 3rem; background: var(--paper);
+  border: var(--border-w) solid var(--ink); box-shadow: var(--shadow);
+}
+.faq-item { border-bottom: var(--border-w) solid var(--ink); }
+.faq-item:last-child { border-bottom: none; }
+.faq-item summary {
+  padding: 1rem 1.2rem; font-weight: 700; cursor: pointer; color: var(--ink);
+}
+.faq-item summary:hover { background: var(--paper-2); }
+.faq-item p {
+  padding: 0 1.2rem 1.1rem; font-size: .92rem; color: var(--ink-2);
+  line-height: 1.65; max-width: 75ch;
+}
+
 /* ── Backends ──────────────────────────────────────────────────── */
 .backends {
   display: grid; grid-template-columns: repeat(4,1fr);
