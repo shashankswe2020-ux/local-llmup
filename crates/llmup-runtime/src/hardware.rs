@@ -13,6 +13,8 @@ struct Controller {
     vendor: String,
     vram: Option<f64>,
     vram_dynamic: Option<bool>,
+    #[serde(default)]
+    shared_memory: Option<bool>,
 }
 #[derive(Debug, Deserialize)]
 struct Disk {
@@ -30,6 +32,8 @@ struct Snapshot {
     controllers: Vec<Controller>,
     #[serde(default)]
     disks: Vec<Disk>,
+    #[serde(default, rename = "unifiedMemory")]
+    unified_memory: Option<bool>,
 }
 
 fn vendor(value: &str) -> GpuVendor {
@@ -121,6 +125,12 @@ pub fn map_snapshot(value: &Value) -> Result<Hardware, ValidationError> {
             }
         })
         .collect();
+    // NVIDIA Grace/Jetson SoCs report no dedicated framebuffer; their GPU shares system memory.
+    let shared_soc = arch == CpuArch::Arm64
+        && raw.controllers.iter().any(|controller| {
+            controller.shared_memory == Some(true)
+                && vendor(&controller.vendor) == GpuVendor::Nvidia
+        });
     let hardware = Hardware {
         arch,
         platform,
@@ -132,6 +142,7 @@ pub fn map_snapshot(value: &Value) -> Result<Hardware, ValidationError> {
             .round(),
         gpu,
         free_disk_bytes: free_disk,
+        unified_memory: (raw.unified_memory == Some(true) || shared_soc).then_some(true),
     };
     validate_hardware(&hardware)?;
     Ok(hardware)
@@ -170,6 +181,9 @@ pub fn parse_gpu_output(platform: &str, raw: &str) -> Result<Vec<Value>, Validat
                 let (name, memory) = line
                     .rsplit_once(',')
                     .ok_or_else(|| ValidationError("invalid NVIDIA memory reading".into()))?;
+                if ["[N/A]", "N/A", "[Not Supported]"].contains(&memory.trim()) {
+                    return Ok(json!({"vendor":name.trim(),"vram":null,"vramDynamic":true,"sharedMemory":true}));
+                }
                 let mib = memory
                     .trim()
                     .parse::<f64>()
@@ -300,7 +314,7 @@ pub async fn detect() -> Result<(Hardware, Vec<String>), ValidationError> {
             .await
             .map_err(|_| ValidationError("RAM/disk probe timed out".into()))?
             .map_err(|error| ValidationError(error.to_string()))?;
-    let snapshot = json!({"arch":std::env::consts::ARCH,"platform":platform,"total":total,"available":available,"free":free,"controllers":controllers,"disks":disks});
+    let snapshot = json!({"arch":std::env::consts::ARCH,"platform":platform,"total":total,"available":available,"free":free,"controllers":controllers,"disks":disks,"unifiedMemory":(platform == "linux" && kfd_apu(&linux_kfd_nodes())).then_some(true)});
     let fallback = map_snapshot(
         &json!({"arch":std::env::consts::ARCH,"platform":platform,"total":total,"free":free.max(1),"controllers":[],"disks":[]}),
     )?;
@@ -313,6 +327,41 @@ pub fn merge_nvidia(mut controllers: Vec<Value>, precise: Vec<Value>) -> Vec<Val
     controllers.retain(|entry| vendor(entry["vendor"].as_str().unwrap_or("")) != GpuVendor::Nvidia);
     controllers.extend(precise);
     controllers
+}
+
+/// A KFD topology node with both CPU cores and GPU SIMDs is an APU sharing system memory.
+pub fn kfd_apu(nodes: &[String]) -> bool {
+    nodes.iter().any(|properties| {
+        let count = |key: &str| {
+            properties.lines().find_map(|line| {
+                let (name, value) = line.split_once(' ')?;
+                (name == key)
+                    .then(|| value.trim().parse::<u64>().ok())
+                    .flatten()
+            })
+        };
+        count("cpu_cores_count").is_some_and(|cores| cores > 0)
+            && count("simd_count").is_some_and(|simds| simds > 0)
+    })
+}
+
+fn linux_kfd_nodes() -> Vec<String> {
+    use std::io::Read;
+    let Ok(nodes) = std::fs::read_dir("/sys/class/kfd/kfd/topology/nodes") else {
+        return vec![];
+    };
+    nodes
+        .take(64)
+        .filter_map(|node| {
+            let mut text = String::new();
+            std::fs::File::open(node.ok()?.path().join("properties"))
+                .ok()?
+                .take(65537)
+                .read_to_string(&mut text)
+                .ok()?;
+            (text.len() <= 65536).then_some(text)
+        })
+        .collect()
 }
 
 pub fn map_linux_drm(entries: &[Value]) -> Result<Vec<Value>, ValidationError> {

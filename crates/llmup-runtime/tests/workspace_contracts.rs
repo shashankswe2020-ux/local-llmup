@@ -113,6 +113,7 @@ fn tree_lists_one_level_with_directories_first_and_hides_noise_and_secrets() {
 }
 
 #[test]
+#[cfg_attr(not(unix), allow(unused_variables))]
 fn reads_are_hashed_ranged_and_fail_closed() {
     let (root, mut workspace, id) = fixture();
     let snapshot = workspace.read(&id, "src/index.ts", None).unwrap();
@@ -314,6 +315,7 @@ fn reviews_reject_stale_overlapping_out_of_range_denied_and_duplicate_edits() {
 }
 
 #[test]
+#[cfg_attr(not(unix), allow(unused_variables))]
 fn create_and_delete_reviews_have_honest_counts_and_never_clobber() {
     let (root, workspace, id) = fixture();
     let created = workspace

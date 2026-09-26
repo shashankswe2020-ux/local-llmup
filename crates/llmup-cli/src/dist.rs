@@ -1,23 +1,38 @@
 use clap::{Parser, Subcommand};
-use llmup_cli::distribution::{archive_path, checksum, package_directory, verify_directory};
+use llmup_cli::distribution::{
+    archive_path, checksum, homebrew_formula, package_directory, parse_checksums,
+    release_archive_stem, verify_directory,
+};
 use std::{
     ffi::OsStr,
     fs,
     path::{Path, PathBuf},
     process::{Command, ExitCode},
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 #[derive(Parser)]
-#[command(about = "Build and verify unsigned native CLI/GUI archives; never publishes")]
+#[command(about = "Build and verify unsigned native CLI/GUI archives and the Homebrew formula")]
 struct Args {
     #[command(subcommand)]
     command: Operation,
 }
 #[derive(Subcommand)]
 enum Operation {
-    Package,
-    Verify { directory: PathBuf },
+    Package {
+        /// Rust target triple; defaults to the host
+        #[arg(long)]
+        target: Option<String>,
+    },
+    Verify {
+        directory: PathBuf,
+    },
+    /// Print a Homebrew formula for a published release's SHA256SUMS file
+    Formula {
+        #[arg(long)]
+        version: String,
+        #[arg(long)]
+        checksums: PathBuf,
+    },
 }
 
 fn checked(command: &mut Command) -> Result<(), Box<dyn std::error::Error>> {
@@ -112,14 +127,22 @@ fn verify_native_versions(
     Ok(())
 }
 fn execute(args: Args) -> Result<(), Box<dyn std::error::Error>> {
-    if let Operation::Verify { directory } = args.command {
-        let manifest = verify_directory(&directory)?;
-        println!(
-            "Verified {} {} (unsigned; checksums do not authenticate publishers)",
-            manifest.version, manifest.target
-        );
-        return Ok(());
-    }
+    let requested = match args.command {
+        Operation::Verify { directory } => {
+            let manifest = verify_directory(&directory)?;
+            println!(
+                "Verified {} {} (unsigned; checksums do not authenticate publishers)",
+                manifest.version, manifest.target
+            );
+            return Ok(());
+        }
+        Operation::Formula { version, checksums } => {
+            let text = fs::read_to_string(checksums)?;
+            print!("{}", homebrew_formula(&version, &parse_checksums(&text)?)?);
+            return Ok(());
+        }
+        Operation::Package { target } => target,
+    };
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../..")
         .canonicalize()?;
@@ -129,21 +152,12 @@ fn execute(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         return Err("rustc version query failed".into());
     }
     let version = String::from_utf8(version.stdout)?;
-    let target = version
+    let host = version
         .lines()
         .find_map(|line| line.strip_prefix("host: "))
         .ok_or("missing Rust host target")?;
-    if ![
-        "aarch64-apple-darwin",
-        "x86_64-apple-darwin",
-        "x86_64-unknown-linux-gnu",
-        "aarch64-unknown-linux-gnu",
-        "x86_64-pc-windows-msvc",
-    ]
-    .contains(&target)
-    {
-        return Err("unsupported native distribution target".into());
-    }
+    let target = requested.as_deref().unwrap_or(host);
+    let stem = release_archive_stem(target)?;
     let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
     let build_target = root.join("target/native-build");
     checked(&mut native_build_command(
@@ -158,14 +172,18 @@ fn execute(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         ""
     };
     let release = build_target.join(target).join("release");
-    verify_native_versions(&release, extension, Command::output)?;
+    // Cross-built binaries (Intel macOS on Apple Silicon) cannot always be executed on the host.
+    if target == host {
+        verify_native_versions(&release, extension, Command::output)?;
+    } else {
+        println!("Cross-built {target}: version probe skipped on {host}");
+    }
     let parent = root.join("target/native-dist");
     fs::create_dir_all(&parent)?;
-    let stamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_nanos();
-    let output = parent.join(format!(
-        "local-llmup-{}-{target}-{stamp}",
-        env!("CARGO_PKG_VERSION")
-    ));
+    let output = parent.join(&stem);
+    if output.exists() {
+        fs::remove_dir_all(&output)?;
+    }
     let files = native_package_files(&root, &release, extension);
     package_directory(
         &output,
@@ -177,12 +195,12 @@ fn execute(args: Args) -> Result<(), Box<dyn std::error::Error>> {
             .collect::<Vec<_>>(),
     )?;
     let archive = archive_path(&output)?;
+    // Relative names: GNU tar on Windows runners parses `C:\...` as a remote host.
     checked(
         Command::new("tar")
-            .args(["-czf"])
-            .arg(&archive)
-            .arg("-C")
-            .arg(&parent)
+            .current_dir(&parent)
+            .arg("-czf")
+            .arg(archive.file_name().ok_or("missing archive name")?)
             .arg(output.file_name().ok_or("missing package name")?),
     )?;
     let (_, sha256) = checksum(&archive)?;

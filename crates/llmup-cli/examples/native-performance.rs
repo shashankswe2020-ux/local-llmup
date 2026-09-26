@@ -160,7 +160,7 @@ async fn run(args: Args) -> Result<bool, Box<dyn Error>> {
         let (_, expected) = probe(&executable, &args, home.path()).await?;
         if args[0] == "--version" {
             if String::from_utf8_lossy(&expected).trim()
-                != format!("llmup-native {}", env!("CARGO_PKG_VERSION"))
+                != format!("local-llmup {}", env!("CARGO_PKG_VERSION"))
             {
                 return Err("candidate is not the expected native CLI version".into());
             }

@@ -196,6 +196,7 @@ impl std::error::Error for GuiLaunchError {}
 pub enum GuiSignal {
     Interrupt,
     Terminate,
+    Hangup,
 }
 
 impl GuiSignal {
@@ -203,6 +204,7 @@ impl GuiSignal {
         match self {
             Self::Interrupt => 130,
             Self::Terminate => 143,
+            Self::Hangup => 129,
         }
     }
 }
@@ -213,10 +215,12 @@ pub async fn run_gui(options: GuiOptions) -> Result<i32, GuiLaunchError> {
         use tokio::signal::unix::{SignalKind, signal};
         let mut interrupt = signal(SignalKind::interrupt()).map_err(|_| GuiLaunchError::Signals)?;
         let mut terminate = signal(SignalKind::terminate()).map_err(|_| GuiLaunchError::Signals)?;
+        let mut hangup = signal(SignalKind::hangup()).map_err(|_| GuiLaunchError::Signals)?;
         async move {
             let signal = tokio::select! {
                 event = interrupt.recv() => event.map(|()| GuiSignal::Interrupt),
                 event = terminate.recv() => event.map(|()| GuiSignal::Terminate),
+                event = hangup.recv() => event.map(|()| GuiSignal::Hangup),
             };
             signal.ok_or_else(|| io::Error::other("signal stream closed"))
         }
@@ -246,7 +250,7 @@ pub async fn run_gui(options: GuiOptions) -> Result<i32, GuiLaunchError> {
         }
     })
     .await?;
-    if !presented && ![0, 130, 143].contains(&code) {
+    if !presented && ![0, 129, 130, 143].contains(&code) {
         writeln!(io::stderr(), "{}", GuiLaunchError::ExitedBeforeReady)
             .map_err(|_| GuiLaunchError::Presentation)?;
     }

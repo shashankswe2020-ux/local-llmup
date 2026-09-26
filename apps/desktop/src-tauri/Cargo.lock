@@ -1851,7 +1851,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.61.2",
+ "windows-core 0.62.2",
 ]
 
 [[package]]
@@ -2355,7 +2355,7 @@ checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 
 [[package]]
 name = "llmup-core"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "regex",
  "serde",
@@ -2367,7 +2367,7 @@ dependencies = [
 
 [[package]]
 name = "llmup-desktop"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "llmup-gui",
  "llmup-runtime",
@@ -2382,7 +2382,7 @@ dependencies = [
 
 [[package]]
 name = "llmup-gui"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -2402,7 +2402,7 @@ dependencies = [
 
 [[package]]
 name = "llmup-runtime"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "async-trait",
  "bytes",
@@ -4516,7 +4516,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",

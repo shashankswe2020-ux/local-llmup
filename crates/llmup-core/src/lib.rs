@@ -5,6 +5,7 @@ pub mod catalog_notice;
 pub mod coverage;
 pub mod enrich;
 pub mod freshness;
+pub mod plan;
 pub mod ranking;
 pub mod registry_collector;
 pub mod reports;

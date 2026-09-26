@@ -432,3 +432,53 @@ async fn connector_routes_list_add_replace_disconnect_and_remove_without_spawnin
         (StatusCode::OK, json!([]))
     );
 }
+
+#[tokio::test]
+async fn connector_config_masks_env_secrets_and_preserves_them_on_round_trip() {
+    let home = tempfile::tempdir().unwrap();
+    let host = Host::new(home.path(), 43210).unwrap();
+    let secret = "s3cr3t-client-value";
+    let (status, _, _) = call(
+        &host,
+        "POST",
+        "/api/connectors",
+        json!({"name":"whoop","transport":"stdio","command":"never-run","env":{"CLIENT_SECRET":secret,"REGION":"eu"}}),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED);
+    let stored = || std::fs::read_to_string(home.path().join("connectors.json")).unwrap();
+    let (status, config, raw) = call(&host, "GET", "/api/connectors/config", Value::Null).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(!raw.contains(secret), "{raw}");
+    let masked = config["config"]["connectors"][0]["env"]["CLIENT_SECRET"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_ne!(masked, secret);
+    let (_, listed, raw) = call(&host, "GET", "/api/connectors", Value::Null).await;
+    assert!(!raw.contains(secret), "{listed}");
+    let (status, _, _) = call(
+        &host,
+        "PUT",
+        "/api/connectors/config",
+        config["config"].clone(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        stored().contains(secret),
+        "unchanged masked values keep the stored secret"
+    );
+    let mut changed = config["config"].clone();
+    changed["connectors"][0]["env"]["CLIENT_SECRET"] = json!("rotated-value");
+    let (status, _, _) = call(&host, "PUT", "/api/connectors/config", changed).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(stored().contains("rotated-value") && !stored().contains(secret));
+    let mut orphan = config["config"].clone();
+    orphan["connectors"][0]["env"] = json!({"NEW_KEY": masked});
+    assert_eq!(
+        call(&host, "PUT", "/api/connectors/config", orphan).await.0,
+        StatusCode::BAD_REQUEST
+    );
+    assert!(stored().contains("rotated-value"));
+}

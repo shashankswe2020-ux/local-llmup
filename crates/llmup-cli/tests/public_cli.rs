@@ -3,9 +3,10 @@ use std::process::{Command, Output, Stdio};
 use serde_json::{Value, json};
 
 const HARDWARE: &str = r#"{"arch":"x64","platform":"linux","totalRamBytes":68719476736,"freeRamBytes":64424509440,"freeDiskBytes":536870912000,"gpu":[{"vendor":"nvidia","vramBytes":25769803776}]}"#;
-const COMMANDS: [&str; 11] = [
+const COMMANDS: [&str; 12] = [
     "recommend",
     "can-run",
+    "plan",
     "up",
     "chat",
     "gui",
@@ -171,8 +172,8 @@ fn native_fixture_manifest_matches_public_commands_and_json_support() {
             json_commands.push(*command);
         }
     }
-    assert_eq!(commands.len(), 11);
-    assert_eq!(json_commands.len(), 10);
+    assert_eq!(commands.len(), 12);
+    assert_eq!(json_commands.len(), 11);
     assert!(!json_commands.contains(&"catalog"));
     for (mode, expected) in [("plain", commands), ("json", json_commands)] {
         let entries = manifest[mode].as_object().unwrap();
@@ -187,6 +188,25 @@ fn native_fixture_manifest_matches_public_commands_and_json_support() {
             }
         }
     }
+}
+
+#[test]
+fn plan_matches_reviewed_goldens_without_detection_or_mutation() {
+    let plain = invoke(&["plan", "llama3.1:8b", "--hardware-json", HARDWARE]);
+    assert_success(&plain);
+    assert_eq!(
+        String::from_utf8(plain.stdout).unwrap(),
+        include_str!("../../../tests/fixtures/noninteractive/plan-plain.txt")
+    );
+    let json = invoke(&["plan", "llama3.1:8b", "--json", "--hardware-json", HARDWARE]);
+    assert_success(&json);
+    assert_json(
+        &serde_json::from_slice(&json.stdout).unwrap(),
+        &serde_json::from_str(include_str!(
+            "../../../tests/fixtures/noninteractive/plan-json.json"
+        ))
+        .unwrap(),
+    );
 }
 
 #[test]

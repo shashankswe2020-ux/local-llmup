@@ -189,6 +189,8 @@ fn vendored_browser_libraries_match_their_pinned_hashes_and_licenses() {
 fn readme_documents_native_install_and_primary_workflows() {
     let readme = read("README.md");
     for required in [
+        "brew install shashankswe2020-ux/tap/local-llmup",
+        "cargo binstall llmup-cli llmup-gui",
         "cargo install llmup-cli --locked",
         "cargo install llmup-gui --locked",
         "llmup recommend",
@@ -203,4 +205,71 @@ fn readme_documents_native_install_and_primary_workflows() {
         assert!(!readme.contains(forbidden), "{forbidden}");
     }
     assert!(read("site/index.html").contains("docker pull ghcr.io/shashankswe2020-ux/local-llmup"));
+}
+
+#[test]
+fn site_downloads_every_release_archive_through_stable_latest_links() {
+    let site = read("site/index.html");
+    for target in [
+        "aarch64-apple-darwin",
+        "x86_64-apple-darwin",
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc",
+    ] {
+        let url = format!(
+            "https://github.com/shashankswe2020-ux/local-llmup/releases/latest/download/{}.tar.gz",
+            llmup_cli::distribution::release_archive_stem(target).unwrap()
+        );
+        assert!(site.contains(&url), "{url}");
+    }
+    assert!(site.contains("releases/latest/download/SHA256SUMS"));
+    for stale in [
+        "releases/download/v0.",
+        ".dmg",
+        ".AppImage",
+        "setup.exe",
+        "Electron",
+    ] {
+        assert!(!site.contains(stale), "{stale}");
+    }
+}
+
+#[test]
+fn site_is_indexable_and_offers_only_native_installs() {
+    let site = read("site/index.html");
+    let canonical = "https://shashankswe2020-ux.github.io/local-llmup/";
+    assert!(site.contains(&format!("<link rel=\"canonical\" href=\"{canonical}\" />")));
+    assert!(site.contains(&format!(
+        "<meta property=\"og:image\" content=\"{canonical}assets/"
+    )));
+    assert!(read("site/sitemap.xml").contains(&format!("<loc>{canonical}</loc>")));
+    let blocks: Vec<serde_json::Value> = site
+        .split("<script type=\"application/ld+json\">")
+        .skip(1)
+        .map(|block| serde_json::from_str(block.split("</script>").next().unwrap()).unwrap())
+        .collect();
+    let questions: Vec<&str> = blocks
+        .iter()
+        .find(|block| block["@type"] == "FAQPage")
+        .unwrap()["mainEntity"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|question| question["name"].as_str().unwrap())
+        .collect();
+    let visible: Vec<&str> = site
+        .split("<summary>")
+        .skip(1)
+        .map(|item| item.split("</summary>").next().unwrap())
+        .collect();
+    assert_eq!(questions, visible, "structured FAQ must match visible FAQ");
+    assert!(
+        blocks
+            .iter()
+            .any(|block| block["@type"] == "SoftwareApplication")
+    );
+    for retired in ["npm install -g", "npx local-llmup", "Ink 5"] {
+        assert!(!site.contains(retired), "{retired}");
+    }
 }

@@ -111,6 +111,7 @@ fn relative_executable_cannot_enable_path_search() {
 fn cancellation_codes_are_stable_on_all_platforms() {
     assert_eq!(gui_launcher::GuiSignal::Interrupt.exit_code(), 130);
     assert_eq!(gui_launcher::GuiSignal::Terminate.exit_code(), 143);
+    assert_eq!(gui_launcher::GuiSignal::Hangup.exit_code(), 129);
 }
 
 #[test]

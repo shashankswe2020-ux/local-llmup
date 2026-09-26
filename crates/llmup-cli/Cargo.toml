@@ -6,19 +6,31 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-description = "Hardware-aware CLI that tells you which local LLMs will run (yes/slow/no + tok/s) before installing and serving them."
+description = "Which local LLMs can your computer run? Hardware-aware CLI with yes/slow/no verdicts and tok/s estimates, then verified installs via Ollama, llama.cpp, MLX or LM Studio."
 readme = "../../README.md"
-keywords = ["llm", "ollama", "cli", "local-ai", "hardware"]
-categories = ["command-line-utilities"]
+keywords = ["llm", "ollama", "vram", "local-llm", "llama-cpp"]
+categories = ["command-line-utilities", "artificial-intelligence"]
 include = ["src/**", "Cargo.toml"]
+
+[features]
+default = ["maintainer-tools"]
+# Catalog, parity and packaging tools; release archives ship only the public aliases.
+maintainer-tools = []
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/local-llmup-{ target }{ archive-suffix }"
+bin-dir = "local-llmup-{ target }/{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
 
 [[bin]]
 name = "llmup-fit-parity"
 path = "src/main.rs"
+required-features = ["maintainer-tools"]
 
 [[bin]]
 name = "llmup-native"
 path = "src/native.rs"
+required-features = ["maintainer-tools"]
 
 [[bin]]
 name = "llmup"
@@ -31,34 +43,41 @@ path = "src/local_llmup.rs"
 [[bin]]
 name = "llmup-dist"
 path = "src/dist.rs"
+required-features = ["maintainer-tools"]
 
 [[bin]]
 name = "llmup-catalog-freshness"
 path = "src/catalog_freshness.rs"
+required-features = ["maintainer-tools"]
 
 [[bin]]
 name = "llmup-catalog-bootstrap"
 path = "src/catalog_bootstrap.rs"
+required-features = ["maintainer-tools"]
 
 [[bin]]
 name = "llmup-catalog-refresh"
 path = "src/catalog_refresh.rs"
+required-features = ["maintainer-tools"]
 
 [[bin]]
 name = "llmup-catalog-coverage"
 path = "src/catalog_coverage.rs"
+required-features = ["maintainer-tools"]
 
 [[bin]]
 name = "llmup-catalog-notice"
 path = "src/catalog_notice.rs"
+required-features = ["maintainer-tools"]
 
 [[bin]]
 name = "llmup-catalog-enrich"
 path = "src/catalog_enrich.rs"
+required-features = ["maintainer-tools"]
 
 [dependencies]
-llmup-core = { path = "../llmup-core", version = "1.0.0" }
-llmup-runtime = { path = "../llmup-runtime", version = "1.0.0" }
+llmup-core = { path = "../llmup-core", version = "1.0.1" }
+llmup-runtime = { path = "../llmup-runtime", version = "1.0.1" }
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
 tokio-util = { version = "0.7", features = ["rt"] }

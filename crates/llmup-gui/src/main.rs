@@ -67,6 +67,16 @@ async fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
         None
     };
     let config = llmup_runtime::state::Config::load()?;
+    // Handlers must exist before readiness is announced, or an early signal kills the host uncleanly.
+    #[cfg(unix)]
+    let (mut interrupt, mut terminate, mut hangup) = {
+        use tokio::signal::unix::{SignalKind, signal};
+        (
+            signal(SignalKind::interrupt())?,
+            signal(SignalKind::terminate())?,
+            signal(SignalKind::hangup())?,
+        )
+    };
     let listener =
         tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, options.port())).await?;
     let host = options
@@ -80,6 +90,13 @@ async fn main() -> Result<ExitCode, Box<dyn std::error::Error>> {
     std::io::stdout().flush()?;
     let shutdown = host.shutdown.clone();
     tokio::spawn(async move {
+        #[cfg(unix)]
+        tokio::select! {
+            _ = interrupt.recv() => {},
+            _ = terminate.recv() => {},
+            _ = hangup.recv() => {},
+        }
+        #[cfg(not(unix))]
         let _ = tokio::signal::ctrl_c().await;
         shutdown.cancel();
     });

@@ -1,0 +1,54 @@
+{
+  "model": "llama3.1:8b",
+  "context": null,
+  "backend": "ollama",
+  "unifiedMemory": false,
+  "kvCacheKnown": true,
+  "paths": [
+    {
+      "path": "gpu",
+      "fits": true,
+      "quant": "Q4_K_M",
+      "requiredBytes": 5658849786.0,
+      "usableBytes": 25769803776.0,
+      "shortfallBytes": null,
+      "gpuCount": 1,
+      "throughput": {
+        "lowTokPerSec": 96.2,
+        "highTokPerSec": 178.7,
+        "known": true
+      },
+      "throughputBasis": "estimated"
+    },
+    {
+      "path": "cpu-offload",
+      "fits": true,
+      "quant": "Q4_K_M",
+      "requiredBytes": 5658849786.0,
+      "usableBytes": 88046829568.0,
+      "shortfallBytes": null,
+      "gpuCount": 1,
+      "throughput": {
+        "lowTokPerSec": 0.0,
+        "highTokPerSec": 0.0,
+        "known": false
+      },
+      "throughputBasis": "unknown: split across devices is not modeled; measure with llmup bench"
+    },
+    {
+      "path": "cpu",
+      "fits": true,
+      "quant": "Q4_K_M",
+      "requiredBytes": 5658849786.0,
+      "usableBytes": 62277025792.0,
+      "shortfallBytes": null,
+      "throughput": {
+        "lowTokPerSec": 3.7,
+        "highTokPerSec": 6.9,
+        "known": true
+      },
+      "throughputBasis": "estimated"
+    }
+  ],
+  "recommended": "gpu"
+}

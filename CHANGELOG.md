@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+## 1.0.1 - 2026-09-27
+
+### Install
+
+- Every tagged release now ships verified prebuilt archives for macOS (Apple
+  Silicon, Intel), Linux (x64, ARM64) and Windows (x64) with a `SHA256SUMS` file.
+  Install with `brew install shashankswe2020-ux/tap/local-llmup` or
+  `cargo binstall llmup-cli llmup-gui`.
+
+### Planning and hardware profiles
+
+- `llmup plan <model>` shows every execution path (GPU, multi-GPU, CPU offload,
+  unified memory, CPU) with fit, memory shortfall and throughput basis. Paths
+  split across devices report speed as `unknown` rather than an estimate.
+- `--hardware <profile.json>` evaluates `recommend`, `can-run`, `doctor`,
+  `catalog` and `plan` against a saved hardware profile.
+- Unified memory is detected from memory topology (NVIDIA shared-memory SoCs and
+  AMD APUs), not only Apple Silicon.
+
+### Fixes
+
+- `llmup down --forget` clears a stale pointer to an attached server whose daemon
+  restarted; previously `up`, `down` and `doctor` failed until `state.json` was
+  edited by hand. Owned servers are still never cleared without stopping them.
+- `llmup gui` stops its browser host when the terminal closes, and the host
+  handles `SIGTERM` and `SIGHUP` gracefully, so GUI-started Ollama daemons are no
+  longer orphaned.
+- The GUI never sends connector environment values (such as API secrets) to the
+  browser; the config editor shows placeholders and keeps saved values.
+- GUI model start failures show the real reason instead of `invalid request`.
+- GUI sizes are labelled GiB/MiB/KiB to match their binary units, the chat turn
+  count refreshes when switching chats, and per-message tok/s covers decode time
+  only and is omitted when a reply is too short to estimate.
+
 ## 1.0.0 - 2026-09-26
 
 ### Native Rust release

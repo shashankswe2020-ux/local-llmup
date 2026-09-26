@@ -1,17 +1,25 @@
-# local-llmup
+# local-llmup — which local LLMs can your computer run?
 
+[![CI](https://github.com/shashankswe2020-ux/local-llmup/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/shashankswe2020-ux/local-llmup/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/llmup-cli.svg?label=crates.io)](https://crates.io/crates/llmup-cli)
+[![Downloads](https://img.shields.io/crates/d/llmup-cli.svg)](https://crates.io/crates/llmup-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.98.1-000000.svg?logo=rust)](https://www.rust-lang.org)
-[![Tests](https://img.shields.io/badge/tests-780%2B%20passing-brightgreen.svg)](#development)
 [![Backends](https://img.shields.io/badge/backends-Ollama%20%7C%20llama.cpp%20%7C%20MLX%20%7C%20LM%20Studio-000000.svg)](#supported-backends)
 
 > **Know which local LLMs will actually run on your machine — before you download anything.**
 
-`local-llmup` is a hardware-aware CLI with an interactive terminal UI for
-discovering, sizing, installing, serving, and migrating local LLMs. One command
-gives you a `yes / slow / no` verdict with estimated tokens-per-second for every
-model in its curated catalog — then drives the entire lifecycle from pull through
-chat across four supported backends.
+`local-llmup` is a hardware-aware local LLM checker and launcher: a fast native
+Rust CLI, terminal UI and browser GUI that reads your GPU VRAM, unified memory,
+RAM and disk, then gives every model in its curated catalog a `yes / slow / no`
+verdict with an estimated tokens-per-second range. Think of it as a VRAM
+calculator that can also act on the answer — it picks a quantization, pulls and
+SHA-256-verifies the weights, serves them on `127.0.0.1`, and lets you chat,
+switch and migrate memory across [Ollama](https://ollama.com),
+[llama.cpp](https://github.com/ggml-org/llama.cpp),
+[MLX](https://github.com/ml-explore/mlx-lm) and [LM Studio](https://lmstudio.ai).
+It runs on macOS (Apple Silicon and Intel), Linux and Windows, with NVIDIA, AMD,
+Intel and Apple GPUs or CPU only.
 
 <div align="center">
 <img src="assets/model-performance.png" alt="local-llmup model performance view showing recommendation score, hardware fit, estimated throughput, memory and context evidence, quantizations, and catalog sources" width="900" />
@@ -73,6 +81,7 @@ integrity status, capabilities, and catalog sources. Unknown inputs stay
   - [Scripting \& Exit Codes](#scripting--exit-codes)
   - [local-llmup vs. Ollama](#local-llmup-vs-ollama)
   - [SOTA Landscape (August 2026)](#sota-landscape-august-2026)
+  - [FAQ](#faq)
   - [Development](#development)
     - [Architecture](#architecture)
     - [Testing Philosophy](#testing-philosophy)
@@ -83,18 +92,34 @@ integrity status, capabilities, and catalog sources. Unknown inputs stay
 
 ## Install
 
-`local-llmup` 1.0 is a native Rust application published on crates.io. With
-Rust 1.98 or newer ([rustup](https://rustup.rs)):
+`local-llmup` is a native Rust application. Every install puts the `llmup` and
+`local-llmup` aliases next to the `llmup-gui` companion that `llmup gui`
+launches; the binaries need no Node.js, Python or compiler at runtime.
+
+**Homebrew** (macOS and Linux):
 
 ```bash
+brew install shashankswe2020-ux/tap/local-llmup
+```
+
+**Prebuilt archives** for macOS (Apple Silicon, Intel), Linux (x64, ARM64) and
+Windows (x64) are attached to every
+[GitHub release](https://github.com/shashankswe2020-ux/local-llmup/releases/latest)
+with a `SHA256SUMS` file. Unpack one and put the folder on your `PATH`. Archives
+are unsigned; on macOS run `xattr -dr com.apple.quarantine local-llmup-*` after
+unpacking.
+
+**Cargo** — prebuilt with [cargo-binstall](https://github.com/cargo-bins/cargo-binstall),
+or from source with Rust 1.98 or newer ([rustup](https://rustup.rs)):
+
+```bash
+cargo binstall llmup-cli llmup-gui
 cargo install llmup-cli --locked --bin llmup --bin local-llmup
 cargo install llmup-gui --locked
 ```
 
-This installs the `llmup` and `local-llmup` aliases plus the `llmup-gui`
-companion that `llmup gui` launches. Install both into the same Cargo `bin`
-directory (the default) so the CLI can find the GUI beside it. The binaries need
-no Node.js, Python or compiler at runtime.
+Install both crates into the same Cargo `bin` directory (the default) so the CLI
+can find the GUI beside it.
 
 From a checkout, use the same pinned toolchain:
 
@@ -108,7 +133,7 @@ cargo llmup          # or run without installing
 receives no further releases. Remove it with `npm uninstall -g local-llmup`, then
 install with Cargo as above. Commands, flags, `--json` output and the
 `~/.local-llmup` state directory are unchanged, so active servers and chat memory
-carry over. Signed native archives and desktop installers are not part of 1.0.
+carry over. Signed archives and desktop installers are not released yet.
 
 ### Docker
 
@@ -354,7 +379,7 @@ KV cache fits. Throughput ranges remain short-context decode estimates because
 long-context throughput is not modeled yet.
 
 <div align="center">
-<img src="assets/screenshot-gui.png" alt="local-llmup browser workspace \u2014 recommended models" width="800" />
+<img src="assets/screenshot-gui.png" alt="local-llmup browser workspace showing recommended local models with yes, slow and no verdicts" width="800" />
 </div>
 
 - **Loopback-only.** The server binds `127.0.0.1`, validates the `Host` header,
@@ -603,6 +628,69 @@ application UX, while DeepGit focuses on discovering and analyzing repositories.
 `local-llmup` is the decision and lifecycle layer between a machine and local
 inference runtimes: measure the hardware, explain what fits, choose a backend,
 verify the weights, then serve and migrate without guessing.
+
+---
+
+## FAQ
+
+### How do I find out which LLMs my computer can run?
+
+Install `local-llmup` and run `llmup` with no arguments. It detects your GPU,
+VRAM, RAM and free disk, ranks every catalog model that fits, and lists the ones
+that don't with the binding reason (`vram-bound`, `ram-bound`, `disk-bound` or
+`context-bound`). `llmup can-run <model>` answers for a single model and exits
+non-zero when the answer is `no`.
+
+### How much VRAM do I need to run Llama, Qwen, Gemma or DeepSeek locally?
+
+These are `local-llmup`'s offline estimates of the memory each model needs at
+`Q4_K_M` and its default context. Your usable memory must be at least this much;
+longer contexts add KV cache on top. Reproduce them with `llmup catalog --all`.
+
+| Model | Parameters | Estimated memory (Q4_K_M) |
+|-------|-----------:|--------------------------:|
+| `llama3.2:3b` | 3B | 2.2 GiB |
+| `llama3.1:8b` | 8B | 5.3 GiB |
+| `qwen3:8b` | 8B | 5.6 GiB |
+| `gemma3:12b` | 12B | 8.7 GiB |
+| `qwen3:14b` | 14B | 9.9 GiB |
+| `mistral-small:24b` | 24B | 15.4 GiB |
+| `gemma3:27b` | 27B | 18.6 GiB |
+| `qwen3:30b-a3b` | 30B (3B active) | 19.9 GiB |
+| `qwen3:32b` | 32B | 21.6 GiB |
+| `mixtral:8x7b` | 47B | 29.6 GiB |
+| `llama3.3:70b` | 70B | 45.5 GiB |
+| `deepseek-r1:70b` | 70B | 45.5 GiB |
+| `qwen3:235b-a22b` | 235B | 152.2 GiB |
+| `deepseek-r1:671b` | 671B | 433.2 GiB |
+
+### Can I run local LLMs on a Mac with Apple Silicon?
+
+Yes. On Apple Silicon the GPU shares unified memory with the CPU, so
+`local-llmup` sizes models against system memory rather than a separate VRAM
+pool. It auto-selects MLX for models with an MLX build, then Ollama, then
+llama.cpp.
+
+### How are tokens per second estimated?
+
+Decode speed on consumer hardware is mostly limited by memory bandwidth, so the
+estimate combines the model's size at the chosen quantization with a curated,
+cited throughput dataset for your hardware class. When your hardware isn't in the
+dataset the speed is shown as `unknown` instead of a guess. Estimates are not
+benchmarks.
+
+### Does local-llmup send my data anywhere?
+
+No. Recommendations, `can-run` and `doctor` make no network calls and use a
+bundled offline catalog. Model servers and the browser GUI bind to `127.0.0.1`
+only. It reaches the internet only when you pull weights, choose a cloud chat
+harness, or run the maintainer catalog tools.
+
+### Is local-llmup an alternative to Ollama or LM Studio?
+
+It works alongside them. Ollama, llama.cpp, MLX and LM Studio run inference;
+`local-llmup` decides which model and quantization your machine can handle,
+verifies the download, and manages the server through whichever runtime you have.
 
 ---
 

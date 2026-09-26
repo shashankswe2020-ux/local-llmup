@@ -368,6 +368,34 @@ async fn model_routes_validate_queries_before_touching_runtimes() {
 }
 
 #[tokio::test]
+async fn up_lifecycle_failures_report_their_reason_instead_of_a_generic_error() {
+    let (home, host) = host(Arc::default());
+    let (status, text) = call(
+        &host,
+        "POST",
+        "/api/models/up",
+        json!({"model":"zz-not-a-catalog-model"}),
+    )
+    .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    let error = serde_json::from_str::<Value>(&text).unwrap()["error"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_ne!(error, "invalid request");
+    assert!(error.contains("zz-not-a-catalog-model"), "{error}");
+    assert!(!error.chars().any(char::is_control), "{error}");
+    let config = llmup_runtime::state::Config::from_home(home.path()).unwrap();
+    assert!(
+        llmup_runtime::state::StateStore::new(config)
+            .read()
+            .unwrap()
+            .active
+            .is_none()
+    );
+}
+
+#[tokio::test]
 async fn up_requests_are_validated_before_state_or_runtime_access() {
     let (home, host) = host(Arc::default());
     for body in [

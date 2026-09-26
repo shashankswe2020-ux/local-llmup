@@ -128,6 +128,56 @@ fn public_down_target_mismatch_preserves_owned_and_attached_state() {
 }
 
 #[test]
+fn down_forget_clears_only_attached_pointers_without_runtime_tools() {
+    for owned_by_us in [false, true] {
+        let home = tempfile::tempdir().unwrap();
+        let state = home.path().join("state.json");
+        let bytes = format!(
+            r#"{{"schemaVersion":2,"active":{{"backend":"ollama","modelId":"qwen3:30b-a3b","endpoint":"http://127.0.0.1:11435","port":11435,"ownedByUs":{owned_by_us},"pid":123,"processExecutable":"/trusted/ollama","processStartedAt":"instance"}}}}"#
+        );
+        std::fs::write(&state, &bytes).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&state, std::fs::Permissions::from_mode(0o600)).unwrap();
+        }
+        let output = Command::new(env!("CARGO_BIN_EXE_llmup"))
+            .args(["down", "--forget", "--json"])
+            .env("LOCAL_LLMUP_HOME", home.path())
+            .env("PATH", "")
+            .output()
+            .unwrap();
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        if owned_by_us {
+            assert_eq!(output.status.code(), Some(1));
+            assert!(stderr.contains("owned by local-llmup"), "{stderr}");
+            assert_eq!(std::fs::read(&state).unwrap(), bytes.as_bytes());
+        } else {
+            assert_eq!(output.status.code(), Some(0), "{stderr}");
+            let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+            assert_eq!(json["type"], "forgotten");
+            assert_eq!(json["modelId"], "qwen3:30b-a3b");
+            let after: serde_json::Value =
+                serde_json::from_slice(&std::fs::read(&state).unwrap()).unwrap();
+            assert!(after["active"].is_null(), "{after}");
+        }
+        assert!(!home.path().join("lock").exists());
+    }
+    for args in [
+        vec!["down", "llama3.1:8b", "--forget"],
+        vec!["up", "llama3.1:8b", "--forget"],
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_llmup"))
+            .args(&args)
+            .env("PATH", "")
+            .output()
+            .unwrap();
+        assert!(!output.status.success(), "{args:?}");
+        assert!(output.stdout.is_empty(), "{args:?}");
+    }
+}
+
+#[test]
 fn doctor_reports_corrupt_state_without_rewriting_it() {
     let home = std::env::temp_dir().join(format!("llmup-native-doctor-{}", std::process::id()));
     std::fs::create_dir(&home).unwrap();

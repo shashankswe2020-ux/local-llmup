@@ -1,8 +1,8 @@
 use crate::{
     catalog::{BACKENDS, CatalogModel, PerfClass, PerfDataset, require},
     sizing::{
-        Architecture, CpuArch, GpuVendor, Hardware, Platform, Quantization, SizingRequest,
-        ValidationError, evaluate, parse_param_count, quant_bits,
+        Architecture, GpuVendor, Hardware, Platform, Quantization, SizingRequest, ValidationError,
+        evaluate, parse_param_count, quant_bits,
     },
 };
 use serde::Serialize;
@@ -10,7 +10,7 @@ use serde_json::{Value, json};
 
 const GIB: f64 = 1073741824.0;
 pub fn unified(hardware: &Hardware) -> bool {
-    hardware.arch == CpuArch::Arm64 && hardware.platform == Platform::Darwin
+    hardware.is_unified()
 }
 pub fn largest_vram(hardware: &Hardware) -> f64 {
     hardware
@@ -72,7 +72,10 @@ pub fn match_perf<'a>(hardware: &Hardware, dataset: &'a PerfDataset) -> Option<&
                 best
             }
         });
-    let (vendor, kind, bytes) = if let Some(gpu) = discrete {
+    let (vendor, kind, bytes) = if unified(hardware) && hardware.platform != Platform::Darwin {
+        // Only Apple unified classes are sourced; other unified SoCs stay honest `unknown`.
+        ("shared", "unified", hardware.total_ram_bytes)
+    } else if let Some(gpu) = discrete {
         (
             match gpu.vendor {
                 GpuVendor::Nvidia => "nvidia",

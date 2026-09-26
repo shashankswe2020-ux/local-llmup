@@ -338,6 +338,115 @@ async fn legacy_owned_state_is_enriched_from_verified_live_identity_before_stop(
     assert!(*adapter.stopped.lock().unwrap());
     assert!(store.read().unwrap().active.is_none());
 }
+
+struct RestartedProbe;
+#[async_trait::async_trait]
+impl ProcessProbe for RestartedProbe {
+    async fn listener(&self, port: u16, host: &str) -> Result<Listener, StateError> {
+        Ok(Listener {
+            identity: ProcessIdentity {
+                pid: 456,
+                process: "ollama".into(),
+                executable: "/trusted/ollama".into(),
+                started: "restarted".into(),
+            },
+            port,
+            address: host.into(),
+        })
+    }
+    async fn process(&self, _pid: u32) -> Result<ProcessIdentity, StateError> {
+        Ok(self.listener(11435, "127.0.0.1").await?.identity)
+    }
+}
+
+#[tokio::test]
+async fn restarted_daemon_detaches_stale_attached_pointer_but_never_stops_owned_process() {
+    for owned in [false, true] {
+        let home = tempfile::tempdir().unwrap();
+        let store = StateStore::new(Config::from_home(home.path()).unwrap());
+        let mut prior = state();
+        prior.active.as_mut().unwrap().owned_by_us = owned;
+        let guard = store.lock(Duration::from_millis(10)).unwrap();
+        store.write(&guard, &prior).unwrap();
+        guard.release().unwrap();
+        let bytes = std::fs::read(&store.config.state).unwrap();
+        let adapter = Adapter {
+            fail: false,
+            stopped: Mutex::new(false),
+        };
+        let registry = Registry::new(vec![&adapter]);
+        let lifecycle = Lifecycle {
+            store: &store,
+            registry: &registry,
+            probe: &RestartedProbe,
+        };
+        let refused = lifecycle
+            .down(&CancellationToken::new())
+            .await
+            .unwrap_err()
+            .to_string();
+        assert!(refused.contains("does not match"), "{refused}");
+        assert_eq!(refused.contains("llmup down --forget"), !owned, "{refused}");
+        assert_eq!(std::fs::read(&store.config.state).unwrap(), bytes);
+        let result = lifecycle.forget_attached(&CancellationToken::new()).await;
+        assert!(!*adapter.stopped.lock().unwrap(), "owned={owned}");
+        assert!(!store.config.lock.exists());
+        if owned {
+            assert!(result.unwrap_err().to_string().contains("owned"));
+            assert_eq!(std::fs::read(&store.config.state).unwrap(), bytes);
+        } else {
+            assert_eq!(result.unwrap(), prior.active);
+            assert!(store.read().unwrap().active.is_none());
+            assert_eq!(
+                lifecycle
+                    .forget_attached(&CancellationToken::new())
+                    .await
+                    .unwrap(),
+                None
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn forget_attached_never_probes_and_respects_cancellation() {
+    struct Unprobed;
+    #[async_trait::async_trait]
+    impl ProcessProbe for Unprobed {
+        async fn listener(&self, _: u16, _: &str) -> Result<Listener, StateError> {
+            panic!("forget must not probe listeners")
+        }
+        async fn process(&self, _: u32) -> Result<ProcessIdentity, StateError> {
+            panic!("forget must not probe processes")
+        }
+    }
+    let home = tempfile::tempdir().unwrap();
+    let store = StateStore::new(Config::from_home(home.path()).unwrap());
+    let guard = store.lock(Duration::from_millis(10)).unwrap();
+    store.write(&guard, &state()).unwrap();
+    guard.release().unwrap();
+    let adapter = Adapter {
+        fail: false,
+        stopped: Mutex::new(false),
+    };
+    let registry = Registry::new(vec![&adapter]);
+    let lifecycle = Lifecycle {
+        store: &store,
+        registry: &registry,
+        probe: &Unprobed,
+    };
+    let cancel = CancellationToken::new();
+    cancel.cancel();
+    assert!(lifecycle.forget_attached(&cancel).await.is_err());
+    assert_eq!(store.read().unwrap(), state());
+    assert_eq!(
+        lifecycle
+            .forget_attached(&CancellationToken::new())
+            .await
+            .unwrap(),
+        state().active
+    );
+}
 #[tokio::test]
 async fn replacement_failure_preserves_foreign_state_and_drift_prevents_startup() {
     let home = tempfile::tempdir().unwrap();

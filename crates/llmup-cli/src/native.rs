@@ -79,7 +79,7 @@ use std::{
     about = "Hardware-aware local model advice, runtime management, and chat"
 )]
 struct Args {
-    #[arg(default_value="recommend", value_parser=["recommend","can-run","catalog","doctor","ls","up","switch","down","chat","migrate","gui"])]
+    #[arg(default_value="recommend", value_parser=["recommend","can-run","plan","catalog","doctor","ls","up","switch","down","chat","migrate","gui"])]
     command: String,
     model: Option<String>,
     #[arg(short = 'm', long = "model")]
@@ -142,12 +142,16 @@ struct Args {
     accessible: bool,
     #[arg(long, hide = true)]
     hardware_json: Option<String>,
+    #[arg(long)]
+    hardware: Option<PathBuf>,
     #[arg(long, hide = true)]
     parity: bool,
     #[arg(long)]
     catalog_path: Option<PathBuf>,
     #[arg(long)]
     perf_path: Option<PathBuf>,
+    #[arg(long)]
+    forget: bool,
 }
 
 enum AdviceRequest {
@@ -224,14 +228,50 @@ impl Args {
 }
 
 fn read_file(path: &PathBuf) -> Result<String, Box<dyn std::error::Error>> {
+    read_bounded(path, 16 * 1024 * 1024)
+}
+
+fn read_bounded(path: &PathBuf, limit: usize) -> Result<String, Box<dyn std::error::Error>> {
     let mut bytes = Vec::new();
     File::open(path)?
-        .take(16 * 1024 * 1024 + 1)
+        .take(limit as u64 + 1)
         .read_to_end(&mut bytes)?;
-    if bytes.len() > 16 * 1024 * 1024 {
-        return Err("dataset exceeds 16 MiB".into());
+    if bytes.len() > limit {
+        return Err(format!("{} exceeds {} KiB", path.display(), limit / 1024).into());
     }
     Ok(String::from_utf8(bytes)?)
+}
+
+async fn run_plan(
+    args: &Args,
+    catalog: &Catalog,
+    perf: &PerfDataset,
+    supplied: Option<Hardware>,
+) -> Result<u8, Box<dyn std::error::Error>> {
+    let query = args.model.as_deref().ok_or("model is required")?;
+    let resolved = resolve(catalog, query).map_err(|error| error.message)?;
+    let mut model = resolved.model.clone();
+    if let Some(quant) = resolved.quant {
+        model.quantizations = vec![quant.clone()];
+    }
+    let hardware = match supplied {
+        Some(hardware) => hardware,
+        None => {
+            let (hardware, warnings) = detect().await?;
+            for warning in warnings {
+                eprintln!("{}", strip_control(&warning));
+            }
+            hardware
+        }
+    };
+    let backend = args.backend.as_deref().unwrap_or("ollama");
+    let plan = llmup_core::plan::plan(&model, &hardware, perf, args.context, backend)?;
+    if args.json {
+        println!("{}", serde_json::to_string_pretty(&plan)?);
+    } else {
+        print!("{}", llmup_core::plan::format_plan(&plan));
+    }
+    Ok(u8::from(plan.recommended.is_none()))
 }
 
 fn parse_hardware_input(raw: &str) -> Result<Hardware, Box<dyn std::error::Error>> {
@@ -470,6 +510,22 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
     {
         return Err("migration options require migrate".into());
     }
+    if args.forget {
+        if args.command != "down" || args.model.is_some() || args.parity {
+            return Err("--forget is only supported by down without a model".into());
+        }
+        let (report, text) = llmup_runtime::application::forget_attached_with_config(
+            llmup_runtime::state::Config::load()?,
+            &tokio_util::sync::CancellationToken::new(),
+        )
+        .await?;
+        if args.json {
+            println!("{}", serde_json::to_string_pretty(&sanitized(&report))?);
+        } else {
+            print!("{text}");
+        }
+        return Ok(0);
+    }
     if ["chat", "migrate"].contains(&args.command.as_str()) {
         if args.model.is_some()
             || args.backend.is_some()
@@ -484,6 +540,7 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
             || args.task.is_some()
             || args.parity
             || args.hardware_json.is_some()
+            || args.hardware.is_some()
         {
             return Err("advice and lifecycle options cannot be used with chat or migrate".into());
         }
@@ -675,7 +732,7 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         return Ok(0);
     }
     if !args.parity {
-        if !["can-run", "up", "switch", "down"].contains(&args.command.as_str())
+        if !["can-run", "plan", "up", "switch", "down"].contains(&args.command.as_str())
             && args.model.is_some()
         {
             return Err("this command does not accept a model argument".into());
@@ -691,7 +748,7 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         {
             return Err("recommendation options are not supported by this command".into());
         }
-        if !["recommend", "can-run", "up", "switch"].contains(&args.command.as_str())
+        if !["recommend", "can-run", "plan", "up", "switch"].contains(&args.command.as_str())
             && (args.context.is_some() || args.backend.is_some())
         {
             return Err("--context and --backend require recommend or can-run".into());
@@ -798,11 +855,12 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         }
         return Ok(0);
     }
-    let mut supplied_hardware = args
-        .hardware_json
-        .as_deref()
-        .map(parse_hardware_input)
-        .transpose()?;
+    let mut supplied_hardware = match (&args.hardware_json, &args.hardware) {
+        (Some(_), Some(_)) => return Err("use either --hardware or --hardware-json".into()),
+        (Some(raw), None) => Some(parse_hardware_input(raw)?),
+        (None, Some(path)) => Some(parse_hardware_input(&read_bounded(path, 65536)?)?),
+        (None, None) => None,
+    };
     if args.command == "doctor" {
         let report = collect_doctor(&args, supplied_hardware).await;
         let exit = u8::from(report["ok"] == false);
@@ -845,6 +903,9 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         .unwrap_or_else(|| llmup_core::PERF_JSON.into());
     let catalog = Catalog::parse(&catalog_raw)?;
     let perf = PerfDataset::parse(&perf_raw)?;
+    if args.command == "plan" {
+        return run_plan(&args, &catalog, &perf, supplied_hardware.take()).await;
+    }
     let mut cooked_input = None;
     if args.model.is_none()
         && ["can-run", "up", "switch"].contains(&args.command.as_str())

@@ -215,3 +215,65 @@ pub fn verify_directory(directory: &Path) -> io::Result<Manifest> {
     }
     Ok(manifest)
 }
+
+const REPOSITORY: &str = "https://github.com/shashankswe2020-ux/local-llmup";
+const MAX_CHECKSUMS: usize = 64 * 1024;
+
+fn release_version(version: &str) -> io::Result<()> {
+    validate(version, TARGETS[0], &["llmup", "local-llmup", "llmup-gui"])
+}
+
+/// Archive and top-level directory name; `cargo binstall` metadata depends on this exact shape.
+pub fn release_archive_stem(target: &str) -> io::Result<String> {
+    if !TARGETS.contains(&target) {
+        return Err(invalid("invalid native package version or target"));
+    }
+    Ok(format!("local-llmup-{target}"))
+}
+
+pub fn parse_checksums(text: &str) -> io::Result<std::collections::BTreeMap<String, String>> {
+    if text.is_empty() || text.len() > MAX_CHECKSUMS {
+        return Err(invalid("checksum file is empty or too large"));
+    }
+    let mut entries = std::collections::BTreeMap::new();
+    for line in text.lines() {
+        let (hash, name) = line
+            .split_once("  ")
+            .ok_or_else(|| invalid("checksum lines must be `<sha256>  <file>`"))?;
+        if hash.len() != 64
+            || !hash
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+            || name.is_empty()
+            || name.contains(['/', '\\', ' '])
+            || name.starts_with('.')
+            || entries.insert(name.to_owned(), hash.to_owned()).is_some()
+        {
+            return Err(invalid("invalid or duplicate checksum entry"));
+        }
+    }
+    Ok(entries)
+}
+
+pub fn homebrew_formula(
+    version: &str,
+    checksums: &std::collections::BTreeMap<String, String>,
+) -> io::Result<String> {
+    release_version(version)?;
+    let asset = |target: &str| -> io::Result<String> {
+        let file = format!("{}.tar.gz", release_archive_stem(target)?);
+        let sha = checksums
+            .get(&file)
+            .ok_or_else(|| invalid("checksum file is missing a Homebrew archive"))?;
+        Ok(format!(
+            "      url \"{REPOSITORY}/releases/download/v{version}/{file}\"\n      sha256 \"{sha}\"\n"
+        ))
+    };
+    Ok(format!(
+        "class LocalLlmup < Formula\n  desc \"Hardware-aware CLI that tells you which local LLMs will run before installing them\"\n  homepage \"{REPOSITORY}\"\n  version \"{version}\"\n  license \"MIT\"\n\n  on_macos do\n    on_arm do\n{}    end\n    on_intel do\n{}    end\n  end\n\n  on_linux do\n    on_arm do\n{}    end\n    on_intel do\n{}    end\n  end\n\n  def install\n    bin.install \"llmup\", \"local-llmup\", \"llmup-gui\"\n  end\n\n  test do\n    assert_match version.to_s, shell_output(\"#{{bin}}/llmup --version\")\n  end\nend\n",
+        asset("aarch64-apple-darwin")?,
+        asset("x86_64-apple-darwin")?,
+        asset("aarch64-unknown-linux-gnu")?,
+        asset("x86_64-unknown-linux-gnu")?,
+    ))
+}

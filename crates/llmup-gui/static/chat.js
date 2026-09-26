@@ -680,9 +680,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return `${bytes} B`;
     }
     if (bytes < 1024 * 1024) {
-      return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / 1024).toFixed(1)} KiB`;
     }
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
   }
 
   // A blocking data-boundary prompt: workspace context is about to leave the
@@ -1038,12 +1038,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const ttftMs = firstDeltaAt - startedAt;
       const chars = reply.length;
       const secs = totalMs / 1000;
-      const tokens = Math.max(1, Math.round(chars / 4));
-      const tps = secs > 0 ? tokens / secs : 0;
+      const tokens = Math.round(chars / 4);
+      const decodeSecs = (totalMs - ttftMs) / 1000;
+      // Too few tokens or too short a decode window cannot support a rate estimate.
+      const rate = tokens >= 8 && decodeSecs >= 0.25
+        ? ` · ~${(tokens / decodeSecs).toFixed(tokens / decodeSecs < 10 ? 1 : 0)} tok/s`
+        : "";
       const metrics = document.createElement("div");
       metrics.className = "msg-metrics";
-      metrics.title = `Wall-clock timing measured in the browser. Token count is estimated at ~4 chars/token (${chars} chars).`;
-      metrics.textContent = `${(ttftMs / 1000).toFixed(2)}s to first token · ${secs.toFixed(1)}s total · ~${tps.toFixed(0)} tok/s`;
+      metrics.title = `Wall-clock timing measured in the browser. Token count is estimated at ~4 chars/token (${chars} chars); the rate covers decode time after the first token.`;
+      metrics.textContent = `${(ttftMs / 1000).toFixed(2)}s to first token · ${secs.toFixed(1)}s total${rate}`;
       row.appendChild(metrics);
     }
 
@@ -1267,14 +1271,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     const gb = bytes / 1024 ** 3;
     if (gb >= 1) {
-      return `${gb.toFixed(1)} GB`;
+      return `${gb.toFixed(1)} GiB`;
     }
     const mb = bytes / 1024 ** 2;
     if (mb >= 1) {
-      return `${Math.round(mb)} MB`;
+      return `${Math.round(mb)} MiB`;
     }
     const kb = bytes / 1024;
-    return kb >= 1 ? `${Math.round(kb)} KB` : `${Math.round(bytes)} bytes`;
+    return kb >= 1 ? `${Math.round(kb)} KiB` : `${Math.round(bytes)} bytes`;
   }
 
   function formatThroughput(throughput) {
@@ -2647,6 +2651,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json().catch(() => ({ messages: [] }));
       renderSessionMessages(Array.isArray(data.messages) ? data.messages : []);
       markActiveSession();
+      await loadStatus();
     } catch {
       // Leave the current view untouched on failure.
     }
@@ -2837,6 +2842,7 @@ document.addEventListener("DOMContentLoaded", () => {
         sessionSearch.value = "";
       }
       await loadSessions();
+      await loadStatus();
     } catch {
       // Ignore; the user can retry.
     }
