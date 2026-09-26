@@ -234,7 +234,7 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
             installed: input.installed,
             bypass: input.bypass,
         };
-        run_native_with_config(
+        if let Err(error) = run_native_with_config(
             &options,
             &catalog,
             Some(&hardware),
@@ -242,7 +242,13 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
             Config::from_home(&host.home).map_err(|_| bad())?,
         )
         .await
-        .map_err(|_| bad())?;
+        {
+            let message: String = llmup_core::reports::strip_control(&error.0)
+                .chars()
+                .take(400)
+                .collect();
+            return Ok(crate::error(axum::http::StatusCode::BAD_REQUEST, &message));
+        }
         let active = active(&host)?;
         host.ui.lock().await.model = active["modelId"].as_str().unwrap_or("local").into();
         return Ok(json_response(json!({"active":active})));

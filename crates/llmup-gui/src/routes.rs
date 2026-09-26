@@ -444,10 +444,13 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
                 return Ok(json_response(json!({"connectors":manager.list()})));
             }
             ("GET", "/api/connectors/config") => {
-                return Ok(json_response(json!({"config":manager.snapshot()})));
+                return Ok(json_response(
+                    json!({"config":masked_connectors(manager.snapshot())}),
+                ));
             }
             ("PUT", "/api/connectors/config") => {
                 let file: ConnectorFile = body(request, MAX_REQUEST_BYTES).await?;
+                let file = unmask_connectors(file, &manager.snapshot())?;
                 checked(manager.replace(file, &store).await)?;
                 return Ok(json_response(json!({"connectors":manager.list()})));
             }
@@ -534,6 +537,46 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
             .into_response());
     }
     Err(missing())
+}
+const MASKED_SECRET: &str = "••••••";
+/// Connector env values are credentials; the browser only ever sees a placeholder.
+fn masked_connectors(mut file: ConnectorFile) -> ConnectorFile {
+    for connector in &mut file.connectors {
+        if let Connector::Stdio { env: Some(env), .. } = connector {
+            for value in env.values_mut() {
+                *value = MASKED_SECRET.into();
+            }
+        }
+    }
+    file
+}
+fn unmask_connectors(
+    mut file: ConnectorFile,
+    stored: &ConnectorFile,
+) -> Result<ConnectorFile, ApiError> {
+    for connector in &mut file.connectors {
+        let id = connector.id().to_owned();
+        if let Connector::Stdio { env: Some(env), .. } = connector {
+            for (key, value) in env.iter_mut() {
+                if value != MASKED_SECRET {
+                    continue;
+                }
+                *value = stored
+                    .connectors
+                    .iter()
+                    .find_map(|previous| match previous {
+                        Connector::Stdio {
+                            id: previous_id,
+                            env: Some(previous_env),
+                            ..
+                        } if *previous_id == id => previous_env.get(key).cloned(),
+                        _ => None,
+                    })
+                    .ok_or_else(bad)?;
+            }
+        }
+    }
+    Ok(file)
 }
 pub fn session_error(error: llmup_runtime::sessions::SessionError) -> ApiError {
     if matches!(error, llmup_runtime::sessions::SessionError::Conflict) {
