@@ -471,7 +471,8 @@ fn accessible_render_failure_preserves_one_authoritative_report() {
         &[("p finish and print result", b"\xff\r")],
     );
     assert_eq!(exit, 0, "{output}");
-    let normalized = output.replace("\r\n", "\n");
+    // macOS 14 PTYs can duplicate a carriage return at a 4 KiB output boundary.
+    let normalized = output.replace('\r', "");
     let report = plain_recommendation(false);
     assert!(normalized.ends_with(&report), "{output}");
     assert_eq!(normalized.matches(&report).count(), 1, "{output}");

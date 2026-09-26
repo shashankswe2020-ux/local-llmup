@@ -77,9 +77,9 @@ jobs:
       - name: Validate budget behavior
         run: cargo test --locked -p llmup-cli --test performance
       - name: Build optimized candidate and runner
-        run: cargo build --locked --release -p llmup-cli --bin llmup-native --example native-performance
+        run: cargo build --locked --release -p llmup-cli --bin llmup --example native-performance
       - name: Measure native release budgets
-        run: target/release/examples/native-performance --executable target/release/llmup-native > performance-report.json
+        run: target/release/examples/native-performance --executable target/release/llmup > performance-report.json
       - name: Performance evidence
         if: always()
         run: |

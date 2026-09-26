@@ -1,3 +1,5 @@
+#[cfg(unix)]
+use llmup_runtime::opencode::{LaunchSpec, NativeOpenCodeRunner, OpenCodeHarness, OpenCodeRunner};
 use llmup_runtime::{
     adapters::{BackendAdapter, BackendError, ServeRequest},
     harness::{
@@ -7,9 +9,7 @@ use llmup_runtime::{
     identity::{Listener, ProcessIdentity, ProcessProbe},
     lifecycle::Registry,
     ollama_inference::{ChatInput, ChatResult},
-    opencode::{
-        LaunchSpec, NativeOpenCodeRunner, OpenCodeHarness, OpenCodeRunner, launch_spec, parse_event,
-    },
+    opencode::{launch_spec, parse_event},
     state::{Config, RuntimeState, ServerState, StateError, StateStore},
 };
 use serde_json::{Value, json};
