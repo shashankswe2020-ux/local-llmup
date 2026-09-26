@@ -98,7 +98,7 @@ const COMMANDS: &[CommandSpec] = &[
     CommandSpec {
         name: "down",
         description: "Stop owned servers or detach and forget an attached daemon without stopping it",
-        flags: &["yes", "catalog_path", "perf_path"],
+        flags: &["yes", "forget", "catalog_path", "perf_path"],
         model: true,
         ui: true,
     },
@@ -197,6 +197,9 @@ fn help_command(spec: &CommandSpec, flat: &Command) -> Command {
                 "move_memory" => "Delete source memory after successful migration (requires --yes)",
                 "dry_run" => "Preview migration without writing memory",
                 "yes" => "Skip confirmation; retain drift protection (migration requires --move)",
+                "forget" => {
+                    "Clear a stale attached-server pointer without probing or stopping any process"
+                }
                 "json" if spec.name == "gui" => {
                     "Print the server URL as JSON without opening a browser"
                 }

@@ -130,7 +130,44 @@ impl Lifecycle<'_> {
         let observed = listener(self.probe, &active.endpoint, cancel).await?;
         capture(active, &observed, adapter.trusts(&observed.identity))
             .map(Some)
-            .map_err(|error| BackendError(error.to_string()))
+            .map_err(|error| {
+                BackendError(if active.owned_by_us {
+                    error.to_string()
+                } else {
+                    format!(
+                        "{error}; if the attached {} daemon restarted, run `llmup down --forget` to clear the stale pointer",
+                        active.backend
+                    )
+                })
+            })
+    }
+    /// Clears an attached (not owned) pointer under the state lock without probing or signalling any process.
+    pub async fn forget_attached(
+        &self,
+        cancel: &CancellationToken,
+    ) -> Result<Option<ServerState>, BackendError> {
+        let guard = self.lock(cancel).await?;
+        let prior = self
+            .store
+            .read()
+            .map_err(|error| BackendError(error.to_string()))?;
+        let outcome = match &prior.active {
+            None => Ok(None),
+            Some(active) if active.owned_by_us => Err(BackendError(
+                "--forget only clears attached servers; this server is owned by local-llmup, so use `llmup down`"
+                    .into(),
+            )),
+            Some(_) if cancel.is_cancelled() => Err(BackendError("cancelled".into())),
+            Some(_) => self
+                .store
+                .compare_and_write(&guard, &prior, &RuntimeState::default())
+                .map(|()| prior.active.clone())
+                .map_err(|error| BackendError(error.to_string())),
+        };
+        guard
+            .release()
+            .map_err(|error| BackendError(error.to_string()))?;
+        outcome
     }
     pub async fn review(
         &self,

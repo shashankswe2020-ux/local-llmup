@@ -150,6 +150,8 @@ struct Args {
     catalog_path: Option<PathBuf>,
     #[arg(long)]
     perf_path: Option<PathBuf>,
+    #[arg(long)]
+    forget: bool,
 }
 
 enum AdviceRequest {
@@ -507,6 +509,22 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
             || (args.yes && args.command != "down"))
     {
         return Err("migration options require migrate".into());
+    }
+    if args.forget {
+        if args.command != "down" || args.model.is_some() || args.parity {
+            return Err("--forget is only supported by down without a model".into());
+        }
+        let (report, text) = llmup_runtime::application::forget_attached_with_config(
+            llmup_runtime::state::Config::load()?,
+            &tokio_util::sync::CancellationToken::new(),
+        )
+        .await?;
+        if args.json {
+            println!("{}", serde_json::to_string_pretty(&sanitized(&report))?);
+        } else {
+            print!("{text}");
+        }
+        return Ok(0);
     }
     if ["chat", "migrate"].contains(&args.command.as_str()) {
         if args.model.is_some()

@@ -464,6 +464,33 @@ pub async fn run_native_observed(
     let config = Config::load().map_err(|error| BackendError(error.to_string()))?;
     run_native_with_config_observed(options, catalog, hardware, cancel, config, observer).await
 }
+/// `down --forget`: clears a stale attached pointer without probing or signalling any process.
+pub async fn forget_attached_with_config(
+    config: Config,
+    cancel: &CancellationToken,
+) -> Result<(Value, String), BackendError> {
+    let store = StateStore::new(config);
+    let registry = Registry::new(Vec::new());
+    let lifecycle = Lifecycle {
+        store: &store,
+        registry: &registry,
+        probe: &NativeProcessProbe,
+    };
+    Ok(match lifecycle.forget_attached(cancel).await? {
+        None => (
+            json!({"type":"no-active"}),
+            "No active server to forget.\n".into(),
+        ),
+        Some(active) => (
+            json!({"type":"forgotten","modelId":active.model_id,"endpoint":active.endpoint}),
+            format!(
+                "Forgot {} ({}); no process was signalled.\n",
+                strip_control(&active.model_id),
+                active.endpoint
+            ),
+        ),
+    })
+}
 pub async fn run_native_with_config(
     options: &LifecycleOptions,
     catalog: &Catalog,
