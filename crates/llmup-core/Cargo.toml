@@ -9,7 +9,7 @@ homepage.workspace = true
 description = "Deterministic, offline hardware-fit scoring, catalog and sizing engine for local-llmup."
 keywords = ["llm", "local-ai", "hardware", "ollama"]
 categories = ["science"]
-include = ["src/**", "data/**", "fixtures/bootstrap-metadata.json", "Cargo.toml"]
+include = ["src/**", "data/**", "fixtures/bootstrap-metadata.json", "fixtures/registry-snapshot.json", "Cargo.toml"]
 
 [dependencies]
 serde.workspace = true

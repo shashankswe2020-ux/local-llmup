@@ -14,3 +14,5 @@ pub mod sizing;
 pub const MODELS_JSON: &str = include_str!("../data/models.json");
 /// Curated throughput dataset bundled into every release.
 pub const PERF_JSON: &str = include_str!("../data/perf.json");
+/// Pinned registry snapshot that catalog bootstrap and refresh read.
+pub const REGISTRY_SNAPSHOT_JSON: &str = include_str!("../fixtures/registry-snapshot.json");

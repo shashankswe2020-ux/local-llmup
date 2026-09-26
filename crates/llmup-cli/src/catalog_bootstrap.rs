@@ -24,9 +24,7 @@ struct Args {
 }
 
 fn run(args: Args) -> Result<(), Box<dyn Error>> {
-    let candidates = parse_candidates(include_str!(
-        "../../llmup-core/fixtures/registry-snapshot.json"
-    ))?;
+    let candidates = parse_candidates(llmup_core::REGISTRY_SNAPSHOT_JSON)?;
     let catalog = build_catalog(&candidates, &args.now)?;
     let encoded = format!("{}\n", serde_json::to_string_pretty(&catalog)?);
     if args.dry_run {

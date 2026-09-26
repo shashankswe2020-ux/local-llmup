@@ -36,9 +36,7 @@ fn run(args: Args) -> Result<(), Box<dyn Error>> {
     let directory = Directory::open(&parent)?;
     let original = directory.read(name, 16 * 1024 * 1024, false)?;
     let catalog = Catalog::parse(std::str::from_utf8(&original)?)?;
-    let candidates = parse_candidates(include_str!(
-        "../../llmup-core/fixtures/registry-snapshot.json"
-    ))?;
+    let candidates = parse_candidates(llmup_core::REGISTRY_SNAPSHOT_JSON)?;
     let now = args
         .now
         .map(Ok)

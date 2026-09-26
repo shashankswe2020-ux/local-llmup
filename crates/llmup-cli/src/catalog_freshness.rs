@@ -86,9 +86,7 @@ fn run(args: Args) -> Result<(), Box<dyn Error>> {
         return Err(io::Error::other("catalog, report, and summary paths must be distinct").into());
     }
     let catalog = Catalog::parse(&read(&catalog_path, 16 * 1024 * 1024)?)?;
-    let candidates = parse_candidates(include_str!(
-        "../../llmup-core/fixtures/registry-snapshot.json"
-    ))?;
+    let candidates = parse_candidates(llmup_core::REGISTRY_SNAPSHOT_JSON)?;
     let now = args
         .now
         .map(Ok)

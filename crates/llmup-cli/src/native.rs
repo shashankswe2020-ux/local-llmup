@@ -1219,9 +1219,7 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
             }
             let text = if args.refresh {
                 use llmup_core::enrich::{Mode, enrich, format_diff, parse_candidates};
-                let candidates = parse_candidates(include_str!(
-                    "../../llmup-core/fixtures/registry-snapshot.json"
-                ))?;
+                let candidates = parse_candidates(llmup_core::REGISTRY_SNAPSHOT_JSON)?;
                 let result = enrich(
                     &catalog,
                     &candidates,
