@@ -3,7 +3,7 @@ use thiserror::Error;
 
 const SAFE_INTEGER: f64 = 9_007_199_254_740_991.0;
 const OS_RESERVE: f64 = 2.0 * 1024.0 * 1024.0 * 1024.0;
-const HEADROOM: f64 = 0.15;
+pub const HEADROOM: f64 = 0.15;
 
 #[derive(Debug, Error)]
 #[error("{0}")]
@@ -57,6 +57,17 @@ pub struct Hardware {
     pub free_ram_bytes: f64,
     pub free_disk_bytes: f64,
     pub gpu: Vec<Gpu>,
+    /// Shared CPU/GPU memory pool (Apple Silicon, AMD APUs, NVIDIA Grace/Jetson SoCs).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unified_memory: Option<bool>,
+}
+
+impl Hardware {
+    /// Detected topology when known; otherwise only Apple Silicon Macs are assumed unified.
+    pub fn is_unified(&self) -> bool {
+        self.unified_memory
+            .unwrap_or(self.arch == CpuArch::Arm64 && self.platform == Platform::Darwin)
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -249,7 +260,7 @@ fn validate(request: &SizingRequest) -> Result<(), ValidationError> {
 }
 
 pub fn memory_capacity(hardware: &Hardware) -> (&'static str, f64) {
-    let unified = hardware.arch == CpuArch::Arm64 && hardware.platform == Platform::Darwin;
+    let unified = hardware.is_unified();
     let vram = hardware
         .gpu
         .iter()

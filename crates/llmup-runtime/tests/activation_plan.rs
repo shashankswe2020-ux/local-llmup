@@ -47,6 +47,7 @@ fn hardware(platform: Platform, arch: CpuArch, ram: f64, disk: f64) -> Hardware 
         free_ram_bytes: ram,
         free_disk_bytes: disk,
         gpu: vec![],
+        unified_memory: None,
     }
 }
 

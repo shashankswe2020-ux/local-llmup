@@ -1,0 +1,7 @@
+Plan for llama3.1:8b (default context, ollama backend)
+
+  gpu (1 GPU)            fits Q4_K_M using 5.3 GiB of 24.0 GiB; 96.2-178.7 tok/s estimated
+  cpu-offload (1 GPU)    fits Q4_K_M using 5.3 GiB of 82.0 GiB; speed unknown (not modeled; measure with llmup bench)
+  cpu                    fits Q4_K_M using 5.3 GiB of 58.0 GiB; 3.7-6.9 tok/s estimated
+
+Recommended path: gpu

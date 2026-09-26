@@ -28,6 +28,7 @@ const COMMANDS: &[CommandSpec] = &[
             "catalog_path",
             "perf_path",
             "hardware_json",
+            "hardware",
         ],
         model: false,
         ui: true,
@@ -43,9 +44,24 @@ const COMMANDS: &[CommandSpec] = &[
             "catalog_path",
             "perf_path",
             "hardware_json",
+            "hardware",
         ],
         model: true,
         ui: true,
+    },
+    CommandSpec {
+        name: "plan",
+        description: "Show every execution path (GPU, multi-GPU, offload, CPU) for one model",
+        flags: &[
+            "context",
+            "backend",
+            "catalog_path",
+            "perf_path",
+            "hardware_json",
+            "hardware",
+        ],
+        model: true,
+        ui: false,
     },
     CommandSpec {
         name: "up",
@@ -96,7 +112,7 @@ const COMMANDS: &[CommandSpec] = &[
     CommandSpec {
         name: "doctor",
         description: "Diagnose hardware, runtimes, ports, and state",
-        flags: &["catalog_path", "perf_path", "hardware_json"],
+        flags: &["catalog_path", "perf_path", "hardware_json", "hardware"],
         model: false,
         ui: true,
     },
@@ -109,6 +125,7 @@ const COMMANDS: &[CommandSpec] = &[
             "catalog_path",
             "perf_path",
             "hardware_json",
+            "hardware",
         ],
         model: false,
         ui: true,
@@ -212,6 +229,7 @@ fn help_command(spec: &CommandSpec, flat: &Command) -> Command {
                 "catalog_path" => "Load a catalog from this JSON file",
                 "perf_path" => "Load throughput data from this JSON file",
                 "hardware_json" => "Use a supplied hardware fixture",
+                "hardware" => "Evaluate a hardware profile JSON file instead of this machine",
                 _ => unreachable!("all command options have help"),
             });
             if id == "model" {

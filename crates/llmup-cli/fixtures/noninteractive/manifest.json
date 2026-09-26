@@ -10,7 +10,8 @@
     "migrate": "../../tests/fixtures/noninteractive/migrate-plain.txt",
     "ls": "../../tests/fixtures/noninteractive/ls-plain.txt",
     "catalog": "../../tests/fixtures/noninteractive/catalog-plain.txt",
-    "doctor": "../../tests/fixtures/noninteractive/doctor-plain.txt"
+    "doctor": "../../tests/fixtures/noninteractive/doctor-plain.txt",
+    "plan": "../../tests/fixtures/noninteractive/plan-plain.txt"
   },
   "json": {
     "recommend": "../../tests/fixtures/noninteractive/recommend-json.json",
@@ -22,6 +23,7 @@
     "switch": "fixtures/noninteractive/switch-json.json",
     "migrate": "fixtures/noninteractive/migrate-json.json",
     "ls": "fixtures/noninteractive/ls-json.json",
-    "doctor": "../../tests/fixtures/noninteractive/doctor-json.json"
+    "doctor": "../../tests/fixtures/noninteractive/doctor-json.json",
+    "plan": "../../tests/fixtures/noninteractive/plan-json.json"
   }
 }

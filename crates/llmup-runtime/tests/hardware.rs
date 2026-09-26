@@ -32,6 +32,52 @@ fn parses_platform_gpu_evidence_and_rejects_malformed_results() {
 }
 
 #[test]
+fn unified_memory_is_detected_from_topology_not_only_apple_silicon() {
+    let spark = parse_gpu_output("linux", "NVIDIA GB10, [N/A]\n").unwrap();
+    assert_eq!(spark[0]["sharedMemory"], true);
+    assert!(spark[0]["vram"].is_null());
+    let snapshot = |arch: &str, controllers: serde_json::Value, unified: serde_json::Value| {
+        json!({"arch":arch,"platform":"linux","total":128_u64 << 30,"free":100_u64 << 30,
+            "controllers":controllers,"disks":[{"mount":"/","available":1_u64 << 40}],"unifiedMemory":unified})
+    };
+    let grace = map_snapshot(&snapshot("aarch64", json!(spark), json!(null))).unwrap();
+    assert_eq!(grace.unified_memory, Some(true));
+    assert_eq!(grace.gpu[0].vram_bytes, 0.0);
+    assert!(grace.is_unified());
+    let x86 = map_snapshot(&snapshot("x86_64", json!(spark), json!(null))).unwrap();
+    assert_eq!(x86.unified_memory, None);
+    assert!(!x86.is_unified());
+    let apu = map_snapshot(&snapshot("x86_64", json!([]), json!(true))).unwrap();
+    assert!(apu.is_unified());
+    let discrete = map_snapshot(&snapshot(
+        "x86_64",
+        json!([{"vendor":"NVIDIA RTX 4090","vram":24564,"vramDynamic":false}]),
+        json!(null),
+    ))
+    .unwrap();
+    assert_eq!(discrete.unified_memory, None);
+    assert_eq!(
+        serde_json::to_value(&discrete)
+            .unwrap()
+            .get("unifiedMemory"),
+        None
+    );
+    assert!(parse_gpu_output("linux", "NVIDIA RTX, lots\n").is_err());
+}
+
+#[test]
+fn kfd_topology_marks_apus_that_share_cpu_memory() {
+    use llmup_runtime::hardware::kfd_apu;
+    let cpu = "cpu_cores_count 16\nsimd_count 0\nmem_banks_count 1\n".to_owned();
+    let discrete = "cpu_cores_count 0\nsimd_count 192\n".to_owned();
+    let apu = "cpu_cores_count 16\nsimd_count 80\n".to_owned();
+    assert!(!kfd_apu(&[cpu.clone(), discrete.clone()]));
+    assert!(kfd_apu(&[cpu, apu]));
+    assert!(!kfd_apu(&["cpu_cores_count x\nsimd_count 80\n".to_owned()]));
+    assert!(!kfd_apu(&[]));
+}
+
+#[test]
 fn rejects_invalid_memory_and_uses_free_when_available_is_absent() {
     let mut raw = json!({"arch":"aarch64","platform":"darwin","total":16000000000_u64,"available":0,"free":8000000000_u64,"controllers":[],"disks":[]});
     assert_eq!(map_snapshot(&raw).unwrap().free_ram_bytes, 8000000000.0);
