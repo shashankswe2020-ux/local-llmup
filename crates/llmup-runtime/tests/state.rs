@@ -197,3 +197,15 @@ fn state_permissions_and_symlinked_lock_are_enforced() {
     );
     assert_eq!(std::fs::read_to_string(target).unwrap(), "12345\n");
 }
+
+#[test]
+fn a_regular_file_home_is_an_error_not_an_empty_state() {
+    let root = tempfile::tempdir().unwrap();
+    let home = root.path().join("not-a-directory");
+    std::fs::write(&home, b"unchanged").unwrap();
+    let store = StateStore::new(Config::from_home(&home).unwrap());
+    assert!(store.read().is_err());
+    assert_eq!(std::fs::read(&home).unwrap(), b"unchanged");
+    let missing = StateStore::new(Config::from_home(root.path().join("absent")).unwrap());
+    assert_eq!(missing.read().unwrap(), RuntimeState::default());
+}

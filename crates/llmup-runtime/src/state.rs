@@ -453,7 +453,17 @@ impl StateStore {
     pub fn read(&self) -> Result<RuntimeState, StateError> {
         match secure_read(&self.config.state, 1048576, true) {
             Ok(raw) => RuntimeState::parse(&raw),
-            Err(cause) if cause.kind == "absent" => Ok(RuntimeState::default()),
+            // Windows reports "path not found" when home is a file, so absence alone is not proof of empty state.
+            Err(cause)
+                if cause.kind == "absent"
+                    && std::fs::symlink_metadata(&self.config.home)
+                        .map_or(true, |meta| meta.is_dir()) =>
+            {
+                Ok(RuntimeState::default())
+            }
+            Err(cause) if cause.kind == "absent" => {
+                Err(error("invalid", "state home is not a directory"))
+            }
             Err(cause) => Err(cause),
         }
     }
