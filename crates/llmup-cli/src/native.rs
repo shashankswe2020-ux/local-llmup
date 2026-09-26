@@ -1690,8 +1690,37 @@ async fn present_read_only(
     Ok(0)
 }
 
-#[tokio::main]
-async fn main() -> ExitCode {
+// Windows main threads get 1 MiB, too small for the CLI future; run it on an explicitly sized thread.
+const MAIN_STACK_BYTES: usize = 16 * 1024 * 1024;
+
+fn main() -> ExitCode {
+    let worker = std::thread::Builder::new()
+        .name("llmup-main".into())
+        .stack_size(MAIN_STACK_BYTES)
+        .spawn(|| {
+            tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .map(|runtime| runtime.block_on(run()))
+        });
+    match worker.map(std::thread::JoinHandle::join) {
+        Ok(Ok(Ok(code))) => code,
+        Ok(Err(panic)) => std::panic::resume_unwind(panic),
+        Ok(Ok(Err(error))) => {
+            let _ = writeln!(std::io::stderr(), "llmup: cannot start runtime: {error}");
+            ExitCode::from(1)
+        }
+        Err(error) => {
+            let _ = writeln!(
+                std::io::stderr(),
+                "llmup: cannot start main thread: {error}"
+            );
+            ExitCode::from(1)
+        }
+    }
+}
+
+async fn run() -> ExitCode {
     let args = match native_args::parse() {
         Ok(Some(args)) => args,
         Ok(None) => return ExitCode::SUCCESS,
