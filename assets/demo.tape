@@ -1,5 +1,8 @@
-# Full end-to-end demo: install 0.8.1 → recommend (TUI) → doctor (TUI) → can-run
+# End-to-end demo of the native CLI: version → recommend TUI (details, compare) → doctor → can-run → plan
+# Record: PATH="<dir with llmup, local-llmup, llmup-gui>:$PATH" vhs assets/demo.tape
 Output assets/demo.gif
+
+Require local-llmup
 
 Set Shell "zsh"
 Set Theme "Catppuccin Mocha"
@@ -10,53 +13,56 @@ Set Padding 20
 Set TypingSpeed 40ms
 Set PlaybackSpeed 1.5
 
-# Install from npm
-Type "npm install -g local-llmup@0.8.1"
+# Isolated state so the recording never shows or changes real local-llmup state.
+Hide
+Type "export LOCAL_LLMUP_HOME=$(mktemp -d) && clear"
 Enter
-Sleep 4s
+Show
 
-# Verify version
 Type "local-llmup --version"
 Enter
 Sleep 1.5s
 
-# Show recommend TUI
-Type "local-llmup recommend"
+# Recommend is the default command and opens the TUI in a capable terminal.
+Type "local-llmup"
 Enter
 Sleep 3s
-
-# Navigate down a few rows
 Down
 Sleep 500ms
 Down
 Sleep 500ms
-Down
-Sleep 500ms
-
-# Open detail panel
 Enter
-Sleep 2s
-
-# Close and quit
+Sleep 2.5s
 Escape
+Sleep 500ms
+
+# Mark two models with Space, then compare them.
+Space
+Sleep 300ms
+Down
+Sleep 300ms
+Space
+Sleep 300ms
+Type "c"
+Sleep 2.5s
+Type "c"
 Sleep 500ms
 Type "q"
 Sleep 1s
 
-# Show doctor TUI
 Type "local-llmup doctor"
 Enter
 Sleep 3s
-
-# Quit doctor
 Type "q"
 Sleep 1s
 
-# Show can-run (always text output)
-Type "local-llmup can-run qwen3:8b"
+Type "local-llmup can-run qwen3:8b --no-tui"
+Enter
+Sleep 2s
+Type "local-llmup can-run deepseek-r1:671b --no-tui"
 Enter
 Sleep 2s
 
-Type "local-llmup can-run deepseek-r1:671b"
+Type "clear && local-llmup plan qwen3:30b-a3b"
 Enter
-Sleep 2s
+Sleep 3s

@@ -301,13 +301,17 @@ terminal (TTY with ≥60 columns, ≥16 rows).
 | Key | Action |
 |-----|--------|
 | `↑` / `↓` or `j` / `k` | Navigate list |
-| `Enter` | Select / confirm |
-| `/` | Search / filter |
-| `m` | Mark model for comparison |
-| `c` | Compare marked models |
-| `d` | Show model details |
-| `q` / `Esc` | Quit / back |
-| `Ctrl+C` | Cancel operation (with compensation) |
+| `PgUp` / `PgDn`, `Home` / `End` | Jump by page or to either end |
+| `Enter` / `→` / `Tab` | Open model details |
+| `Esc` / `←` / `Backspace` | Back (quits from the list) |
+| `/` | Search / filter (`Ctrl+U` resets the filter) |
+| `Space` | Mark model for comparison (up to 4) |
+| `c` | Compare 2–4 marked models |
+| `i` | Machine and scope overview |
+| `p` | Finish and print the top pick's command (never executes it) |
+| `?` | Keyboard help |
+| `q` | Quit |
+| `Ctrl+C` | Interrupt (exit 130) |
 
 ### Screenshots
 
@@ -410,7 +414,7 @@ commands or loopback HTTP/SSE only. Enable a connector and its tools become
 available to the model:
 
 <div align="center">
-<img src="assets/connectors.gif" alt="Approving two live WHOOP MCP calls and rendering an actual health briefing" width="800" />
+<img src="assets/connectors.gif" alt="Approving a live read-only WHOOP MCP call and rendering a health briefing" width="800" />
 </div>
 
 ---

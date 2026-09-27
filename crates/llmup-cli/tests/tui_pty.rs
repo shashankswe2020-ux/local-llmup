@@ -634,6 +634,10 @@ fn visual_comparison_and_help_do_not_execute_model_actions() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "ConPTY translates Ctrl-C and re-renders the output stream"
+)]
 fn visual_can_run_preserves_verdict_exit_and_interrupt_contracts() {
     for (model, expected) in [("llama3.1:8b", 0), ("deepseek-r1:671b", 1)] {
         let (exit, output) = run_command("can-run", &[model, "--tui"], 100, 30, Some(b"q"));
