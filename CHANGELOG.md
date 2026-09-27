@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 1.0.2 - 2026-09-28
+
+### Fixes
+
+- Tool-using chat works again with Ollama 0.32 and newer. Ollama now adds an
+  `id` and an `index` to each tool call; local-llmup rejected those fields, so
+  chat with MCP connectors or agent tools either failed outright or silently
+  dropped every tool call and returned an empty reply.
+
 ## 1.0.1 - 2026-09-27
 
 ### Install

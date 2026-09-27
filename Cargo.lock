@@ -1466,7 +1466,7 @@ checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
 
 [[package]]
 name = "llmup-cli"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "clap",
  "futures-util",
@@ -1488,7 +1488,7 @@ dependencies = [
 
 [[package]]
 name = "llmup-core"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "regex",
  "serde",
@@ -1517,7 +1517,7 @@ dependencies = [
 
 [[package]]
 name = "llmup-gui"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -1541,7 +1541,7 @@ dependencies = [
 
 [[package]]
 name = "llmup-runtime"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "async-trait",
  "bytes",
