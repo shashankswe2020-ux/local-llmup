@@ -16,9 +16,12 @@ terminal recorder). Produces reproducible GIFs and PNGs from `.tape` files.
 ## Prerequisites
 
 - `vhs` installed (`brew install vhs`)
-- `local-llmup` installed globally (`npm install -g local-llmup`)
+- The native `local-llmup`, `llmup` and `llmup-gui` binaries for the release on
+  `PATH` (build them with `cargo build --release --locked -p llmup-cli -p llmup-gui`
+  from the tagged commit, then prefix `PATH` with `target/release`)
 - Tape files live in `assets/*.tape`
-- Output images go to `assets/` (GIF for demos, PNG for screenshots)
+- Output images go to `assets/` (GIF for demos, PNG for screenshots); copy the
+  refreshed files that `site/index.html` uses into `site/assets/`
 
 ---
 
@@ -34,6 +37,14 @@ Set FontSize 14
 Set Width 1200
 Set Height <appropriate-height>   # 700 for short, 1100+ for full TUI
 Set Padding 20
+
+Require local-llmup
+
+# Record against an empty, throwaway state home.
+Hide
+Type "export LOCAL_LLMUP_HOME=$(mktemp -d) && clear"
+Enter
+Show
 ```
 
 ### Key Rules
@@ -43,6 +54,8 @@ Set Padding 20
 3. **Use `Sleep`** generously after commands to let the TUI fully render
 4. **Screenshot path** — `Screenshot assets/screenshot-<name>.png`
 5. **Quit TUI** — send `Type "q"` after screenshot to exit cleanly
+6. **Never end on `Screenshot`** — add a `Sleep` after it, or vhs exits before writing the file
+7. **Quote absolute paths** — `Screenshot "/tmp/x.png"`; unquoted absolute paths fail to parse
 
 ---
 
@@ -50,17 +63,18 @@ Set Padding 20
 
 | Tape | Purpose | Height |
 |------|---------|--------|
-| `assets/demo.tape` | Full end-to-end GIF (install → recommend → doctor → can-run) | 700 |
+| `assets/demo.tape` | Full end-to-end GIF (version → recommend with details and compare → doctor → can-run → plan) | 700 |
 | `assets/recommend.tape` | Screenshot of recommend TUI | 1100 |
 | `assets/doctor.tape` | Screenshot of doctor TUI | 700 |
-| `assets/can-run.tape` | Screenshot of can-run verdicts | 700 |
+| `assets/can-run.tape` | Screenshot of can-run verdicts (`--no-tui`) | 300 |
 
 ---
 
 ## Recording Workflow
 
-1. **Verify installation** — ensure `local-llmup` is at the target version:
+1. **Verify the binaries** — ensure the release build is first on `PATH`:
    ```bash
+   export PATH="$PWD/target/release:$PATH"
    local-llmup --version
    ```
 
@@ -86,12 +100,12 @@ Set Padding 20
 
 | Problem | Fix |
 |---------|-----|
-| Screenshot is blank/missing | Add `Output assets/<name>-out.gif` directive |
+| Screenshot is blank/missing | Add `Output assets/<name>-out.gif`; don't end the tape on `Screenshot`; re-record if a frame caught the TUI mid-redraw |
 | TUI not rendering (plain text) | Remove any `\|` pipes from commands |
 | Content cut off at bottom | Increase `Set Height` (try 1100+) |
 | Content cut off at top | TUI is taller than terminal; increase height |
-| Command not found | Ensure `local-llmup` is in PATH (global install) |
-| Old version shown | `npm install -g local-llmup@latest` first |
+| Command not found | Put the release `target/release` directory first on `PATH` |
+| Old version shown | Rebuild from the tagged commit before recording |
 
 ---
 

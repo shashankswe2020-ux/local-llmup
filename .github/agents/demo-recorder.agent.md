@@ -30,8 +30,9 @@ screenshots of the local-llmup CLI using **vhs** (charm.sh terminal recorder).
 ### Step 1: Verify Environment
 
 1. Confirm `vhs` is installed: `which vhs`
-2. Confirm `local-llmup` is at the target version: `local-llmup --version`
-3. If version is stale, run `npm install -g local-llmup@latest`
+2. Build the release binaries from the target tag:
+   `cargo build --release --locked -p llmup-cli -p llmup-gui`
+3. Put them first on `PATH` and confirm: `local-llmup --version`
 
 ### Step 2: Determine Scope
 
