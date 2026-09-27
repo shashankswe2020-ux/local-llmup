@@ -414,7 +414,7 @@ commands or loopback HTTP/SSE only. Enable a connector and its tools become
 available to the model:
 
 <div align="center">
-<img src="assets/connectors.gif" alt="Approving two live WHOOP MCP calls and rendering an actual health briefing" width="800" />
+<img src="assets/connectors.gif" alt="Approving a live read-only WHOOP MCP call and rendering a health briefing" width="800" />
 </div>
 
 ---
