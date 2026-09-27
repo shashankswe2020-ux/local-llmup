@@ -115,7 +115,7 @@ pub fn trusted_executable(trusted: &[PathBuf], observed: &str, windows: bool) ->
             let path = normalize(path);
             path.as_bytes().get(1) == Some(&b':') && path == normalize(observed)
         } else {
-            Path::new(path).is_absolute() && path == observed
+            path.starts_with('/') && path == observed
         }
     })
 }
