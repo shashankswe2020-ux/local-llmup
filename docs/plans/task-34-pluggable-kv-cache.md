@@ -38,7 +38,8 @@ The no-flag path must stay byte-identical (same four-channel guard as AC-CW9).
 ## Architecture decisions
 
 - **Pure core, typed profile.**
-  - `llmup-core` gains `KvCacheType` and `CacheProfile { kv_k, kv_v, flash_attention, prompt_reuse, provider }`.
+  - `llmup-core` gains `KvCacheType`, which is all the advisor needs.
+  - `CacheProfile { kv_k, kv_v, flash_attention, prompt_reuse }` lives with the providers in `llmup-runtime`, because flash attention and prompt reuse only matter at launch.
   - Validation and sizing are pure functions.
   - The runtime never re-derives sizing.
 - **Provider trait in runtime** (`crates/llmup-runtime/src/cache.rs`):
@@ -86,7 +87,7 @@ K1 and K3 can run in parallel. K7 can start at any time.
 
 ## Task list
 
-### K1 — Typed KV sizing (llmup-core)
+### K1 — Typed KV sizing (llmup-core) ✅ Done
 - **Do:** `KvCacheType { F16, Q8_0, Q4_0 }` with `bytes_per_element()`, and `kv_cache_bytes_typed(per_token_f16, tokens, k, v)`. Per-token f16 bytes are split evenly between K and V.
 - **Acceptance:**
   1. `f16/f16` equals today's `kv_cache_bytes` for every catalog model; this is a property test over the catalog.
@@ -106,7 +107,7 @@ K1 and K3 can run in parallel. K7 can start at any time.
 - **Files:** `crates/llmup-cli/src/native_args.rs`, `native.rs`, `crates/llmup-core/src/{plan.rs,ranking.rs,reports.rs}`, fixtures under `tests/fixtures/noninteractive/`.
 - **Verify:** `cargo test -p llmup-core -p llmup-cli --test public_cli --test advice_cli`.
 
-### K3 — CacheProvider trait + NativeCacheProvider
+### K3 — CacheProvider trait + NativeCacheProvider ✅ Done (verified on llama.cpp b10090, Ollama 0.32.5)
 - **Do:** pure translation per backend:
   - **llama.cpp:** `--cache-type-k`, `--cache-type-v`, `--flash-attn on|off`, and `--cache-reuse <n>` for prompt reuse.
   - **Ollama:** `OLLAMA_KV_CACHE_TYPE`, `OLLAMA_FLASH_ATTENTION=1`.
