@@ -76,8 +76,8 @@ path = "src/catalog_enrich.rs"
 required-features = ["maintainer-tools"]
 
 [dependencies]
-llmup-core = { path = "../llmup-core", version = "1.0.1" }
-llmup-runtime = { path = "../llmup-runtime", version = "1.0.1" }
+llmup-core = { path = "../llmup-core", version = "1.0.2" }
+llmup-runtime = { path = "../llmup-runtime", version = "1.0.2" }
 clap = { version = "4", features = ["derive"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
 tokio-util = { version = "0.7", features = ["rt"] }

@@ -2355,7 +2355,7 @@ checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 
 [[package]]
 name = "llmup-core"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "regex",
  "serde",
@@ -2367,7 +2367,7 @@ dependencies = [
 
 [[package]]
 name = "llmup-desktop"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "llmup-gui",
  "llmup-runtime",
@@ -2382,7 +2382,7 @@ dependencies = [
 
 [[package]]
 name = "llmup-gui"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -2402,7 +2402,7 @@ dependencies = [
 
 [[package]]
 name = "llmup-runtime"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "async-trait",
  "bytes",
