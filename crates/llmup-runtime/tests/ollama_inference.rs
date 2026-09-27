@@ -237,3 +237,43 @@ async fn changed_listener_after_response_invalidates_completion() {
         .is_err()
     );
 }
+
+#[tokio::test]
+async fn tool_calls_with_ollama_call_ids_and_indexes_are_not_dropped() {
+    // Shape returned by Ollama 0.32.5 for qwen3:30b-a3b with tools attached.
+    let call =
+        json!({"id":"call_d8t22shg","function":{"index":0,"name":"get_today","arguments":{}}});
+    let reply = json!({"message":{"role":"assistant","content":"","thinking":"Checking.","tool_calls":[call]},"done":true});
+    let http = Http {
+        bodies: Mutex::new(
+            [
+                b"{\"version\":\"0.32.5\"}".to_vec(),
+                serde_json::to_vec(&reply).unwrap(),
+                b"{\"version\":\"0.32.5\"}".to_vec(),
+                [serde_json::to_vec(&reply).unwrap(), b"\n".to_vec()].concat(),
+            ]
+            .into(),
+        ),
+        requests: Mutex::new(Vec::new()),
+    };
+    let api = OllamaInference::new(&http, &Probe, OLLAMA);
+    let cancel = CancellationToken::new();
+    let result = api
+        .chat("http://127.0.0.1:11435", &identity(), &input(), &cancel)
+        .await
+        .unwrap();
+    assert_eq!(result.tool_calls.len(), 1);
+    assert_eq!(result.tool_calls[0].name, "get_today");
+    let streamed = api
+        .chat_stream(
+            "http://127.0.0.1:11435",
+            &identity(),
+            &input(),
+            &cancel,
+            &mut |_| {},
+        )
+        .await
+        .unwrap();
+    assert_eq!(streamed.tool_calls.len(), 1);
+    assert_eq!(streamed.tool_calls[0].name, "get_today");
+}
