@@ -281,6 +281,10 @@ fn run_session(
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "ConPTY re-renders the output stream, so byte-exact restore sequences cannot hold"
+)]
 fn visual_report_accepts_search_and_restores_terminal_on_exit() {
     let (exit, output) = run(&["--tui"], 80, 24, Some(b"/qwen\rn\x1b[Bq"));
     assert_eq!(exit, 0, "{output}");
@@ -341,6 +345,10 @@ fn hangup_restores_visual_terminal_without_state_changes() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "ConPTY rewrites fragmented escape input and re-renders the output stream"
+)]
 fn visual_picker_fragmented_end_selects_last_model_without_cancelling() {
     for (initial, fragment, expected) in [
         (b"\x1b".as_slice(), b"[F\r".as_slice(), "mistral:7b"),
@@ -377,6 +385,10 @@ fn visual_picker_fragmented_end_selects_last_model_without_cancelling() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "ConPTY re-renders the output stream, so byte-exact reports cannot hold"
+)]
 fn eligible_plain_and_json_overrides_never_enter_ui_and_emit_one_report() {
     for (flag, json) in [("--no-tui", false), ("--json", true)] {
         let (exit, output) = run(&[flag], 100, 30, None);
@@ -419,6 +431,10 @@ fn catalog_fragmented_end_keeps_the_visual_session_open() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "ConPTY rewrites terminal input payloads and re-renders the output stream"
+)]
 fn terminal_payloads_cannot_dispatch_catalog_shortcuts() {
     for payload in [
         b"\x1b[200~q c\x03\x1b[201~".as_slice(),
@@ -449,6 +465,10 @@ fn terminal_payloads_cannot_dispatch_catalog_shortcuts() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "ConPTY rewrites bracketed-paste input and re-renders the output stream"
+)]
 fn fragmented_paste_markers_do_not_dispatch_payload_shortcuts() {
     let (exit, output) = run_scripted_with_fragment(
         "catalog",
@@ -465,6 +485,10 @@ fn fragmented_paste_markers_do_not_dispatch_payload_shortcuts() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "ConPTY cannot deliver invalid UTF-8 input and re-renders the output stream"
+)]
 fn accessible_render_failure_preserves_one_authoritative_report() {
     let (exit, output) = run_scripted(
         "recommend",
@@ -551,6 +575,10 @@ fn visual_catalog_filters_opens_details_and_preserves_final_output() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "ConPTY re-renders the output stream, so byte-exact restore sequences cannot hold"
+)]
 fn visual_shutdown_runs_and_restores_each_presentation_without_state() {
     let (exit, output) = run_scripted(
         "down",
@@ -705,6 +733,10 @@ fn accessible_model_choice_and_review_share_one_cooked_input_reader() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "ConPTY translates Ctrl-C and re-renders the output stream"
+)]
 fn accessible_confirmation_control_c_exits_130_without_state() {
     let (exit, output) = run_scripted(
         "down",
@@ -738,6 +770,10 @@ fn accessible_active_server_uses_cooked_help_then_prints_plain_result() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "ConPTY translates Ctrl-C and re-renders the output stream"
+)]
 fn accessible_active_server_interrupt_does_not_print_final_result() {
     let (exit, output) = run_scripted(
         "ls",
@@ -839,6 +875,10 @@ fn accessible_can_run_picker_and_report_share_input_and_allow_cancel() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "ConPTY translates Ctrl-C and re-renders the output stream"
+)]
 fn accessible_can_run_interrupt_skips_final_plain_output() {
     let (exit, output) = run_scripted(
         "can-run",
@@ -923,6 +963,10 @@ fn accessible_recommendation_search_details_and_print_never_execute() {
 }
 
 #[test]
+#[cfg_attr(
+    windows,
+    ignore = "ConPTY translates Ctrl-C and re-renders the output stream"
+)]
 fn accessible_model_lists_interrupt_without_final_plain_result() {
     for (name, final_output) in [
         ("recommend", "Ranked local LLMs for"),
