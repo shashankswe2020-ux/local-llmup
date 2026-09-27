@@ -108,9 +108,24 @@ fn chat_body(input: &ChatInput, stream: bool) -> Result<Value, HttpError> {
     }
     Ok(body)
 }
+/// Ollama's wire shape: newer releases add `id` and `function.index`, which are ignored.
+#[derive(Deserialize)]
+struct NativeFunction {
+    name: String,
+    #[serde(default)]
+    arguments: BTreeMap<String, Value>,
+}
 #[derive(Deserialize)]
 struct NativeCall {
-    function: ToolCall,
+    function: NativeFunction,
+}
+impl From<NativeCall> for ToolCall {
+    fn from(call: NativeCall) -> Self {
+        Self {
+            name: call.function.name,
+            arguments: call.function.arguments,
+        }
+    }
 }
 #[derive(Deserialize)]
 struct NativeMessage {
@@ -146,7 +161,7 @@ fn decode_result(value: Value) -> Result<ChatResult, HttpError> {
             .message
             .tool_calls
             .into_iter()
-            .map(|call| call.function)
+            .map(ToolCall::from)
             .collect(),
     })
 }
@@ -304,7 +319,7 @@ impl<'runtime> OllamaInference<'runtime> {
                         }
                         result
                             .tool_calls
-                            .extend(message.tool_calls.into_iter().map(|call| call.function));
+                            .extend(message.tool_calls.into_iter().map(ToolCall::from));
                     }
                 }
             }
