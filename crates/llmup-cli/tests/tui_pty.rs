@@ -514,6 +514,7 @@ fn accessible_render_failure_preserves_one_authoritative_report() {
 }
 
 #[test]
+#[cfg_attr(windows, ignore = "ConPTY re-renders the output stream, so byte-exact restore sequences cannot hold")]
 fn recommend_tui_no_color_preserves_visual_session_without_colored_sgr() {
     let color = regex::Regex::new(r"\x1b\[([0-9:;]*)m").unwrap();
     for no_color in [false, true] {
@@ -597,6 +598,7 @@ fn visual_shutdown_runs_and_restores_each_presentation_without_state() {
 }
 
 #[test]
+#[cfg_attr(windows, ignore = "ConPTY translates Ctrl-C and re-renders the output stream")]
 fn visual_shutdown_result_interrupt_suppresses_final_success_output() {
     let (exit, output) = run_scripted(
         "down",
