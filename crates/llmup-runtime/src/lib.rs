@@ -2,6 +2,7 @@ pub mod acquire;
 pub mod adapters;
 pub mod agent;
 pub mod application;
+pub mod cache;
 pub mod chat_service;
 pub mod command;
 pub mod context;
