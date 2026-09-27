@@ -86,7 +86,11 @@ fn stores_list_sorted_items_and_skip_unsafe_or_foreign_entries() {
         .into_iter()
         .map(|item| item.id)
         .collect();
+    // Group-writable modes only exist on Unix; elsewhere the file stays owner-only and is listed.
+    #[cfg(unix)]
     assert_eq!(ids, ["alpha", "external", "zeta"]);
+    #[cfg(not(unix))]
+    assert_eq!(ids, ["alpha", "external", "writable", "zeta"]);
     let external = library.get(Kind::Agent, "external").unwrap().unwrap();
     assert_eq!(
         (
