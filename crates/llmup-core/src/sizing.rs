@@ -212,6 +212,64 @@ pub fn kv_cache_bytes(per_token: u64, tokens: u64) -> Result<u64, ValidationErro
     Ok(bytes)
 }
 
+/// KV cache element types shared by llama.cpp and Ollama.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub enum KvCacheType {
+    #[default]
+    #[serde(rename = "f16")]
+    F16,
+    #[serde(rename = "q8_0")]
+    Q8_0,
+    #[serde(rename = "q4_0")]
+    Q4_0,
+}
+
+impl KvCacheType {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::F16 => "f16",
+            Self::Q8_0 => "q8_0",
+            Self::Q4_0 => "q4_0",
+        }
+    }
+    pub fn parse(name: &str) -> Option<Self> {
+        [Self::F16, Self::Q8_0, Self::Q4_0]
+            .into_iter()
+            .find(|kind| kind.name() == name)
+    }
+    /// (bytes per block, elements per block) from ggml's block_q8_0 and block_q4_0 layouts.
+    fn block(self) -> (u64, u64) {
+        match self {
+            Self::F16 => (2, 1),
+            Self::Q8_0 => (34, 32),
+            Self::Q4_0 => (18, 32),
+        }
+    }
+    fn bytes_for(self, elements: u64) -> Option<u64> {
+        let (bytes, per_block) = self.block();
+        elements.div_ceil(per_block).checked_mul(bytes)
+    }
+}
+
+/// Re-sizes a catalog f16 KV rate (K and V halves) for the requested cache types.
+pub fn typed_kv_bytes_per_token(
+    f16_per_token: u64,
+    k: KvCacheType,
+    v: KvCacheType,
+) -> Result<u64, ValidationError> {
+    if f16_per_token == 0 || !f16_per_token.is_multiple_of(4) {
+        return Err(invalid(
+            "KV bytes per token must split into f16 K and V halves",
+        ));
+    }
+    let elements = f16_per_token / 4;
+    k.bytes_for(elements)
+        .zip(v.bytes_for(elements))
+        .and_then(|(k, v)| k.checked_add(v))
+        .filter(|bytes| *bytes <= SAFE_INTEGER as u64)
+        .ok_or_else(|| invalid("KV size exceeds safe-integer range"))
+}
+
 fn validate(request: &SizingRequest) -> Result<(), ValidationError> {
     let model = &request.model;
     if model.id.is_empty() || model.id.len() > 256 {
