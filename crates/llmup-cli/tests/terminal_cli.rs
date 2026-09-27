@@ -69,20 +69,41 @@ fn accessible_cancellation_with_state(
     let mut reader = pair.master.try_clone_reader().unwrap();
     let mut writer = pair.master.take_writer().unwrap();
     let (sender, receiver) = mpsc::channel();
+    // Keep draining after the receiver is gone: ConPTY cannot close while its output is unread.
     let reader_thread = std::thread::spawn(move || {
         let mut buffer = [0; 4096];
-        while let Ok(count) = reader.read(&mut buffer) {
-            if count == 0 || sender.send(buffer[..count].to_vec()).is_err() {
-                break;
-            }
+        while let Ok(count @ 1..) = reader.read(&mut buffer) {
+            let _ = sender.send(buffer[..count].to_vec());
         }
     });
-    writer.write_all(answer).unwrap();
-    writer.flush().unwrap();
     let deadline = Instant::now() + Duration::from_secs(10);
     let mut output = Vec::new();
+    let mut answered_cursor_queries = 0;
+    let mut sent = answer.is_empty();
     let exit = loop {
-        assert!(Instant::now() < deadline, "PTY deadline: {args:?}");
+        assert!(
+            Instant::now() < deadline,
+            "PTY deadline: {args:?}: {:?}",
+            String::from_utf8_lossy(&output)
+        );
+        // ConPTY asks for the cursor position at startup and stalls until it is answered.
+        let cursor_queries = output
+            .windows(4)
+            .filter(|bytes| *bytes == b"\x1b[6n")
+            .count();
+        while answered_cursor_queries < cursor_queries {
+            writer.write_all(b"\x1b[1;1R").unwrap();
+            writer.flush().unwrap();
+            answered_cursor_queries += 1;
+        }
+        // Answer only once a prompt is shown so ConPTY's startup handshake cannot swallow it.
+        let text = String::from_utf8_lossy(&output);
+        if !sent && (text.contains("Enter a model number") || text.contains("1. Cancel (default)"))
+        {
+            writer.write_all(answer).unwrap();
+            writer.flush().unwrap();
+            sent = true;
+        }
         match receiver.recv_timeout(Duration::from_millis(50)) {
             Ok(bytes) => output.extend_from_slice(&bytes),
             Err(mpsc::RecvTimeoutError::Disconnected) => break child.0.wait().unwrap(),

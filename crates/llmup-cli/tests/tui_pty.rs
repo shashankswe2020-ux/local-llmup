@@ -153,17 +153,11 @@ fn run_session(
     let mut reader = pair.master.try_clone_reader().unwrap();
     let mut writer = pair.master.take_writer().unwrap();
     let (sender, receiver) = mpsc::sync_channel(16);
+    // Keep draining after the receiver is gone: ConPTY cannot close while its output is unread.
     let reader_thread = std::thread::spawn(move || {
         let mut buffer = [0; 4096];
-        loop {
-            match reader.read(&mut buffer) {
-                Ok(0) | Err(_) => break,
-                Ok(count) => {
-                    if sender.send(buffer[..count].to_vec()).is_err() {
-                        break;
-                    }
-                }
-            }
+        while let Ok(count @ 1..) = reader.read(&mut buffer) {
+            let _ = sender.send(buffer[..count].to_vec());
         }
     });
     let deadline = Instant::now() + Duration::from_secs(15);
