@@ -2,8 +2,8 @@ use crate::{
     advice::{throughput, unified},
     catalog::{BACKENDS, CAPABILITIES, Catalog, CatalogModel, PerfDataset, date, require},
     sizing::{
-        Architecture, Hardware, SizingRequest, ValidationError, evaluate, parse_param_count,
-        quant_bits,
+        Architecture, Hardware, KvCacheType, SizingRequest, ValidationError, evaluate,
+        parse_param_count, quant_bits,
     },
 };
 use serde::{Deserialize, Serialize};
@@ -20,9 +20,18 @@ pub struct AdviceOptions {
     pub max_context: bool,
     pub backend: Option<String>,
     pub available_backends: Option<Vec<String>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kv_cache: Option<KvCacheType>,
 }
 impl AdviceOptions {
     pub fn validate(&self) -> Result<(), ValidationError> {
+        require(
+            self.kv_cache.is_none()
+                || self.context.is_some()
+                || self.context_percent.is_some()
+                || self.max_context,
+            "a KV cache type requires context, contextPercent, or maxContext",
+        )?;
         require(
             usize::from(self.context.is_some())
                 + usize::from(self.context_percent.is_some())
@@ -124,6 +133,11 @@ fn recommend_inner(
     let mut usable = 0.0;
     let mut kind = "ram";
     for model in &catalog.models {
+        let resized = options
+            .kv_cache
+            .map(|kind| model.with_kv_cache(kind))
+            .transpose()?;
+        let model = resized.as_ref().unwrap_or(model);
         let context = options.tokens(model);
         let sized = evaluate(&SizingRequest {
             model: model.sizing(),
@@ -219,7 +233,7 @@ fn recommend_inner(
             entry["context"] = json!(tokens);
             entry["weightsBytes"] = json!(sized.weights[index]);
             entry["kvCacheBytes"] = json!(model.kv_bytes_per_token.map(|rate| rate * tokens));
-            entry["kvPrecision"] = json!("fp16");
+            entry["kvPrecision"] = json!(KvCacheType::label(options.kv_cache));
         } else if options.max_context {
             let maximum = sized.max_context[index];
             entry["maxContextTokens"] =
@@ -232,7 +246,7 @@ fn recommend_inner(
                         "model"
                     })
                 );
-            entry["kvPrecision"] = json!("fp16");
+            entry["kvPrecision"] = json!(KvCacheType::label(options.kv_cache));
         }
         entries.push((
             entry,

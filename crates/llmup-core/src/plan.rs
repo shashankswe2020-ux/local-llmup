@@ -1,7 +1,9 @@
 use crate::{
     advice::{Throughput, throughput},
     catalog::{CatalogModel, PerfDataset},
-    sizing::{GpuVendor, HEADROOM, Hardware, SizingRequest, ValidationError, evaluate},
+    sizing::{
+        GpuVendor, HEADROOM, Hardware, KvCacheType, SizingRequest, ValidationError, evaluate,
+    },
 };
 use serde::Serialize;
 
@@ -30,6 +32,8 @@ pub struct Plan {
     pub model: String,
     pub context: Option<f64>,
     pub backend: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kv_cache_type: Option<&'static str>,
     pub unified_memory: bool,
     /// False when the requested context's KV cache cannot be sized from sourced geometry.
     pub kv_cache_known: bool,
@@ -116,6 +120,23 @@ pub fn plan(
     context: Option<f64>,
     backend: &str,
 ) -> Result<Plan, ValidationError> {
+    plan_with_cache(model, hardware, dataset, context, backend, None)
+}
+
+/// Like [`plan`], sizing the KV cache at `kv_cache` precision instead of f16.
+pub fn plan_with_cache(
+    model: &CatalogModel,
+    hardware: &Hardware,
+    dataset: &PerfDataset,
+    context: Option<f64>,
+    backend: &str,
+    kv_cache: Option<KvCacheType>,
+) -> Result<Plan, ValidationError> {
+    if kv_cache.is_some() && context.is_none() {
+        return Err(ValidationError("a KV cache type requires a context".into()));
+    }
+    let resized = kv_cache.map(|kind| model.with_kv_cache(kind)).transpose()?;
+    let model = resized.as_ref().unwrap_or(model);
     let inputs = Inputs {
         model,
         dataset,
@@ -177,6 +198,7 @@ pub fn plan(
         model: model.id.clone(),
         context,
         backend: backend.into(),
+        kv_cache_type: kv_cache.map(|kind| KvCacheType::label(Some(kind))),
         unified_memory: unified,
         kv_cache_known: context.is_none() || model.kv_bytes_per_token.is_some(),
         paths,
@@ -193,6 +215,10 @@ pub fn format_plan(plan: &Plan) -> String {
         || "default context".to_owned(),
         |tokens| format!("{tokens} tokens"),
     );
+    let context = match plan.kv_cache_type {
+        Some(kind) => format!("{context}, KV {kind}"),
+        None => context,
+    };
     let mut text = format!(
         "Plan for {} ({context}, {} backend{})\n\n",
         plan.model,

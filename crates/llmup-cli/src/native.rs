@@ -152,6 +152,16 @@ struct Args {
     perf_path: Option<PathBuf>,
     #[arg(long)]
     forget: bool,
+    #[arg(long, value_parser = ["f16", "q8_0", "q4_0"])]
+    kv_cache: Option<String>,
+}
+
+impl Args {
+    fn kv_cache(&self) -> Option<llmup_core::sizing::KvCacheType> {
+        self.kv_cache
+            .as_deref()
+            .and_then(llmup_core::sizing::KvCacheType::parse)
+    }
 }
 
 enum AdviceRequest {
@@ -183,6 +193,7 @@ impl Args {
             context_percent: self.context_percent,
             max_context: self.max_context,
             backend: self.backend.clone(),
+            kv_cache: self.kv_cache(),
             available_backends: if self.available_backends {
                 Some(
                     backends
@@ -265,7 +276,14 @@ async fn run_plan(
         }
     };
     let backend = args.backend.as_deref().unwrap_or("ollama");
-    let plan = llmup_core::plan::plan(&model, &hardware, perf, args.context, backend)?;
+    let plan = llmup_core::plan::plan_with_cache(
+        &model,
+        &hardware,
+        perf,
+        args.context,
+        backend,
+        args.kv_cache(),
+    )?;
     if args.json {
         println!("{}", serde_json::to_string_pretty(&plan)?);
     } else {
@@ -372,6 +390,7 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
             max_context: args.max_context,
             backend: args.backend.clone(),
             available_backends: None,
+            kv_cache: args.kv_cache(),
         }
         .validate()?;
         for (label, value) in [

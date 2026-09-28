@@ -128,3 +128,74 @@ fn hardware_profiles_drive_advice_and_are_strictly_validated() {
     assert_ne!(both.status.code(), Some(0));
     assert!(!home.exists());
 }
+
+#[test]
+fn kv_cache_flag_resizes_advice_and_is_refused_where_it_cannot_apply() {
+    let root = tempfile::tempdir().unwrap();
+    let home = root.path().join("unused-home");
+    let file = profile(root.path(), dual_gpu());
+    let json = |args: &[&str]| {
+        let output = run(args, &file, &home);
+        assert!(
+            output.status.code().is_some_and(|code| code <= 1),
+            "{output:?}"
+        );
+        serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap()
+    };
+    let context = ["--context", "131072", "--json"];
+    let plan_f16 = json(&[&["plan", "llama3.1:8b"][..], &context].concat());
+    let plan_q8 = json(&[&["plan", "llama3.1:8b", "--kv-cache", "q8_0"][..], &context].concat());
+    assert!(plan_f16.get("kvCacheType").is_none());
+    assert_eq!(plan_q8["kvCacheType"], "q8_0");
+    assert!(
+        plan_q8["paths"][0]["requiredBytes"].as_f64()
+            < plan_f16["paths"][0]["requiredBytes"].as_f64()
+    );
+    let can_run = json(
+        &[
+            &["can-run", "llama3.1:8b", "--kv-cache", "q4_0"][..],
+            &context,
+        ]
+        .concat(),
+    );
+    assert_eq!(can_run["kvPrecision"], "q4_0");
+    let recommend = json(&["recommend", "--max-context", "--kv-cache", "q8_0", "--json"]);
+    assert!(
+        recommend["ranked"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|entry| entry["kvPrecision"] == "q8_0")
+    );
+    let text = run(
+        &[
+            "plan",
+            "llama3.1:8b",
+            "--context",
+            "131072",
+            "--kv-cache",
+            "q8_0",
+        ],
+        &file,
+        &home,
+    );
+    assert!(String::from_utf8(text.stdout).unwrap().contains("KV q8_0"));
+    for refused in [
+        vec!["plan", "llama3.1:8b", "--kv-cache", "q8_0"],
+        vec!["recommend", "--kv-cache", "q8_0"],
+        vec![
+            "plan",
+            "llama3.1:8b",
+            "--context",
+            "4096",
+            "--kv-cache",
+            "q2_k",
+        ],
+        vec!["doctor", "--kv-cache", "q8_0"],
+    ] {
+        let output = run(&refused, &file, &home);
+        assert!(!output.status.success(), "{refused:?} should be refused");
+        assert!(output.stdout.is_empty(), "{refused:?}");
+    }
+    assert!(!home.exists(), "advice must not create state");
+}

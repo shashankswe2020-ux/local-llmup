@@ -237,6 +237,13 @@ impl KvCacheType {
             .into_iter()
             .find(|kind| kind.name() == name)
     }
+    /// Label for advice output; the implicit default keeps its historical `fp16` spelling.
+    pub fn label(kind: Option<Self>) -> &'static str {
+        match kind {
+            None | Some(Self::F16) => "fp16",
+            Some(kind) => kind.name(),
+        }
+    }
     /// (bytes per block, elements per block) from ggml's block_q8_0 and block_q4_0 layouts.
     fn block(self) -> (u64, u64) {
         match self {

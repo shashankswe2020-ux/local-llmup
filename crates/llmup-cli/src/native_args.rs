@@ -29,6 +29,7 @@ const COMMANDS: &[CommandSpec] = &[
             "perf_path",
             "hardware_json",
             "hardware",
+            "kv_cache",
         ],
         model: false,
         ui: true,
@@ -45,6 +46,7 @@ const COMMANDS: &[CommandSpec] = &[
             "perf_path",
             "hardware_json",
             "hardware",
+            "kv_cache",
         ],
         model: true,
         ui: true,
@@ -59,6 +61,7 @@ const COMMANDS: &[CommandSpec] = &[
             "perf_path",
             "hardware_json",
             "hardware",
+            "kv_cache",
         ],
         model: true,
         ui: false,
@@ -207,6 +210,9 @@ fn help_command(spec: &CommandSpec, flat: &Command) -> Command {
                 "context" => "Context size in tokens (integer in 1..10000000)",
                 "max_context" => "Report the largest context each model can hold",
                 "context_percent" => "Use 25, 50, 75, or 100 percent of each model's context",
+                "kv_cache" => {
+                    "Size the KV cache as f16 (default), q8_0, or q4_0; needs a context flag"
+                }
                 "task" => {
                     "Boost models for a task: chat, code, vision, reasoning, tools, embedding"
                 }

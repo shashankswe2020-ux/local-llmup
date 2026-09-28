@@ -97,7 +97,7 @@ K1 and K3 can run in parallel. K7 can start at any time.
 - **Files:** `crates/llmup-core/src/sizing.rs`, `crates/llmup-core/tests/sizing*.rs`.
 - **Verify:** `cargo test -p llmup-core`.
 
-### K2 — Advisor flags
+### K2 — Advisor flags ✅ Done
 - **Do:** `--kv-cache <f16|q8_0|q4_0>` (and `--kv-cache-k/--kv-cache-v` for asymmetric caches) on `recommend`, `can-run` and `plan`. The KV column, fit verdict and `--max-context` all use the typed size. JSON gains `kvCacheType`.
 - **Acceptance:**
   1. The no-flag output is byte-identical (four-channel guard).

@@ -1,4 +1,6 @@
-use crate::sizing::{Architecture, Model, Quantization, ValidationError};
+use crate::sizing::{
+    Architecture, KvCacheType, Model, Quantization, ValidationError, typed_kv_bytes_per_token,
+};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashSet};
@@ -183,6 +185,15 @@ impl CatalogModel {
             kv_bytes_per_token: self.kv_bytes_per_token,
             quantizations: self.quantizations.clone(),
         }
+    }
+    /// Re-sizes the sourced f16 KV rate for a cache type; unknown geometry stays unknown.
+    pub fn with_kv_cache(&self, kind: KvCacheType) -> Result<Self, ValidationError> {
+        let mut model = self.clone();
+        if let Some(rate) = self.kv_bytes_per_token {
+            model.kv_bytes_per_token =
+                Some(typed_kv_bytes_per_token(rate as u64, kind, kind)? as f64);
+        }
+        Ok(model)
     }
     pub(crate) fn validate(&self) -> Result<(), ValidationError> {
         nonempty(&self.id)?;

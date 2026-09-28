@@ -2,7 +2,7 @@ use crate::{
     advice::verdict,
     catalog::{Catalog, PerfDataset, resolve},
     ranking::{AdviceOptions, backends},
-    sizing::{Hardware, SizingRequest, ValidationError, evaluate},
+    sizing::{Hardware, KvCacheType, SizingRequest, ValidationError, evaluate},
 };
 use regex::Regex;
 use serde_json::{Value, json};
@@ -118,10 +118,11 @@ pub fn recommendation_text(report: &Value, options: &AdviceOptions) -> String {
         return "No models in the catalog.".into();
     }
     let hw = &report["hardware"];
+    let kv = KvCacheType::label(options.kv_cache);
     let note = if let Some(context) = options.context {
-        format!(" — sized at {context}-token context (KV fp16)")
+        format!(" — sized at {context}-token context (KV {kv})")
     } else if options.max_context {
-        " — largest holdable context per model (KV fp16)".into()
+        format!(" — largest holdable context per model (KV {kv})")
     } else {
         String::new()
     };
@@ -260,6 +261,9 @@ pub fn can_run_report(
     if let Some(quant) = resolved.quant {
         model.quantizations = vec![quant.clone()];
     }
+    if let Some(kind) = options.kv_cache {
+        model = model.with_kv_cache(kind)?;
+    }
     let backend = options.backend.as_deref().unwrap_or("ollama");
     let report = verdict(&model, hardware, perf, options.context, backend)?;
     let supported = backends(&model, hardware);
@@ -270,7 +274,13 @@ pub fn can_run_report(
         output["contextFitKnown"] = json!(model.kv_bytes_per_token.is_some());
         output["requiredBytes"] = report["requiredBytes"].clone();
         output["usableBytes"] = report["usableBytes"].clone();
-        lines.push(format!("Context: {context} tokens (KV fp16 estimate)"));
+        if options.kv_cache.is_some() {
+            output["kvPrecision"] = json!(KvCacheType::label(options.kv_cache));
+        }
+        lines.push(format!(
+            "Context: {context} tokens (KV {} estimate)",
+            KvCacheType::label(options.kv_cache)
+        ));
         if model.kv_bytes_per_token.is_none() {
             lines.push("Requested context fit unknown: attention geometry unavailable; verdict below is based on weights only.".into());
         }
