@@ -46,6 +46,7 @@ pub struct ServeRequest {
     pub endpoint: String,
     pub model_path: Option<PathBuf>,
     pub context: Option<u32>,
+    pub cache: Option<crate::cache::CacheProfile>,
 }
 #[async_trait::async_trait]
 pub trait BackendAdapter: Send + Sync {
@@ -272,6 +273,12 @@ impl<'runtime> RuntimeAdapter<'runtime> {
             .to_str()
             .ok_or_else(|| BackendError("invalid executable path".into()))?;
         let (observed, owned) = if occupied {
+            if crate::cache::effective(request.cache.as_ref()).is_some() {
+                return Err(BackendError(format!(
+                    "cache settings apply only to a {} runtime local-llmup starts; stop the running server or omit the cache options",
+                    self.kind.name()
+                )));
+            }
             let before = listener(self.probe, &request.endpoint, cancel).await?;
             if before.identity.executable != executable {
                 return Err(BackendError(
@@ -293,7 +300,9 @@ impl<'runtime> RuntimeAdapter<'runtime> {
                 .port_or_known_default()
                 .ok_or_else(|| BackendError("missing port".into()))?;
             let mut env = minimal_env();
-            let args = match self.kind {
+            let delta = crate::cache::launch_delta(request.cache.as_ref(), self.kind.name(), true)
+                .map_err(|error| BackendError(error.to_string()))?;
+            let mut args = match self.kind {
                 BackendKind::Ollama => {
                     if let Some(models) = &self.ollama_models {
                         let context =
@@ -337,6 +346,8 @@ impl<'runtime> RuntimeAdapter<'runtime> {
                     args
                 }
             };
+            args.extend(delta.args);
+            env.extend(delta.env);
             if cancel.is_cancelled() {
                 return Err(BackendError("cancelled".into()));
             }
@@ -374,6 +385,11 @@ impl<'runtime> RuntimeAdapter<'runtime> {
             process_executable: Some(observed.identity.executable),
             process_started_at: Some(observed.identity.started),
             auth_token: None,
+            cache: if owned {
+                crate::cache::effective(request.cache.as_ref())
+            } else {
+                None
+            },
         };
         state
             .validate()

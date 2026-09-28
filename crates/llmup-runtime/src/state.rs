@@ -118,6 +118,8 @@ pub struct ServerState {
     pub process_started_at: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_token: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cache: Option<crate::cache::CacheProfile>,
 }
 pub fn loopback(raw: &str) -> Result<url::Url, StateError> {
     let url = url::Url::parse(raw).map_err(|cause| error("invalid", cause))?;
@@ -216,6 +218,14 @@ impl ServerState {
             }
         }
         check(
+            self.cache.is_none_or(|cache| {
+                cache != crate::cache::CacheProfile::default()
+                    && self.owned_by_us
+                    && ["ollama", "llamacpp"].contains(&self.backend.as_str())
+            }),
+            "a cache profile is recorded only for owned Ollama or llama.cpp runtimes",
+        )?;
+        check(
             self.backend == "lmstudio" || self.model_path.is_none(),
             "delegated path only allowed for LM Studio",
         )
@@ -236,6 +246,13 @@ impl Default for RuntimeState {
     }
 }
 impl RuntimeState {
+    /// Schema 3 is written only when a cache profile is recorded, so 1.0.x can still read other state.
+    pub fn for_active(active: ServerState) -> Self {
+        Self {
+            schema_version: if active.cache.is_some() { 3 } else { 2 },
+            active: Some(active),
+        }
+    }
     pub fn parse(raw: &str) -> Result<Self, StateError> {
         if raw.is_empty() {
             return Err(error("empty", "state file is empty"));
@@ -269,7 +286,18 @@ impl RuntimeState {
         Ok(state)
     }
     pub fn validate(&self) -> Result<(), StateError> {
-        check(self.schema_version == 2, "unsupported state schema")?;
+        check(
+            matches!(self.schema_version, 2 | 3),
+            "unsupported state schema",
+        )?;
+        let cached = self
+            .active
+            .as_ref()
+            .is_some_and(|active| active.cache.is_some());
+        check(
+            (self.schema_version == 3) == cached,
+            "state schema 3 is used exactly when a cache profile is applied",
+        )?;
         if let Some(active) = &self.active {
             active.validate()?;
         }

@@ -448,6 +448,7 @@ async fn active_summary_reports_ownership_runtime_variant_and_context() {
             process_executable: None,
             process_started_at: None,
             auth_token: None,
+            cache: None,
         };
         store
             .write(

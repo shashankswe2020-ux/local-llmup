@@ -61,10 +61,7 @@ impl Lifecycle<'_> {
         active: &ServerState,
         cancel: &CancellationToken,
     ) -> Result<(), BackendError> {
-        let state = RuntimeState {
-            schema_version: 2,
-            active: Some(active.clone()),
-        };
+        let state = RuntimeState::for_active(active.clone());
         let live = self
             .live(&state, cancel)
             .await?
@@ -84,10 +81,7 @@ impl Lifecycle<'_> {
         request: &ServeRequest,
         cancel: &CancellationToken,
     ) -> Result<(), BackendError> {
-        let state = RuntimeState {
-            schema_version: 2,
-            active: Some(active.clone()),
-        };
+        let state = RuntimeState::for_active(active.clone());
         let operation = async {
             if self
                 .store
@@ -246,6 +240,8 @@ impl Lifecycle<'_> {
         activation: &dyn Activation,
     ) -> Result<ServerState, BackendError> {
         let adapter = self.registry.get(backend)?;
+        crate::cache::launch_delta(request.cache.as_ref(), backend, true)
+            .map_err(|error| BackendError(error.to_string()))?;
         let guard = self.lock(cancel).await?;
         let prior = self.revalidate(&request.model_id, reviewed, cancel).await?;
         if let Some(active) = &prior.active
@@ -276,28 +272,20 @@ impl Lifecycle<'_> {
                 || final_state.model_id != request.model_id
                 || final_state.process_executable != handle.process_executable
                 || final_state.process_started_at != handle.process_started_at
+                || final_state.cache != handle.cache
             {
                 return Err(BackendError("activation changed runtime ownership".into()));
             }
             if cancel.is_cancelled() {
                 return Err(BackendError("cancelled".into()));
             }
-            self.live(
-                &RuntimeState {
-                    schema_version: 2,
-                    active: Some(final_state.clone()),
-                },
-                cancel,
-            )
-            .await?;
+            self.live(&RuntimeState::for_active(final_state.clone()), cancel)
+                .await?;
             self.store
                 .compare_and_write(
                     &guard,
                     &expected_state,
-                    &RuntimeState {
-                        schema_version: 2,
-                        active: Some(final_state.clone()),
-                    },
+                    &RuntimeState::for_active(final_state.clone()),
                 )
                 .map_err(|error| BackendError(error.to_string()))?;
             Ok(final_state)
@@ -336,6 +324,7 @@ impl Lifecycle<'_> {
                     endpoint: active.endpoint.clone(),
                     model_path: None,
                     context: None,
+                    cache: None,
                 },
                 &active,
                 cancel,
@@ -348,14 +337,7 @@ impl Lifecycle<'_> {
         active.integrity = None;
         active.local_manifest_digest = None;
         self.store
-            .compare_and_write(
-                &guard,
-                &current,
-                &RuntimeState {
-                    schema_version: 2,
-                    active: Some(active.clone()),
-                },
-            )
+            .compare_and_write(&guard, &current, &RuntimeState::for_active(active.clone()))
             .map_err(|error| BackendError(error.to_string()))?;
         guard
             .release()
@@ -369,6 +351,11 @@ impl Lifecycle<'_> {
         cancel: &CancellationToken,
         activation: &dyn Activation,
     ) -> Result<ServerState, BackendError> {
+        if crate::cache::effective(request.cache.as_ref()).is_some() {
+            return Err(BackendError(
+                "cache settings cannot be applied to an installed model on a running daemon".into(),
+            ));
+        }
         let guard = self.lock(cancel).await?;
         let prior = self.revalidate(&request.model_id, reviewed, cancel).await?;
         if prior.active.as_ref().is_some_and(|active| {
@@ -404,23 +391,10 @@ impl Lifecycle<'_> {
             .active
             .as_ref()
             .is_some_and(|prior| prior.owned_by_us && prior.pid == active.pid);
-        self.live(
-            &RuntimeState {
-                schema_version: 2,
-                active: Some(active.clone()),
-            },
-            cancel,
-        )
-        .await?;
+        self.live(&RuntimeState::for_active(active.clone()), cancel)
+            .await?;
         self.store
-            .compare_and_write(
-                &guard,
-                &prior,
-                &RuntimeState {
-                    schema_version: 2,
-                    active: Some(active.clone()),
-                },
-            )
+            .compare_and_write(&guard, &prior, &RuntimeState::for_active(active.clone()))
             .map_err(|error| BackendError(error.to_string()))?;
         guard
             .release()

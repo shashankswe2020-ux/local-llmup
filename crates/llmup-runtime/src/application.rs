@@ -643,6 +643,7 @@ pub async fn run_native_with_config_observed(
             endpoint: active.endpoint.clone(),
             model_path: path,
             context: None,
+            cache: None,
         };
         lifecycle.health(&active, &request, cancel).await?;
         return Ok((
@@ -766,6 +767,7 @@ pub async fn run_native_with_config_observed(
             endpoint,
             model_path: None,
             context: options.context,
+            cache: None,
         };
         let active = lifecycle
             .attach_installed(&request, &reviewed, cancel, &activation)
@@ -917,6 +919,7 @@ pub async fn run_native_with_config_observed(
         endpoint,
         model_path: prepared.model_path,
         context: options.context,
+        cache: None,
     };
     let active = if options.context.is_some() {
         let activation = ContextActivation {
@@ -1116,6 +1119,7 @@ mod acquisition_contract_tests {
             process_executable: None,
             process_started_at: None,
             auth_token: None,
+            cache: None,
         };
         let (report, text) = up_output(&active, "size-only");
         assert_eq!(

@@ -209,3 +209,50 @@ fn a_regular_file_home_is_an_error_not_an_empty_state() {
     let missing = StateStore::new(Config::from_home(root.path().join("absent")).unwrap());
     assert_eq!(missing.read().unwrap(), RuntimeState::default());
 }
+
+#[test]
+fn only_an_applied_cache_profile_moves_state_to_schema_three() {
+    let owned = json!({"backend":"llamacpp","modelId":"m","endpoint":"http://127.0.0.1:8080",
+        "port":8080,"ownedByUs":true,"pid":7,"processExecutable":"/bin/llama-server",
+        "processStartedAt":"s"});
+    let state = |version: u8, active: serde_json::Value| {
+        RuntimeState::parse(&json!({"schemaVersion":version,"active":active}).to_string())
+    };
+    let plain = state(2, owned.clone()).unwrap().active.unwrap();
+    assert_eq!(RuntimeState::for_active(plain.clone()).schema_version, 2);
+    let mut cached = plain;
+    cached.cache = Some(llmup_runtime::cache::CacheProfile {
+        kv_k: llmup_core::sizing::KvCacheType::Q8_0,
+        kv_v: llmup_core::sizing::KvCacheType::Q8_0,
+        ..Default::default()
+    });
+    let written = RuntimeState::for_active(cached);
+    assert_eq!(written.schema_version, 3);
+    let value = serde_json::to_value(&written).unwrap();
+    assert_eq!(value["active"]["cache"]["kvK"], "q8_0");
+    assert_eq!(RuntimeState::parse(&value.to_string()).unwrap(), written);
+    let mut with_cache = owned.clone();
+    with_cache["cache"] = json!({"kvK":"q8_0","kvV":"q8_0"});
+    assert!(
+        state(2, with_cache.clone()).is_err(),
+        "v2 cannot carry a cache"
+    );
+    assert!(state(3, with_cache.clone()).is_ok());
+    assert!(
+        state(3, owned.clone()).is_err(),
+        "v3 always carries a cache"
+    );
+    let mut attached = with_cache.clone();
+    attached["ownedByUs"] = json!(false);
+    assert!(
+        state(3, attached).is_err(),
+        "attached runtimes never record a cache"
+    );
+    let mut default_profile = owned.clone();
+    default_profile["cache"] = json!({});
+    assert!(
+        state(3, default_profile).is_err(),
+        "the default profile is not recorded"
+    );
+    assert!(state(4, serde_json::Value::Null).is_err());
+}

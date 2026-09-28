@@ -107,6 +107,7 @@ impl OpenAiInference<'_> {
                         endpoint: handle.endpoint.clone(),
                         model_path: handle.model_path.as_ref().map(PathBuf::from),
                         context: None,
+                        cache: None,
                     },
                     handle,
                     cancel,

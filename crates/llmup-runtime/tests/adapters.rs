@@ -115,6 +115,7 @@ async fn llama_startup_uses_exact_artifact_and_alias() {
         endpoint: "http://127.0.0.1:11435".into(),
         model_path: Some(path.clone()),
         context: None,
+        cache: None,
     };
     assert!(
         adapter
@@ -188,6 +189,7 @@ async fn mlx_owned_startup_is_isolated_authenticated_and_bound_to_exact_model() 
         endpoint: "http://127.0.0.1:11435".into(),
         model_path: Some(root.path().to_owned()),
         context: None,
+        cache: None,
     };
     let active = adapter
         .serve(&input, &CancellationToken::new())
@@ -228,6 +230,7 @@ async fn attach_only_never_spawns_when_daemon_disappears() {
         endpoint: "http://127.0.0.1:11435".into(),
         model_path: None,
         context: None,
+        cache: None,
     };
     assert!(
         adapter
@@ -305,6 +308,7 @@ async fn ollama_startup_binds_custom_loopback_port_and_cleans_untrusted_readines
             endpoint: "http://127.0.0.1:11435".into(),
             model_path: None,
             context: None,
+            cache: None,
         };
         let result = adapter.serve(&request, &CancellationToken::new()).await;
         assert_eq!(result.is_ok(), executable == RUNTIME);
@@ -385,6 +389,7 @@ async fn attach_preserves_foreign_ownership_and_stop_never_signals_it() {
             endpoint: "http://127.0.0.1:11435".into(),
             model_path: Some(PathBuf::from("/verified/weights.gguf")),
             context: None,
+            cache: None,
         };
         let handle = adapter
             .serve(&request, &CancellationToken::new())
@@ -419,6 +424,7 @@ async fn untrusted_listener_is_rejected_before_attachment() {
         endpoint: "http://127.0.0.1:11435".into(),
         model_path: None,
         context: None,
+        cache: None,
     };
     assert!(
         adapter
@@ -480,6 +486,7 @@ async fn studio_requires_exact_delegated_path_and_never_owns_listener() {
         endpoint: "http://127.0.0.1:11435".into(),
         model_path: Some(PathBuf::from("owner/model/weights.gguf")),
         context: None,
+        cache: None,
     };
     let state = adapter
         .serve(&request, &CancellationToken::new())
@@ -520,6 +527,7 @@ async fn mlx_never_attaches_to_an_existing_listener() {
         endpoint: "http://127.0.0.1:11435".into(),
         model_path: Some(PathBuf::from("/verified/model")),
         context: None,
+        cache: None,
     };
     assert!(
         adapter
@@ -617,4 +625,115 @@ fn mlx_model_directories_must_be_data_only() {
     let empty = directory(json!({"model_type":"llama"}));
     std::fs::remove_file(empty.path().join("model.safetensors")).unwrap();
     assert!(validate_mlx_directory(empty.path()).is_err());
+}
+
+fn q8_cache() -> llmup_runtime::cache::CacheProfile {
+    llmup_runtime::cache::CacheProfile {
+        kv_k: llmup_core::sizing::KvCacheType::Q8_0,
+        kv_v: llmup_core::sizing::KvCacheType::Q8_0,
+        ..Default::default()
+    }
+}
+
+#[tokio::test]
+async fn owned_launches_apply_the_cache_profile_and_record_it() {
+    let root = tempfile::tempdir().unwrap();
+    let path = root.path().join("weights.gguf");
+    std::fs::write(&path, b"verified").unwrap();
+    let http = ModelHttp {
+        path: path.to_string_lossy().into_owned(),
+        mlx: false,
+    };
+    let probe = Probe {
+        binary: RUNTIME.into(),
+    };
+    let control = SpawnControl {
+        args: Mutex::new(Vec::new()),
+        env: Mutex::new(Default::default()),
+        cleaned: std::sync::Arc::new(Mutex::new(false)),
+    };
+    let llama = RuntimeAdapter::new(
+        BackendKind::LlamaCpp,
+        PathBuf::from(RUNTIME),
+        &http,
+        &probe,
+        &control,
+    );
+    let request = ServeRequest {
+        model_id: "test:latest".into(),
+        endpoint: "http://127.0.0.1:11435".into(),
+        model_path: Some(path.clone()),
+        context: Some(8192),
+        cache: Some(q8_cache()),
+    };
+    let handle = llama
+        .serve(&request, &CancellationToken::new())
+        .await
+        .unwrap();
+    assert_eq!(handle.cache, Some(q8_cache()));
+    assert_eq!(
+        control.args.lock().unwrap()[8..],
+        [
+            "--ctx-size",
+            "8192",
+            "--cache-type-k",
+            "q8_0",
+            "--cache-type-v",
+            "q8_0",
+            "--flash-attn",
+            "on"
+        ]
+    );
+    let store = tempfile::tempdir().unwrap();
+    let ollama = RuntimeAdapter::new(
+        BackendKind::Ollama,
+        PathBuf::from(RUNTIME),
+        &Http,
+        &probe,
+        &control,
+    )
+    .with_ollama_models(store.path().to_path_buf())
+    .unwrap();
+    let request = ServeRequest {
+        model_id: "test:latest".into(),
+        endpoint: "http://127.0.0.1:11435".into(),
+        model_path: None,
+        context: None,
+        cache: Some(q8_cache()),
+    };
+    let handle = ollama
+        .serve(&request, &CancellationToken::new())
+        .await
+        .unwrap();
+    assert_eq!(handle.cache, Some(q8_cache()));
+    assert_eq!(*control.args.lock().unwrap(), vec!["serve"]);
+    let env = control.env.lock().unwrap();
+    assert_eq!(env["OLLAMA_KV_CACHE_TYPE"], "q8_0");
+    assert_eq!(env["OLLAMA_FLASH_ATTENTION"], "1");
+}
+
+#[tokio::test]
+async fn cache_settings_are_refused_for_a_runtime_local_llmup_did_not_start() {
+    let probe = Probe {
+        binary: RUNTIME.into(),
+    };
+    let control = Control {
+        signals: Mutex::new(Vec::new()),
+    };
+    for kind in [BackendKind::Ollama, BackendKind::LlamaCpp] {
+        let adapter = RuntimeAdapter::new(kind, PathBuf::from(RUNTIME), &Http, &probe, &control);
+        let request = ServeRequest {
+            model_id: "test:latest".into(),
+            endpoint: "http://127.0.0.1:11435".into(),
+            model_path: None,
+            context: None,
+            cache: Some(q8_cache()),
+        };
+        let error = adapter
+            .serve(&request, &CancellationToken::new())
+            .await
+            .unwrap_err();
+        assert!(error.0.contains("starts"), "{}", error.0);
+    }
+    assert!(control.signals.lock().unwrap().is_empty());
 }

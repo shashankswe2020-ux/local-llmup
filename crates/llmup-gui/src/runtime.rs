@@ -28,6 +28,7 @@ fn request(name: &str) -> ServeRequest {
         ),
         model_path: None,
         context: None,
+        cache: None,
     }
 }
 impl RuntimeController {

@@ -406,6 +406,7 @@ mod tests {
             endpoint: "http://127.0.0.1:11434".into(),
             model_path: None,
             context: Some(4096),
+            cache: None,
         }
     }
 

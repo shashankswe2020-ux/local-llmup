@@ -66,6 +66,25 @@ pub fn provider(name: &str) -> Option<&'static dyn CacheProvider> {
     }
 }
 
+/// The profile worth recording and applying: `None` when absent or equal to the default.
+pub fn effective(profile: Option<&CacheProfile>) -> Option<CacheProfile> {
+    profile
+        .copied()
+        .filter(|profile| *profile != CacheProfile::default())
+}
+
+/// Launch settings for `backend`, refusing profiles it cannot apply before anything starts.
+pub fn launch_delta(
+    profile: Option<&CacheProfile>,
+    backend: &str,
+    owned: bool,
+) -> Result<SpawnDelta, CacheError> {
+    match effective(profile) {
+        None => Ok(SpawnDelta::default()),
+        Some(profile) => NativeCacheProvider.apply(&profile, backend, owned),
+    }
+}
+
 /// Cache settings each backend already exposes (verified: llama.cpp b10090, Ollama 0.32.5).
 pub struct NativeCacheProvider;
 

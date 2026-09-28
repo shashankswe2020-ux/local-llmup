@@ -218,6 +218,7 @@ async fn health_checks_identity_and_readiness_without_mutating_state() {
         endpoint: active.endpoint.clone(),
         model_path: None,
         context: None,
+        cache: None,
     };
     lifecycle
         .health(&active, &request, &CancellationToken::new())
@@ -471,6 +472,7 @@ async fn replacement_failure_preserves_foreign_state_and_drift_prevents_startup(
         endpoint: "http://127.0.0.1:11435".into(),
         model_path: None,
         context: None,
+        cache: None,
     };
     assert!(
         lifecycle
@@ -518,6 +520,7 @@ async fn owned_replacement_failure_clears_stale_pid_and_detach_does_not_stop_for
         endpoint: "http://127.0.0.1:11435".into(),
         model_path: None,
         context: None,
+        cache: None,
     };
     assert!(
         lifecycle
@@ -550,6 +553,7 @@ async fn successful_replacement_and_detach_preserve_foreign_process() {
         endpoint: "http://127.0.0.1:11435".into(),
         model_path: None,
         context: None,
+        cache: None,
     };
     let active = lifecycle
         .replace("ollama", &request, &review, &cancel)
@@ -597,6 +601,7 @@ async fn state_changed_during_activation_is_not_overwritten() {
         endpoint: "http://127.0.0.1:11435".into(),
         model_path: None,
         context: None,
+        cache: None,
     };
     assert!(
         lifecycle
@@ -750,6 +755,7 @@ async fn installed_attachment_retains_ownership_of_same_recorded_daemon() {
         endpoint: "http://127.0.0.1:11435".into(),
         model_path: None,
         context: Some(8192),
+        cache: None,
     };
     let active = lifecycle
         .attach_installed(&request, &review, &cancel, &Finalize)
@@ -782,6 +788,7 @@ async fn cancelled_replacement_never_rewrites_state() {
         endpoint: "http://127.0.0.1:11435".into(),
         model_path: None,
         context: None,
+        cache: None,
     };
     assert!(
         lifecycle
@@ -1233,6 +1240,7 @@ async fn owned_runtime_is_stopped_when_persisting_state_fails() {
         endpoint: "http://127.0.0.1:11435".into(),
         model_path: None,
         context: None,
+        cache: None,
     };
     let drift = DriftingActivation(store.config.state.clone());
     assert!(
@@ -1243,5 +1251,48 @@ async fn owned_runtime_is_stopped_when_persisting_state_fails() {
     );
     assert!(*adapter.0.stopped.lock().unwrap());
     assert_eq!(store.read().unwrap(), state());
+    assert!(!store.config.lock.exists());
+}
+
+#[tokio::test]
+async fn an_unappliable_cache_profile_is_refused_before_the_running_server_is_touched() {
+    let home = tempfile::tempdir().unwrap();
+    let store = StateStore::new(Config::from_home(home.path()).unwrap());
+    let mut owned = state();
+    owned.active.as_mut().unwrap().owned_by_us = true;
+    let guard = store.lock(Duration::from_millis(10)).unwrap();
+    store.write(&guard, &owned).unwrap();
+    guard.release().unwrap();
+    let before = std::fs::read(&store.config.state).unwrap();
+    let adapter = Adapter {
+        fail: false,
+        stopped: Mutex::new(false),
+    };
+    let registry = Registry::new(vec![&adapter]);
+    let lifecycle = Lifecycle {
+        store: &store,
+        registry: &registry,
+        probe: &Probe,
+    };
+    let cancel = CancellationToken::new();
+    let reviewed = lifecycle.review("next:latest", &cancel).await.unwrap();
+    let request = ServeRequest {
+        model_id: "next:latest".into(),
+        endpoint: "http://127.0.0.1:11435".into(),
+        model_path: None,
+        context: None,
+        cache: Some(llmup_runtime::cache::CacheProfile {
+            kv_k: llmup_core::sizing::KvCacheType::Q8_0,
+            kv_v: llmup_core::sizing::KvCacheType::Q4_0,
+            ..Default::default()
+        }),
+    };
+    let error = lifecycle
+        .replace("ollama", &request, &reviewed, &cancel)
+        .await
+        .unwrap_err();
+    assert!(error.to_string().contains("ollama"), "{error}");
+    assert!(!*adapter.stopped.lock().unwrap());
+    assert_eq!(std::fs::read(&store.config.state).unwrap(), before);
     assert!(!store.config.lock.exists());
 }

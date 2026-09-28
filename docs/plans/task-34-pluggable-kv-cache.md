@@ -119,13 +119,14 @@ K1 and K3 can run in parallel. K7 can start at any time.
 - **Files:** `crates/llmup-runtime/src/cache.rs` (new), `lib.rs`, `crates/llmup-runtime/tests/cache.rs` (new).
 - **Verify:** `cargo test -p llmup-runtime --test cache`.
 
-### K4 — Lifecycle wiring + state v3
+### K4 — Lifecycle wiring + state v3 ✅ Done
 - **Do:** `ServeRequest.cache: Option<CacheProfile>`. Adapters merge the `SpawnDelta` into `SpawnSpec`. `ServerState.cache` is persisted. v2 → v3 read-migration.
 - **Acceptance:**
   1. `up` against an attached Ollama with a cache profile → refusal before any mutation; state unchanged, lock released.
   2. Owned llama.cpp spawn spec contains the flags.
   3. v2 state files still load; a v3 round-trip is stable.
-  4. `switch` preserves the profile unless overridden.
+  4. `switch` preserves the profile unless overridden. *(Moved to K5: the preservation rule lives where CLI flags meet the stored state.)*
+- **As built:** schema 3 is written exactly when an owned runtime carries a non-default profile, so a cacheless session still writes v2 and older binaries keep reading it. The replace path checks the profile before it locks, stops or spawns anything.
 - **Files:** `adapters.rs`, `special_adapters.rs`, `lifecycle.rs`, `state.rs`, `crates/llmup-runtime/tests/{lifecycle,state}.rs`.
 - **Verify:** `cargo test -p llmup-runtime --test lifecycle --test state`.
 
