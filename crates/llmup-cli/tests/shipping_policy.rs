@@ -190,19 +190,31 @@ fn readme_documents_native_install_and_primary_workflows() {
     let readme = read("README.md");
     for required in [
         "brew install shashankswe2020-ux/tap/local-llmup",
-        "cargo binstall llmup-cli llmup-gui",
-        "cargo install llmup-cli --locked",
-        "cargo install llmup-gui --locked",
+        "(docs/references/guide.md#install)",
+        "(docs/references/guide.md#docker)",
+        "assets/local-llmup.mp4",
+        "assets/local-llmup-preview.gif",
         "llmup recommend",
         "llmup up",
         "llmup chat",
         "llmup catalog",
-        "docker pull ghcr.io/shashankswe2020-ux/local-llmup",
     ] {
         assert!(readme.contains(required), "{required}");
     }
+    let reference = read("docs/references/guide.md");
+    for required in [
+        "## Install",
+        "### Docker",
+        "cargo binstall llmup-cli llmup-gui",
+        "cargo install llmup-cli --locked",
+        "cargo install llmup-gui --locked",
+        "docker pull ghcr.io/shashankswe2020-ux/local-llmup",
+    ] {
+        assert!(reference.contains(required), "{required}");
+    }
     for forbidden in ["npm install -g", "npx local-llmup", "Node.js 18"] {
         assert!(!readme.contains(forbidden), "{forbidden}");
+        assert!(!reference.contains(forbidden), "{forbidden}");
     }
     assert!(read("site/index.html").contains("docker pull ghcr.io/shashankswe2020-ux/local-llmup"));
 }
