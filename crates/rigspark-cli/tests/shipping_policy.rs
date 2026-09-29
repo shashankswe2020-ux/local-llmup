@@ -202,10 +202,12 @@ fn readme_documents_native_install_and_primary_workflows() {
         "(docs/references/guide.md#docker)",
         "assets/rigspark.mp4",
         "assets/rigspark-preview.gif",
-        "llmup recommend",
-        "llmup up",
-        "llmup chat",
-        "llmup catalog",
+        "rigspark recommend",
+        "rigspark up",
+        "rigspark chat",
+        "rigspark catalog",
+        "rigspark gui",
+        "`llmup` remains a compatibility alias",
     ] {
         assert!(readme.contains(required), "{required}");
     }

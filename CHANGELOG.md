@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## 2.0.0 - 2026-09-30
+
+### Breaking: renamed to RigSpark
+
+- The primary executable is now `rigspark`; `llmup` stays as a compatibility
+  alias. Crates publish as `rigspark-cli`, `rigspark-gui`, `rigspark-core`,
+  `rigspark-runtime` and `rigspark-crossterm`, replacing the `llmup-*` crates.
+- Environment variables use the `RIGSPARK_` prefix, including `RIGSPARK_HOME`.
+  Stop running servers, then move your data directory to `~/.rigspark` or point
+  `RIGSPARK_HOME` at it. Nothing is moved or deleted automatically.
+- The desktop bundle identifier is now `org.rigspark.desktop`, so operating
+  system permissions may need to be approved again.
+- Release archives are named `rigspark-<target>`.
+
+### KV cache profiles
+
+- `--kv-cache` sizes advice at a chosen KV cache type (`fp16`, `q8_0`, `q4_0`),
+  and `up`/`switch` apply the cache profile to owned launches.
+- The browser GUI adds a KV cache selector with offline re-sizing.
+
+### Fixes
+
+- The browser GUI keeps its recommendation JSON unchanged unless a KV cache type
+  is chosen, matching `can-run`.
+
 ## 1.0.2 - 2026-09-28
 
 ### Fixes

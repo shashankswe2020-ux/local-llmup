@@ -1,7 +1,13 @@
-# RigSpark: Check Which Local LLMs Your Computer Can Run
+# <img src="crates/rigspark-gui/static/mascot-avatar.jpg" alt="" width="44" height="44"> RigSpark: Check Which Local LLMs Your Computer Can Run
 
 [![CI](https://github.com/shashankswe2020-ux/rigspark/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/shashankswe2020-ux/rigspark/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/shashankswe2020-ux/rigspark?sort=semver&label=release)](https://github.com/shashankswe2020-ux/rigspark/releases/latest)
 [![crates.io](https://img.shields.io/crates/v/rigspark-cli.svg?label=crates.io)](https://crates.io/crates/rigspark-cli)
+[![Downloads](https://img.shields.io/crates/d/rigspark-cli.svg?label=downloads)](https://crates.io/crates/rigspark-cli)
+[![docs.rs](https://img.shields.io/docsrs/rigspark-core?label=docs.rs)](https://docs.rs/rigspark-core)
+[![Rust 1.98+](https://img.shields.io/badge/rust-1.98%2B-orange.svg?logo=rust)](rust-toolchain.toml)
+[![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue.svg)](https://github.com/shashankswe2020-ux/rigspark/releases/latest)
+[![Website](https://img.shields.io/badge/website-rigspark-72dca0.svg)](https://shashankswe2020-ux.github.io/rigspark/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **Which local LLMs can your computer run? Find out before downloading the weights.**

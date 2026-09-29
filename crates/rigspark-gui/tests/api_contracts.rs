@@ -370,7 +370,24 @@ async fn model_routes_validate_queries_before_touching_runtimes() {
             .all(|model| model["kvPrecision"] == "q8_0")
     );
     assert!(scoped["kvCache"].is_null());
-    let (fp16, q8) = (kv_bytes(&scoped), kv_bytes(&quantized));
+    // A small fixed context keeps both top-8 lists overlapping on any detected host (CI runners are small).
+    let (status, fp16_small) = json_call(
+        &host,
+        "GET",
+        "/api/models/recommended?runtime=llamacpp&tokens=2048",
+        Value::Null,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    let (status, q8_small) = json_call(
+        &host,
+        "GET",
+        "/api/models/recommended?runtime=llamacpp&tokens=2048&kvCache=q8_0",
+        Value::Null,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    let (fp16, q8) = (kv_bytes(&fp16_small), kv_bytes(&q8_small));
     let shared: Vec<_> = q8.keys().filter(|id| fp16.contains_key(*id)).collect();
     assert!(!shared.is_empty());
     for id in shared {
