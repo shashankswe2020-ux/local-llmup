@@ -47,7 +47,7 @@ jobs:
       - name: Lint
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Test
-        run: cargo test --workspace --locked -- --test-threads=2
+        run: cargo test --workspace --locked --no-fail-fast -- --test-threads=2
       - name: Package publishable crates
         run: cargo package --workspace --locked --allow-dirty --no-verify
       - name: Build
