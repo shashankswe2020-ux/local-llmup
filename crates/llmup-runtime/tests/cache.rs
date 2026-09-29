@@ -199,3 +199,68 @@ fn profiles_serialize_with_stable_names_and_reject_unknown_fields() {
             .is_err()
     );
 }
+
+#[test]
+fn flags_override_the_running_profile_on_switch_and_the_user_default_on_up() {
+    use llmup_runtime::cache::{CacheFlags, requested};
+    let q8 = profile(Q8_0, Q8_0, FlashAttention::Auto);
+    let q4_on = profile(Q4_0, Q4_0, FlashAttention::On);
+    let none = CacheFlags::default();
+    let kv = |kind| CacheFlags {
+        kv: Some(kind),
+        ..CacheFlags::default()
+    };
+    assert_eq!(none.over(None), None);
+    assert_eq!(none.over(Some(q8)), Some(q8));
+    assert_eq!(kv(Q8_0).over(None), Some(q8));
+    let flash = CacheFlags {
+        flash_attention: Some(FlashAttention::On),
+        ..CacheFlags::default()
+    };
+    assert_eq!(
+        flash.over(Some(profile(Q4_0, Q4_0, FlashAttention::Auto))),
+        Some(q4_on)
+    );
+    // up: flag > user default > backend default; the running profile is ignored.
+    assert_eq!(requested(none, false, Some(q4_on), Some(q8)), Some(q8));
+    assert_eq!(
+        requested(kv(Q4_0), false, None, Some(q8)),
+        Some(profile(Q4_0, Q4_0, FlashAttention::Auto))
+    );
+    assert_eq!(requested(none, false, Some(q8), None), None);
+    // switch: flag > running profile; the user default never replaces what is running.
+    assert_eq!(requested(none, true, Some(q8), Some(q4_on)), Some(q8));
+    assert_eq!(requested(none, true, None, Some(q4_on)), None);
+    assert_eq!(
+        requested(kv(F16), true, Some(q8), None),
+        None,
+        "f16 clears the profile"
+    );
+    assert_eq!(requested(kv(Q4_0), true, Some(q4_on), None), Some(q4_on));
+}
+
+#[test]
+fn names_parse_round_trip_and_summaries_are_plain_text() {
+    for flash in [
+        FlashAttention::Auto,
+        FlashAttention::On,
+        FlashAttention::Off,
+    ] {
+        assert_eq!(FlashAttention::parse(flash.name()), Some(flash));
+    }
+    for reuse in [PromptReuse::Off, PromptReuse::Reuse] {
+        assert_eq!(PromptReuse::parse(reuse.name()), Some(reuse));
+    }
+    assert_eq!(FlashAttention::parse("yes"), None);
+    assert_eq!(PromptReuse::parse(""), None);
+    assert_eq!(
+        profile(Q8_0, Q8_0, FlashAttention::Auto).summary(),
+        "KV q8_0, flash attention auto, prompt reuse off"
+    );
+    assert_eq!(
+        profile(Q8_0, F16, FlashAttention::Off).summary(),
+        "KV K q8_0 / V f16, flash attention off, prompt reuse off"
+    );
+    assert!(profile(F16, Q4_0, FlashAttention::Off).validate().is_err());
+    profile(Q4_0, F16, FlashAttention::Off).validate().unwrap();
+}

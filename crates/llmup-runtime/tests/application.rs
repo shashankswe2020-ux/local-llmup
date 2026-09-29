@@ -15,6 +15,7 @@ async fn switch_without_active_server_fails_before_hardware_or_runtime_work() {
         context: None,
         installed: false,
         bypass: false,
+        cache: Default::default(),
     };
     let error = run_native_with_config(
         &options,
@@ -42,6 +43,7 @@ fn down_accepts_optional_model_but_rejects_selection_options() {
         context: None,
         installed: false,
         bypass: false,
+        cache: Default::default(),
     };
     options.validate().unwrap();
     for query in ["", " ", "bad\nmodel", &"x".repeat(8193)] {
@@ -80,6 +82,7 @@ fn lifecycle_options_reject_invalid_or_unsupported_combinations() {
         context: Some(8192),
         installed: false,
         bypass: false,
+        cache: Default::default(),
     };
     options.validate().unwrap();
     options.port = Some(0);
@@ -109,6 +112,7 @@ fn activation_request_boundaries_and_installed_dependencies_match_native_contrac
                     context: Some(context),
                     installed: false,
                     bypass: false,
+                    cache: Default::default(),
                 };
                 options.validate().unwrap();
                 options.context = Some(10000001);
@@ -155,6 +159,7 @@ async fn invalid_activation_requests_fail_before_reading_corrupt_state() {
                 context,
                 installed,
                 bypass,
+                cache: Default::default(),
             };
             let expected = options.validate().unwrap_err().to_string();
             assert_eq!(
@@ -207,6 +212,7 @@ fn catalog_quantization_suffixes_reach_the_resolver() {
         context: None,
         installed: false,
         bypass: false,
+        cache: Default::default(),
     };
     options.validate().unwrap();
 }
@@ -220,6 +226,7 @@ fn down_options(model: Option<&str>) -> LifecycleOptions {
         context: None,
         installed: false,
         bypass: false,
+        cache: Default::default(),
     }
 }
 
@@ -275,6 +282,7 @@ async fn switch_rejects_backend_override_before_already_active_or_preparation() 
                     context,
                     installed,
                     bypass,
+                    cache: Default::default(),
                 };
                 let diagnostics = DiagnosticObserver::default();
                 let (observer, mut receiver) = LifecycleObserver::channel();
@@ -340,6 +348,7 @@ async fn switch_matching_or_implicit_backend_preserves_already_active_state() {
                 context: None,
                 installed: false,
                 bypass: false,
+                cache: Default::default(),
             };
             let (value, text) = run_native_with_config(
                 &options,
@@ -396,6 +405,7 @@ async fn switch_pointer_rejects_port_override_before_already_active_or_preparati
             context: None,
             installed: false,
             bypass: false,
+            cache: Default::default(),
         };
         let error = run_native_with_config(
             &options,
@@ -529,5 +539,44 @@ async fn down_resolves_canonical_ids_and_preserves_state_on_mismatch_or_resoluti
             assert_eq!(std::fs::read(&store.config.state).unwrap(), bytes);
             assert!(!store.config.lock.exists());
         }
+    }
+}
+
+#[test]
+fn cache_options_apply_only_to_launches_local_llmup_owns() {
+    use llmup_core::sizing::KvCacheType;
+    use llmup_runtime::cache::{CacheFlags, FlashAttention};
+    let q8 = CacheFlags {
+        kv: Some(KvCacheType::Q8_0),
+        ..CacheFlags::default()
+    };
+    let mut options = LifecycleOptions {
+        command: "up".into(),
+        model: Some("test:latest".into()),
+        backend: None,
+        port: None,
+        context: None,
+        installed: false,
+        bypass: false,
+        cache: q8,
+    };
+    options.validate().unwrap();
+    options.command = "switch".into();
+    options.validate().unwrap();
+    options.installed = true;
+    options.bypass = true;
+    let installed = options.validate().unwrap_err().to_string();
+    assert!(installed.contains("--installed"), "{installed}");
+    options.installed = false;
+    options.bypass = false;
+    options.cache.flash_attention = Some(FlashAttention::Off);
+    let flash = options.validate().unwrap_err().to_string();
+    assert!(flash.contains("flash attention"), "{flash}");
+    options.cache = q8;
+    for command in ["down", "doctor"] {
+        options.command = command.into();
+        options.model = None;
+        let error = options.validate().unwrap_err().to_string();
+        assert!(error.contains("does not accept cache options"), "{error}");
     }
 }

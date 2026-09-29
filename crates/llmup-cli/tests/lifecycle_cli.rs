@@ -91,6 +91,83 @@ fn public_empty_down_is_unchanged_by_yes_and_creates_no_state() {
 }
 
 #[test]
+fn cache_flags_are_refused_before_work_and_ls_shows_an_applied_profile() {
+    let home = tempfile::tempdir().unwrap();
+    let run = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_llmup"))
+            .args(args)
+            .env("LOCAL_LLMUP_HOME", home.path())
+            .env("PATH", "")
+            .output()
+            .unwrap()
+    };
+    for (args, reason) in [
+        (
+            vec![
+                "up",
+                "test:latest",
+                "--installed",
+                "--bypass",
+                "--kv-cache",
+                "q8_0",
+            ],
+            "--installed attaches",
+        ),
+        (
+            vec![
+                "up",
+                "test:latest",
+                "--kv-cache",
+                "q8_0",
+                "--flash-attn",
+                "off",
+            ],
+            "requires flash attention",
+        ),
+        (vec!["down", "--flash-attn", "on"], "not supported"),
+        (
+            vec!["recommend", "--prompt-cache", "reuse"],
+            "not supported",
+        ),
+        (
+            vec!["up", "test:latest", "--prompt-cache", "all"],
+            "invalid value",
+        ),
+    ] {
+        let output = run(&args);
+        assert!(!output.status.success(), "{args:?}");
+        assert!(output.stdout.is_empty(), "{args:?}");
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains(reason), "{args:?}: {stderr}");
+    }
+    assert_eq!(home.path().read_dir().unwrap().count(), 0);
+
+    let state = home.path().join("state.json");
+    std::fs::write(
+        &state,
+        r#"{"schemaVersion":3,"active":{"backend":"llamacpp","modelId":"qwen3:8b","endpoint":"http://127.0.0.1:8080","port":8080,"ownedByUs":true,"pid":123,"processExecutable":"/trusted/llama-server","processStartedAt":"instance","cache":{"kvK":"q8_0","kvV":"q8_0"}}}"#,
+    )
+    .unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&state, std::fs::Permissions::from_mode(0o600)).unwrap();
+    }
+    let json = run(&["ls", "--json"]);
+    assert!(json.status.success(), "{json:?}");
+    let report: serde_json::Value = serde_json::from_slice(&json.stdout).unwrap();
+    assert_eq!(report["cache"]["kvK"], "q8_0");
+    assert_eq!(report["cache"]["flashAttention"], "auto");
+    let text = run(&["ls", "--no-tui"]);
+    assert!(text.status.success(), "{text:?}");
+    assert!(
+        String::from_utf8(text.stdout)
+            .unwrap()
+            .contains("Cache: KV q8_0, flash attention auto, prompt reuse off")
+    );
+}
+
+#[test]
 fn public_down_target_mismatch_preserves_owned_and_attached_state() {
     for binary in public_aliases() {
         for owned_by_us in [false, true] {

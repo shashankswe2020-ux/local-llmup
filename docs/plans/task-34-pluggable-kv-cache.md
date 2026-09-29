@@ -130,7 +130,7 @@ K1 and K3 can run in parallel. K7 can start at any time.
 - **Files:** `adapters.rs`, `special_adapters.rs`, `lifecycle.rs`, `state.rs`, `crates/llmup-runtime/tests/{lifecycle,state}.rs`.
 - **Verify:** `cargo test -p llmup-runtime --test lifecycle --test state`.
 
-### K5 — CLI + config defaults
+### K5 — CLI + config defaults ✅ Done
 - **Do:**
   - `up`/`switch` accept `--kv-cache`, `--flash-attn`, `--prompt-cache off|reuse` and `--cache-provider native`.
   - `config.json` v2 gets an optional `cache` object.
@@ -142,6 +142,13 @@ K1 and K3 can run in parallel. K7 can start at any time.
   3. Goldens updated; the help ordering of existing flags is unchanged.
 - **Files:** `native_args.rs`, `native.rs`, `state.rs`, `application.rs`, `crates/llmup-cli/tests/{lifecycle_cli,public_cli}.rs`.
 - **Verify:** `cargo test -p llmup-cli`.
+- **As built:**
+  - Precedence lives in the pure function `cache::requested`. For `up` it is flag > `config.json` v2 `cache` > backend default. For `switch` it is flag > the running profile, so a switch keeps what is running (K4 criterion 4). `--kv-cache f16` clears the profile.
+  - An unchanged profile keeps the Ollama pointer-switch and "already active" shortcuts. A changed profile takes the full replace path, which restarts the runtime local-llmup owns.
+  - The profile is checked against the chosen backend **before** any download. `--installed`, `down` and `doctor` refuse cache flags outright.
+  - Launch fit now sizes the KV cache at the requested type. An asymmetric K/V profile keeps the conservative f16 estimate.
+  - `up` and `ls` print `Cache: KV q8_0, flash attention auto, prompt reuse off`, and their JSON gains a `cache` object. Both appear only when a profile is applied, so the no-flag output is unchanged.
+  - **Deferred:** `--cache-provider` (only `native` exists until K8) and the per-backend `doctor` row. Both are listed under K9.
 
 ### K6 — GUI cache selector
 - **Do:** the Models view gets a cache selector. It shows the typed KV estimate and `unknown` where applicable. `/api/models/up` accepts a validated profile. Refusal reasons are shown the same way as the existing lifecycle errors (control characters stripped, 400 chars max).

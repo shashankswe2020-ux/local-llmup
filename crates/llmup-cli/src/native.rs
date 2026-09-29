@@ -154,6 +154,10 @@ struct Args {
     forget: bool,
     #[arg(long, value_parser = ["f16", "q8_0", "q4_0"])]
     kv_cache: Option<String>,
+    #[arg(long, value_parser = ["auto", "on", "off"])]
+    flash_attn: Option<String>,
+    #[arg(long, value_parser = ["off", "reuse"])]
+    prompt_cache: Option<String>,
 }
 
 impl Args {
@@ -161,6 +165,14 @@ impl Args {
         self.kv_cache
             .as_deref()
             .and_then(llmup_core::sizing::KvCacheType::parse)
+    }
+    fn cache_flags(&self) -> llmup_runtime::cache::CacheFlags {
+        use llmup_runtime::cache::{FlashAttention, PromptReuse};
+        llmup_runtime::cache::CacheFlags {
+            kv: self.kv_cache(),
+            flash_attention: self.flash_attn.as_deref().and_then(FlashAttention::parse),
+            prompt_reuse: self.prompt_cache.as_deref().and_then(PromptReuse::parse),
+        }
     }
 }
 
@@ -232,6 +244,7 @@ impl Args {
             context: self.context.map(|value| value as u32),
             installed: self.installed,
             bypass: self.bypass,
+            cache: self.cache_flags(),
         };
         options.validate()?;
         Ok(options)
@@ -390,7 +403,9 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
             max_context: args.max_context,
             backend: args.backend.clone(),
             available_backends: None,
-            kv_cache: args.kv_cache(),
+            kv_cache: args
+                .kv_cache()
+                .filter(|_| ["recommend", "can-run", "plan"].contains(&args.command.as_str())),
         }
         .validate()?;
         for (label, value) in [
@@ -821,6 +836,9 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
                 if let Some(context) = active.context {
                     report["context"] = json!(context);
                 }
+                if let Some(cache) = &active.cache {
+                    report["cache"] = json!(cache);
+                }
                 let mut text = format!(
                     "{}\n",
                     llmup_core::reports::table(
@@ -846,6 +864,9 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
                 );
                 if let Some(id) = active.runtime_model_id {
                     text.push_str(&format!("Runtime model: {}\n", strip_control(&id)));
+                }
+                if let Some(cache) = &active.cache {
+                    text.push_str(&format!("Cache: {}\n", cache.summary()));
                 }
                 if let Some(context) = active.context {
                     text.push_str(&format!("Context: {context} tokens\n"));
@@ -1450,6 +1471,7 @@ async fn collect_doctor(args: &Args, supplied: Option<Hardware>) -> Value {
             context: None,
             installed: false,
             bypass: false,
+            cache: Default::default(),
         };
         match llmup_runtime::application::run_native(
             &options,

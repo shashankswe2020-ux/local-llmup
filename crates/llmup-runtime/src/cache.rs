@@ -19,6 +19,35 @@ pub enum PromptReuse {
     Reuse,
 }
 
+impl FlashAttention {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::On => "on",
+            Self::Off => "off",
+        }
+    }
+    pub fn parse(value: &str) -> Option<Self> {
+        [Self::Auto, Self::On, Self::Off]
+            .into_iter()
+            .find(|kind| kind.name() == value)
+    }
+}
+
+impl PromptReuse {
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Off => "off",
+            Self::Reuse => "reuse",
+        }
+    }
+    pub fn parse(value: &str) -> Option<Self> {
+        [Self::Off, Self::Reuse]
+            .into_iter()
+            .find(|kind| kind.name() == value)
+    }
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase", deny_unknown_fields)]
 pub struct CacheProfile {
@@ -26,6 +55,62 @@ pub struct CacheProfile {
     pub kv_v: KvCacheType,
     pub flash_attention: FlashAttention,
     pub prompt_reuse: PromptReuse,
+}
+
+impl CacheProfile {
+    /// Rules that hold on every backend.
+    pub fn validate(&self) -> Result<(), CacheError> {
+        if self.kv_v != KvCacheType::F16 && self.flash_attention == FlashAttention::Off {
+            return Err(CacheError::Invalid(
+                "a quantized V cache requires flash attention",
+            ));
+        }
+        Ok(())
+    }
+    pub fn summary(&self) -> String {
+        let kv = if self.kv_k == self.kv_v {
+            self.kv_k.name().to_owned()
+        } else {
+            format!("K {} / V {}", self.kv_k.name(), self.kv_v.name())
+        };
+        format!(
+            "KV {kv}, flash attention {}, prompt reuse {}",
+            self.flash_attention.name(),
+            self.prompt_reuse.name()
+        )
+    }
+}
+
+/// Cache options a user asked for; unset fields inherit from the base profile.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct CacheFlags {
+    pub kv: Option<KvCacheType>,
+    pub flash_attention: Option<FlashAttention>,
+    pub prompt_reuse: Option<PromptReuse>,
+}
+
+impl CacheFlags {
+    pub fn is_empty(&self) -> bool {
+        *self == Self::default()
+    }
+    /// `base` with every given flag applied on top.
+    pub fn over(self, base: Option<CacheProfile>) -> Option<CacheProfile> {
+        if self.is_empty() {
+            return base;
+        }
+        let mut profile = base.unwrap_or_default();
+        if let Some(kind) = self.kv {
+            profile.kv_k = kind;
+            profile.kv_v = kind;
+        }
+        if let Some(flash) = self.flash_attention {
+            profile.flash_attention = flash;
+        }
+        if let Some(reuse) = self.prompt_reuse {
+            profile.prompt_reuse = reuse;
+        }
+        Some(profile)
+    }
 }
 
 /// Arguments and environment a cache provider adds to a backend launch.
@@ -73,6 +158,21 @@ pub fn effective(profile: Option<&CacheProfile>) -> Option<CacheProfile> {
         .filter(|profile| *profile != CacheProfile::default())
 }
 
+/// The profile a launch applies: flags win, then the running profile for `switch`
+/// or the user default for `up`, then the backend default (`None`).
+pub fn requested(
+    flags: CacheFlags,
+    switch: bool,
+    running: Option<CacheProfile>,
+    user_default: Option<CacheProfile>,
+) -> Option<CacheProfile> {
+    effective(
+        flags
+            .over(if switch { running } else { user_default })
+            .as_ref(),
+    )
+}
+
 /// Launch settings for `backend`, refusing profiles it cannot apply before anything starts.
 pub fn launch_delta(
     profile: Option<&CacheProfile>,
@@ -101,11 +201,7 @@ impl CacheProvider for NativeCacheProvider {
         if !llmup_core::catalog::BACKENDS.contains(&backend) {
             return Err(CacheError::Invalid("unknown backend"));
         }
-        if profile.kv_v != KvCacheType::F16 && profile.flash_attention == FlashAttention::Off {
-            return Err(CacheError::Invalid(
-                "a quantized V cache requires flash attention",
-            ));
-        }
+        profile.validate()?;
         if *profile == CacheProfile::default() {
             return Ok(SpawnDelta::default());
         }

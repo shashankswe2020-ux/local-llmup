@@ -22,6 +22,7 @@ enum ActiveReport {
         owned_by_us: bool,
         runtime_model_id: Option<String>,
         context: Option<u32>,
+        cache: Option<llmup_runtime::cache::CacheProfile>,
     },
 }
 
@@ -349,14 +350,15 @@ pub fn active_server_screen(report: &Value) -> io::Result<String> {
     let report: ActiveReport = serde_json::from_value(report.clone()).map_err(io::Error::other)?;
     match report {
         ActiveReport::Empty {}=>Ok("local-llmup / Active Server / Accessible\n1. Status\nNo active model.\n2. Next\nlocal-llmup up <model>\n".into()),
-        ActiveReport::Active {model_id,backend,endpoint,port,owned_by_us,runtime_model_id,context}=>{
+        ActiveReport::Active {model_id,backend,endpoint,port,owned_by_us,runtime_model_id,context,cache}=>{
             if port==0 || !llmup_core::catalog::BACKENDS.contains(&backend.as_str())
                 || context.is_some_and(|value|value==0 || value>10_000_000)
                 || runtime_model_id.as_ref().is_some_and(|value|value.len()>8192) {
                 return Err(io::Error::other("invalid active-server report"));
             }
             llmup_runtime::state::loopback(&endpoint).map_err(io::Error::other)?;
-            Ok(format!("local-llmup / Active Server / Accessible\n1. Model\n{}\n2. Runtime\nBackend: {}\nEndpoint: {}\nPort: {port}\nOwnership: {}\n",identifier(&model_id)?,line(&backend)?,line(&endpoint)?,if owned_by_us {"owned"} else {"attached"}))
+            let cache = cache.map(|cache| format!("Cache: {}\n", cache.summary())).unwrap_or_default();
+            Ok(format!("local-llmup / Active Server / Accessible\n1. Model\n{}\n2. Runtime\nBackend: {}\nEndpoint: {}\nPort: {port}\nOwnership: {}\n{cache}",identifier(&model_id)?,line(&backend)?,line(&endpoint)?,if owned_by_us {"owned"} else {"attached"}))
         }
     }
 }

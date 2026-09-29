@@ -233,6 +233,7 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
             context: input.context,
             installed: input.installed,
             bypass: input.bypass,
+            cache: Default::default(),
         };
         if let Err(error) = run_native_with_config(
             &options,

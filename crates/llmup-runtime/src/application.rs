@@ -36,9 +36,28 @@ pub struct LifecycleOptions {
     pub context: Option<u32>,
     pub installed: bool,
     pub bypass: bool,
+    pub cache: crate::cache::CacheFlags,
 }
 impl LifecycleOptions {
     pub fn validate(&self) -> Result<(), BackendError> {
+        if !self.cache.is_empty() {
+            if !["up", "switch"].contains(&self.command.as_str()) {
+                return Err(BackendError(format!(
+                    "{} does not accept cache options",
+                    self.command
+                )));
+            }
+            if self.installed {
+                return Err(BackendError(
+                    "cache options apply only to a runtime local-llmup starts; --installed attaches to a running Ollama".into(),
+                ));
+            }
+            if let Some(profile) = self.cache.over(None) {
+                profile
+                    .validate()
+                    .map_err(|error| BackendError(error.to_string()))?;
+            }
+        }
         if !["up", "switch", "down", "doctor"].contains(&self.command.as_str())
             || self.port == Some(0)
             || self
@@ -300,6 +319,8 @@ pub struct PlanOptions {
     pub simple_switch: bool,
     pub bypass: bool,
     pub context: Option<u32>,
+    /// Size the KV cache at this type; `None` keeps the conservative f16 estimate.
+    pub kv_cache: Option<llmup_core::sizing::KvCacheType>,
 }
 #[derive(Debug)]
 pub struct QuantPlan {
@@ -324,7 +345,13 @@ pub fn plan_quantization(
             "explicit runtime context currently requires Ollama".into(),
         ));
     }
-    let mut sizing = model.sizing();
+    let mut sizing = match options.kv_cache {
+        Some(kind) => model
+            .with_kv_cache(kind)
+            .map_err(|error| BackendError(error.to_string()))?
+            .sizing(),
+        None => model.sizing(),
+    };
     if let Some(quant) = explicit {
         sizing.quantizations = vec![quant.clone()];
     }
@@ -767,7 +794,7 @@ pub async fn run_native_with_config_observed(
             endpoint,
             model_path: None,
             context: options.context,
-            cache: None,
+            cache: options.cache.over(None),
         };
         let active = lifecycle
             .attach_installed(&request, &reviewed, cancel, &activation)
@@ -776,6 +803,10 @@ pub async fn run_native_with_config_observed(
     }
     let resolved = resolve(catalog, query).map_err(|error| BackendError(error.message))?;
     let model = resolved.model;
+    // A switch keeps the running profile unless a flag overrides part of it.
+    let prior_cache = prior.active.as_ref().and_then(|active| active.cache);
+    let cache_kept = options.command == "switch"
+        && crate::cache::requested(options.cache, true, prior_cache, None) == prior_cache;
     if options.command == "switch"
         && prior
             .active
@@ -783,6 +814,7 @@ pub async fn run_native_with_config_observed(
             .is_some_and(|active| active.model_id == model.id)
         && options.context.is_none()
         && !options.bypass
+        && cache_kept
     {
         let active = prior
             .active
@@ -795,11 +827,19 @@ pub async fn run_native_with_config_observed(
     }
     let hardware =
         hardware.ok_or_else(|| BackendError("hardware required for model selection".into()))?;
-    let simple_switch = options.command == "switch" && options.context.is_none() && !options.bypass;
+    let simple_switch =
+        options.command == "switch" && options.context.is_none() && !options.bypass && cache_kept;
     let env_backend = std::env::var("LOCAL_LLMUP_BACKEND").ok();
-    let user_backend = config
-        .user_backend()
+    let user = config
+        .user_config()
         .map_err(|error| BackendError(error.to_string()))?;
+    let requested = crate::cache::requested(
+        options.cache,
+        options.command == "switch",
+        prior_cache,
+        user.cache,
+    );
+    let user_backend = user.default_backend;
     let configured = preferred_backend(
         options.backend.as_deref(),
         env_backend.as_deref(),
@@ -848,6 +888,8 @@ pub async fn run_native_with_config_observed(
         backend_known(&backend) && paths[backend_index(&backend)].is_some(),
     )?;
     let index = backend_index(&backend);
+    crate::cache::launch_delta(requested.as_ref(), &backend, true)
+        .map_err(|error| BackendError(error.to_string()))?;
     let plan = plan_quantization(
         model,
         resolved.quant,
@@ -857,6 +899,9 @@ pub async fn run_native_with_config_observed(
             simple_switch,
             bypass: options.bypass,
             context: options.context,
+            kv_cache: requested
+                .filter(|profile| profile.kv_k == profile.kv_v)
+                .map(|profile| profile.kv_k),
         },
     )?;
     let quant = plan.quant;
@@ -919,7 +964,7 @@ pub async fn run_native_with_config_observed(
         endpoint,
         model_path: prepared.model_path,
         context: options.context,
-        cache: None,
+        cache: requested,
     };
     let active = if options.context.is_some() {
         let activation = ContextActivation {
@@ -952,7 +997,7 @@ pub async fn run_native_with_config_observed(
     ))
 }
 fn up_output(active: &ServerState, integrity: &str) -> (Value, String) {
-    let report = json!({"modelId":active.model_id,"backend":active.backend,"endpoint":active.endpoint,"ownership":if active.owned_by_us{"owned"}else{"attached"},"integrity":integrity});
+    let mut report = json!({"modelId":active.model_id,"backend":active.backend,"endpoint":active.endpoint,"ownership":if active.owned_by_us{"owned"}else{"attached"},"integrity":integrity});
     let mut text = format!(
         "{} ready at {}\n",
         strip_control(&active.model_id),
@@ -964,6 +1009,10 @@ fn up_output(active: &ServerState, integrity: &str) -> (Value, String) {
             text.push_str(&format!(" (context {context})"));
         }
         text.push('\n');
+    }
+    if let Some(cache) = &active.cache {
+        report["cache"] = json!(cache);
+        text.push_str(&format!("Cache: {}\n", cache.summary()));
     }
     (report, text)
 }

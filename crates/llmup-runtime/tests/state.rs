@@ -54,9 +54,14 @@ fn config_reads_are_strict_bounded_and_allow_absent_or_blank_preferences() {
     std::fs::write(&path, r#"{"schemaVersion":1,"defaultBackend":"mlx"}"#).unwrap();
     assert_eq!(config.user_backend().unwrap(), Some("mlx".into()));
     for raw in [
-        r#"{"schemaVersion":2,"defaultBackend":"ollama"}"#.to_owned(),
+        r#"{"schemaVersion":3,"defaultBackend":"ollama"}"#.to_owned(),
         r#"{"schemaVersion":1,"defaultBackend":"other"}"#.to_owned(),
         r#"{"schemaVersion":1,"defaultBackend":"ollama","extra":true}"#.to_owned(),
+        r#"{"schemaVersion":1}"#.to_owned(),
+        r#"{"schemaVersion":1,"defaultBackend":"ollama","cache":{"kvK":"q8_0"}}"#.to_owned(),
+        r#"{"schemaVersion":2,"defaultBackend":"other"}"#.to_owned(),
+        r#"{"schemaVersion":2,"cache":{"kvK":"q8_0","args":"--x"}}"#.to_owned(),
+        r#"{"schemaVersion":2,"cache":{"kvV":"q8_0","flashAttention":"off"}}"#.to_owned(),
         "x".repeat(4097),
     ] {
         std::fs::write(&path, raw).unwrap();
@@ -74,6 +79,42 @@ fn config_reads_are_strict_bounded_and_allow_absent_or_blank_preferences() {
     std::fs::remove_file(&path).unwrap();
     std::fs::create_dir(&path).unwrap();
     assert!(config.user_backend().is_err());
+}
+
+#[test]
+fn config_v2_adds_an_optional_default_cache_profile() {
+    use llmup_runtime::state::UserConfig;
+    let home = tempfile::tempdir().unwrap();
+    let config = Config::from_home(home.path()).unwrap();
+    let path = home.path().join("config.json");
+    assert_eq!(config.user_config().unwrap(), UserConfig::default());
+    std::fs::write(&path, r#"{"schemaVersion":1,"defaultBackend":"llamacpp"}"#).unwrap();
+    assert_eq!(
+        config.user_config().unwrap(),
+        UserConfig {
+            default_backend: Some("llamacpp".into()),
+            cache: None
+        }
+    );
+    std::fs::write(
+        &path,
+        r#"{"schemaVersion":2,"cache":{"kvK":"q8_0","kvV":"q8_0"}}"#,
+    )
+    .unwrap();
+    let cached = config.user_config().unwrap();
+    assert_eq!(cached.default_backend, None);
+    assert_eq!(config.user_backend().unwrap(), None);
+    let cache = cached.cache.unwrap();
+    assert_eq!(cache.kv_k, llmup_core::sizing::KvCacheType::Q8_0);
+    assert_eq!(cache.kv_v, llmup_core::sizing::KvCacheType::Q8_0);
+    std::fs::write(
+        &path,
+        r#"{"schemaVersion":2,"defaultBackend":"ollama","cache":{"promptReuse":"reuse"}}"#,
+    )
+    .unwrap();
+    assert_eq!(config.user_backend().unwrap(), Some("ollama".into()));
+    std::fs::write(&path, r#"{"schemaVersion":2}"#).unwrap();
+    assert_eq!(config.user_config().unwrap(), UserConfig::default());
 }
 
 #[test]

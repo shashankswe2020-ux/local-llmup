@@ -68,28 +68,53 @@ impl Config {
         )?)
     }
     pub fn user_backend(&self) -> Result<Option<String>, StateError> {
+        Ok(self.user_config()?.default_backend)
+    }
+    /// `config.json`: v1 names a default backend; v2 may add a default cache profile.
+    pub fn user_config(&self) -> Result<UserConfig, StateError> {
         #[derive(Deserialize)]
         #[serde(rename_all = "camelCase", deny_unknown_fields)]
-        struct UserConfig {
+        struct Raw {
             schema_version: u8,
-            default_backend: String,
+            default_backend: Option<String>,
+            cache: Option<crate::cache::CacheProfile>,
         }
         let raw = match secure_read(&self.home.join("config.json"), 4096, false) {
             Ok(raw) => raw,
-            Err(cause) if cause.kind == "absent" => return Ok(None),
+            Err(cause) if cause.kind == "absent" => return Ok(UserConfig::default()),
             Err(cause) => return Err(cause),
         };
         if raw.trim().is_empty() {
-            return Ok(None);
+            return Ok(UserConfig::default());
         }
-        let parsed: UserConfig =
-            serde_json::from_str(&raw).map_err(|cause| error("invalid", cause))?;
+        let parsed: Raw = serde_json::from_str(&raw).map_err(|cause| error("invalid", cause))?;
         check(
-            parsed.schema_version == 1 && BACKENDS.contains(&parsed.default_backend.as_str()),
+            match parsed.schema_version {
+                1 => parsed.default_backend.is_some() && parsed.cache.is_none(),
+                2 => true,
+                _ => false,
+            } && parsed
+                .default_backend
+                .as_deref()
+                .is_none_or(|backend| BACKENDS.contains(&backend)),
             "invalid user config",
         )?;
-        Ok(Some(parsed.default_backend))
+        if let Some(cache) = &parsed.cache {
+            cache
+                .validate()
+                .map_err(|cause| error("invalid", format!("invalid user config: {cause}")))?;
+        }
+        Ok(UserConfig {
+            default_backend: parsed.default_backend,
+            cache: parsed.cache,
+        })
     }
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct UserConfig {
+    pub default_backend: Option<String>,
+    pub cache: Option<crate::cache::CacheProfile>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

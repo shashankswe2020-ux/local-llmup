@@ -78,6 +78,9 @@ const COMMANDS: &[CommandSpec] = &[
             "catalog_path",
             "perf_path",
             "hardware_json",
+            "kv_cache",
+            "flash_attn",
+            "prompt_cache",
         ],
         model: true,
         ui: true,
@@ -94,6 +97,9 @@ const COMMANDS: &[CommandSpec] = &[
             "catalog_path",
             "perf_path",
             "hardware_json",
+            "kv_cache",
+            "flash_attn",
+            "prompt_cache",
         ],
         model: true,
         ui: true,
@@ -210,9 +216,14 @@ fn help_command(spec: &CommandSpec, flat: &Command) -> Command {
                 "context" => "Context size in tokens (integer in 1..10000000)",
                 "max_context" => "Report the largest context each model can hold",
                 "context_percent" => "Use 25, 50, 75, or 100 percent of each model's context",
+                "kv_cache" if ["up", "switch"].contains(&spec.name) => {
+                    "KV cache type for a runtime local-llmup starts: f16, q8_0, q4_0"
+                }
                 "kv_cache" => {
                     "Size the KV cache as f16 (default), q8_0, or q4_0; needs a context flag"
                 }
+                "flash_attn" => "Flash attention for a runtime local-llmup starts: auto, on, off",
+                "prompt_cache" => "Reuse cached prompt prefixes (llama.cpp): off, reuse",
                 "task" => {
                     "Boost models for a task: chat, code, vision, reasoning, tools, embedding"
                 }

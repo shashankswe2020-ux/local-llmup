@@ -60,6 +60,7 @@ fn options(bypass: bool, context: Option<u32>) -> PlanOptions {
         simple_switch: false,
         bypass,
         context,
+        kv_cache: None,
     }
 }
 
@@ -288,6 +289,7 @@ fn explicit_context_and_pointer_switches_are_ollama_only() {
             simple_switch: true,
             bypass: false,
             context: None,
+            kv_cache: None,
         };
         assert!(
             error(plan_quantization(&model, None, backend, &roomy(), switch))
@@ -298,9 +300,45 @@ fn explicit_context_and_pointer_switches_are_ollama_only() {
         simple_switch: true,
         bypass: false,
         context: None,
+        kv_cache: None,
     };
     let full = hardware(Platform::Linux, CpuArch::X64, 1e6, 1.0);
     let plan = plan_quantization(&model, None, "ollama", &full, switch).unwrap();
     assert_eq!(plan.quant.name, model.quantizations[0].name);
     assert!(!plan.estimated_fit);
+}
+
+#[test]
+fn a_quantized_kv_cache_fits_a_long_context_where_f16_does_not() {
+    use llmup_core::sizing::KvCacheType;
+    let model = catalog()
+        .models
+        .into_iter()
+        .find(|model| {
+            model.source.ollama.is_some()
+                && model.kv_bytes_per_token.is_some()
+                && model.context_length >= 32768.0
+        })
+        .unwrap();
+    let fits = |kv_cache, ram: f64| {
+        let options = PlanOptions {
+            kv_cache,
+            ..options(false, Some(32768))
+        };
+        plan_quantization(
+            &model,
+            None,
+            "ollama",
+            &hardware(Platform::Linux, CpuArch::X64, ram, 4e12),
+            options,
+        )
+        .is_ok()
+    };
+    let smallest = (1..=20_000)
+        .map(|step| f64::from(step) * 50e6)
+        .find(|ram| fits(Some(KvCacheType::Q4_0), *ram))
+        .expect("q4_0 fits within 1 TB");
+    assert!(!fits(None, smallest), "f16 must need more memory than q4_0");
+    assert!(!fits(Some(KvCacheType::Q8_0), smallest));
+    assert_eq!(fits(Some(KvCacheType::F16), smallest), fits(None, smallest));
 }
