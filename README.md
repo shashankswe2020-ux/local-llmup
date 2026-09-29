@@ -6,20 +6,28 @@
 
 **Which local LLMs can your computer run? Find out before downloading the weights.**
 
-Get `yes / slow / no` verdicts, memory-fit explanations, and estimated tok/s.
-Then verify, serve, and chat with a model that fits. RigSpark is a hardware-aware,
-privacy-first, open-source Rust CLI for running LLMs locally, with an interactive
-terminal UI, and browser workspace for macOS, Linux, and Windows.
+RigSpark scores your hardware and gives every model a `yes / slow / no` verdict,
+a memory-fit explanation, and an estimated tok/s range. Then it verifies, serves,
+and chats with the model you pick. It is an open-source, privacy-first Rust CLI
+with a terminal UI and a browser workspace for macOS, Linux, and Windows.
 
-[![RigSpark demo: checking which local LLMs run on your hardware](assets/rigspark-preview.gif)](assets/rigspark.mp4)
+[![RigSpark demo: rigspark recommend ranks local LLMs with yes / slow / no verdicts, then the same verdicts in the browser GUI; click to watch with sound](assets/rigspark-preview.gif)](assets/rigspark.mp4)
 
-[Watch on YouTube](https://youtu.be/MI2wfI1eeCM?si=QA2teeDmeT_fNIqf)
+*20-second tour:* `rigspark recommend` ranks the offline catalog on an arm64 Mac with
+34 GiB of usable RAM and lists the models that won't fit; `rigspark gui` then shows
+the same verdicts and a local chat.
+[Watch in 1080p with sound](assets/rigspark.mp4) · [Earlier demo on YouTube](https://youtu.be/MI2wfI1eeCM?si=QA2teeDmeT_fNIqf)
 
-Advice uses an offline catalog. Unknown figures stay `unknown`; estimates are
-not benchmarks. Managed downloads are integrity-checked and servers bind to
-`127.0.0.1`. Estimates GPU/VRAM and RAM fit for models such as Llama, Qwen, Mistral, and Gemma.
-Supports **Ollama, llama.cpp, MLX** (Apple Silicon), and
-**LM Studio** (attach-only).
+## Why RigSpark
+
+- **Know before you download.** Estimates RAM and GPU/VRAM fit for models such as
+  Llama, Qwen, Mistral, and Gemma.
+- **Honest numbers.** Advice uses a bundled offline catalog. Unknown figures stay
+  `unknown`; estimates are not benchmarks.
+- **Safe by default.** Managed downloads are integrity-checked, and servers bind
+  to `127.0.0.1`.
+- **Bring your backend.** Works with **Ollama**, **llama.cpp**, **MLX** (Apple
+  Silicon), and **LM Studio** (attach-only).
 
 ## Install
 
@@ -30,33 +38,37 @@ brew install shashankswe2020-ux/tap/rigspark
 ```
 
 Windows and other platforms: download a
-[prebuilt archive](https://github.com/shashankswe2020-ux/rigspark/releases/latest)
-and add its extracted folder to `PATH`. Keep `rigspark`, `llmup`, and the
-`rigspark-gui` companion together. No Node.js, Python, or compiler is needed to run
-these binaries; inference backends have their own requirements.
+[prebuilt archive](https://github.com/shashankswe2020-ux/rigspark/releases/latest),
+extract it, and add the folder to `PATH`. Keep `rigspark`, `llmup`, and
+`rigspark-gui` together. The binaries need no Node.js, Python, or compiler;
+inference backends have their own requirements.
 
-[Cargo, checksums, macOS unsigned-archive guidance, and upgrades](docs/references/guide.md#install)
- · [Docker caveats](docs/references/guide.md#docker)
+More: [Cargo, checksums, unsigned macOS archives, and upgrades](docs/references/guide.md#install)
+· [Docker caveats](docs/references/guide.md#docker)
 
-## Try It
+## Quick Start
 
 ```bash
-rigspark recommend                 # rank models for your hardware
-rigspark can-run llama3.1:8b        # check one model before downloading
-rigspark catalog --all             # browse the offline catalog
-rigspark up llama3.1:8b             # pull, verify, and serve
-rigspark chat                      # chat with the active model
-rigspark down                      # stop when done
+rigspark recommend              # rank models for your hardware
+rigspark can-run llama3.1:8b    # check one model before downloading
+rigspark catalog --all          # browse the offline catalog
+rigspark up llama3.1:8b         # pull, verify, and serve
+rigspark chat                   # chat with the active model
+rigspark down                   # stop when done
 ```
 
 Advice works without a backend. To serve and chat, install
-[Ollama](https://ollama.com) or another [supported backend](docs/references/guide.md#supported-backends),
-then choose a model your machine can run. `llmup` is a compatibility alias for `rigspark`.
+[Ollama](https://ollama.com) or another [supported backend](docs/references/guide.md#supported-backends).
+Use `rigspark --help` for all commands, `--json` for scripting, and
+`--accessible` for screen readers. `llmup` remains a compatibility alias.
 
-Prefer a browser? Run **`rigspark gui`** to choose models and chat, with agents,
-skills, and MCP tools. Local chat stays local; cloud harnesses and external tools
-can send data to their providers. Use `rigspark --help` for commands,
-`--json` for scripting, or `--accessible` for screen readers.
+## Browser Workspace
+
+Run **`rigspark gui`** to pick a model that fits and chat with it, with agents,
+skills, and MCP tools. Local chat stays on your machine; cloud harnesses and
+external tools can send data to their providers.
+
+![RigSpark browser GUI Models view with Runs well and Runs slowly verdicts](assets/screenshot-gui.png)
 
 ## References
 
