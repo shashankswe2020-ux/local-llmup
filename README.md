@@ -21,9 +21,10 @@ not benchmarks. Managed downloads are integrity-checked and servers bind to
 
 ## Rename Migration
 
-This is a breaking product rename. The public executable alias is now `rigspark`;
-`llmup` and the `llmup-*` Rust crate names remain available. Environment variables
-now use the `RIGSPARK_` prefix, including `RIGSPARK_HOME`.
+This is a breaking product rename. The primary executable is now `rigspark`, with
+`llmup` retained as a compatibility alias. Rust crates now publish under the
+`rigspark-*` names. Environment variables use the `RIGSPARK_` prefix, including
+`RIGSPARK_HOME`.
 
 Before switching, stop running servers and back up your previous application data.
 Move that data directory to `~/.rigspark`, or set `RIGSPARK_HOME` to its existing
