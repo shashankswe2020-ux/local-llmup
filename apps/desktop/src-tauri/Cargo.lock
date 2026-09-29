@@ -2354,85 +2354,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 
 [[package]]
-name = "rigspark-core"
-version = "1.0.2"
-dependencies = [
- "regex",
- "serde",
- "serde_json",
- "thiserror 2.0.20",
- "time",
- "url",
-]
-
-[[package]]
-name = "rigspark-desktop"
-version = "1.0.2"
-dependencies = [
- "rigspark-gui",
- "rigspark-runtime",
- "rfd",
- "serde_json",
- "tauri",
- "tauri-build",
- "tempfile",
- "tokio",
- "url",
-]
-
-[[package]]
-name = "rigspark-gui"
-version = "1.0.2"
-dependencies = [
- "async-trait",
- "axum",
- "include_dir",
- "rigspark-core",
- "rigspark-runtime",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "sysinfo",
- "tokio",
- "tokio-stream",
- "tokio-util",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "rigspark-runtime"
-version = "1.0.2"
-dependencies = [
- "async-trait",
- "bytes",
- "cap-fs-ext",
- "cap-std",
- "futures-util",
- "http",
- "rigspark-core",
- "percent-encoding",
- "regex",
- "reqwest 0.12.28",
- "reqwest 0.13.5",
- "rmcp",
- "rustix",
- "same-file",
- "serde",
- "serde_json",
- "sha2",
- "sse-stream",
- "sysinfo",
- "tempfile",
- "thiserror 2.0.20",
- "time",
- "tokio",
- "tokio-util",
- "url",
- "uuid",
-]
-
-[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3488,6 +3409,85 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "rigspark-core"
+version = "2.0.0"
+dependencies = [
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "time",
+ "url",
+]
+
+[[package]]
+name = "rigspark-desktop"
+version = "2.0.0"
+dependencies = [
+ "rfd",
+ "rigspark-gui",
+ "rigspark-runtime",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tempfile",
+ "tokio",
+ "url",
+]
+
+[[package]]
+name = "rigspark-gui"
+version = "2.0.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "include_dir",
+ "reqwest 0.12.28",
+ "rigspark-core",
+ "rigspark-runtime",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tokio",
+ "tokio-stream",
+ "tokio-util",
+ "url",
+ "uuid",
+]
+
+[[package]]
+name = "rigspark-runtime"
+version = "2.0.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "cap-fs-ext",
+ "cap-std",
+ "futures-util",
+ "http",
+ "percent-encoding",
+ "regex",
+ "reqwest 0.12.28",
+ "reqwest 0.13.5",
+ "rigspark-core",
+ "rmcp",
+ "rustix",
+ "same-file",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sse-stream",
+ "sysinfo",
+ "tempfile",
+ "thiserror 2.0.20",
+ "time",
+ "tokio",
+ "tokio-util",
+ "url",
+ "uuid",
 ]
 
 [[package]]

@@ -121,7 +121,7 @@ pub fn recommended(
         model["quant"]=entry["quant"].clone();
         model["diskBytes"]=source["quantizations"].as_array().and_then(|quants|quants.iter().find(|quant|quant["name"]==entry["quant"])).map(|quant|quant["diskBytes"].clone()).unwrap_or(Value::Null);
         if let Some(tokens)=entry.get("context") {model["contextTokens"]=tokens.clone();model["contextFitKnown"]=json!(!entry["kvCacheBytes"].is_null());model["contextSizing"]=json!({"tokens":tokens,"weightsBytes":entry["weightsBytes"],"kvCacheBytes":entry["kvCacheBytes"]});}
-        if let Some(precision)=entry.get("kvPrecision") {model["kvPrecision"]=precision.clone();}
+        if options.kv_cache.is_some() && let Some(precision)=entry.get("kvPrecision") {model["kvPrecision"]=precision.clone();}
         Ok(model)
     }).collect()
 }
