@@ -38,7 +38,7 @@ jobs:
       - name: Rust toolchain
         run: rustup show active-toolchain
       - name: Validate gate behavior
-        run: cargo test --locked -p llmup-cli --test retirement
+        run: cargo test --locked -p rigspark-cli --test retirement
       - name: Require complete retirement
         run: cargo native-retirement > retirement-report.json
       - name: Retirement evidence
@@ -75,9 +75,9 @@ jobs:
       - name: Rust toolchain
         run: rustup show active-toolchain
       - name: Validate budget behavior
-        run: cargo test --locked -p llmup-cli --test performance
+        run: cargo test --locked -p rigspark-cli --test performance
       - name: Build optimized candidate and runner
-        run: cargo build --locked --release -p llmup-cli --bin llmup --example native-performance
+        run: cargo build --locked --release -p rigspark-cli --bin llmup --example native-performance
       - name: Measure native release budgets
         run: target/release/examples/native-performance --executable target/release/llmup > performance-report.json
       - name: Performance evidence

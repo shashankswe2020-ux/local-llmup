@@ -3,43 +3,43 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>local-llmup — Which local LLMs can your PC or Mac run?</title>
+    <title>rigspark — Which local LLMs can your PC or Mac run?</title>
     <meta name="description" content="Free open-source tool that checks your GPU VRAM and RAM and tells you which local LLMs will run — yes, slow or no with tok/s — before you download." />
-    <link rel="canonical" href="https://shashankswe2020-ux.github.io/local-llmup/" />
+    <link rel="canonical" href="https://shashankswe2020-ux.github.io/rigspark/" />
     <meta name="robots" content="index, follow" />
     <link rel="icon" type="image/png" href="assets/app-icon.png" />
     <link rel="apple-touch-icon" href="assets/app-icon.png" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="local-llmup" />
-    <meta property="og:url" content="https://shashankswe2020-ux.github.io/local-llmup/" />
-    <meta property="og:title" content="local-llmup — Which local LLMs can your PC or Mac run?" />
+    <meta property="og:site_name" content="rigspark" />
+    <meta property="og:url" content="https://shashankswe2020-ux.github.io/rigspark/" />
+    <meta property="og:title" content="rigspark — Which local LLMs can your PC or Mac run?" />
     <meta property="og:description" content="Hardware-aware local LLM checker and launcher. yes / slow / no verdicts with estimated tok/s before you download, then verified installs across Ollama, llama.cpp, MLX and LM Studio." />
-    <meta property="og:image" content="https://shashankswe2020-ux.github.io/local-llmup/assets/model-performance.png" />
+    <meta property="og:image" content="https://shashankswe2020-ux.github.io/rigspark/assets/model-performance.png" />
     <meta property="og:image:width" content="1280" />
     <meta property="og:image:height" content="1299" />
-    <meta property="og:image:alt" content="local-llmup model details: recommendation score, hardware fit, estimated tok/s and memory required" />
+    <meta property="og:image:alt" content="rigspark model details: recommendation score, hardware fit, estimated tok/s and memory required" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="local-llmup — Which local LLMs can your PC or Mac run?" />
+    <meta name="twitter:title" content="rigspark — Which local LLMs can your PC or Mac run?" />
     <meta name="twitter:description" content="yes / slow / no verdicts with estimated tok/s for local LLMs on your hardware, before you download anything." />
-    <meta name="twitter:image" content="https://shashankswe2020-ux.github.io/local-llmup/assets/model-performance.png" />
+    <meta name="twitter:image" content="https://shashankswe2020-ux.github.io/rigspark/assets/model-performance.png" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
-        "name": "local-llmup",
+        "name": "rigspark",
         "alternateName": "llmup",
         "description": "Hardware-aware CLI, terminal UI and browser GUI that tells you which local LLMs will run on your machine, with yes / slow / no verdicts and estimated tokens per second, then installs, verifies and serves them.",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "macOS, Linux, Windows",
         "softwareVersion": "1.0.2",
         "license": "https://opensource.org/licenses/MIT",
-        "url": "https://shashankswe2020-ux.github.io/local-llmup/",
-        "downloadUrl": "https://github.com/shashankswe2020-ux/local-llmup/releases/latest",
-        "installUrl": "https://crates.io/crates/llmup-cli",
-        "screenshot": "https://shashankswe2020-ux.github.io/local-llmup/assets/model-performance.png",
+        "url": "https://shashankswe2020-ux.github.io/rigspark/",
+        "downloadUrl": "https://github.com/shashankswe2020-ux/rigspark/releases/latest",
+        "installUrl": "https://crates.io/crates/rigspark-cli",
+        "screenshot": "https://shashankswe2020-ux.github.io/rigspark/assets/model-performance.png",
         "sameAs": [
-          "https://github.com/shashankswe2020-ux/local-llmup",
-          "https://crates.io/crates/llmup-cli"
+          "https://github.com/shashankswe2020-ux/rigspark",
+          "https://crates.io/crates/rigspark-cli"
         ],
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
       }
@@ -52,21 +52,21 @@
           {
             "@type": "Question",
             "name": "How do I find out which LLMs my computer can run?",
-            "acceptedAnswer": { "@type": "Answer", "text": "Install local-llmup and run llmup. It detects your GPU, VRAM, RAM and free disk, ranks every catalog model that fits with a yes, slow or no verdict and estimated tokens per second, and lists the models that don't fit with the reason. llmup can-run <model> checks a single model." }
+            "acceptedAnswer": { "@type": "Answer", "text": "Install rigspark and run llmup. It detects your GPU, VRAM, RAM and free disk, ranks every catalog model that fits with a yes, slow or no verdict and estimated tokens per second, and lists the models that don't fit with the reason. llmup can-run <model> checks a single model." }
           },
           {
             "@type": "Question",
             "name": "How much VRAM do I need to run an 8B, 14B, 32B or 70B model?",
-            "acceptedAnswer": { "@type": "Answer", "text": "At Q4_K_M and default context, local-llmup estimates about 5.3 GiB for Llama 3.1 8B, 9.9 GiB for Qwen3 14B, 21.6 GiB for Qwen3 32B and 45.5 GiB for Llama 3.3 70B. Longer contexts add KV cache on top." }
+            "acceptedAnswer": { "@type": "Answer", "text": "At Q4_K_M and default context, rigspark estimates about 5.3 GiB for Llama 3.1 8B, 9.9 GiB for Qwen3 14B, 21.6 GiB for Qwen3 32B and 45.5 GiB for Llama 3.3 70B. Longer contexts add KV cache on top." }
           },
           {
             "@type": "Question",
             "name": "Can I run local LLMs on a Mac with Apple Silicon?",
-            "acceptedAnswer": { "@type": "Answer", "text": "Yes. Apple Silicon GPUs share unified memory with the CPU, so local-llmup sizes models against system memory and auto-selects MLX for models with an MLX build, then Ollama, then llama.cpp." }
+            "acceptedAnswer": { "@type": "Answer", "text": "Yes. Apple Silicon GPUs share unified memory with the CPU, so rigspark sizes models against system memory and auto-selects MLX for models with an MLX build, then Ollama, then llama.cpp." }
           },
           {
             "@type": "Question",
-            "name": "Does local-llmup send my data anywhere?",
+            "name": "Does rigspark send my data anywhere?",
             "acceptedAnswer": { "@type": "Answer", "text": "No. Recommendations, can-run and doctor make no network calls and use a bundled offline catalog. Model servers and the browser GUI bind to 127.0.0.1 only." }
           }
         ]
@@ -84,7 +84,7 @@
     <div class="nav-wrap">
       <div class="frame">
         <nav class="nav">
-          <a class="wordmark" href="./">local-llmup</a>
+          <a class="wordmark" href="./">rigspark</a>
           <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Open navigation">
             <span></span>
             <span></span>
@@ -100,9 +100,9 @@
             <a class="opt" href="#tui">TUI</a>
             <a class="opt" href="#commands">Commands</a>
             <a class="opt" href="#faq">FAQ</a>
-            <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
-            <a class="opt" href="https://crates.io/crates/llmup-cli">crates.io</a>
-            <a href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
+            <a href="https://github.com/shashankswe2020-ux/rigspark#readme">Docs</a>
+            <a class="opt" href="https://crates.io/crates/rigspark-cli">crates.io</a>
+            <a href="https://github.com/shashankswe2020-ux/rigspark">GitHub</a>
             <a class="nav-cta" href="#quickstart">Get started &rarr;</a>
           </div>
         </nav>
@@ -128,26 +128,26 @@
 
         <!-- Primary product view -->
         <div class="demo-wrap" id="performance">
-          <img src="assets/model-performance.png" alt="local-llmup model performance view showing recommendation score, hardware fit, throughput evidence, memory and context sizing, quantizations, and catalog sources" width="900" loading="eager" />
+          <img src="assets/model-performance.png" alt="rigspark model performance view showing recommendation score, hardware fit, throughput evidence, memory and context sizing, quantizations, and catalog sources" width="900" loading="eager" />
         </div>
         <p class="hero-proof">Open any catalog model to inspect the complete recommendation score, fit and throughput evidence, context cost, quantizations, integrity status, and sources before starting it.</p>
 
         <div class="hero-actions">
           <a class="btn btn-primary" href="#quickstart">Get started</a>
-          <a class="btn btn-secondary" href="https://github.com/shashankswe2020-ux/local-llmup/pkgs/container/local-llmup">Docker image</a>
-          <a class="btn btn-secondary" href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
+          <a class="btn btn-secondary" href="https://github.com/shashankswe2020-ux/rigspark/pkgs/container/rigspark">Docker image</a>
+          <a class="btn btn-secondary" href="https://github.com/shashankswe2020-ux/rigspark">GitHub</a>
         </div>
         <div class="install-options">
-          <div class="install-strip" data-install="brew install shashankswe2020-ux/tap/local-llmup">
+          <div class="install-strip" data-install="brew install shashankswe2020-ux/tap/rigspark">
             <span class="prompt">$</span>
-            <span>brew install shashankswe2020-ux/tap/local-llmup</span>
+            <span>brew install shashankswe2020-ux/tap/rigspark</span>
             <button class="copy-btn" type="button" aria-label="Copy Homebrew install command">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg>
             </button>
           </div>
-          <div class="install-strip" data-install="docker pull ghcr.io/shashankswe2020-ux/local-llmup:latest">
+          <div class="install-strip" data-install="docker pull ghcr.io/shashankswe2020-ux/rigspark:latest">
             <span class="prompt">$</span>
-            <span>docker pull ghcr.io/shashankswe2020-ux/local-llmup:latest</span>
+            <span>docker pull ghcr.io/shashankswe2020-ux/rigspark:latest</span>
             <button class="copy-btn" type="button" aria-label="Copy Docker pull command">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg>
             </button>
@@ -175,7 +175,7 @@
     <!-- Features -->
     <section class="section" id="features">
       <div class="frame">
-        <div class="section-label">Why local-llmup</div>
+        <div class="section-label">Why rigspark</div>
         <h2 class="section-title">Everything you need to run LLMs locally</h2>
         <p class="section-sub">From hardware profiling to integrity-verified installs, interactive TUI to portable memory &mdash; a complete local-LLM workflow in one CLI.</p>
         <div class="features reveal">
@@ -187,7 +187,7 @@
           <article class="feature">
             <div class="ficon-tile c-purple"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="10" width="36" height="28" rx="1"/><path d="M14 22l6 4-6 4M26 30h8"/></svg></div>
             <h3>Browser GUI workspace</h3>
-            <p>Run <code>local-llmup gui</code> for a loopback-only local AI workspace &mdash; a Maka-inspired interface that reuses the same <code>recommend</code>, <code>up</code>, and <code>ls</code> internals. Pick a recommended model, bring one online, and chat &mdash; all in your browser.</p>
+            <p>Run <code>rigspark gui</code> for a loopback-only local AI workspace &mdash; a Maka-inspired interface that reuses the same <code>recommend</code>, <code>up</code>, and <code>ls</code> internals. Pick a recommended model, bring one online, and chat &mdash; all in your browser.</p>
           </article>
           <article class="feature">
             <div class="ficon-tile c-blue"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="8" width="36" height="30" rx="1"/><path d="M14 20l6 4-6 4M26 28h8"/></svg></div>
@@ -260,7 +260,7 @@
       <div class="frame">
         <div class="section-label">Browser GUI &mdash; new in v0.8</div>
         <h2 class="section-title">Your local AI workspace, in the browser</h2>
-        <p class="section-sub">Prefer point-and-click? <code>local-llmup gui</code> launches a Maka-inspired, local-first workspace on <code>127.0.0.1</code> &mdash; and manages models through the very same engine as the CLI. Bring your own model by picking a recommended local model for your machine, or start one directly, then chat. Nothing leaves your machine.</p>
+        <p class="section-sub">Prefer point-and-click? <code>rigspark gui</code> launches a Maka-inspired, local-first workspace on <code>127.0.0.1</code> &mdash; and manages models through the very same engine as the CLI. Bring your own model by picking a recommended local model for your machine, or start one directly, then chat. Nothing leaves your machine.</p>
 
         <div class="screenshots">
           <div class="screenshot-block reverse reveal" style="margin-top:3.5rem;">
@@ -271,12 +271,12 @@
               <div class="screenshot-keys">
                 <span class="key">loopback-only</span>
                 <span class="key">host-header checked</span>
-                <span class="key">managed by local-llmup</span>
+                <span class="key">managed by rigspark</span>
                 <span class="key">pluggable harnesses</span>
               </div>
             </div>
             <div class="screenshot-img">
-              <img src="assets/screenshot-gui.png" alt="local-llmup browser workspace showing recommended models with verdicts" loading="lazy" />
+              <img src="assets/screenshot-gui.png" alt="rigspark browser workspace showing recommended models with verdicts" loading="lazy" />
             </div>
           </div>
         </div>
@@ -288,13 +288,13 @@
       <div class="frame">
         <div class="section-label">Native downloads &mdash; 1.0</div>
         <h2 class="section-title">One archive, three native binaries</h2>
-        <p class="section-sub">Every release ships prebuilt archives for macOS, Linux and Windows with <code>llmup</code>, <code>local-llmup</code> and the <code>llmup-gui</code> browser workspace. No Node.js, no Python, no runtime to install &mdash; unpack, put the folder on your <code>PATH</code>, and run. The GUI still binds <code>127.0.0.1</code> only.</p>
+        <p class="section-sub">Every release ships prebuilt archives for macOS, Linux and Windows with <code>llmup</code>, <code>rigspark</code> and the <code>rigspark-gui</code> browser workspace. No Node.js, no Python, no runtime to install &mdash; unpack, put the folder on your <code>PATH</code>, and run. The GUI still binds <code>127.0.0.1</code> only.</p>
 
         <div class="desktop-layout reveal">
           <figure class="desktop-icon-card">
-            <img src="assets/app-icon.png" alt="local-llmup app icon" width="176" height="176" loading="lazy" />
+            <img src="assets/app-icon.png" alt="rigspark app icon" width="176" height="176" loading="lazy" />
             <figcaption>
-              <span class="desktop-icon-name">local-llmup</span>
+              <span class="desktop-icon-name">rigspark</span>
               <span class="desktop-icon-meta">Native Rust &middot; loopback-only</span>
             </figcaption>
           </figure>
@@ -302,7 +302,7 @@
           <div class="desktop-downloads">
             <div class="installer">
               <div class="installer-bar">
-                <a class="installer-main" id="dl-main" href="https://github.com/shashankswe2020-ux/local-llmup/releases/latest/download/local-llmup-aarch64-apple-darwin.tar.gz" download>
+                <a class="installer-main" id="dl-main" href="https://github.com/shashankswe2020-ux/rigspark/releases/latest/download/rigspark-aarch64-apple-darwin.tar.gz" download>
                   <span class="os-ic" id="dl-main-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.417 2.2-1.11 2.98-.84.94-2.22 1.66-3.36 1.57-.14-1.11.42-2.28 1.06-3.01.75-.84 2.06-1.47 3.13-1.54.14-.01.28 0 .28 0zM20.5 17.02c-.55 1.27-.82 1.83-1.53 2.95-.99 1.57-2.39 3.53-4.12 3.54-1.54.02-1.94-1-4.03-.99-2.09.01-2.53 1.01-4.07.99-1.73-.02-3.05-1.78-4.04-3.35-2.77-4.4-3.06-9.56-1.35-12.3 1.21-1.95 3.12-3.09 4.92-3.09 1.83 0 2.98 1.01 4.49 1.01 1.47 0 2.36-1.01 4.48-1.01 1.6 0 3.3.87 4.51 2.38-3.96 2.17-3.32 7.82.74 9.32z"/></svg></span>
                   <span class="installer-main-text">
                     <span class="installer-main-title" id="dl-main-title">Download for macOS</span>
@@ -313,33 +313,33 @@
                   <svg class="caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
                 <div class="installer-menu" id="dl-menu" role="menu" hidden>
-                  <a class="installer-item" role="menuitem" data-os="mac" href="https://github.com/shashankswe2020-ux/local-llmup/releases/latest/download/local-llmup-aarch64-apple-darwin.tar.gz" download>
+                  <a class="installer-item" role="menuitem" data-os="mac" href="https://github.com/shashankswe2020-ux/rigspark/releases/latest/download/rigspark-aarch64-apple-darwin.tar.gz" download>
                     <span class="os-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.417 2.2-1.11 2.98-.84.94-2.22 1.66-3.36 1.57-.14-1.11.42-2.28 1.06-3.01.75-.84 2.06-1.47 3.13-1.54.14-.01.28 0 .28 0zM20.5 17.02c-.55 1.27-.82 1.83-1.53 2.95-.99 1.57-2.39 3.53-4.12 3.54-1.54.02-1.94-1-4.03-.99-2.09.01-2.53 1.01-4.07.99-1.73-.02-3.05-1.78-4.04-3.35-2.77-4.4-3.06-9.56-1.35-12.3 1.21-1.95 3.12-3.09 4.92-3.09 1.83 0 2.98 1.01 4.49 1.01 1.47 0 2.36-1.01 4.48-1.01 1.6 0 3.3.87 4.51 2.38-3.96 2.17-3.32 7.82.74 9.32z"/></svg></span>
                     <span class="installer-item-text"><b>macOS</b><span>Apple&nbsp;Silicon &middot; <code>.tar.gz</code></span></span>
                   </a>
-                  <a class="installer-item" role="menuitem" data-os="mac" href="https://github.com/shashankswe2020-ux/local-llmup/releases/latest/download/local-llmup-x86_64-apple-darwin.tar.gz" download>
+                  <a class="installer-item" role="menuitem" data-os="mac" href="https://github.com/shashankswe2020-ux/rigspark/releases/latest/download/rigspark-x86_64-apple-darwin.tar.gz" download>
                     <span class="os-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.417 2.2-1.11 2.98-.84.94-2.22 1.66-3.36 1.57-.14-1.11.42-2.28 1.06-3.01.75-.84 2.06-1.47 3.13-1.54.14-.01.28 0 .28 0zM20.5 17.02c-.55 1.27-.82 1.83-1.53 2.95-.99 1.57-2.39 3.53-4.12 3.54-1.54.02-1.94-1-4.03-.99-2.09.01-2.53 1.01-4.07.99-1.73-.02-3.05-1.78-4.04-3.35-2.77-4.4-3.06-9.56-1.35-12.3 1.21-1.95 3.12-3.09 4.92-3.09 1.83 0 2.98 1.01 4.49 1.01 1.47 0 2.36-1.01 4.48-1.01 1.6 0 3.3.87 4.51 2.38-3.96 2.17-3.32 7.82.74 9.32z"/></svg></span>
                     <span class="installer-item-text"><b>macOS</b><span>Intel &middot; <code>.tar.gz</code></span></span>
                   </a>
-                  <a class="installer-item" role="menuitem" data-os="win" href="https://github.com/shashankswe2020-ux/local-llmup/releases/latest/download/local-llmup-x86_64-pc-windows-msvc.tar.gz" download>
+                  <a class="installer-item" role="menuitem" data-os="win" href="https://github.com/shashankswe2020-ux/rigspark/releases/latest/download/rigspark-x86_64-pc-windows-msvc.tar.gz" download>
                     <span class="os-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5.6 10.4 4.5v7.05H3zM3 12.45h7.4v7.05L3 18.4zM11.35 4.35 21 3v8.55h-9.65zM11.35 12.45H21V21l-9.65-1.35z"/></svg></span>
                     <span class="installer-item-text"><b>Windows</b><span>x64 &middot; <code>.tar.gz</code></span></span>
                   </a>
-                  <a class="installer-item" role="menuitem" data-os="linux" href="https://github.com/shashankswe2020-ux/local-llmup/releases/latest/download/local-llmup-x86_64-unknown-linux-gnu.tar.gz" download>
+                  <a class="installer-item" role="menuitem" data-os="linux" href="https://github.com/shashankswe2020-ux/rigspark/releases/latest/download/rigspark-x86_64-unknown-linux-gnu.tar.gz" download>
                     <span class="os-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2c-2 0-3.3 1.6-3.3 3.8 0 .8.1 1.4.1 2.1 0 1.1-1.7 2.5-2.5 4.4-.8 1.7-1.9 3.4-1.9 4.6 0 .7.5 1.1 1.3.9.5-.1.7-.4.9-.8.3 1.2 2.3 2.1 5.4 2.1s5.1-.9 5.4-2.1c.2.4.4.7.9.8.8.2 1.3-.2 1.3-.9 0-1.2-1.1-2.9-1.9-4.6-.8-1.9-2.5-3.3-2.5-4.4 0-.7.1-1.3.1-2.1 0-2.2-1.3-3.8-3.3-3.8z"/></svg></span>
                     <span class="installer-item-text"><b>Linux</b><span>x64 &middot; <code>.tar.gz</code></span></span>
                   </a>
-                  <a class="installer-item" role="menuitem" data-os="linux" href="https://github.com/shashankswe2020-ux/local-llmup/releases/latest/download/local-llmup-aarch64-unknown-linux-gnu.tar.gz" download>
+                  <a class="installer-item" role="menuitem" data-os="linux" href="https://github.com/shashankswe2020-ux/rigspark/releases/latest/download/rigspark-aarch64-unknown-linux-gnu.tar.gz" download>
                     <span class="os-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2c-2 0-3.3 1.6-3.3 3.8 0 .8.1 1.4.1 2.1 0 1.1-1.7 2.5-2.5 4.4-.8 1.7-1.9 3.4-1.9 4.6 0 .7.5 1.1 1.3.9.5-.1.7-.4.9-.8.3 1.2 2.3 2.1 5.4 2.1s5.1-.9 5.4-2.1c.2.4.4.7.9.8.8.2 1.3-.2 1.3-.9 0-1.2-1.1-2.9-1.9-4.6-.8-1.9-2.5-3.3-2.5-4.4 0-.7.1-1.3.1-2.1 0-2.2-1.3-3.8-3.3-3.8z"/></svg></span>
                     <span class="installer-item-text"><b>Linux</b><span>ARM64 &middot; <code>.tar.gz</code></span></span>
                   </a>
                 </div>
               </div>
             </div>
-            <p class="dl-note">Archives are unsigned; verify them against <a href="https://github.com/shashankswe2020-ux/local-llmup/releases/latest/download/SHA256SUMS"><code>SHA256SUMS</code></a>. On macOS, clear quarantine after unpacking with <code>xattr&nbsp;-dr&nbsp;com.apple.quarantine&nbsp;local-llmup-*</code>. Or install with a package manager:</p>
-            <pre class="dl-code"><code>brew install shashankswe2020-ux/tap/local-llmup
-cargo binstall llmup-cli llmup-gui      <span class="dl-cmt"># prebuilt, via cargo-binstall</span>
-cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl-cmt"># from source</span></code></pre>
+            <p class="dl-note">Archives are unsigned; verify them against <a href="https://github.com/shashankswe2020-ux/rigspark/releases/latest/download/SHA256SUMS"><code>SHA256SUMS</code></a>. On macOS, clear quarantine after unpacking with <code>xattr&nbsp;-dr&nbsp;com.apple.quarantine&nbsp;rigspark-*</code>. Or install with a package manager:</p>
+            <pre class="dl-code"><code>brew install shashankswe2020-ux/tap/rigspark
+cargo binstall rigspark-cli rigspark-gui      <span class="dl-cmt"># prebuilt, via cargo-binstall</span>
+cargo install rigspark-cli --locked --bin llmup --bin rigspark   <span class="dl-cmt"># from source</span></code></pre>
           </div>
         </div>
       </div>
@@ -389,7 +389,7 @@ cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl
         <p>Advice commands make zero network calls and use a curated, cited, offline dataset. Servers bind <code>127.0.0.1</code>. Weights are integrity-verified and fail closed. Your conversations stay on your machine.</p>
         <div class="hero-actions" style="margin-bottom:0;">
           <a class="btn btn-primary" href="#quickstart">Get started &rarr;</a>
-          <a class="btn btn-secondary" href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
+          <a class="btn btn-secondary" href="https://github.com/shashankswe2020-ux/rigspark">GitHub</a>
         </div>
       </div>
     </section>
@@ -418,7 +418,7 @@ cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl
               </div>
             </div>
             <div class="screenshot-img">
-              <img src="assets/screenshot-recommend.png" alt="local-llmup recommend TUI showing ranked model list" loading="lazy" />
+              <img src="assets/screenshot-recommend.png" alt="rigspark recommend TUI showing ranked model list" loading="lazy" />
             </div>
           </div>
 
@@ -434,7 +434,7 @@ cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl
               </div>
             </div>
             <div class="screenshot-img">
-              <img src="assets/screenshot-doctor.png" alt="local-llmup doctor TUI showing hardware diagnostics" loading="lazy" />
+              <img src="assets/screenshot-doctor.png" alt="rigspark doctor TUI showing hardware diagnostics" loading="lazy" />
             </div>
           </div>
 
@@ -451,7 +451,7 @@ cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl
               </div>
             </div>
             <div class="screenshot-img">
-              <img src="assets/screenshot-can-run.png" alt="local-llmup can-run showing yes and no verdicts" loading="lazy" />
+              <img src="assets/screenshot-can-run.png" alt="rigspark can-run showing yes and no verdicts" loading="lazy" />
             </div>
           </div>
         </div>
@@ -468,37 +468,37 @@ cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl
           <div class="qs-card">
             <span class="qs-num">01</span>
             <h3>Install</h3>
-            <div class="qs-install" data-install="brew install shashankswe2020-ux/tap/local-llmup"><code>brew install shashankswe2020-ux/tap/local-llmup</code><button class="copy-btn" type="button" aria-label="Copy Homebrew install command"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
-            <p>Or with Cargo: <code>cargo binstall llmup-cli llmup-gui</code></p>
+            <div class="qs-install" data-install="brew install shashankswe2020-ux/tap/rigspark"><code>brew install shashankswe2020-ux/tap/rigspark</code><button class="copy-btn" type="button" aria-label="Copy Homebrew install command"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
+            <p>Or with Cargo: <code>cargo binstall rigspark-cli rigspark-gui</code></p>
           </div>
           <div class="qs-card">
             <span class="qs-num">02</span>
             <h3>See what fits</h3>
-            <div class="qs-install" data-install="local-llmup"><code>local-llmup</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
+            <div class="qs-install" data-install="rigspark"><code>rigspark</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
             <p>Interactive TUI opens in a capable terminal. Ranked models with verdicts and est. tok/s.</p>
           </div>
           <div class="qs-card">
             <span class="qs-num">03</span>
             <h3>Check one model</h3>
-            <div class="qs-install" data-install="local-llmup can-run qwen3:8b"><code>local-llmup can-run qwen3:8b</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
+            <div class="qs-install" data-install="rigspark can-run qwen3:8b"><code>rigspark can-run qwen3:8b</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
             <p>Instant yes / slow / no verdict with est. tok/s. Works as a CI gate.</p>
           </div>
           <div class="qs-card">
             <span class="qs-num">04</span>
             <h3>Pull and serve</h3>
-            <div class="qs-install" data-install="local-llmup up qwen3:8b"><code>local-llmup up qwen3:8b</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
+            <div class="qs-install" data-install="rigspark up qwen3:8b"><code>rigspark up qwen3:8b</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
             <p>Integrity-verified pull via Ollama, then a loopback-only server endpoint.</p>
           </div>
           <div class="qs-card">
             <span class="qs-num">05</span>
             <h3>Chat</h3>
-            <div class="qs-install" data-install="local-llmup chat"><code>local-llmup chat</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
+            <div class="qs-install" data-install="rigspark chat"><code>rigspark chat</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
             <p>Multi-line input, streaming responses, session recorded to local memory.</p>
           </div>
           <div class="qs-card">
             <span class="qs-num">06</span>
             <h3>Migrate memory</h3>
-            <div class="qs-install" data-install="local-llmup migrate --from qwen3:8b --to qwen3:14b"><code>local-llmup migrate --from qwen3:8b --to qwen3:14b</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
+            <div class="qs-install" data-install="rigspark migrate --from qwen3:8b --to qwen3:14b"><code>rigspark migrate --from qwen3:8b --to qwen3:14b</code><button class="copy-btn" type="button" aria-label="Copy"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="9" width="11" height="11" rx="1"/><path d="M5 15V5a1 1 0 0 1 1-1h9"/></svg></button></div>
             <p>Carry conversation memory when upgrading models. No data left behind.</p>
           </div>
         </div>
@@ -517,7 +517,7 @@ cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl
           <div class="cmd-row"><div class="cmd-name">can-run</div><div class="cmd-desc">Yes/slow/no for one model with binding reason and est. tok/s. Exits non-zero only on <em>no</em> &mdash; scripts cleanly.</div></div>
           <div class="cmd-row"><div class="cmd-name">doctor</div><div class="cmd-desc">AI Hardware Score (0&ndash;100), bottleneck diagnosis, backend status, and actionable environment checks.</div></div>
           <div class="cmd-row"><div class="cmd-name">catalog</div><div class="cmd-desc">Browse the curated model catalog with quantization, size, context lengths, and backend availability.</div></div>
-          <div class="cmd-row"><div class="cmd-name">gui</div><div class="cmd-desc">Launch the loopback-only browser workspace &mdash; pick a recommended model, bring one online, and chat, all managed by local-llmup.</div></div>
+          <div class="cmd-row"><div class="cmd-name">gui</div><div class="cmd-desc">Launch the loopback-only browser workspace &mdash; pick a recommended model, bring one online, and chat, all managed by rigspark.</div></div>
           <div class="cmd-row"><div class="cmd-name">up</div><div class="cmd-desc">Pull a model (SHA-256 integrity-verified), then bring up the loopback-only server endpoint.</div></div>
           <div class="cmd-row"><div class="cmd-name">chat</div><div class="cmd-desc">Interactive TUI chat with streaming responses, multi-line input (Ctrl+J), and session memory.</div></div>
           <div class="cmd-row"><div class="cmd-name">ls</div><div class="cmd-desc">Show the currently active model and server endpoint.</div></div>
@@ -588,11 +588,11 @@ cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl
     <section class="section">
       <div class="frame">
         <div class="section-label">Comparison</div>
-        <h2 class="section-title">local-llmup vs. Ollama</h2>
-        <p class="section-sub">Ollama is an excellent runtime. local-llmup adds the hardware-aware intelligence layer on top of it (and three other runtimes).</p>
+        <h2 class="section-title">rigspark vs. Ollama</h2>
+        <p class="section-sub">Ollama is an excellent runtime. rigspark adds the hardware-aware intelligence layer on top of it (and three other runtimes).</p>
         <div class="compare-scroll reveal" role="region" aria-label="Feature comparison">
           <table class="compare-table">
-            <thead><tr><th>Feature</th><th>Ollama</th><th>local-llmup</th></tr></thead>
+            <thead><tr><th>Feature</th><th>Ollama</th><th>rigspark</th></tr></thead>
             <tbody>
               <tr><td>Run inference</td><td class="yes-mark">&#10003;</td><td class="yes-mark">&#10003;</td></tr>
               <tr><td>Hardware-aware model recommendations</td><td class="no-mark">&ndash;</td><td class="yes-mark">&#10003;</td></tr>
@@ -620,22 +620,22 @@ cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl
       <div class="frame">
         <div class="section-label">FAQ</div>
         <h2 class="section-title">Which local LLMs can my computer run?</h2>
-        <p class="section-sub">Short answers to the questions people ask before running models locally. Figures are local-llmup&rsquo;s offline estimates, not benchmarks.</p>
+        <p class="section-sub">Short answers to the questions people ask before running models locally. Figures are rigspark&rsquo;s offline estimates, not benchmarks.</p>
         <div class="faq reveal">
           <details class="faq-item" open>
             <summary>How do I find out which LLMs my computer can run?</summary>
-            <p>Install local-llmup and run <code>llmup</code>. It detects your GPU, VRAM, RAM and free disk, ranks every catalog model that fits with a <strong>yes</strong>, <strong>slow</strong> or <strong>no</strong> verdict and estimated tokens per second, and lists the models that don&rsquo;t fit with the reason. <code>llmup can-run &lt;model&gt;</code> checks a single model.</p>
+            <p>Install rigspark and run <code>llmup</code>. It detects your GPU, VRAM, RAM and free disk, ranks every catalog model that fits with a <strong>yes</strong>, <strong>slow</strong> or <strong>no</strong> verdict and estimated tokens per second, and lists the models that don&rsquo;t fit with the reason. <code>llmup can-run &lt;model&gt;</code> checks a single model.</p>
           </details>
           <details class="faq-item">
             <summary>How much VRAM do I need to run an 8B, 14B, 32B or 70B model?</summary>
-            <p>At <code>Q4_K_M</code> and default context, local-llmup estimates about 5.3&nbsp;GiB for Llama&nbsp;3.1&nbsp;8B, 9.9&nbsp;GiB for Qwen3&nbsp;14B, 21.6&nbsp;GiB for Qwen3&nbsp;32B and 45.5&nbsp;GiB for Llama&nbsp;3.3&nbsp;70B. Longer contexts add KV cache on top.</p>
+            <p>At <code>Q4_K_M</code> and default context, rigspark estimates about 5.3&nbsp;GiB for Llama&nbsp;3.1&nbsp;8B, 9.9&nbsp;GiB for Qwen3&nbsp;14B, 21.6&nbsp;GiB for Qwen3&nbsp;32B and 45.5&nbsp;GiB for Llama&nbsp;3.3&nbsp;70B. Longer contexts add KV cache on top.</p>
           </details>
           <details class="faq-item">
             <summary>Can I run local LLMs on a Mac with Apple Silicon?</summary>
-            <p>Yes. Apple Silicon GPUs share unified memory with the CPU, so local-llmup sizes models against system memory and auto-selects MLX for models with an MLX build, then Ollama, then llama.cpp.</p>
+            <p>Yes. Apple Silicon GPUs share unified memory with the CPU, so rigspark sizes models against system memory and auto-selects MLX for models with an MLX build, then Ollama, then llama.cpp.</p>
           </details>
           <details class="faq-item">
-            <summary>Does local-llmup send my data anywhere?</summary>
+            <summary>Does rigspark send my data anywhere?</summary>
             <p>No. Recommendations, <code>can-run</code> and <code>doctor</code> make no network calls and use a bundled offline catalog. Model servers and the browser GUI bind to <code>127.0.0.1</code> only.</p>
           </details>
         </div>
@@ -647,15 +647,15 @@ cargo install llmup-cli --locked --bin llmup --bin local-llmup   <span class="dl
       <div class="frame">
         <div class="footer">
           <div>
-            <div class="footer-mark">local-llmup</div>
+            <div class="footer-mark">rigspark</div>
             <div class="footer-meta">MIT License &middot; v1.0.2 &middot; Native Rust</div>
           </div>
           <nav class="footer-links">
-            <a href="https://github.com/shashankswe2020-ux/local-llmup#readme">Docs</a>
-            <a href="https://github.com/shashankswe2020-ux/local-llmup">GitHub</a>
-            <a href="https://crates.io/crates/llmup-cli">crates.io</a>
-            <a href="https://github.com/shashankswe2020-ux/local-llmup/blob/main/CHANGELOG.md">Changelog</a>
-            <a href="https://github.com/shashankswe2020-ux/local-llmup/blob/main/LICENSE">MIT</a>
+            <a href="https://github.com/shashankswe2020-ux/rigspark#readme">Docs</a>
+            <a href="https://github.com/shashankswe2020-ux/rigspark">GitHub</a>
+            <a href="https://crates.io/crates/rigspark-cli">crates.io</a>
+            <a href="https://github.com/shashankswe2020-ux/rigspark/blob/main/CHANGELOG.md">Changelog</a>
+            <a href="https://github.com/shashankswe2020-ux/rigspark/blob/main/LICENSE">MIT</a>
           </nav>
         </div>
       </div>

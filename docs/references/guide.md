@@ -1,17 +1,17 @@
-# local-llmup Reference Guide
+# rigspark Reference Guide
 
 [Back to the quick start](../../README.md)
 
-[![CI](https://github.com/shashankswe2020-ux/local-llmup/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/shashankswe2020-ux/local-llmup/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/llmup-cli.svg?label=crates.io)](https://crates.io/crates/llmup-cli)
-[![Downloads](https://img.shields.io/crates/d/llmup-cli.svg)](https://crates.io/crates/llmup-cli)
+[![CI](https://github.com/shashankswe2020-ux/rigspark/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/shashankswe2020-ux/rigspark/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/rigspark-cli.svg?label=crates.io)](https://crates.io/crates/rigspark-cli)
+[![Downloads](https://img.shields.io/crates/d/rigspark-cli.svg)](https://crates.io/crates/rigspark-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](../../LICENSE)
 [![Rust](https://img.shields.io/badge/Rust-1.98.1-000000.svg?logo=rust)](https://www.rust-lang.org)
 [![Backends](https://img.shields.io/badge/backends-Ollama%20%7C%20llama.cpp%20%7C%20MLX%20%7C%20LM%20Studio-000000.svg)](#supported-backends)
 
 > **Know which local LLMs will actually run on your machine — before you download anything.**
 
-`local-llmup` is a hardware-aware local LLM checker and launcher: a fast native
+`rigspark` is a hardware-aware local LLM checker and launcher: a fast native
 Rust CLI, terminal UI and browser GUI that reads your GPU VRAM, unified memory,
 RAM and disk, then gives every model in its curated catalog a `yes / slow / no`
 verdict with an estimated tokens-per-second range. Think of it as a VRAM
@@ -24,7 +24,7 @@ It runs on macOS (Apple Silicon and Intel), Linux and Windows, with NVIDIA, AMD,
 Intel and Apple GPUs or CPU only.
 
 <div align="center">
-<img src="../../assets/model-performance.png" alt="local-llmup model performance view showing recommendation score, hardware fit, estimated throughput, memory and context evidence, quantizations, and catalog sources" width="900" />
+<img src="../../assets/model-performance.png" alt="rigspark model performance view showing recommendation score, hardware fit, estimated throughput, memory and context evidence, quantizations, and catalog sources" width="900" />
 </div>
 
 The model performance view explains every recommendation in one place: composite
@@ -38,12 +38,12 @@ integrity status, capabilities, and catalog sources. Unknown inputs stay
 ## Highlights
 
 <div align="center">
-<img src="../../assets/demo.gif" alt="local-llmup end-to-end demo" width="800" />
+<img src="../../assets/demo.gif" alt="rigspark end-to-end demo" width="800" />
 </div>
 
 - **Runnability verdicts.** `yes / slow / no` with binding reason and est. tok/s — **before** any download.
 - **Interactive TUI.** Rich terminal interface with search, filtering, keyboard navigation, and screen-reader accessible mode. Falls back gracefully to plain text when not in a TTY.
-- **Browser GUI.** A loopback-only local AI workspace — pick a recommended model, bring one online, and chat, all managed by `local-llmup`.
+- **Browser GUI.** A loopback-only local AI workspace — pick a recommended model, bring one online, and chat, all managed by `rigspark`.
 - **Agents & skills.** Author reusable agents (personas) and skills, stored locally as markdown; bundle skills into an agent and load them per message.
 - **MCP connectors & tools.** Attach Model Context Protocol servers (local stdio or loopback HTTP/SSE) to give the chat real tools, called in an agentic loop.
 - **Inline images & graphs.** Let an agent run code in your workspace and render the result — images and graphs display inline in the chat panel.
@@ -60,7 +60,7 @@ integrity status, capabilities, and catalog sources. Unknown inputs stay
 
 ## Table of Contents
 
-- [local-llmup Reference Guide](#local-llmup-reference-guide)
+- [rigspark Reference Guide](#rigspark-reference-guide)
   - [Highlights](#highlights)
   - [Table of Contents](#table-of-contents)
   - [Install](#install)
@@ -81,7 +81,7 @@ integrity status, capabilities, and catalog sources. Unknown inputs stay
   - [Supported Backends](#supported-backends)
   - [How Advice Works](#how-advice-works)
   - [Scripting \& Exit Codes](#scripting--exit-codes)
-  - [local-llmup vs. Ollama](#local-llmup-vs-ollama)
+  - [rigspark vs. Ollama](#rigspark-vs-ollama)
   - [SOTA Landscape (August 2026)](#sota-landscape-august-2026)
   - [FAQ](#faq)
   - [Development](#development)
@@ -94,30 +94,30 @@ integrity status, capabilities, and catalog sources. Unknown inputs stay
 
 ## Install
 
-`local-llmup` is a native Rust application. Every install puts the `llmup` and
-`local-llmup` aliases next to the `llmup-gui` companion that `llmup gui`
+`rigspark` is a native Rust application. Every install puts the `llmup` and
+`rigspark` aliases next to the `rigspark-gui` companion that `llmup gui`
 launches; the binaries need no Node.js, Python or compiler at runtime.
 
 **Homebrew** (macOS and Linux):
 
 ```bash
-brew install shashankswe2020-ux/tap/local-llmup
+brew install shashankswe2020-ux/tap/rigspark
 ```
 
 **Prebuilt archives** for macOS (Apple Silicon, Intel), Linux (x64, ARM64) and
 Windows (x64) are attached to every
-[GitHub release](https://github.com/shashankswe2020-ux/local-llmup/releases/latest)
+[GitHub release](https://github.com/shashankswe2020-ux/rigspark/releases/latest)
 with a `SHA256SUMS` file. Unpack one and put the folder on your `PATH`. Archives
-are unsigned; on macOS run `xattr -dr com.apple.quarantine local-llmup-*` after
+are unsigned; on macOS run `xattr -dr com.apple.quarantine rigspark-*` after
 unpacking.
 
 **Cargo** — prebuilt with [cargo-binstall](https://github.com/cargo-bins/cargo-binstall),
 or from source with Rust 1.98 or newer ([rustup](https://rustup.rs)):
 
 ```bash
-cargo binstall llmup-cli llmup-gui
-cargo install llmup-cli --locked --bin llmup --bin local-llmup
-cargo install llmup-gui --locked
+cargo binstall rigspark-cli rigspark-gui
+cargo install rigspark-cli --locked --bin llmup --bin rigspark
+cargo install rigspark-gui --locked
 ```
 
 Install both crates into the same Cargo `bin` directory (the default) so the CLI
@@ -126,15 +126,15 @@ can find the GUI beside it.
 From a checkout, use the same pinned toolchain:
 
 ```bash
-cargo install --locked --path crates/llmup-cli --bin llmup --bin local-llmup
-cargo install --locked --path crates/llmup-gui
+cargo install --locked --path crates/rigspark-cli --bin llmup --bin rigspark
+cargo install --locked --path crates/rigspark-gui
 cargo llmup          # or run without installing
 ```
 
 **Upgrading from the npm package (0.x).** The Node.js package is retired and
-receives no further releases. Remove it with `npm uninstall -g local-llmup`, then
+receives no further releases. Remove it with `npm uninstall -g rigspark`, then
 install with Cargo as above. Commands, flags, `--json` output and the
-`~/.local-llmup` state directory are unchanged, so active servers and chat memory
+`~/.rigspark` state directory are unchanged, so active servers and chat memory
 carry over. Signed archives and desktop installers are not released yet.
 
 ### Docker
@@ -142,8 +142,8 @@ carry over. Signed archives and desktop installers are not released yet.
 Historical multi-platform CLI images remain available from GitHub Container Registry:
 
 ```bash
-docker pull ghcr.io/shashankswe2020-ux/local-llmup:latest
-docker run --rm ghcr.io/shashankswe2020-ux/local-llmup:latest
+docker pull ghcr.io/shashankswe2020-ux/rigspark:latest
+docker run --rm ghcr.io/shashankswe2020-ux/rigspark:latest
 ```
 
 Those images target `linux/amd64` and `linux/arm64` and predate the native
@@ -166,7 +166,7 @@ least one backend installed:
 ## Performance (1.0 native vs. 0.11.4 Node)
 
 Measured on an Apple M4 Max (36 GB, macOS 26.5) against the published
-`local-llmup@0.11.4` running on Node.js 26: medians of 30 interleaved runs,
+`rigspark@0.11.4` running on Node.js 26: medians of 30 interleaved runs,
 peak RSS from `/usr/bin/time -l`, isolated state directories. Advice output
 (`recommend` and `can-run` JSON) was byte-for-byte equivalent after key ordering.
 
@@ -189,23 +189,23 @@ single 12.6 MB `llmup` binary. Results vary by machine and runtime version.
 
 ```bash
 # 1. What can this machine run?
-local-llmup
+rigspark
 
 # 2. Check a specific model
-local-llmup can-run llama3.1:8b
+rigspark can-run llama3.1:8b
 
 # 3. Pull + verify + serve (loopback-only)
-local-llmup up llama3.1:8b
+rigspark up llama3.1:8b
 
 # 4. Chat (records memory)
-local-llmup chat
+rigspark chat
 
 # 5. Migrate memory to a better model
-local-llmup migrate --from llama3.1:8b --to qwen3:14b
-local-llmup switch qwen3:14b
+rigspark migrate --from llama3.1:8b --to qwen3:14b
+rigspark switch qwen3:14b
 
 # 6. Stop when done
-local-llmup down
+rigspark down
 ```
 
 ```mermaid
@@ -224,11 +224,11 @@ flowchart LR
 
 ## Model Catalog
 
-`local-llmup` ships a deterministic, offline catalog of 66 curated model
+`rigspark` ships a deterministic, offline catalog of 66 curated model
 variants. Each record connects model identity and capabilities to the evidence
 the advisor needs: parameter count, architecture, license, context ceiling,
 quantizations, artifact size, source coordinates, and integrity digest. Run
-`local-llmup catalog --all` to browse it or open a model in the browser GUI for
+`rigspark catalog --all` to browse it or open a model in the browser GUI for
 its complete performance and fit breakdown.
 
 Catalog metadata is deliberately conservative. A model with unknown attention
@@ -243,9 +243,9 @@ artifact metadata:
 
 1. **Curate.** Maintainers add architecture, license, capabilities, context,
   quantization, and official source IDs to
-  `crates/llmup-core/fixtures/registry-snapshot.json`.
+  `crates/rigspark-core/fixtures/registry-snapshot.json`.
 2. **Bootstrap.** `cargo catalog-bootstrap` deterministically generates
-  `crates/llmup-core/data/models.json` from that pinned snapshot.
+  `crates/rigspark-core/data/models.json` from that pinned snapshot.
 3. **Enrich.** `cargo catalog-enrich` resolves already-curated Ollama sources
   and pins exact model-layer bytes and SHA-256 digests. It never invents or
   changes curated architecture facts.
@@ -320,19 +320,19 @@ terminal (TTY with ≥60 columns, ≥16 rows).
 **Recommend** — interactive TUI with ranked models, search, details, and compare:
 
 <div align="center">
-<img src="../../assets/screenshot-recommend.png" alt="local-llmup recommend TUI" width="800" />
+<img src="../../assets/screenshot-recommend.png" alt="rigspark recommend TUI" width="800" />
 </div>
 
 **Doctor** — hardware diagnostics, backend status, and AI hardware score:
 
 <div align="center">
-<img src="../../assets/screenshot-doctor.png" alt="local-llmup doctor TUI" width="800" />
+<img src="../../assets/screenshot-doctor.png" alt="rigspark doctor TUI" width="800" />
 </div>
 
 **Can-run** — instant yes/slow/no verdict for any model:
 
 <div align="center">
-<img src="../../assets/screenshot-can-run.png" alt="local-llmup can-run output" width="800" />
+<img src="../../assets/screenshot-can-run.png" alt="rigspark can-run output" width="800" />
 </div>
 
 ### Modes
@@ -349,20 +349,20 @@ The UI auto-selects the best mode for your terminal:
 
 ## Browser GUI
 
-Prefer a point-and-click workflow? `local-llmup gui` launches a local AI
+Prefer a point-and-click workflow? `rigspark gui` launches a local AI
 workspace in your browser — a Maka-inspired, local-first interface that reuses
 the same `recommend`, `up`, and `ls` internals as the CLI. Bring your own model
 by picking a recommended local model for your machine, or start one directly,
 then chat with it — no data leaves your machine.
 
 ```bash
-local-llmup gui                 # serve on 127.0.0.1 and open the browser
-local-llmup gui --port 4173     # choose a port
-local-llmup gui --no-open       # start the server without opening a browser
+rigspark gui                 # serve on 127.0.0.1 and open the browser
+rigspark gui --port 4173     # choose a port
+rigspark gui --no-open       # start the server without opening a browser
 ```
 
 <div align="center">
-<img src="../../assets/screenshot-workspace.png" alt="local-llmup browser workspace" width="800" />
+<img src="../../assets/screenshot-workspace.png" alt="rigspark browser workspace" width="800" />
 </div>
 
 The **Models** view ranks models that fit your hardware with the same
@@ -385,12 +385,12 @@ KV cache fits. Throughput ranges remain short-context decode estimates because
 long-context throughput is not modeled yet.
 
 <div align="center">
-<img src="../../assets/screenshot-gui.png" alt="local-llmup browser workspace showing recommended local models with yes, slow and no verdicts" width="800" />
+<img src="../../assets/screenshot-gui.png" alt="rigspark browser workspace showing recommended local models with yes, slow and no verdicts" width="800" />
 </div>
 
 - **Loopback-only.** The server binds `127.0.0.1`, validates the `Host` header,
   and refuses path traversal — nothing is exposed to the network.
-- **Managed by local-llmup.** Recommendations, integrity-verified installs, and
+- **Managed by rigspark.** Recommendations, integrity-verified installs, and
   active-server state all flow through the same deterministic engine as the CLI.
 - **Pluggable harnesses.** Chat runs against the local backend by default, with
   `claude`, `openai`, `openai-compatible`, and `opencode` harnesses available.
@@ -425,17 +425,17 @@ available to the model:
 
 | Command | Usage | Purpose |
 |---------|-------|---------|
-| `recommend` | `local-llmup [--task <t>] [--context <n>] [--json]` | Rank models that fit (default command) |
-| `can-run` | `local-llmup can-run <model> [--context <n>] [--installed] [--json]` | Check one model at a chosen context |
-| `doctor` | `local-llmup doctor [--json]` | Hardware + backend diagnostics |
-| `up` | `local-llmup up <model> [--port <p>] [--backend <b>] [--context <n>] [--bypass]` | Verify and serve, optionally overriding estimated fit |
-| `chat` | `local-llmup chat [-m <model>]` | Interactive chat with memory |
-| `gui` | `local-llmup gui [--port <p>] [--harness <h>] [--no-open]` | Launch the browser workspace |
-| `ls` | `local-llmup ls` | Show active server |
-| `switch` | `local-llmup switch <model> [--context <n>] [--bypass]` | Change active model or context |
-| `down` | `local-llmup down [model]` | Stop server |
-| `migrate` | `local-llmup migrate --from <a> --to <b> [--dry-run]` | Move memory between models |
-| `catalog` | `local-llmup catalog [--all] [--refresh]` | Browse model catalog |
+| `recommend` | `rigspark [--task <t>] [--context <n>] [--json]` | Rank models that fit (default command) |
+| `can-run` | `rigspark can-run <model> [--context <n>] [--installed] [--json]` | Check one model at a chosen context |
+| `doctor` | `rigspark doctor [--json]` | Hardware + backend diagnostics |
+| `up` | `rigspark up <model> [--port <p>] [--backend <b>] [--context <n>] [--bypass]` | Verify and serve, optionally overriding estimated fit |
+| `chat` | `rigspark chat [-m <model>]` | Interactive chat with memory |
+| `gui` | `rigspark gui [--port <p>] [--harness <h>] [--no-open]` | Launch the browser workspace |
+| `ls` | `rigspark ls` | Show active server |
+| `switch` | `rigspark switch <model> [--context <n>] [--bypass]` | Change active model or context |
+| `down` | `rigspark down [model]` | Stop server |
+| `migrate` | `rigspark migrate --from <a> --to <b> [--dry-run]` | Move memory between models |
+| `catalog` | `rigspark catalog [--all] [--refresh]` | Browse model catalog |
 
 ### Global Options
 
@@ -458,11 +458,11 @@ Check the models you already use in Ollama, including tags missing from the
 offline catalog:
 
 ```bash
-local-llmup recommend --installed --context 65536
-local-llmup recommend --installed --context 65536 --fits-only
-local-llmup can-run gemma4:e4b-it-qat --installed --context 65536
-local-llmup up gemma4:e4b-it-qat --installed --bypass --context 65536
-local-llmup ls
+rigspark recommend --installed --context 65536
+rigspark recommend --installed --context 65536 --fits-only
+rigspark can-run gemma4:e4b-it-qat --installed --context 65536
+rigspark up gemma4:e4b-it-qat --installed --bypass --context 65536
+rigspark ls
 ```
 
 Use an exact tag from the installed list for other models, including newly
@@ -481,7 +481,7 @@ Explicit context creates a separate `llmup-context-...:<tokens>` runtime tag
 with Ollama's `num_ctx` parameter. Your original tag and external daemon remain
 unchanged. CLI and desktop chat use the configured tag automatically. For
 OpenCode or another OpenAI-compatible client, select the **Runtime model** shown
-by `local-llmup ls`, using the displayed endpoint plus `/v1`. The generated tags
+by `rigspark ls`, using the displayed endpoint plus `/v1`. The generated tags
 remain in Ollama until explicitly removed; no automatic model deletion occurs.
 
 In desktop **Models**, select **Installed Ollama**, choose **64K** or **Custom**,
@@ -555,7 +555,7 @@ flowchart TD
 
 | Principle | Implementation |
 |-----------|---------------|
-| **Offline** | Zero network calls. Curated dataset in `crates/llmup-core/data/` |
+| **Offline** | Zero network calls. Curated dataset in `crates/rigspark-core/data/` |
 | **Deterministic** | Same hardware → same output, always |
 | **Memory-bandwidth model** | tok/s from hardware bandwidth × model size |
 | **KV-cache aware** | `--context N` includes fp16 KV (GQA-correct geometry) |
@@ -585,16 +585,16 @@ xychart-beta
 
 ```bash
 # CI gate example
-if local-llmup can-run llama3.1:8b; then
-  local-llmup up llama3.1:8b
+if rigspark can-run llama3.1:8b; then
+  rigspark up llama3.1:8b
 fi
 ```
 
 ---
 
-## local-llmup vs. Ollama
+## rigspark vs. Ollama
 
-| Feature | Ollama | local-llmup |
+| Feature | Ollama | rigspark |
 |---------|--------|-------------|
 | Run inference | ✅ | ✅ (via backends) |
 | Hardware-aware recommendations | ❌ | ✅ |
@@ -614,11 +614,11 @@ fi
 
 ## SOTA Landscape (August 2026)
 
-This snapshot compares `local-llmup` with the leading local inference and
+This snapshot compares `rigspark` with the leading local inference and
 workspace tools as of **2026-08-30**. It is a capability map, not a benchmark
 ranking; runtimes and model support change quickly.
 
-| Project | Best at | How `local-llmup` complements it |
+| Project | Best at | How `rigspark` complements it |
 |---------|----------|----------------------------------|
 | [Ollama](https://ollama.com) | Simple model pull, local serving, and an OpenAI-compatible API | Adds hardware-fit verdicts, throughput estimates, integrity checks, and lifecycle portability |
 | [llama.cpp](https://github.com/ggerganov/llama.cpp) | Portable, dependency-light inference across CPU/GPU backends and quantizations | Adds model selection before download and a consistent orchestration layer |
@@ -631,7 +631,7 @@ ranking; runtimes and model support change quickly.
 
 **Positioning:** the major tools above optimize inference, serving, or
 application UX, while DeepGit focuses on discovering and analyzing repositories.
-`local-llmup` is the decision and lifecycle layer between a machine and local
+`rigspark` is the decision and lifecycle layer between a machine and local
 inference runtimes: measure the hardware, explain what fits, choose a backend,
 verify the weights, then serve and migrate without guessing.
 
@@ -641,7 +641,7 @@ verify the weights, then serve and migrate without guessing.
 
 ### How do I find out which LLMs my computer can run?
 
-Install `local-llmup` and run `llmup` with no arguments. It detects your GPU,
+Install `rigspark` and run `llmup` with no arguments. It detects your GPU,
 VRAM, RAM and free disk, ranks every catalog model that fits, and lists the ones
 that don't with the binding reason (`vram-bound`, `ram-bound`, `disk-bound` or
 `context-bound`). `llmup can-run <model>` answers for a single model and exits
@@ -649,7 +649,7 @@ non-zero when the answer is `no`.
 
 ### How much VRAM do I need to run Llama, Qwen, Gemma or DeepSeek locally?
 
-These are `local-llmup`'s offline estimates of the memory each model needs at
+These are `rigspark`'s offline estimates of the memory each model needs at
 `Q4_K_M` and its default context. Your usable memory must be at least this much;
 longer contexts add KV cache on top. Reproduce them with `llmup catalog --all`.
 
@@ -673,7 +673,7 @@ longer contexts add KV cache on top. Reproduce them with `llmup catalog --all`.
 ### Can I run local LLMs on a Mac with Apple Silicon?
 
 Yes. On Apple Silicon the GPU shares unified memory with the CPU, so
-`local-llmup` sizes models against system memory rather than a separate VRAM
+`rigspark` sizes models against system memory rather than a separate VRAM
 pool. It auto-selects MLX for models with an MLX build, then Ollama, then
 llama.cpp.
 
@@ -685,17 +685,17 @@ cited throughput dataset for your hardware class. When your hardware isn't in th
 dataset the speed is shown as `unknown` instead of a guess. Estimates are not
 benchmarks.
 
-### Does local-llmup send my data anywhere?
+### Does rigspark send my data anywhere?
 
 No. Recommendations, `can-run` and `doctor` make no network calls and use a
 bundled offline catalog. Model servers and the browser GUI bind to `127.0.0.1`
 only. It reaches the internet only when you pull weights, choose a cloud chat
 harness, or run the maintainer catalog tools.
 
-### Is local-llmup an alternative to Ollama or LM Studio?
+### Is rigspark an alternative to Ollama or LM Studio?
 
 It works alongside them. Ollama, llama.cpp, MLX and LM Studio run inference;
-`local-llmup` decides which model and quantization your machine can handle,
+`rigspark` decides which model and quantization your machine can handle,
 verifies the download, and manages the server through whichever runtime you have.
 
 ---
@@ -714,7 +714,7 @@ cargo native-retirement  # Fails if any Node/TypeScript tooling returns
 cargo llmup              # Native development CLI
 cargo state-parity
 cargo workflow-parity
-cargo catalog-bootstrap  # Regenerate crates/llmup-core/data/models.json
+cargo catalog-bootstrap  # Regenerate crates/rigspark-core/data/models.json
 ```
 
 Browser client modules and journeys run in real Chrome through WebDriver:
@@ -726,11 +726,11 @@ scripts/native-browser-journeys.sh "$CHROME" "$CHROMEDRIVER"
 ### Architecture
 
 ```text
-crates/llmup-core/       Offline catalog, sizing, advice and ranking (+ data/)
-crates/llmup-runtime/    Runtime adapters, state, memory, tools and workspace
-crates/llmup-cli/        Native public aliases, terminal UI and maintenance
-crates/llmup-gui/        Rust HTTP/SSE host and embedded static browser assets
-vendor/crossterm/        llmup-crossterm: crossterm with bounded input parsing
+crates/rigspark-core/       Offline catalog, sizing, advice and ranking (+ data/)
+crates/rigspark-runtime/    Runtime adapters, state, memory, tools and workspace
+crates/rigspark-cli/        Native public aliases, terminal UI and maintenance
+crates/rigspark-gui/        Rust HTTP/SSE host and embedded static browser assets
+vendor/crossterm/        rigspark-crossterm: crossterm with bounded input parsing
 apps/desktop/src-tauri/  Native desktop (separate Cargo project)
 ```
 

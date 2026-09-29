@@ -9,7 +9,7 @@ artifacts=${3:-$root/test-results/rust-browser}
 exe=""
 if [[ "${OS:-}" == "Windows_NT" ]]; then exe=".exe"; fi
 
-cargo build --locked -p llmup-gui --example browser_fixture --example browser_smoke
+cargo build --locked -p rigspark-gui --example browser_fixture --example browser_smoke
 mkdir -p "$artifacts"
 
 "$driver" --port=48232 --allowed-ips=127.0.0.1 &

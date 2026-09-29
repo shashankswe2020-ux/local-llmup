@@ -59,7 +59,7 @@
     progress?.emit(completedItem(result));
   } catch {
     deps.writeStderr(
-      "local-llmup: interactive UI failed (renderer_runtime); terminal restored; final result follows\n",
+      "rigspark: interactive UI failed (renderer_runtime); terminal restored; final result follows\n",
     );
   } finally {
     try {

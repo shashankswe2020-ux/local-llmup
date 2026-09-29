@@ -30,7 +30,7 @@ None.
 ### 1. `down` on an attached daemon "detaches + forgets" — document the semantic and confirm it is intended (Focus Q1)
 
 - **File:** `src/commands/down.ts` (attached branch — `deps.writeState(deps.config, createEmptyState())` then `Detached from ...`)
-- **Problem:** When the active record is `ownedByUs: false` (a pre-existing daemon `up` attached to), `down` clears the state pointer and leaves the daemon running. This is defensible — local-llmup only manages lifecycles it owns, and the endpoint (`127.0.0.1:<port>`) is rediscoverable by re-running `up` — but it means `ls` immediately reports "No active model" even though a daemon the user was connected to is still serving. There is a small risk of "losing track of a still-serving endpoint" for the duration until the next `up`.
+- **Problem:** When the active record is `ownedByUs: false` (a pre-existing daemon `up` attached to), `down` clears the state pointer and leaves the daemon running. This is defensible — rigspark only manages lifecycles it owns, and the endpoint (`127.0.0.1:<port>`) is rediscoverable by re-running `up` — but it means `ls` immediately reports "No active model" even though a daemon the user was connected to is still serving. There is a small risk of "losing track of a still-serving endpoint" for the duration until the next `up`.
 - **Assessment:** Behavior is correct and tested; the concern is UX/semantic clarity, not a defect. The alternative (leave the record intact and refuse to touch it) would prevent the user from ever clearing an attached pointer, which is worse.
 - **Fix:** Document the "detach + forget" semantic in the command help text and/or spec so users understand `down` on an attached daemon is a bookkeeping detach, not a stop. Optionally, consider whether `ls` should retain a way to rediscover a known-but-detached endpoint (out of scope for T19).
 
@@ -118,7 +118,7 @@ None.
 
 ### On the focus questions
 
-1. **Attached "detach + forget"** — Correct and low-risk. The state is a single-slot pointer to a rediscoverable local endpoint; forgetting an unowned daemon is the right scope (local-llmup manages only what it owns). Document the semantic so `ls` showing nothing afterward is not surprising. (Minor #1)
+1. **Attached "detach + forget"** — Correct and low-risk. The state is a single-slot pointer to a rediscoverable local endpoint; forgetting an unowned daemon is the right scope (rigspark manages only what it owns). Document the semantic so `ls` showing nothing afterward is not surprising. (Minor #1)
 2. **State not cleared when `stop()` throws** — Correct. Keeping the record on failure allows a retry to find the (possibly still-alive) daemon. The only inconsistency window is the reverse (stop succeeds, `writeState` fails), which is benign and self-heals via the idempotent `ESRCH` no-op. (Minor #2)
 3. **Lock-free `ls`** — Acceptable. Atomic temp+rename writes guarantee `readState` observes a complete file; no torn read is possible, so a lock would add nothing. (No finding.)
 4. **Error handling / ordering / routing** — Ordering is the safe direction; stdout/stderr split is correct; sanitization is consistent. Only the Minor/Nit items above.

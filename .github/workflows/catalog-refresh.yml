@@ -57,7 +57,7 @@ jobs:
       - name: Detect catalog changes
         id: diff
         run: |
-          if git diff --quiet -- crates/llmup-core/data/models.json; then
+          if git diff --quiet -- crates/rigspark-core/data/models.json; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -66,7 +66,7 @@ jobs:
       - name: Validate the refreshed catalog
         if: steps.diff.outputs.changed == 'true'
         run: |
-          cargo test --locked -p llmup-core --test catalog
+          cargo test --locked -p rigspark-core --test catalog
           cargo build --workspace --locked
 
       - name: Open the catalog refresh PR
@@ -82,7 +82,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
-          git add crates/llmup-core/data/models.json
+          git add crates/rigspark-core/data/models.json
           git commit -m "$TITLE"
           AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\r\n')
           git -c "http.${GITHUB_SERVER_URL}/.extraheader=AUTHORIZATION: basic $AUTH" push origin "$BRANCH"

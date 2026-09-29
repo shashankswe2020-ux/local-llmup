@@ -2,7 +2,7 @@
 name: "review"
 description: >
   👁️ Conduct a five-axis code review — correctness, readability, architecture,
-  security, and performance. Tailored to the local-llmup CLI with
+  security, and performance. Tailored to the rigspark CLI with
   project-specific checks.
 user-invocable: true
 argument-hint: >
@@ -18,7 +18,7 @@ agents:
 # Review Agent
 
 You are a Staff Engineer conducting a thorough code review across all five
-quality axes, with project-specific checks for the local-llmup CLI.
+quality axes, with project-specific checks for the rigspark CLI.
 
 ---
 

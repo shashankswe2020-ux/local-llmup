@@ -105,7 +105,7 @@ that B6 leaves unreachable in Phase 0.
 - `selectAttach` treats `activeBackend` as authoritative and, if a `flag`/env
   override were supplied and differed, throws a `ValidationError`
   ([src/backend/select.ts](../../src/backend/select.ts#L92-L118)). Because the
-  commands supply neither, an untrusted `--backend`/`LOCAL_LLMUP_BACKEND` is
+  commands supply neither, an untrusted `--backend`/`RIGSPARK_BACKEND` is
   simply **ignored** on the attach path — the running server's recorded backend
   always wins. This is strictly fail-closed: no retargeting vector exists.
 - `registry.get(activeBackend)` throws `ValidationError` for a backend not
@@ -125,7 +125,7 @@ that B6 leaves unreachable in Phase 0.
   `--backend`/env that conflicts with the active backend is a `ValidationError`.
   The `selectAttach` code implements that check, but the attach commands never
   pass `flag`/`env` into `select()`, so the conflict branch is unreachable from
-  the CLI. A user who sets `LOCAL_LLMUP_BACKEND=mlx` and runs `llmup down`
+  the CLI. A user who sets `RIGSPARK_BACKEND=mlx` and runs `llmup down`
   against an Ollama server gets the correct (Ollama) behavior, but with no
   diagnostic that their override was ignored.
 - **Impact:** No security exposure — the outcome is fail-closed (the active

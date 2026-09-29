@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use tauri::Manager;
 
-struct HostState(Arc<llmup_gui::Host>);
+struct HostState(Arc<rigspark_gui::Host>);
 enum DirectoryPicker {
     #[cfg(not(test))]
     Native {
@@ -86,21 +86,21 @@ fn main() {
     let dialog_smoke = std::env::args().any(|argument| argument == "--dialog-smoke-test");
     let smoke = dialog_smoke || std::env::args().any(|argument| argument == "--smoke-test");
     let runtime = tokio::runtime::Runtime::new().expect("native async runtime");
-    let config = llmup_runtime::state::Config::load().expect("native configuration");
+    let config = rigspark_runtime::state::Config::load().expect("native configuration");
     let listener = runtime
         .block_on(tokio::net::TcpListener::bind((
             std::net::Ipv4Addr::LOCALHOST,
             0,
         )))
         .expect("loopback listener");
-    let host = llmup_gui::Host::new(
+    let host = rigspark_gui::Host::new(
         &config.home,
         listener.local_addr().expect("listener address").port(),
     )
     .expect("native GUI host");
     host.desktop
         .store(true, std::sync::atomic::Ordering::Relaxed);
-    let serving = runtime.spawn(llmup_gui::serve(listener, host.clone()));
+    let serving = runtime.spawn(rigspark_gui::serve(listener, host.clone()));
     let origin = host.origin();
     let entry = format!("{origin}/");
     let launch_host = host.clone();
@@ -116,7 +116,7 @@ fn main() {
             let smoke_app=app.handle().clone();
             if smoke { tauri::async_runtime::spawn(async move { tokio::time::sleep(std::time::Duration::from_secs(if dialog_smoke { 60 } else { 20 })).await; smoke_app.exit(1); }); }
             tauri::WebviewWindowBuilder::new(app,"main",tauri::WebviewUrl::External(entry.parse()?))
-                .title("local-llmup").inner_size(1280.0,840.0).min_inner_size(760.0,540.0)
+                .title("RigSpark").inner_size(1280.0,840.0).min_inner_size(760.0,540.0)
                 .initialization_script(script)
                 .on_navigation(move |url| {
                     if smoke && url.origin().ascii_serialization()==allowed && url.path().starts_with("/__native_smoke/") {
@@ -129,7 +129,7 @@ fn main() {
                 })
                 .on_page_load(move |window,payload| {
                     if smoke && matches!(payload.event(),tauri::webview::PageLoadEvent::Finished) {
-                        let _=window.eval(if dialog_smoke { include_str!("dialog-smoke.js") } else { "location.href='/__native_smoke/'+(document.title==='local-llmup' && document.querySelector('main') && document.querySelector('textarea') && typeof window.llmupDesktop?.selectWorkspaceDirectory==='function' && typeof window.__TAURI_INTERNALS__?.invoke==='function' ? 'pass':'fail')" });
+                        let _=window.eval(if dialog_smoke { include_str!("dialog-smoke.js") } else { "location.href='/__native_smoke/'+(document.title==='RigSpark' && document.querySelector('main') && document.querySelector('textarea') && typeof window.llmupDesktop?.selectWorkspaceDirectory==='function' && typeof window.__TAURI_INTERNALS__?.invoke==='function' ? 'pass':'fail')" });
                     }
                 })
                 .on_new_window(|_,_|tauri::webview::NewWindowResponse::Deny)
@@ -157,7 +157,7 @@ mod tests {
         home: &std::path::Path,
         picker: DirectoryPicker,
     ) -> (tauri::App<tauri::test::MockRuntime>, String) {
-        let host = llmup_gui::Host::new(home, 43210).unwrap();
+        let host = rigspark_gui::Host::new(home, 43210).unwrap();
         let entry = format!("{}/", host.origin());
         let app = tauri::test::mock_builder()
             .manage(HostState(host))
@@ -276,7 +276,7 @@ mod tests {
         let config: serde_json::Value =
             serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
         let name = config["productName"].as_str().unwrap();
-        assert_eq!(name, "local-llmup");
+        assert_eq!(name, "RigSpark");
         assert!(
             name.bytes()
                 .all(|byte| byte.is_ascii_alphanumeric() || b"._ -".contains(&byte))

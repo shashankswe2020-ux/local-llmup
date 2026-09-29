@@ -9,11 +9,11 @@
 > `src/backend/adapter.ts`, `src/errors.ts`, `src/types.ts`, `src/sanitize.ts`,
 > `src/cli.ts`.
 > **Threat model:** S-sized, single-user local CLI. `select()` reads three
-> untrusted inputs — the `--backend` CLI flag, the `LOCAL_LLMUP_BACKEND`
+> untrusted inputs — the `--backend` CLI flag, the `RIGSPARK_BACKEND`
 > environment variable, and the config's `defaultBackend` (already Zod-validated
 > to the `BackendName` enum) — plus `state.active.backend` (same-UID `0600`
 > file, validated by the state schema). Flag and env sit at the invoking user's
-> own trust level; the realistic external vector is a `LOCAL_LLMUP_BACKEND` value
+> own trust level; the realistic external vector is a `RIGSPARK_BACKEND` value
 > injected by a parent process, sourced `.env`, or wrapper script.
 > **Dependencies:** `npm audit` reports 6 advisories (2 critical, 1 high, 3
 > moderate), **all in the dev-only `vitest`/`vite` toolchain** (tracked in prior
@@ -57,9 +57,9 @@ the commit.
   construction: the attach path _always_ resolves `registry.get(activeBackend)`
   (line 118) and has no code path that returns a flag/env-derived adapter, so a
   running server can never be retargeted. The only effect is that a genuinely
-  conflicting `LOCAL_LLMUP_BACKEND` is ignored silently instead of surfacing an
+  conflicting `RIGSPARK_BACKEND` is ignored silently instead of surfacing an
   explicit error, which weakens the "tell the user their env is stale" signal.
-- **Proof of concept:** `select({ intent: "attach", registry, activeBackend: "ollama", flag: "ollama", env: { LOCAL_LLMUP_BACKEND: "llamacpp" } })` resolves to the ollama adapter with `source: "state"` and no error, even though the env requests a different backend.
+- **Proof of concept:** `select({ intent: "attach", registry, activeBackend: "ollama", flag: "ollama", env: { RIGSPARK_BACKEND: "llamacpp" } })` resolves to the ollama adapter with `source: "state"` and no error, even though the env requests a different backend.
 - **Recommendation:** Check flag and env independently against the active
   backend so any conflicting override is reported, e.g.:
 
@@ -88,7 +88,7 @@ the commit.
 interpolates the raw unknown name, into `ValidationError` messages
 ([select.ts:112-114](../../src/backend/select.ts#L112-L114),
 [registry.ts:50-52](../../src/backend/registry.ts#L50-L52)). A hostile
-`LOCAL_LLMUP_BACKEND` containing ANSI/BiDi/control bytes would otherwise reach
+`RIGSPARK_BACKEND` containing ANSI/BiDi/control bytes would otherwise reach
 the terminal. This is **already neutralized** at the CLI boundary: every serving
 command's catch block writes `stripControl(message)`
 ([cli.ts:128](../../src/cli.ts#L128), and the `down`/`switch`/`chat`/`migrate`

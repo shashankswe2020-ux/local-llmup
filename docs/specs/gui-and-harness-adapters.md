@@ -2,7 +2,7 @@
 
 > Status: **Draft (v0.1)** — pending sub-agent review and human approval.
 > Last updated: 2026-08-27
-> Related: [local-llmup.md](./local-llmup.md),
+> Related: [rigspark.md](./rigspark.md),
 > [pluggable-inference-backends.md](./pluggable-inference-backends.md),
 > [terminal-user-interface.md](./terminal-user-interface.md)
 
@@ -89,7 +89,7 @@ Built-in harnesses in v1:
 - Users who prefer a browser interface over the terminal for interactive chat.
 - Developers who want to **compare** local model outputs vs. Claude or GPT-4o
   side-by-side using the same prompt and memory store.
-- Teams running `local-llmup` as a shared dev machine with a browser UI.
+- Teams running `rigspark` as a shared dev machine with a browser UI.
 - Anyone wanting to route chat sessions through cloud LLMs during a local model
   pull or when the local server is unavailable.
 
@@ -164,12 +164,12 @@ Options:
 
 1. Validate `--port` is 1–65535.
 2. Probe whether port is already in use; if so, exit 1 with a clear message.
-3. Resolve the active harness: `--harness` flag → env `LOCAL_LLMUP_HARNESS` →
+3. Resolve the active harness: `--harness` flag → env `RIGSPARK_HARNESS` →
    `local` fallback. Validate harness name via `HarnessRegistry.get()`.
 4. Start the HTTP server on `127.0.0.1:<port>`.
 5. Unless `--no-open` or `--json`, open `http://127.0.0.1:<port>` in the
    default browser.
-6. Print `local-llmup GUI listening at http://127.0.0.1:<port>` to stdout.
+6. Print `rigspark GUI listening at http://127.0.0.1:<port>` to stdout.
 7. Block until SIGINT/SIGTERM; print `Stopped.` and exit 0 on shutdown.
 
 **`--json` output shape:**
@@ -759,7 +759,7 @@ Deliverables:
 | # | Question | Recommended default |
 |---|---|---|
 | OQ1 | Should `OPENAI_COMPAT_API_KEY` allow empty string (unauthenticated endpoints)? | Yes — empty string means no `Authorization` header. |
-| OQ2 | Should `llmup gui` respect the same `LOCAL_LLMUP_BACKEND` env var, or use a separate `LOCAL_LLMUP_HARNESS`? | Separate: `LOCAL_LLMUP_HARNESS` maps to `HarnessName`; `LOCAL_LLMUP_BACKEND` maps to `BackendName`. |
+| OQ2 | Should `llmup gui` respect the same `RIGSPARK_BACKEND` env var, or use a separate `RIGSPARK_HARNESS`? | Separate: `RIGSPARK_HARNESS` maps to `HarnessName`; `RIGSPARK_BACKEND` maps to `BackendName`. |
 | OQ3 | Memory for cloud harnesses: should `migrate` be able to move cloud-harness memory to a local model? | Yes — memory is harness-agnostic. Migration source = `"claude:claude-3-5-haiku-20241022"` → `"ollama:llama3.1:8b"`. |
 | OQ4 | Should the GUI support multiple simultaneous sessions (tabs)? | No in v1. Documented non-goal. |
 | OQ5 | Should `llmup gui` require an active local server, or work with cloud-only harnesses even when no local server is running? | Work with any available harness. `--harness claude` with no local server is valid. |

@@ -75,7 +75,7 @@ The spec introduces the project's first inbound HTTP server and first outbound c
 ### [HIGH-3] Broken access control on shared developer machines — contradicts §0.6
 
 - **Location:** §1.1 ("Target users"), §0.5–§0.6 (loopback-only, no authentication)
-- **Description:** §1.1 explicitly lists "Teams running `local-llmup` as a shared dev machine with a browser UI" as a target use case. §0.6 states "No TLS, no authentication in v1. This is a single-user local developer tool; the loopback boundary is the isolation mechanism." These two goals are directly contradictory.
+- **Description:** §1.1 explicitly lists "Teams running `rigspark` as a shared dev machine with a browser UI" as a target use case. §0.6 states "No TLS, no authentication in v1. This is a single-user local developer tool; the loopback boundary is the isolation mechanism." These two goals are directly contradictory.
 
   `127.0.0.1` is accessible to **every process on the host**, regardless of which OS user spawned them. On a shared Linux/macOS development machine with multiple SSH sessions:
   - User A starts `llmup gui` using their `ANTHROPIC_API_KEY`.

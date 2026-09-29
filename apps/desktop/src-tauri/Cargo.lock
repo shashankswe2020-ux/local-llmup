@@ -2354,7 +2354,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 
 [[package]]
-name = "llmup-core"
+name = "rigspark-core"
 version = "1.0.2"
 dependencies = [
  "regex",
@@ -2366,11 +2366,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "llmup-desktop"
+name = "rigspark-desktop"
 version = "1.0.2"
 dependencies = [
- "llmup-gui",
- "llmup-runtime",
+ "rigspark-gui",
+ "rigspark-runtime",
  "rfd",
  "serde_json",
  "tauri",
@@ -2381,14 +2381,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "llmup-gui"
+name = "rigspark-gui"
 version = "1.0.2"
 dependencies = [
  "async-trait",
  "axum",
  "include_dir",
- "llmup-core",
- "llmup-runtime",
+ "rigspark-core",
+ "rigspark-runtime",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
@@ -2401,7 +2401,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "llmup-runtime"
+name = "rigspark-runtime"
 version = "1.0.2"
 dependencies = [
  "async-trait",
@@ -2410,7 +2410,7 @@ dependencies = [
  "cap-std",
  "futures-util",
  "http",
- "llmup-core",
+ "rigspark-core",
  "percent-encoding",
  "regex",
  "reqwest 0.12.28",

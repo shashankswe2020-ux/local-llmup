@@ -4,14 +4,12 @@
 
 ## Current Demo
 
-The [README video](../../assets/local-llmup.mp4) is the user-selected `local-llmup.mp4`
-from Downloads, copied without modification. It is 23.5 seconds, 1920x1080,
-with H.264 video and AAC audio. The copy was compared byte-for-byte with the
-source and fully decoded with FFmpeg. Its production credits have not been
-independently verified.
+The [README video](../../assets/rigspark.mp4) is derived from the current
+[VHS terminal recording](../../assets/demo.gif). It is 19.76 seconds,
+1200x700, with H.264 video and no audio.
 
-The [README preview](../../assets/local-llmup-preview.gif) is derived from that
-same video: 23.5 seconds, 960x540, 10 fps, silent loop.
+The [README preview](../../assets/rigspark-preview.gif) is derived from that
+same recording: 19.8 seconds, 960x560, 10 fps, silent loop.
 
 ## Previous Render
 

@@ -57,5 +57,5 @@
       "reason": "ram-bound"
     }
   ],
-  "command": "local-llmup up llama3.1:8b"
+  "command": "rigspark up llama3.1:8b"
 }

@@ -1,8 +1,8 @@
 # Screenshot: recommend TUI
-# Record: PATH="<dir with llmup, local-llmup, llmup-gui>:$PATH" vhs assets/recommend.tape
+# Record: PATH="<dir with llmup, rigspark, rigspark-gui>:$PATH" vhs assets/recommend.tape
 Output assets/recommend-out.gif
 
-Require local-llmup
+Require rigspark
 
 Set Shell "zsh"
 Set Theme "Catppuccin Mocha"
@@ -12,11 +12,11 @@ Set Height 1100
 Set Padding 20
 
 Hide
-Type "export LOCAL_LLMUP_HOME=$(mktemp -d) && clear"
+Type "export RIGSPARK_HOME=$(mktemp -d) && clear"
 Enter
 Show
 
-Type "local-llmup recommend"
+Type "rigspark recommend"
 Enter
 Sleep 4s
 Screenshot assets/screenshot-recommend.png

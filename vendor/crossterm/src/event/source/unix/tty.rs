@@ -158,7 +158,7 @@ impl EventSource for UnixInternalEventSource {
                         return Ok(Some(event));
                     }
 
-                    // LLMUP-PATCH: the TTY may block; poll so a lone Escape can expire.
+                    // RIGSPARK-PATCH: the TTY may block; poll so a lone Escape can expire.
                     if read_count < TTY_BUFFER_SIZE {
                         break;
                     }

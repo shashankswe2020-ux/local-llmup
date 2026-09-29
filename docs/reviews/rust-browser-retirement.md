@@ -6,7 +6,7 @@ and whole-product migration are not complete.
 
 ## Native Runner
 
-[browser_smoke.rs](../../crates/llmup-gui/examples/browser_smoke.rs) uses
+[browser_smoke.rs](../../crates/rigspark-gui/examples/browser_smoke.rs) uses
 Fantoccini 0.22.1 with an HTTP-only connector. Only explicit HTTP `127.0.0.1`
 root endpoints are accepted. Credentials, other hosts, paths, queries, fragments
 and TLS endpoints reject before creating a session. Browser connections, DOM
@@ -17,7 +17,7 @@ The user approved a Rust browser-test dependency and required removal of all
 Node-based CI actions, including infrastructure actions. Fantoccini is a dev
 dependency only, pinned in Cargo.lock; it does not bundle a Node driver.
 
-The existing [native fixture](../../crates/llmup-gui/examples/browser_fixture.rs)
+The existing [native fixture](../../crates/rigspark-gui/examples/browser_fixture.rs)
 provides disposable storage and injected replies. Its update endpoint now returns
 the same unknown response that Playwright previously intercepted, avoiding release
 network requests. Production update checking is unchanged.
@@ -26,7 +26,7 @@ Build both executables, start a matching ChromeDriver and fixture on unused
 loopback ports, then run:
 
 ```sh
-cargo build --locked -p llmup-gui --example browser_fixture --example browser_smoke
+cargo build --locked -p rigspark-gui --example browser_fixture --example browser_smoke
 RUST_GUI_TEST_PORT=48231 target/debug/examples/browser_fixture
 ```
 

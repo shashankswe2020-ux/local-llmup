@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 rust-version = "1.63.0"
-name = "llmup-crossterm"
+name = "rigspark-crossterm"
 version = "0.29.0"
 authors = ["T. Post"]
 build = false
@@ -27,8 +27,8 @@ autobins = false
 autoexamples = false
 autotests = false
 autobenches = false
-description = "crossterm 0.29.0 with bounded escape-sequence and bracketed-paste input parsing, used by local-llmup (see LLMUP-PATCH.md)."
-documentation = "https://docs.rs/llmup-crossterm/"
+description = "crossterm 0.29.0 with bounded escape-sequence and bracketed-paste input parsing, used by rigspark (see RIGSPARK-PATCH.md)."
+documentation = "https://docs.rs/rigspark-crossterm/"
 readme = "README.md"
 keywords = [
     "event",
@@ -42,7 +42,7 @@ categories = [
     "command-line-utilities",
 ]
 license = "MIT"
-repository = "https://github.com/shashankswe2020-ux/local-llmup"
+repository = "https://github.com/shashankswe2020-ux/rigspark"
 
 [package.metadata.docs.rs]
 all-features = true

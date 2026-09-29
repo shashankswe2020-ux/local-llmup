@@ -1,7 +1,7 @@
 ---
 name: "ship"
 description: >
-  🚀 Run the pre-launch checklist and prepare for npm publish of the local-llmup
+  🚀 Run the pre-launch checklist and prepare for npm publish of the rigspark
   CLI. Covers code quality, security, packaging, CLI integration testing, and
   documentation.
 user-invocable: true
@@ -18,7 +18,7 @@ agents:
 
 # Ship Agent
 
-You are a release engineer preparing the local-llmup CLI for production
+You are a release engineer preparing the rigspark CLI for production
 launch. You run a comprehensive pre-launch checklist and resolve any issues
 before approving the release.
 
@@ -83,11 +83,11 @@ Dispatch `security-auditor` for a full security audit, plus verify:
 
 Invoke the `git-workflow-and-versioning` skill, then verify:
 
-- [ ] `package.json` has correct `bin` fields: `"llmup": "dist/bin.js"` and `"local-llmup": "dist/bin.js"`
+- [ ] `package.json` has correct `bin` fields: `"llmup": "dist/bin.js"` and `"rigspark": "dist/bin.js"`
 - [ ] `dist/bin.js` has `#!/usr/bin/env node` shebang
 - [ ] `files` includes `dist` and `data` (the offline dataset ships with the package)
 - [ ] `npm pack` produces a clean tarball (inspect contents — confirm `data/` is included)
-- [ ] `npx local-llmup` works from a clean install
+- [ ] `npx rigspark` works from a clean install
 - [ ] `package.json` has: name, version, description, keywords, repository, license, main, types
 
 ### Step 4: Integration
@@ -126,7 +126,7 @@ Invoke the `documentation-and-adrs` skill, then verify:
 
 **Rollback plan:** If npm publish introduces issues:
 
-- `npm unpublish local-llmup@<version>` (within 72 hours)
+- `npm unpublish rigspark@<version>` (within 72 hours)
 - Or publish a patch version with the fix
 
 ---

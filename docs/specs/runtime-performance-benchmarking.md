@@ -2,7 +2,7 @@
 
 > Status: **Draft (v0.3) — architecture, security, and test-strategy feedback incorporated; pending human approval.**
 > Last updated: 2026-08-08
-> Related: [local-llmup.md](./local-llmup.md),
+> Related: [rigspark.md](./rigspark.md),
 > [hardware-advisor.md](./hardware-advisor.md),
 > [context-window-sizing.md](./context-window-sizing.md), and
 > [pluggable-inference-backends.md](./pluggable-inference-backends.md).
@@ -1929,7 +1929,7 @@ gate only their named delivery phase and do not block P1 completion.
 - New runtime dependencies.
 - Changing catalog/performance dataset schemas beyond the additive daemon
   evidence approved with this spec.
-- Persisting benchmark data under the local-llmup home layout.
+- Persisting benchmark data under the rigspark home layout.
 - Automatically applying runtime tuning flags.
 - Adding non-loopback or remote benchmarking.
 - Sending benchmark evidence to any external service.

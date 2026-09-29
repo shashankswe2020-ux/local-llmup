@@ -1,7 +1,7 @@
 ---
 name: "spec"
 description: >
-  📐 Start spec-driven development — write or update the local-llmup CLI
+  📐 Start spec-driven development — write or update the rigspark CLI
   specification before writing code. Defines what to build, why, and how
   to verify it's done.
 user-invocable: true
@@ -74,7 +74,7 @@ Reference the domain data and specs:
 
 - Catalog: `data/models.json` | Throughput dataset: `data/perf.json`
 - Ollama backend: OpenAI-compatible API on `http://127.0.0.1:11434`
-- Existing specs: `docs/specs/local-llmup.md`, `docs/specs/hardware-advisor.md`, `docs/specs/context-window-sizing.md`
+- Existing specs: `docs/specs/rigspark.md`, `docs/specs/hardware-advisor.md`, `docs/specs/context-window-sizing.md`
 
 ### Step 3: Consult Sub-Agents
 
@@ -84,7 +84,7 @@ Reference the domain data and specs:
 
 ### Step 4: Save and Confirm
 
-1. Save the spec to `docs/specs/<feature>.md` (e.g. `docs/specs/local-llmup.md`)
+1. Save the spec to `docs/specs/<feature>.md` (e.g. `docs/specs/rigspark.md`)
 2. If updating an existing spec, read it first and make targeted changes
 3. Confirm with the user before proceeding to implementation
 

@@ -1,21 +1,21 @@
-# Spec: local-llmup — Local AI Hardware Advisor
+# Spec: rigspark — Local AI Hardware Advisor
 
 > Status: **Draft (v0.1)** — pending human approval and sub-agent review.
 > Last updated: 2026-08-06
-> Extends: [local-llmup.md](./local-llmup.md). This document does not replace the
+> Extends: [rigspark.md](./rigspark.md). This document does not replace the
 > base spec; it adds an "advisor" capability layer on top of the existing
 > hardware detection, memory-math, ranking, and `doctor` foundations.
 
 ## 1. Objective
 
-Evolve `local-llmup` from a model **installer** into a **Local AI Hardware
+Evolve `rigspark` from a model **installer** into a **Local AI Hardware
 Advisor**: a tool that answers the questions people actually ask on r/LocalLLM —
 _"What can my machine run?"_, _"Where is my bottleneck?"_, and _"Do I need more
 GPU or more RAM?"_ — with **personalized, quantitative, reproducible** answers.
 
 The advisor reframes the product mission:
 
-> Ollama's mission is to _run_ models. local-llmup's mission becomes to help
+> Ollama's mission is to _run_ models. rigspark's mission becomes to help
 > people **build and grow the right local-AI machine**: detect hardware,
 > recommend models, explain bottlenecks (VRAM vs RAM vs CPU), estimate
 > tokens/sec, and compare upgrade paths.
@@ -89,7 +89,7 @@ score** and a **named primary bottleneck**.
 ### Illustrative output
 
 ```
-$ local-llmup doctor
+$ rigspark doctor
 CPU:     Ryzen 7 7700X        ✅
 RAM:     32 GB                 ⚠️  (headroom for ≤ ~30B Q4)
 GPU:     RTX 3060 12 GB        ✅
@@ -251,7 +251,7 @@ Answers: _"Best local-AI build for $N?"_
 ### Illustrative output
 
 ```
-$ local-llmup build --budget 3000
+$ rigspark build --budget 3000
 Budget: $3,000 (component prices as of 2026-08)
 Recommended:
   GPU: RTX 5080 24 GB
@@ -339,10 +339,10 @@ interface ComponentPrice { lowUsd: number; highUsd: number; asOf: string; }  // 
 
 | Command    | One-liner                        | Purpose                                        | Phase        |
 | ---------- | -------------------------------- | ---------------------------------------------- | ------------ |
-| `doctor`   | `local-llmup doctor`             | now also prints AI Hardware Score + bottleneck | 1            |
-| `can-run`  | `local-llmup can-run <model>`    | single-model yes/slow/no verdict + reason      | 2            |
-| `plan`     | `local-llmup plan <model>`       | upgrade paths to run a target model            | 3            |
-| `build`    | `local-llmup build --budget <n>` | best build for a budget                        | 4 (v1.1)     |
+| `doctor`   | `rigspark doctor`             | now also prints AI Hardware Score + bottleneck | 1            |
+| `can-run`  | `rigspark can-run <model>`    | single-model yes/slow/no verdict + reason      | 2            |
+| `plan`     | `rigspark plan <model>`       | upgrade paths to run a target model            | 3            |
+| `build`    | `rigspark build --budget <n>` | best build for a budget                        | 4 (v1.1)     |
 | `hardware` | _(deferred)_                     | live marketplace advisor                       | 5 (deferred) |
 
 All support `--json` for scripting (consistent with existing commands).

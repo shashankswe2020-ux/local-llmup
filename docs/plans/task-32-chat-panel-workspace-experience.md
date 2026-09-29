@@ -52,7 +52,7 @@ Crucially, these advantages must be delivered **without** adopting the visual an
 
 LM Studio's trajectory is roughly **Discovery → Runtime → Agent → Cloud → Teams → Enterprise** — a general-purpose local-AI platform that keeps widening its surface area.
 
-`local-llmup` pursues a different arc, anchored on hardware-aware honesty rather than feature breadth:
+`rigspark` pursues a different arc, anchored on hardware-aware honesty rather than feature breadth:
 
 **Model discovery → Hardware compatibility → Benchmarking → Model recommendation → One-click deployment → Fleet management → Enterprise**
 
@@ -66,7 +66,7 @@ LM Studio's trajectory is roughly **Discovery → Runtime → Agent → Cloud �
 | Fleet management | Multiple machines/runtimes under one control plane | Future; foreshadowed by runtime-independent `BackendAdapter` |
 | Enterprise | Policy, audit, and provenance at scale | Future; foreshadowed by auditable, fail-closed, loopback-first design |
 
-**Where task 32 sits.** The chat panel workspace experience is the `local-llmup` equivalent of the "Agent" stage — but deliberately built *on top of* discovery, compatibility, recommendation, and deployment rather than as a standalone chat product. It is the surface where a user moves from "what will run here?" to "use it on my work," without a product switch.
+**Where task 32 sits.** The chat panel workspace experience is the `rigspark` equivalent of the "Agent" stage — but deliberately built *on top of* discovery, compatibility, recommendation, and deployment rather than as a standalone chat product. It is the surface where a user moves from "what will run here?" to "use it on my work," without a product switch.
 
 **Design commitments that must survive every stage:**
 
@@ -301,7 +301,7 @@ The token is local capability/CSRF defense, not multi-user authentication.
 
 ### Content filtering
 
-- Deny common environment, credential, private-key, package-auth, cloud-auth, and local-llmup secret paths.
+- Deny common environment, credential, private-key, package-auth, cloud-auth, and rigspark secret paths.
 - Exclude `.git` internals; expose only dedicated bounded Git summaries.
 - Treat ignore files as an additional filter, not the security boundary.
 - Detect binary content from bytes/encoding, not extension alone.
@@ -669,7 +669,7 @@ flowchart TD
 
 ### Integration
 
-Use temporary local-llmup homes and workspaces:
+Use temporary rigspark homes and workspaces:
 
 - server-owned second-turn history;
 - cancellation through injected harness/backend/tool seams;
@@ -738,7 +738,7 @@ Existing ephemeral history has no post-restart migration source. While an old se
 
 ### Gate 1 — Before persistent sessions — APPROVED
 
-- Approved: separate GUI session store at `~/.local-llmup/gui-sessions/` (0700),
+- Approved: separate GUI session store at `~/.rigspark/gui-sessions/` (0700),
   one `<uuid>.json` per session (0600), schema version 1.
 - Approved: retention bounded to 500 sessions / 2000 messages each; archive is a
   soft flag; delete removes the file; export is a plain read.

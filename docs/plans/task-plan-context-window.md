@@ -1,4 +1,4 @@
-# Implementation Plan: local-llmup — Context-Window-Aware Sizing
+# Implementation Plan: rigspark — Context-Window-Aware Sizing
 
 > Source spec: [docs/specs/context-window-sizing.md](../specs/context-window-sizing.md)
 > Extends: [task-plan-hardware-advisor.md](./task-plan-hardware-advisor.md) (advisor core T32–T39 shipped as v0.2.0)

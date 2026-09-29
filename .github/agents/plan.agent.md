@@ -48,7 +48,7 @@ When asked to plan, follow these steps **in order**:
 
 ### Step 1: Gather Context
 
-1. Read the relevant spec in `docs/specs/` (e.g. `docs/specs/local-llmup.md`)
+1. Read the relevant spec in `docs/specs/` (e.g. `docs/specs/rigspark.md`)
 2. Read the current task plans in `docs/plans/`
 3. Check conventions and project map in `.github/copilot-instructions.md`
 4. Read the current codebase to understand what already exists

@@ -13,7 +13,7 @@ implementation history, not acceptance of the current combined changes.
 
 The CLI milestone is complete only when:
 
-- Both `llmup` and `local-llmup` execute native Rust without Node, npm, tsx, or
+- Both `llmup` and `rigspark` execute native Rust without Node, npm, tsx, or
   source-tree files at runtime.
 - All eleven commands work: default/recommend, can-run, catalog, doctor, ls, up,
   switch, down, chat, migrate, and gui. Plain, JSON where supported, visual, and
@@ -257,8 +257,8 @@ or broad formatting was performed.
 - Package creation and directory verification require exactly the target's three
   binary names, with only the existing optional license/notice allowlist. Missing,
   duplicate, mixed-target, legacy launcher and traversal names fail closed.
-- Packaging probes both aliases (`local-llmup <version>`) and the GUI companion
-  (`llmup-gui <version>`). Mismatch, wrong product, failed exit, invalid UTF-8 and
+- Packaging probes both aliases (`rigspark <version>`) and the GUI companion
+  (`rigspark-gui <version>`). Mismatch, wrong product, failed exit, invalid UTF-8 and
   missing executable fail the gate. GUI standalone `--version` returns before
   configuration, harness or listener initialization; mixed startup flags reject.
 - Manifest size/hash tampering, missing/unlisted files and stripped Unix owner
@@ -273,10 +273,10 @@ or broad formatting was performed.
 Executed with Rust 1.98.1 (`aarch64-apple-darwin`), using cached locked dependencies:
 
 ```sh
-cargo build --offline --locked -p llmup-cli --bin llmup --bin local-llmup -p llmup-gui --bin llmup-gui
-cargo test --offline --locked -p llmup-cli --bin llmup-dist --test distribution --test native_dist --test public_aliases --test gui_launcher
-cargo test --offline --locked -p llmup-gui --test startup
-cargo test --offline --locked -p llmup-cli --test native_dist real_artifact_directory_round_trip_runs_without_node_or_source_tree -- --ignored --exact
+cargo build --offline --locked -p rigspark-cli --bin llmup --bin rigspark -p rigspark-gui --bin rigspark-gui
+cargo test --offline --locked -p rigspark-cli --bin llmup-dist --test distribution --test native_dist --test public_aliases --test gui_launcher
+cargo test --offline --locked -p rigspark-gui --test startup
+cargo test --offline --locked -p rigspark-cli --test native_dist real_artifact_directory_round_trip_runs_without_node_or_source_tree -- --ignored --exact
 cargo fmt --all -- --check
 ```
 

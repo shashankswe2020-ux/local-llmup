@@ -136,7 +136,7 @@ The spec introduces a native binary execution surface, a Tauri shell-spawn capab
         "identifier": "shell:allow-execute",
         "allow": [
           { "name": "llmup", "cmd": "llmup", "args": { "validator": "\\S+" } },
-          { "name": "npx", "cmd": "npx", "args": ["--no-install", "local-llmup"] }
+          { "name": "npx", "cmd": "npx", "args": ["--no-install", "rigspark"] }
         ]
       },
       "notification:default"
@@ -144,7 +144,7 @@ The spec introduces a native binary execution surface, a Tauri shell-spawn capab
   }
   ```
 
-  (Exact syntax depends on Tauri v2 final release; the spec must reference the Tauri v2 shell scope docs and show a concrete example.) Acceptance criterion D4 should add: "WebView cannot invoke `shell:allow-execute` with a binary other than `llmup` or `npx local-llmup`."
+  (Exact syntax depends on Tauri v2 final release; the spec must reference the Tauri v2 shell scope docs and show a concrete example.) Acceptance criterion D4 should add: "WebView cannot invoke `shell:allow-execute` with a binary other than `llmup` or `npx rigspark`."
 
 ---
 
@@ -165,35 +165,35 @@ The spec introduces a native binary execution surface, a Tauri shell-spawn capab
 
 ---
 
-### [MEDIUM-3] `npx --no-install local-llmup` fallback resolves against local `node_modules`
+### [MEDIUM-3] `npx --no-install rigspark` fallback resolves against local `node_modules`
 
 - **Location:** `docs/specs/desktop-app-tauri.md` §3.3 (discovery step 5)
-- **Description:** Discovery step 5 falls back to `npx --no-install local-llmup` when `llmup` is not found via PATH or hardcoded paths. `npx --no-install` prevents registry fetching but **still resolves against the local `node_modules` tree** in the current working directory and all parent directories (npm hoisting).
+- **Description:** Discovery step 5 falls back to `npx --no-install rigspark` when `llmup` is not found via PATH or hardcoded paths. `npx --no-install` prevents registry fetching but **still resolves against the local `node_modules` tree** in the current working directory and all parent directories (npm hoisting).
 
-  If the Tauri app is launched from a workspace directory that has an outdated, patched, or compromised version of `local-llmup` in `node_modules` (e.g., a developer's project that pinned an old version, or a workspace attacked via dependency confusion), `npx --no-install local-llmup` silently runs that local version — not the system-installed one. The user sees no warning.
+  If the Tauri app is launched from a workspace directory that has an outdated, patched, or compromised version of `rigspark` in `node_modules` (e.g., a developer's project that pinned an old version, or a workspace attacked via dependency confusion), `npx --no-install rigspark` silently runs that local version — not the system-installed one. The user sees no warning.
 
   Furthermore, the current working directory of the Tauri app process is not guaranteed to be a safe, attacker-uncontrollable path. On macOS, the working directory at launch from Finder is typically `/`, but from Terminal or a CI script it can be any directory.
 
-- **Impact:** The fallback path can execute a different, potentially vulnerable or compromised `local-llmup` binary without any user-visible indication. This is a confused deputy attack: the security policy targets the "installed llmup binary" but the fallback can silently select a different one.
+- **Impact:** The fallback path can execute a different, potentially vulnerable or compromised `rigspark` binary without any user-visible indication. This is a confused deputy attack: the security policy targets the "installed llmup binary" but the fallback can silently select a different one.
 
-- **Recommendation:** Remove the `npx --no-install local-llmup` fallback from §3.3. Replace it with an explicit error → "Install local-llmup first" dialog. The install dialog already shows the `npm install -g local-llmup` command; `npx` as a silent fallback adds supply-chain risk with no corresponding security benefit. If a fallback is retained for UX reasons, it must (a) print a warning in the error dialog naming the resolved path, (b) require the path to pass the absolute-path validation (resolving the npx shim to its real target), and (c) note that a user who doesn't have it installed globally will not be helped by a `node_modules` resolution.
+- **Recommendation:** Remove the `npx --no-install rigspark` fallback from §3.3. Replace it with an explicit error → "Install rigspark first" dialog. The install dialog already shows the `npm install -g rigspark` command; `npx` as a silent fallback adds supply-chain risk with no corresponding security benefit. If a fallback is retained for UX reasons, it must (a) print a warning in the error dialog naming the resolved path, (b) require the path to pass the absolute-path validation (resolving the npx shim to its real target), and (c) note that a user who doesn't have it installed globally will not be helped by a `node_modules` resolution.
 
 ---
 
-### [MEDIUM-4] Tilde path `~/.local-llmup/bin/llmup` is not expandable through the binary allowlist
+### [MEDIUM-4] Tilde path `~/.rigspark/bin/llmup` is not expandable through the binary allowlist
 
 - **Location:** `docs/specs/desktop-app-tauri.md` §3.3 (discovery step 2), §12.2
-- **Description:** Discovery step 2 specifies `~/.local-llmup/bin/llmup` as a candidate path. The tilde `~` character is **not** in the binary path allowlist `[a-zA-Z0-9._/\\ :-]`.
+- **Description:** Discovery step 2 specifies `~/.rigspark/bin/llmup` as a candidate path. The tilde `~` character is **not** in the binary path allowlist `[a-zA-Z0-9._/\\ :-]`.
 
   The spec does not state whether path validation in §12.2 runs before or after tilde expansion. Two failure modes:
-  - **Validation before expansion**: the path `~/.local-llmup/bin/llmup` contains `~`, fails the allowlist, is rejected. The discovery step silently skips a valid install location.
+  - **Validation before expansion**: the path `~/.rigspark/bin/llmup` contains `~`, fails the allowlist, is rejected. The discovery step silently skips a valid install location.
   - **Validation after expansion**: `~` is expanded to `/Users/username` (macOS) or `C:\Users\username` (Windows) before validation. The expanded path passes. This is the correct behavior but the spec does not mandate it.
 
   This ambiguity is an implementation trap: a strict reading of §12.2 ("must not contain shell metacharacters — strict allowlist") would reject `~` as a non-listed character. The implementor who follows §12.2 literally will have a bug where the managed install path is never used.
 
 - **Impact:** Silent skip of the managed install location; fallback to PATH or `npx` fallback (with its own risk — see MEDIUM-3). No security escalation, but the spec is internally inconsistent.
 
-- **Recommendation:** §3.3 and §12.2 must be reconciled. The fix is a single sentence in §12.2: *"Paths returned by discovery are fully expanded to absolute form (tilde expansion, symlink resolution via `std::fs::canonicalize`) before validation. The allowlist is applied to the canonicalized absolute path only."* With `canonicalize`, `~` never reaches the validator; `/Users/username/.local-llmup/bin/llmup` does.
+- **Recommendation:** §3.3 and §12.2 must be reconciled. The fix is a single sentence in §12.2: *"Paths returned by discovery are fully expanded to absolute form (tilde expansion, symlink resolution via `std::fs::canonicalize`) before validation. The allowlist is applied to the canonicalized absolute path only."* With `canonicalize`, `~` never reaches the validator; `/Users/username/.rigspark/bin/llmup` does.
 
 ---
 
@@ -211,11 +211,11 @@ The spec introduces a native binary execution surface, a Tauri shell-spawn capab
 ### [LOW-2] System tray icon impersonation not documented as a known limitation
 
 - **Location:** `docs/specs/desktop-app-tauri.md` §7, §12
-- **Description:** macOS and Windows provide no exclusive registration mechanism for system tray icons. Any application on the system can create a tray icon using the same image as `local-llmup`. A social-engineering attacker with local code execution can display a convincing fake tray icon that intercepts user clicks, shows fake "model ready" notifications, and prompts for actions (e.g., "Enter your API key to continue").
+- **Description:** macOS and Windows provide no exclusive registration mechanism for system tray icons. Any application on the system can create a tray icon using the same image as `rigspark`. A social-engineering attacker with local code execution can display a convincing fake tray icon that intercepts user clicks, shows fake "model ready" notifications, and prompts for actions (e.g., "Enter your API key to continue").
 
   This is an inherent OS-level limitation, not a Tauri or spec defect. The finding is raised because §12 does not acknowledge it, leaving the threat model incomplete.
 
-- **Recommendation:** Add to §12: *"System tray icon impersonation: any local process can display an icon matching local-llmup's icon. This is an inherent OS limitation with no in-application mitigation. Users should verify they launched local-llmup from their application bundle, not from an unfamiliar icon."* No implementation change required.
+- **Recommendation:** Add to §12: *"System tray icon impersonation: any local process can display an icon matching rigspark's icon. This is an inherent OS limitation with no in-application mitigation. Users should verify they launched rigspark from their application bundle, not from an unfamiliar icon."* No implementation change required.
 
 ---
 

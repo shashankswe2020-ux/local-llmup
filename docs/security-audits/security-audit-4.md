@@ -2,7 +2,7 @@
 
 > **Auditor:** Security Auditor Agent (Security Engineer)
 > **Date:** 2026-08-05
-> **Scope:** T22 memory store — `src/memory/store.ts` (`memorySlug`, `ensureDir`, `isWithin`, `resolveStoreDir`, `openMemoryStore` create/load path) and the **planned** exclusive-create (`wx`) hardening. Threat model: `modelId` → filesystem path segment under `~/.local-llmup/memory/<slug>/`; store holds chat history + durable user facts (confidentiality + integrity, owner-only 0700/0600).
+> **Scope:** T22 memory store — `src/memory/store.ts` (`memorySlug`, `ensureDir`, `isWithin`, `resolveStoreDir`, `openMemoryStore` create/load path) and the **planned** exclusive-create (`wx`) hardening. Threat model: `modelId` → filesystem path segment under `~/.rigspark/memory/<slug>/`; store holds chat history + durable user facts (confidentiality + integrity, owner-only 0700/0600).
 > **Dependencies:** 0 known vulnerabilities (`npm audit --omit=dev`).
 
 ---
@@ -50,7 +50,7 @@
 ### [MEDIUM-1] Recursive `mkdir` leaves intermediate directories at umask-derived permissions; only the leaf is chmod'd
 
 - **Location:** `src/memory/store.ts` — `ensureDir` (`mkdirSync(dir, { recursive: true, mode: DIR_MODE }); chmodSync(dir, DIR_MODE);`).
-- **Description:** With `recursive: true`, any **intermediate** parent directories that Node creates in the same call (e.g. `~/.local-llmup` and `~/.local-llmup/memory` when they don't yet exist) are created with `mode & ~umask` and are **never** chmod'd — `chmodSync` only fixes the final leaf. Under a permissive umask (e.g. `0o022`, `0o000`) those intermediates become group/world-traversable (`0o755`/`0o777`), exposing the path to the owner-only store. Additionally, even for the leaf there is a window between `mkdirSync` (mode masked by umask) and `chmodSync` where the directory is more permissive than `0o700`.
+- **Description:** With `recursive: true`, any **intermediate** parent directories that Node creates in the same call (e.g. `~/.rigspark` and `~/.rigspark/memory` when they don't yet exist) are created with `mode & ~umask` and are **never** chmod'd — `chmodSync` only fixes the final leaf. Under a permissive umask (e.g. `0o022`, `0o000`) those intermediates become group/world-traversable (`0o755`/`0o777`), exposing the path to the owner-only store. Additionally, even for the leaf there is a window between `mkdirSync` (mode masked by umask) and `chmodSync` where the directory is more permissive than `0o700`.
 - **Impact:** Confidentiality of chat history / durable facts degraded on multi-user hosts; a co-located user can traverse into the memory tree during and after creation.
 - **Recommendation:** (a) Set a restrictive process umask at CLI startup as defense-in-depth (`process.umask(0o077)`); (b) create/verify each level explicitly and `chmodSync` every directory the tool is responsible for (root and slug dir), not just the leaf; (c) after creation, `statSync` and assert `(mode & 0o077) === 0`, failing closed (see [MEDIUM-3]).
 

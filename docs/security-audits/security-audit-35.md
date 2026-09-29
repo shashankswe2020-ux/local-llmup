@@ -56,7 +56,7 @@ No Critical, High, Medium, Low, or Informational security vulnerabilities were i
 
 ### Error Handling & UI Fault Isolation ✓
 
-- **Typed error hierarchy:** `LocalLlmupError` base class with subclasses for validation, backend, memory, catalog, and state errors provides stable machine-readable codes
+- **Typed error hierarchy:** `RigsparkError` base class with subclasses for validation, backend, memory, catalog, and state errors provides stable machine-readable codes
 - **Duplicate error suppression:** When a renderer throws during review or progress, a `LifecycleUiHandledError` is thrown from the TUI entry point. The CLI catches this by name and sets exit code 1 without re-emitting the error message, preventing duplicate error output.
 - **Renderer initialization fallback:** When TUI mode is implicit (not explicitly requested), a renderer init failure prints a diagnostic and continues in plain mode. When TUI mode is explicit (`--tui`), the failure is fatal (fail-closed).
 - **Pre-execution failure isolation:** Renderer failures before domain execution (preparation, review, picker) prevent any state mutation or process change

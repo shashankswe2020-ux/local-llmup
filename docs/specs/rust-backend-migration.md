@@ -34,9 +34,9 @@ logic to Node.js. A Cargo workspace alone is not migration completion.
 
 ## Architecture
 
-- Root Cargo workspace with `crates/llmup-core` for pure domain code,
-  `crates/llmup-runtime` for OS/network/storage services,
-  `crates/llmup-cli` for the native CLI, and `crates/llmup-gui` for HTTP/SSE.
+- Root Cargo workspace with `crates/rigspark-core` for pure domain code,
+  `crates/rigspark-runtime` for OS/network/storage services,
+  `crates/rigspark-cli` for the native CLI, and `crates/rigspark-gui` for HTTP/SSE.
   Create each crate only when it contains working behavior.
 - `apps/desktop/src-tauri` consumes the Rust services directly. It must not spawn a Node
   backend. Electron remains the production default until Tauri workflow parity.
@@ -105,7 +105,7 @@ No shell startup files were modified. Standard rustup installations normally use
 `target/debug/llmup-fit-parity` is an experimental executable, not a replacement
 for `llmup`. It reads a JSON array of projected sizing requests from stdin, with
 an 8 MiB input limit and at most 4,096 requests. Each request contains `model`,
-`hardware`, and optional `context`; Rust types in `crates/llmup-core/src/sizing.rs`
+`hardware`, and optional `context`; Rust types in `crates/rigspark-core/src/sizing.rs`
 define the accepted fields. Unknown fields and invalid numbers are rejected.
 Successful output is one JSON array on stdout. Invalid input returns exit 1 and
 a JSON error on stderr; unsupported arguments return exit 2. `--help` and
@@ -122,10 +122,10 @@ the separate Checkpoint 2 native executable now owns catalog parsing and browsin
 ```bash
 npm run rust:build
 npm run rust:advice-parity
-cargo run --locked -p llmup-cli --bin llmup-native -- recommend --context 65536 --json
-cargo run --locked -p llmup-cli --bin llmup-native -- can-run gemma4:e4b-it-qat --context 65536
-cargo run --locked -p llmup-cli --bin llmup-native -- catalog --all
-cargo run --locked -p llmup-cli --bin llmup-native -- doctor --json
+cargo run --locked -p rigspark-cli --bin llmup-native -- recommend --context 65536 --json
+cargo run --locked -p rigspark-cli --bin llmup-native -- can-run gemma4:e4b-it-qat --context 65536
+cargo run --locked -p rigspark-cli --bin llmup-native -- catalog --all
+cargo run --locked -p rigspark-cli --bin llmup-native -- doctor --json
 ```
 
 After building, `target/debug/llmup-native` runs directly without Node.js. Its
@@ -162,14 +162,14 @@ These commands are opt-in and do not replace the production npm entry points.
 
 ```bash
 npm run rust:state-parity
-cargo test --locked -p llmup-runtime
+cargo test --locked -p rigspark-runtime
 target/debug/llmup-native ls --json
 target/debug/llmup-native doctor --json
 target/debug/llmup-native recommend --installed --context 65536 --json
 target/debug/llmup-native can-run gemma4:e4b-it-qat --installed --context 65536
 ```
 
-Native up/switch/down are real mutations. Use a separate `LOCAL_LLMUP_HOME` for
+Native up/switch/down are real mutations. Use a separate `RIGSPARK_HOME` for
 experimental runs; inspect it with native ls/doctor and do not mix concurrent
 released clients. Runtime binaries and, for Unix ownership probes, lsof/ps must
 be installed. Acquisition needs network access; ordinary advice remains offline.
@@ -224,11 +224,11 @@ target/debug/llmup-native migrate --from source:model --to target:model --contex
 target/debug/llmup-native migrate --from source:model --to target:model --context 8192 --move --yes
 ```
 
-Use an isolated `LOCAL_LLMUP_HOME`. Local chat requires a verified active runtime;
+Use an isolated `RIGSPARK_HOME`. Local chat requires a verified active runtime;
 cloud harnesses require their existing environment configuration (`OPENAI_API_KEY`,
 `ANTHROPIC_API_KEY`, or `OPENAI_COMPAT_BASE_URL` and optional
 `OPENAI_COMPAT_API_KEY`). OpenCode must be installed; tools are denied unless
-`LOCAL_LLMUP_OPENCODE_UNRESTRICTED` is explicitly enabled. Neither tests nor parity
+`RIGSPARK_OPENCODE_UNRESTRICTED` is explicitly enabled. Neither tests nor parity
 scripts invoke these real services. Native CLI chat is deliberately noninteractive
 until checkpoint 6, and accepts `--model`, `--agent`, repeated `--skill`, and bounded
 stdin. Only local CLI chat captures memory; capture failures are reported without

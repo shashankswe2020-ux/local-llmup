@@ -27,14 +27,14 @@ signing-policy exceptions, or publication. Existing dirty changes must be preser
 
 User clarification on 2026-09-21: nothing may remain in the root `src/`
 directory at completion. This includes browser assets, not only TypeScript.
-The browser assets now live under `crates/llmup-gui/static`; the native scanner
+The browser assets now live under `crates/rigspark-gui/static`; the native scanner
 rejects any root `src/` file while allowing Rust crates' own source directories.
 
 The final supported product has:
 
 - Rust-owned domain logic, runtime adapters, state, memory, library, MCP,
   harnesses, workspace services, HTTP/SSE, CLI, and terminal UI.
-- Native `llmup` and `local-llmup` aliases and the matching `llmup-gui` companion.
+- Native `llmup` and `rigspark` aliases and the matching `rigspark-gui` companion.
 - A Tauri desktop application using the same native services and existing web UI.
 - No Node, npm, TypeScript, Electron, or thin npm launcher required to build,
   test, maintain, package, install, or run the current product.
@@ -70,7 +70,7 @@ Clippy, and builds therefore do not certify desktop. Run its gates separately.
 
 Current [package scripts](../../package.json),
 [desktop scripts](../../apps/desktop/package.json), and
-[retirement policy](../../crates/llmup-cli/src/retirement.rs) are concrete starting
+[retirement policy](../../crates/rigspark-cli/src/retirement.rs) are concrete starting
 points. Historical results are in the
 [follow-up record](rust-migration-follow-up.md),
 [desktop verification record](../reviews/rust-checkpoint-5-verification.md), and
@@ -160,7 +160,7 @@ workflow files, and public entry points require a single integrator.
 | --- | --- | --- | --- | --- | --- |
 | M01 | Reconcile current status and supported target matrix; this plan and CLI completion log | None | Record base revision plus dirty-tree identity, actual remaining CLI tasks, target OS/arch/minimum versions, runtime capabilities, and a fresh retirement inventory; preserve existing edits | Compare execution logs with actual files/tests; run `cargo native-retirement` and retain expected failures | S |
 | M02 | Create whole-product assertion/consumer ledger alongside [CLI ledger](cli-retirement-ledger.md) | M01 | Every TS module/test family, browser suite, script, workflow, and package caller maps to native owner, disposition, dependencies, and evidence; enumerate child slices before edits | Review exports/imports, script calls, fixtures, and generated/package contents; identify missing behavior tests | M |
-| M03 | Prove Node-free real-browser automation using [browser fixture](../../crates/llmup-gui/examples/browser_fixture.rs) and one chat journey | M02 | Approved maintained client runs page load, SSE reply, cancellation, persistence, keyboard focus, and screenshot capture with Node absent; driver/browser versions pinned; failure diagnostics and cleanup work | One real browser run on each required platform; inspect spawned process trees and runner distribution; reject hidden Node | M |
+| M03 | Prove Node-free real-browser automation using [browser fixture](../../crates/rigspark-gui/examples/browser_fixture.rs) and one chat journey | M02 | Approved maintained client runs page load, SSE reply, cancellation, persistence, keyboard focus, and screenshot capture with Node absent; driver/browser versions pinned; failure diagnostics and cleanup work | One real browser run on each required platform; inspect spawned process trees and runner distribution; reject hidden Node | M |
 | M04 | Decide CI execution boundary; audit [workflows](../../.github/workflows) | M02 | Resolve embedded-Node actions explicitly; replacement strategy preserves pinned inputs, least privileges, artifacts, and required checks; no branch-protection bypass | Trace every action and shell command to its runtime; document decision before workflow retirement | S |
 | M05 | Refresh desktop dependency/security/license blockers; separate desktop lockfile and [license policy](../../deny-native.toml) | M02 | Findings have package/version/advisory or obligation, owner, fix, and verification; required upgrades do not weaken capability boundaries | Separate workspace/desktop dependency audits and license/source inventory; review proposed upgrades | M |
 
@@ -172,7 +172,7 @@ Do not retire Node browser tests or Electron while their replacement gates are o
 | ID | Task And Likely Files | Dependencies | Acceptance Criteria | Verification | Size |
 | --- | --- | --- | --- | --- | --- |
 | M06 | Complete outstanding C07-C22 in the [CLI plan](cli-migration-completion.md) | M02 | Eleven commands, all modes/flags/exits/cancellation, GUI discovery, aliases, source retirement, Docker, native distribution, and CLI performance accepted; reuse evidence rather than reimplement | Existing CLI command matrix, native public/PTY tests, CLI install smoke, C18-C22 report; retain shared GUI modules | M per existing C-task slice |
-| M07 | Transfer state parity into [native regression tests](../../crates/llmup-cli/tests/state_parity.rs) and frozen legacy-format fixtures | M06 | Preserve TS-to-Rust and Rust-to-legacy-format evidence, cross-process lock contention, atomic writes, crash recovery, owner identity, and no-op semantics; document older-client concurrency restrictions | Run original bidirectional driver before retirement; hash/provenance fixtures; native two-process contention and recovery tests without Node | M per state contract |
+| M07 | Transfer state parity into [native regression tests](../../crates/rigspark-cli/tests/state_parity.rs) and frozen legacy-format fixtures | M06 | Preserve TS-to-Rust and Rust-to-legacy-format evidence, cross-process lock contention, atomic writes, crash recovery, owner identity, and no-op semantics; document older-client concurrency restrictions | Run original bidirectional driver before retirement; hash/provenance fixtures; native two-process contention and recovery tests without Node | M per state contract |
 | M08 | Transfer workflow parity driver (retired) and memory/library/harness contracts | M07 | Preserve all existing workflow fixture assertions, copy/move/dry-run semantics, revision conflicts, cancellation, embeddings capability handling, recovery data, and legacy read compatibility | Run original oracle once while available; frozen exact native assertions plus adversarial tests with injected providers; no candidate-generated expectations | M per workflow |
 
 Checkpoint B: CLI accepted; durable compatibility evidence survives without a live
@@ -185,11 +185,11 @@ are represented in the ledger, not merely because a Rust route exists.
 
 | ID | Task And Likely Files | Dependencies | Acceptance Criteria | Verification | Size |
 | --- | --- | --- | --- | --- | --- |
-| M09 | Models, recommendation, installed activation, lifecycle, telemetry; [GUI services](../../crates/llmup-gui/src), [legacy model journeys](../../tests/e2e/models.spec.ts) | M03, M06, M08 | Match API validation, output/unknowns, runtime ownership, context confirmation, and visible state updates; no TS service fallback | Native route tests plus real browser model/installed/telemetry journeys against injected fixtures | M per journey |
-| M10 | Sessions, streaming, run coordination, agents/tools; [native chat tests](../../crates/llmup-gui/tests/chat.rs), [tool tests](../../crates/llmup-gui/tests/tools.rs) | M09 | Persist only completed exchanges; cancel stale/disconnected runs; enforce provider disclosure, approval deadlines, session isolation, connector grant invalidation, and bounded streams | Native SSE race/failure tests plus real browser chat/tool journeys, reload, cancel, and reconnect | M per journey |
-| M11 | Workspace, artifacts, formatting, accessibility; [legacy workspace tests](../../tests/e2e/workspace.spec.ts), [static assets](../../crates/llmup-gui/static) | M10 | Preserve edit review/apply/revert/recovery, containment, artifact isolation, Markdown sanitization, keyboard/focus, announcements, and responsive layouts; embeds load without npm | Native path/security tests and real browser workspace/formatting/a11y journeys with console, network, screenshots, and canvas checks | M per journey |
+| M09 | Models, recommendation, installed activation, lifecycle, telemetry; [GUI services](../../crates/rigspark-gui/src), [legacy model journeys](../../tests/e2e/models.spec.ts) | M03, M06, M08 | Match API validation, output/unknowns, runtime ownership, context confirmation, and visible state updates; no TS service fallback | Native route tests plus real browser model/installed/telemetry journeys against injected fixtures | M per journey |
+| M10 | Sessions, streaming, run coordination, agents/tools; [native chat tests](../../crates/rigspark-gui/tests/chat.rs), [tool tests](../../crates/rigspark-gui/tests/tools.rs) | M09 | Persist only completed exchanges; cancel stale/disconnected runs; enforce provider disclosure, approval deadlines, session isolation, connector grant invalidation, and bounded streams | Native SSE race/failure tests plus real browser chat/tool journeys, reload, cancel, and reconnect | M per journey |
+| M11 | Workspace, artifacts, formatting, accessibility; [legacy workspace tests](../../tests/e2e/workspace.spec.ts), [static assets](../../crates/rigspark-gui/static) | M10 | Preserve edit review/apply/revert/recovery, containment, artifact isolation, Markdown sanitization, keyboard/focus, announcements, and responsive layouts; embeds load without npm | Native path/security tests and real browser workspace/formatting/a11y journeys with console, network, screenshots, and canvas checks | M per journey |
 | M12 | Transfer remaining pure frontend behavior assertions from [GUI tests](../../tests/gui) | M11 | Reducer, SSE parser, sanitization, and rendering assertions run in the real browser via the approved non-Node harness; retain positive and adversarial cases | Original assertion-to-new-test ledger; deterministic browser fixtures, malformed/chunked events, XSS cases, and leak checks | M per test family |
-| M13 | Accept public Rust browser-host routing; [GUI launcher](../../crates/llmup-cli/src/gui_launcher.rs), [host tests](../../crates/llmup-gui/tests/host.rs), [startup tests](../../crates/llmup-gui/tests/startup.rs) | M09-M12 | Public GUI command and packaged companion serve embedded assets; readiness, port conflicts, browser opening/no-open, auth, shutdown, and child reaping match contract; no build/Node fallback | Installed public CLI-to-GUI journey plus host-origin/token/body-limit/startup failure tests with isolated state | M |
+| M13 | Accept public Rust browser-host routing; [GUI launcher](../../crates/rigspark-cli/src/gui_launcher.rs), [host tests](../../crates/rigspark-gui/tests/host.rs), [startup tests](../../crates/rigspark-gui/tests/startup.rs) | M09-M12 | Public GUI command and packaged companion serve embedded assets; readiness, port conflicts, browser opening/no-open, auth, shutdown, and child reaping match contract; no build/Node fallback | Installed public CLI-to-GUI journey plus host-origin/token/body-limit/startup failure tests with isolated state | M |
 | M14 | Retire Playwright TS configurations, native/legacy E2E drivers, and migrated fixtures | M03, M12, M13 | Every browser assertion has accepted replacement evidence; no test points at the old host; browser tests are Node-free on required platforms | Compare M02 ledger; run complete new browser suite; check callers and generated fixtures after each deletion batch | M per deletion batch |
 
 Checkpoint C: Rust browser services own all supported workflows; real browser
@@ -273,7 +273,7 @@ cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets --l
 cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --locked
 cargo build --manifest-path apps/desktop/src-tauri/Cargo.toml --locked
 
-cargo test --locked -p llmup-cli --test retirement
+cargo test --locked -p rigspark-cli --test retirement
 cargo native-retirement
 cargo audit
 cargo audit --file apps/desktop/src-tauri/Cargo.lock
@@ -395,12 +395,12 @@ change. The complete migration is not finished.
 - M08: replaced the final TS workflow parity driver with `cargo workflow-parity`.
   The original driver passed before removal. Its 34 independent expected outputs,
   storage seed files, timestamps, modes and source hashes are frozen in
-  [workflow-parity.json](../../crates/llmup-cli/fixtures/workflow-parity.json).
+  [workflow-parity.json](../../crates/rigspark-cli/fixtures/workflow-parity.json).
   Three native tests cover all cases, post-capture compatibility, input bounds,
   and public CLI dry-run/copy/move. The legacy Windows device-name exception is
   explicit; Windows execution is still unverified.
 - M11/M29: moved all nine browser assets unchanged from root `src/` into
-  [native GUI assets](../../crates/llmup-gui/static), updated Rust embedding,
+  [native GUI assets](../../crates/rigspark-gui/static), updated Rust embedding,
   Tauri configuration, compatibility callers and lint scope. Five native host
   tests, 272 retained GUI tests, and two separate Tauri tests pass locally.
 - M06/C09: deleted `src/bin.ts` and `src/cli.ts` and their six stale generated

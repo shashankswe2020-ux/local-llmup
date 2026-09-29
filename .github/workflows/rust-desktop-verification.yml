@@ -11,7 +11,7 @@ on:
       - Cargo.lock
       - crates/**
       - apps/desktop/src-tauri/**
-      - crates/llmup-gui/static/**
+      - crates/rigspark-gui/static/**
       - scripts/native-browser-journeys.sh
       - scripts/rust-dialog-smoke.*
       - vendor/**
@@ -77,19 +77,19 @@ jobs:
       - name: Native build
         run: |
           cargo build --workspace --locked
-          cargo build --locked -p llmup-cli --example dialog-smoke
+          cargo build --locked -p rigspark-cli --example dialog-smoke
           cargo build --manifest-path apps/desktop/src-tauri/Cargo.toml --locked
       - name: Real desktop WebView smoke
         env:
           WEBKIT_DISABLE_DMABUF_RENDERER: "1"
-          LOCAL_LLMUP_HOME: ${{ runner.temp }}/llmup-r22
+          RIGSPARK_HOME: ${{ runner.temp }}/llmup-r22
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then
-            dbus-run-session -- xvfb-run -a apps/desktop/src-tauri/target/debug/llmup-desktop --smoke-test
+            dbus-run-session -- xvfb-run -a apps/desktop/src-tauri/target/debug/rigspark-desktop --smoke-test
           elif [[ "$RUNNER_OS" == "Windows" ]]; then
-            apps/desktop/src-tauri/target/debug/llmup-desktop.exe --smoke-test
+            apps/desktop/src-tauri/target/debug/rigspark-desktop.exe --smoke-test
           else
-            apps/desktop/src-tauri/target/debug/llmup-desktop --smoke-test
+            apps/desktop/src-tauri/target/debug/rigspark-desktop --smoke-test
           fi
       - name: Actual native folder dialogs
         if: runner.os != 'macOS'
