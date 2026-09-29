@@ -1,4 +1,4 @@
-# RigSpark
+# RigSpark: Check Which Local LLMs Your Computer Can Run
 
 [![CI](https://github.com/shashankswe2020-ux/rigspark/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/shashankswe2020-ux/rigspark/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/rigspark-cli.svg?label=crates.io)](https://crates.io/crates/rigspark-cli)
@@ -7,16 +7,18 @@
 **Which local LLMs can your computer run? Find out before downloading the weights.**
 
 Get `yes / slow / no` verdicts, memory-fit explanations, and estimated tok/s.
-Then verify, serve, and chat with a model that fits. Native Rust CLI, interactive
+Then verify, serve, and chat with a model that fits. RigSpark is a hardware-aware,
+privacy-first, open-source Rust CLI for running LLMs locally, with an interactive
 terminal UI, and browser workspace for macOS, Linux, and Windows.
 
-[![rigspark demo preview; click to watch](assets/rigspark-preview.gif)](assets/rigspark.mp4)
+[![RigSpark demo: checking which local LLMs run on your hardware](assets/rigspark-preview.gif)](assets/rigspark.mp4)
 
 [Watch on YouTube](https://youtu.be/MI2wfI1eeCM?si=QA2teeDmeT_fNIqf)
 
 Advice uses an offline catalog. Unknown figures stay `unknown`; estimates are
 not benchmarks. Managed downloads are integrity-checked and servers bind to
-`127.0.0.1`. Supports **Ollama, llama.cpp, MLX** (Apple Silicon), and
+`127.0.0.1`. Estimates GPU/VRAM and RAM fit for models such as Llama, Qwen, Mistral, and Gemma.
+Supports **Ollama, llama.cpp, MLX** (Apple Silicon), and
 **LM Studio** (attach-only).
 
 ## Rename Migration
@@ -82,3 +84,5 @@ can send data to their providers. Use `llmup --help` for commands,
 - [Development and testing](docs/references/guide.md#development) · [Specification](docs/specs/rigspark.md) · [Changelog](CHANGELOG.md)
 
 [MIT License](LICENSE)
+
+**Keywords:** local LLM, run LLM locally, LLM hardware requirements, VRAM calculator, tokens per second, Ollama, llama.cpp, MLX, LM Studio, Rust CLI.
