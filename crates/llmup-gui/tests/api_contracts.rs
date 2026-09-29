@@ -309,6 +309,8 @@ async fn model_routes_validate_queries_before_touching_runtimes() {
     for query in [
         "/api/models/recommended?runtime=bogus",
         "/api/models/recommended?context=extreme",
+        "/api/models/recommended?context=high&kvCache=q2_k",
+        "/api/models/recommended?kvCache=q8_0",
         "/api/models/installed?port=notaport",
         "/api/models/installed?tokens=-1",
     ] {
@@ -337,6 +339,42 @@ async fn model_routes_validate_queries_before_touching_runtimes() {
             models.iter().all(|model| model.get(field).is_some()),
             "{field}"
         );
+    }
+    let kv_bytes = |body: &Value| -> std::collections::BTreeMap<String, f64> {
+        body["models"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|model| {
+                Some((
+                    model["id"].as_str()?.to_owned(),
+                    model["contextSizing"]["kvCacheBytes"].as_f64()?,
+                ))
+            })
+            .collect()
+    };
+    let (status, quantized) = json_call(
+        &host,
+        "GET",
+        "/api/models/recommended?runtime=llamacpp&context=high&kvCache=q8_0",
+        Value::Null,
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(quantized["kvCache"], "q8_0");
+    assert!(
+        quantized["models"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|model| model["kvPrecision"] == "q8_0")
+    );
+    assert!(scoped["kvCache"].is_null());
+    let (fp16, q8) = (kv_bytes(&scoped), kv_bytes(&quantized));
+    let shared: Vec<_> = q8.keys().filter(|id| fp16.contains_key(*id)).collect();
+    assert!(!shared.is_empty());
+    for id in shared {
+        assert!(q8[id] < fp16[id], "{id}: {} !< {}", q8[id], fp16[id]);
     }
     assert_eq!(
         call(
@@ -408,6 +446,9 @@ async fn up_requests_are_validated_before_state_or_runtime_access() {
         json!({"model":"x","installed":true}),
         json!({"model":"x","installed":true,"bypass":true,"backend":"llamacpp"}),
         json!({"model":"x","extra":1}),
+        json!({"model":"x","kvCache":"q2_k"}),
+        json!({"model":"x","flashAttention":"yes"}),
+        json!({"model":"x","installed":true,"bypass":true,"kvCache":"q8_0"}),
     ] {
         assert_eq!(
             call(&host, "POST", "/api/models/up", body.clone()).await.0,
@@ -415,6 +456,15 @@ async fn up_requests_are_validated_before_state_or_runtime_access() {
             "{body}"
         );
     }
+    let (status, text) = call(
+        &host,
+        "POST",
+        "/api/models/up",
+        json!({"model":"qwen3:0.6b","kvCache":"q8_0","flashAttention":"off"}),
+    )
+    .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(text.contains("requires flash attention"), "{text}");
     let config = llmup_runtime::state::Config::from_home(home.path()).unwrap();
     assert!(
         llmup_runtime::state::StateStore::new(config)
@@ -448,16 +498,14 @@ async fn active_summary_reports_ownership_runtime_variant_and_context() {
             process_executable: None,
             process_started_at: None,
             auth_token: None,
-            cache: None,
+            cache: owned.then(|| llmup_runtime::cache::CacheProfile {
+                kv_k: llmup_core::sizing::KvCacheType::Q8_0,
+                kv_v: llmup_core::sizing::KvCacheType::Q8_0,
+                ..Default::default()
+            }),
         };
         store
-            .write(
-                &guard,
-                &RuntimeState {
-                    active: Some(active),
-                    ..Default::default()
-                },
-            )
+            .write(&guard, &RuntimeState::for_active(active))
             .unwrap();
         drop(guard);
         let (_, body) = json_call(&host, "GET", "/api/models/active", Value::Null).await;
@@ -474,6 +522,11 @@ async fn active_summary_reports_ownership_runtime_variant_and_context() {
             summary["ownership"],
             if owned { "owned" } else { "attached" }
         );
+        if owned {
+            assert_eq!(summary["cache"]["kvK"], "q8_0");
+        } else {
+            assert!(summary.get("cache").is_none());
+        }
         match variant {
             None => {
                 assert!(summary.get("runtimeModelId").is_none() && summary.get("context").is_none())

@@ -28,6 +28,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const installedPortField = document.querySelector("#installed-port-field");
   const modelsFitOnly = document.querySelector("#models-fit-only");
   const modelBypass = document.querySelector("#model-bypass");
+  const kvCache = document.querySelector("#kv-cache");
+  const kvCacheField = document.querySelector("#kv-cache-field");
   const modelCatalogPanel = document.querySelector("#model-catalog-panel");
   const modelDetail = document.querySelector("#model-detail");
   const modelDetailBack = document.querySelector("#model-detail-back");
@@ -1462,7 +1464,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "Requested context",
         formatTokens(model.contextSizing && model.contextSizing.tokens),
         model.contextSizing && model.contextSizing.kvCacheBytes !== null
-          ? `${formatSize(model.contextSizing.kvCacheBytes)} KV cache`
+          ? `${formatSize(model.contextSizing.kvCacheBytes)} KV cache${model.kvPrecision ? ` (${model.kvPrecision})` : ""}`
           : "KV cost unknown: attention geometry is not sourced",
       ),
     );
@@ -1592,7 +1594,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (activeBanner) {
       if (active) {
         activeBanner.hidden = false;
-        activeBanner.textContent = `${active.modelId} is running on ${active.backend} at ${active.endpoint}${active.runtimeModelId ? ` · Runtime model: ${active.runtimeModelId}` : ""}${active.context ? ` · Context: ${active.context}` : ""}`;
+        activeBanner.textContent = `${active.modelId} is running on ${active.backend} at ${active.endpoint}${active.runtimeModelId ? ` · Runtime model: ${active.runtimeModelId}` : ""}${active.context ? ` · Context: ${active.context}` : ""}${active.cache ? ` · Cache: ${cacheLabel(active.cache)}` : ""}`;
       } else {
         activeBanner.hidden = true;
       }
@@ -1635,6 +1637,18 @@ document.addEventListener("DOMContentLoaded", () => {
     return tokens;
   }
 
+  // Installed models attach to a running daemon, whose cache settings local-llmup cannot change.
+  function selectedKvCache() {
+    if (modelSource?.value === "installed") return undefined;
+    const value = kvCache?.value;
+    return value && value !== "f16" ? value : undefined;
+  }
+
+  function cacheLabel(cache) {
+    const kv = cache.kvK === cache.kvV ? cache.kvK : `K ${cache.kvK} / V ${cache.kvV}`;
+    return `KV ${kv}, flash attention ${cache.flashAttention}`;
+  }
+
   async function startModel(id, button, backend, extra = {}) {
     if (modelError) {
       modelError.hidden = true;
@@ -1648,13 +1662,17 @@ document.addEventListener("DOMContentLoaded", () => {
       const context = selectedContext() ?? extra.context;
       if (context !== undefined) payload.context = context;
       if (modelBypass?.checked) payload.bypass = true;
+      if (!payload.installed) {
+        const kv = selectedKvCache();
+        if (kv) payload.kvCache = kv;
+      }
       if (payload.installed) {
         if (!installedPort?.reportValidity()) throw new Error("Invalid Ollama port");
         payload.port = Number(installedPort.value);
         if (!payload.bypass) throw new Error("Installed models require explicit bypass consent");
       }
-      if ((payload.bypass || payload.context !== undefined) && !globalThis.confirm(
-        `Start ${id} at ${payload.context ?? "default"} context?${payload.bypass ? " Estimated fit may be wrong or unknown; memory exhaustion or CPU offload is possible." : ""}${payload.installed ? " Local manifest integrity will be checked, not catalog provenance." : " Weight integrity checks remain enabled."}${payload.context !== undefined ? " A separate runtime model tag will be created; the source tag stays unchanged." : ""}`,
+      if ((payload.bypass || payload.context !== undefined || payload.kvCache) && !globalThis.confirm(
+        `Start ${id} at ${payload.context ?? "default"} context?${payload.bypass ? " Estimated fit may be wrong or unknown; memory exhaustion or CPU offload is possible." : ""}${payload.installed ? " Local manifest integrity will be checked, not catalog provenance." : " Weight integrity checks remain enabled."}${payload.context !== undefined ? " A separate runtime model tag will be created; the source tag stays unchanged." : ""}${payload.kvCache ? ` KV cache ${payload.kvCache} applies only to a runtime local-llmup starts; an already running server is refused, not changed.` : ""}`,
       )) return;
       const response = await globalThis.fetch("/api/models/up", {
         method: "POST",
@@ -1720,7 +1738,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const context = model.contextTokens
         ? model.contextFitKnown === false
           ? ` · ${formatTokens(model.contextTokens)} context tokens · context fit unknown`
-          : ` · ${formatTokens(model.contextTokens)} context tokens`
+          : ` · ${formatTokens(model.contextTokens)} context tokens${model.kvPrecision && model.kvPrecision !== "fp16" ? ` · KV ${model.kvPrecision}` : ""}`
         : "";
       meta.textContent = `${model.params} · ${model.quant} · ${formatSize(model.diskBytes)} · ${formatThroughput(model.throughput)}${context}`;
 
@@ -1746,7 +1764,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const button = document.createElement("button");
       button.type = "button";
-      if (isActive && model.contextTokens === undefined && selectedContext() === undefined) {
+      if (isActive && model.contextTokens === undefined && selectedContext() === undefined && (active.cache ? active.cache.kvK : "f16") === (selectedKvCache() ?? "f16")) {
         button.textContent = "Running";
         button.disabled = true;
       } else {
@@ -1818,6 +1836,8 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (contextWindow && contextWindow.value && !installed) {
         params.set("context", contextWindow.value);
       }
+      const kv = selectedKvCache();
+      if (kv) params.set("kvCache", kv);
       if (installed) {
         if (!installedPort?.reportValidity()) throw new Error("Invalid Ollama port");
         params.set("port", installedPort.value);
@@ -1887,12 +1907,13 @@ document.addEventListener("DOMContentLoaded", () => {
   modelSource?.addEventListener("change", () => {
     const installed = modelSource.value === "installed";
     if (installedPortField) installedPortField.hidden = !installed;
+    if (kvCacheField) kvCacheField.hidden = installed;
     if (installed && contextWindow && !["custom", "65536"].includes(contextWindow.value)) contextWindow.value = "65536";
     if (contextTokensField) contextTokensField.hidden = contextWindow?.value !== "custom";
     if (modelBypass) modelBypass.checked = false;
     loadModels();
   });
-  for (const control of [contextTokens, installedPort, modelsFitOnly, modelBypass]) {
+  for (const control of [contextTokens, installedPort, modelsFitOnly, modelBypass, kvCache]) {
     control?.addEventListener("change", () => loadModels());
   }
 

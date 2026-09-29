@@ -30,6 +30,7 @@ struct JsonAdviceOptions {
     context_percent: Option<u8>,
     backend: Option<String>,
     limit: Option<usize>,
+    kv_cache: Option<llmup_core::sizing::KvCacheType>,
 }
 
 #[derive(Serialize)]
@@ -66,6 +67,7 @@ pub fn advice_json(reader: impl Read) -> Result<AdviceResponse, AdviceError> {
         context: request.options.context,
         context_percent: request.options.context_percent,
         backend: request.options.backend,
+        kv_cache: request.options.kv_cache,
         ..Default::default()
     };
     options
@@ -91,6 +93,9 @@ fn active(host: &Host) -> Result<Value, crate::routes::ApiError> {
             if let Some(context) = active.context {
                 value["context"] = json!(context);
             }
+            if let Some(cache) = active.cache {
+                value["cache"] = json!(cache);
+            }
             value
         }
     })
@@ -115,6 +120,7 @@ pub fn recommended(
         model["quant"]=entry["quant"].clone();
         model["diskBytes"]=source["quantizations"].as_array().and_then(|quants|quants.iter().find(|quant|quant["name"]==entry["quant"])).map(|quant|quant["diskBytes"].clone()).unwrap_or(Value::Null);
         if let Some(tokens)=entry.get("context") {model["contextTokens"]=tokens.clone();model["contextFitKnown"]=json!(!entry["kvCacheBytes"].is_null());model["contextSizing"]=json!({"tokens":tokens,"weightsBytes":entry["weightsBytes"],"kvCacheBytes":entry["kvCacheBytes"]});}
+        if let Some(precision)=entry.get("kvPrecision") {model["kvPrecision"]=precision.clone();}
         Ok(model)
     }).collect()
 }
@@ -170,17 +176,22 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
                 _ => Err(bad()),
             })
             .transpose()?;
+        let kv_cache = query
+            .get("kvCache")
+            .map(|value| llmup_core::sizing::KvCacheType::parse(value).ok_or_else(bad))
+            .transpose()?;
         let options = AdviceOptions {
             context,
             context_percent: preset,
             backend: query.get("runtime").cloned(),
+            kv_cache,
             ..Default::default()
         };
         options.validate().map_err(|_| bad())?;
         let perf = PerfDataset::parse(llmup_core::PERF_JSON).map_err(|_| bad())?;
         let models = recommended(&catalog, &hardware, &perf, &options, 8).map_err(|_| bad())?;
         return Ok(json_response(
-            json!({"models":models,"runtime":query.get("runtime"),"contextPreset":query.get("context")}),
+            json!({"models":models,"runtime":query.get("runtime"),"contextPreset":query.get("context"),"kvCache":kv_cache}),
         ));
     }
     if path == "/api/models/installed" && method == "GET" {
@@ -213,7 +224,7 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
     }
     if path == "/api/models/up" && method == "POST" {
         #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
+        #[serde(rename_all = "camelCase", deny_unknown_fields)]
         struct Up {
             model: String,
             backend: Option<String>,
@@ -223,6 +234,9 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
             installed: bool,
             #[serde(default)]
             bypass: bool,
+            kv_cache: Option<llmup_core::sizing::KvCacheType>,
+            flash_attention: Option<llmup_runtime::cache::FlashAttention>,
+            prompt_cache: Option<llmup_runtime::cache::PromptReuse>,
         }
         let input: Up = body(request, crate::MAX_REQUEST_BYTES).await?;
         let options = LifecycleOptions {
@@ -233,7 +247,11 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
             context: input.context,
             installed: input.installed,
             bypass: input.bypass,
-            cache: Default::default(),
+            cache: llmup_runtime::cache::CacheFlags {
+                kv: input.kv_cache,
+                flash_attention: input.flash_attention,
+                prompt_reuse: input.prompt_cache,
+            },
         };
         if let Err(error) = run_native_with_config(
             &options,

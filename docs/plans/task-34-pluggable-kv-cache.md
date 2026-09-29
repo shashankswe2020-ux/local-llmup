@@ -150,7 +150,7 @@ K1 and K3 can run in parallel. K7 can start at any time.
   - `up` and `ls` print `Cache: KV q8_0, flash attention auto, prompt reuse off`, and their JSON gains a `cache` object. Both appear only when a profile is applied, so the no-flag output is unchanged.
   - **Deferred:** `--cache-provider` (only `native` exists until K8) and the per-backend `doctor` row. Both are listed under K9.
 
-### K6 — GUI cache selector
+### K6 — GUI cache selector ✅ Done
 - **Do:** the Models view gets a cache selector. It shows the typed KV estimate and `unknown` where applicable. `/api/models/up` accepts a validated profile. Refusal reasons are shown the same way as the existing lifecycle errors (control characters stripped, 400 chars max).
 - **Acceptance:**
   1. An invalid profile → 400 with a reason.
@@ -158,6 +158,11 @@ K1 and K3 can run in parallel. K7 can start at any time.
   3. The WebDriver journey covers selecting `q8_0`.
 - **Files:** `crates/llmup-gui/src/models.rs`, `static/index.html`, `static/chat.js` (or the models script), `crates/llmup-gui/tests/api_contracts.rs`.
 - **Verify:** `cargo test -p llmup-gui`; `scripts/native-browser-journeys.sh`.
+- **As built:**
+  - A "KV cache" selector (`f16 · 100%`, `q8_0 · 53%`, `q4_0 · 28%`, the ggml block ratios) sits next to Context window. It is hidden for Installed Ollama, because attached daemons are refused.
+  - `GET /api/models/recommended?kvCache=` re-sizes offline. Cards show `KV q8_0` only for models with known geometry; unknown geometry still reads "context fit unknown". The detail panel labels the KV cost with its type.
+  - `POST /api/models/up` accepts `kvCache`, `flashAttention` and `promptCache`, and the start confirmation says the cache applies only to a runtime local-llmup starts. `/api/models/active` and the banner report the applied profile.
+  - Checked by hand in the integrated browser. **Open:** criterion 3. The WebDriver journey needs Chrome + chromedriver and is listed under K9.
 
 ### K7 — Spike: vLLM + LMCache (ADR only)
 - **Answer with sources:**
