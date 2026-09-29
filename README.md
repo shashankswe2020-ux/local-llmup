@@ -10,9 +10,12 @@ Get `yes / slow / no` verdicts, memory-fit explanations, and estimated tok/s.
 Then verify, serve, and chat with a model that fits. Native Rust CLI, interactive
 terminal UI, and browser workspace for macOS, Linux, and Windows.
 
-[![rigspark demo preview; click to watch](assets/rigspark-preview.gif)](assets/rigspark.mp4)
+[![RigSpark demo: rigspark recommend ranks local LLMs with yes / slow / no verdicts, then the same verdicts in the browser GUI; click to watch with sound](assets/rigspark-preview.gif)](assets/rigspark.mp4)
 
-[Watch on YouTube](https://youtu.be/MI2wfI1eeCM?si=QA2teeDmeT_fNIqf)
+A 20-second tour: `rigspark recommend` ranks the offline catalog for this machine
+(real output from an arm64 Mac with 34 GiB of usable RAM), lists the models that won't fit,
+then `rigspark gui` shows the same verdicts and a local chat.
+[Watch in 1080p with sound](assets/rigspark.mp4) · [Watch on YouTube](https://youtu.be/MI2wfI1eeCM?si=QA2teeDmeT_fNIqf)
 
 Advice uses an offline catalog. Unknown figures stay `unknown`; estimates are
 not benchmarks. Managed downloads are integrity-checked and servers bind to
@@ -71,6 +74,8 @@ Prefer a browser? Run **`llmup gui`** to choose models and chat, with agents,
 skills, and MCP tools. Local chat stays local; cloud harnesses and external tools
 can send data to their providers. Use `llmup --help` for commands,
 `--json` for scripting, or `--accessible` for screen readers.
+
+![RigSpark browser GUI Models view with Runs well and Runs slowly verdicts](assets/screenshot-gui.png)
 
 ## References
 
