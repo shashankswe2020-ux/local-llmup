@@ -21,22 +21,6 @@ not benchmarks. Managed downloads are integrity-checked and servers bind to
 Supports **Ollama, llama.cpp, MLX** (Apple Silicon), and
 **LM Studio** (attach-only).
 
-## Rename Migration
-
-This is a breaking product rename. The primary executable is now `rigspark`, with
-`llmup` retained as a compatibility alias. Rust crates now publish under the
-`rigspark-*` names. Environment variables use the `RIGSPARK_` prefix, including
-`RIGSPARK_HOME`.
-
-Before switching, stop running servers and back up your previous application data.
-Move that data directory to `~/.rigspark`, or set `RIGSPARK_HOME` to its existing
-location. No data is moved or deleted automatically. The desktop bundle identifier
-is now `org.rigspark.desktop`, so operating-system permissions may need reapproval.
-
-Repository, release, Pages, container, and Homebrew references now target `rigspark`.
-Their remote rename and publication must be completed separately before release.
-The README demo and documented screenshots use the current RigSpark branding.
-
 ## Install
 
 Homebrew (macOS and Linux):
@@ -47,7 +31,7 @@ brew install shashankswe2020-ux/tap/rigspark
 
 Windows and other platforms: download a
 [prebuilt archive](https://github.com/shashankswe2020-ux/rigspark/releases/latest)
-and add its extracted folder to `PATH`. Keep `llmup`, `rigspark`, and the
+and add its extracted folder to `PATH`. Keep `rigspark`, `llmup`, and the
 `rigspark-gui` companion together. No Node.js, Python, or compiler is needed to run
 these binaries; inference backends have their own requirements.
 
@@ -57,21 +41,21 @@ these binaries; inference backends have their own requirements.
 ## Try It
 
 ```bash
-llmup recommend                 # rank models for your hardware
-llmup can-run llama3.1:8b        # check one model before downloading
-llmup catalog --all             # browse the offline catalog
-llmup up llama3.1:8b             # pull, verify, and serve
-llmup chat                      # chat with the active model
-llmup down                      # stop when done
+rigspark recommend                 # rank models for your hardware
+rigspark can-run llama3.1:8b        # check one model before downloading
+rigspark catalog --all             # browse the offline catalog
+rigspark up llama3.1:8b             # pull, verify, and serve
+rigspark chat                      # chat with the active model
+rigspark down                      # stop when done
 ```
 
 Advice works without a backend. To serve and chat, install
 [Ollama](https://ollama.com) or another [supported backend](docs/references/guide.md#supported-backends),
-then choose a model your machine can run. `rigspark` is an alias for `llmup`.
+then choose a model your machine can run. `llmup` is a compatibility alias for `rigspark`.
 
-Prefer a browser? Run **`llmup gui`** to choose models and chat, with agents,
+Prefer a browser? Run **`rigspark gui`** to choose models and chat, with agents,
 skills, and MCP tools. Local chat stays local; cloud harnesses and external tools
-can send data to their providers. Use `llmup --help` for commands,
+can send data to their providers. Use `rigspark --help` for commands,
 `--json` for scripting, or `--accessible` for screen readers.
 
 ## References
