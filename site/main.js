@@ -1,109 +1,111 @@
-// Copy-to-clipboard for all [data-install] containers
-document.querySelectorAll("[data-install]").forEach((wrap) => {
-  wrap.querySelectorAll(".copy-btn").forEach((btn) => {
-    const svg = btn.innerHTML;
-    btn.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(wrap.getAttribute("data-install") || "");
-        btn.textContent = "✓";
-        btn.style.color = "var(--green)";
-        setTimeout(() => { btn.innerHTML = svg; btn.style.color = ""; }, 1500);
-      } catch { /* Clipboard may be blocked */ }
-    });
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Copy buttons: the nearest [data-copy] holds the exact command.
+document.querySelectorAll(".copy-btn").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const text = btn.closest("[data-copy]")?.getAttribute("data-copy") ?? "";
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = "Copied";
+      btn.classList.add("done");
+      setTimeout(() => {
+        btn.textContent = "Copy";
+        btn.classList.remove("done");
+      }, 1600);
+    } catch {
+      btn.textContent = "Select";
+    }
   });
 });
 
-// Scroll-reveal
-const observer = new IntersectionObserver(
-  (entries) => {
-    for (const e of entries) {
-      if (e.isIntersecting) {
-        e.target.classList.add("visible");
-        observer.unobserve(e.target);
-      }
-    }
-  },
-  { threshold: 0.1 }
-);
-document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
-
-// Compact navigation for touch devices and narrower windows
+// Mobile navigation
 (() => {
   const toggle = document.querySelector(".nav-toggle");
   const links = document.getElementById("site-nav");
   if (!toggle || !links) return;
-
-  const closeMenu = () => {
-    links.classList.remove("is-open");
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.setAttribute("aria-label", "Open navigation");
+  const setOpen = (open) => {
+    links.classList.toggle("is-open", open);
+    toggle.setAttribute("aria-expanded", String(open));
+    toggle.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
   };
-
-  toggle.addEventListener("click", () => {
-    const willOpen = toggle.getAttribute("aria-expanded") !== "true";
-    links.classList.toggle("is-open", willOpen);
-    toggle.setAttribute("aria-expanded", String(willOpen));
-    toggle.setAttribute("aria-label", willOpen ? "Close navigation" : "Open navigation");
-  });
+  toggle.addEventListener("click", () => setOpen(toggle.getAttribute("aria-expanded") !== "true"));
   links.addEventListener("click", (event) => {
-    if (event.target.closest("a")) closeMenu();
-  });
-  document.addEventListener("click", (event) => {
-    if (!links.contains(event.target) && !toggle.contains(event.target)) closeMenu();
+    if (event.target.closest("a")) setOpen(false);
   });
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      closeMenu();
+    if (event.key === "Escape" && links.classList.contains("is-open")) {
+      setOpen(false);
       toggle.focus();
     }
   });
-  globalThis.addEventListener("resize", () => {
-    if (globalThis.innerWidth > 1100) closeMenu();
-  });
 })();
 
-// Desktop installer: platform dropdown + OS-aware primary button
-(() => {
-  const toggle = document.getElementById("dl-toggle");
-  const menu = document.getElementById("dl-menu");
-  if (!toggle || !menu) return;
-
-  const closeMenu = () => {
-    menu.setAttribute("hidden", "");
-    toggle.setAttribute("aria-expanded", "false");
-  };
-  toggle.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (menu.hasAttribute("hidden")) {
-      menu.removeAttribute("hidden");
-      toggle.setAttribute("aria-expanded", "true");
-    } else {
-      closeMenu();
+// Accessible tabs with arrow-key navigation
+document.querySelectorAll("[data-tabs]").forEach((root) => {
+  const tabs = [...root.querySelectorAll('[role="tab"]')];
+  const select = (tab) => {
+    for (const other of tabs) {
+      const selected = other === tab;
+      other.setAttribute("aria-selected", String(selected));
+      other.tabIndex = selected ? 0 : -1;
+      document.getElementById(other.getAttribute("aria-controls")).hidden = !selected;
     }
+  };
+  tabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => select(tab));
+    tab.addEventListener("keydown", (event) => {
+      const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+      if (!step) return;
+      const next = tabs[(index + step + tabs.length) % tabs.length];
+      select(next);
+      next.focus();
+    });
   });
-  document.addEventListener("click", (e) => {
-    if (!menu.contains(e.target) && e.target !== toggle) closeMenu();
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeMenu();
-  });
+});
 
-  // Point the primary button at the visitor's platform.
-  const ua = (navigator.userAgent || navigator.platform || "").toLowerCase();
-  let os = "mac";
-  if (ua.includes("win")) os = "win";
-  else if (ua.includes("linux") && !ua.includes("android")) os = "linux";
-
-  const item = menu.querySelector(`.installer-item[data-os="${os}"]`);
-  const main = document.getElementById("dl-main");
-  const ic = document.getElementById("dl-main-ic");
-  const title = document.getElementById("dl-main-title");
-  const sub = document.getElementById("dl-main-sub");
-  if (item && main && ic && title && sub) {
-    const label = { mac: "Download for macOS", win: "Download for Windows", linux: "Download for Linux" }[os];
-    main.href = item.href;
-    ic.innerHTML = item.querySelector(".os-ic").innerHTML;
-    title.textContent = label;
-    sub.textContent = item.querySelector(".installer-item-text span").textContent;
+// Highlight the download that matches this visitor and point the hero button at it.
+(() => {
+  const ua = navigator.userAgent.toLowerCase();
+  const platform = (navigator.userAgentData?.platform || navigator.platform || "").toLowerCase();
+  let os = null;
+  let label = null;
+  if (platform.includes("win") || ua.includes("windows")) [os, label] = ["win", "Windows"];
+  else if (platform.includes("mac") || ua.includes("mac os")) [os, label] = ["mac-arm", "macOS"];
+  else if (ua.includes("linux") && !ua.includes("android")) {
+    [os, label] = [ua.includes("aarch64") || ua.includes("arm64") ? "linux-arm" : "linux-x64", "Linux"];
   }
+  const card = os && document.querySelector(`.dl[data-os="${os}"]`);
+  if (!card) return;
+  card.classList.add("is-current");
+  const hero = document.querySelector('.hero-actions a[href="#install"]');
+  if (hero) hero.textContent = `Download for ${label}`;
 })();
+
+// Respect reduced motion for the autoplaying demo.
+if (reduceMotion) {
+  document.querySelectorAll("video[autoplay]").forEach((video) => {
+    video.removeAttribute("autoplay");
+    video.pause();
+  });
+}
+
+// Gentle reveal, only when motion is welcome.
+if (!reduceMotion && "IntersectionObserver" in window) {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("visible");
+          observer.unobserve(entry.target);
+        }
+      }
+    },
+    { threshold: 0.12 },
+  );
+  document
+    .querySelectorAll(".section-head, .card, .terminal, .tabs, .downloads, .commands, .faq, .cta, .gallery, .table-scroll")
+    .forEach((el) => {
+      el.classList.add("reveal");
+      observer.observe(el);
+    });
+}
