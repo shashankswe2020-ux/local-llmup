@@ -2,7 +2,7 @@
 
 > Status: **Draft (v0.2) — architecture, security, and test-strategy feedback incorporated; pending human approval.**
 > Last updated: 2026-08-08
-> Related: [local-llmup.md](./local-llmup.md),
+> Related: [rigspark.md](./rigspark.md),
 > [hardware-advisor.md](./hardware-advisor.md), and
 > [runtime-performance-benchmarking.md](./runtime-performance-benchmarking.md).
 
@@ -18,7 +18,7 @@ These assumptions become decisions only when this spec is approved:
    and explicit opportunity to opt out. The disclosure is persisted before any
    UUID/event exists; events created on a later invocation are not eligible for
    delivery until a subsequent invocation. `DO_NOT_TRACK=1`,
-   `LOCAL_LLMUP_TELEMETRY=0`, and CI environments disable it before any event is
+   `RIGSPARK_TELEMETRY=0`, and CI environments disable it before any event is
    created or sent. Whether default-on is legally appropriate must be approved
    before release; default-off is the fallback if review is incomplete.
 3. `recommend`, `can-run`, `doctor`, and `catalog` preserve the deterministic
@@ -39,7 +39,7 @@ These assumptions become decisions only when this spec is approved:
 8. Turning telemetry off deletes the local installation UUID, pending outbox, and
    every owned telemetry quarantine/staging artifact.
    Turning it on later creates a new UUID, so the two periods cannot be linked by
-   local-llmup.
+   rigspark.
 9. Raw pseudonymous events are retained for at most 30 days. Ingest suspends if
    that bound cannot be enforced. Identifier-free
    daily aggregates may be retained for 13 months; all-time counters contain no
@@ -148,9 +148,9 @@ event came from a genuine installation.
 Add one subcommand with three required actions:
 
 ```text
-local-llmup telemetry on
-local-llmup telemetry off
-local-llmup telemetry status
+rigspark telemetry on
+rigspark telemetry off
+rigspark telemetry status
 ```
 
 Description:
@@ -224,7 +224,7 @@ The command and privacy notice state these limits.
   new `first_run` event.
 - Performs no network request and creates no event itself.
 - Is idempotent: when already enabled with a valid UUID, it preserves that UUID.
-- If `DO_NOT_TRACK=1`, `LOCAL_LLMUP_TELEMETRY=0`, or CI suppression is active,
+- If `DO_NOT_TRACK=1`, `RIGSPARK_TELEMETRY=0`, or CI suppression is active,
   output says configuration is enabled but effective telemetry remains disabled.
 
 ### 3.4 Exit codes
@@ -245,7 +245,7 @@ Telemetry delivery never changes another command's exit code.
 Disable wins, in this order:
 
 1. `DO_NOT_TRACK=1`;
-2. `LOCAL_LLMUP_TELEMETRY=0`;
+2. `RIGSPARK_TELEMETRY=0`;
 3. recognized CI environment (`CI=true` or provider-standard CI marker);
 4. noninteractive invocation without prior explicit `telemetry on`;
 5. persisted `enabled:false`;
@@ -271,7 +271,7 @@ preference:
 1. Print once to stderr after normal command output:
 
 ```text
-local-llmup uses pseudonymous usage telemetry (coarse hardware, public catalog model, success/failure category). No prompts, paths, serials, or IP address are included in payloads. Disable: local-llmup telemetry off. Policy: https://<project-owned-domain>/privacy/telemetry
+rigspark uses pseudonymous usage telemetry (coarse hardware, public catalog model, success/failure category). No prompts, paths, serials, or IP address are included in payloads. Disable: rigspark telemetry off. Policy: https://<project-owned-domain>/privacy/telemetry
 ```
 
 2. Atomically persist a schema-valid disclosure-only state whose only affirmative
@@ -299,7 +299,7 @@ invocation and the command still succeeds silently. The user can run
 ### 4.3 Crash-consistent telemetry state and outbox
 
 Telemetry does not alter the strict user preference `config.json` v1. It uses a
-separate `~/.local-llmup/telemetry.json`, so backend preferences and telemetry
+separate `~/.rigspark/telemetry.json`, so backend preferences and telemetry
 cannot corrupt or migrate each other. All consent markers, identifier state,
 version marker, stable pending event ids, and outbox entries share one atomic
 transaction boundary.
@@ -348,7 +348,7 @@ Rules:
 - Outbox event ids are generated once inside the same state update as their
   markers. Recovery reuses those ids, giving at-least-once delivery with server
   deduplication and no duplicate logical `first_run`/`upgrade` after crashes.
-- Write atomically under `~/.local-llmup`, mode `0600`, directory mode `0700`,
+- Write atomically under `~/.rigspark`, mode `0600`, directory mode `0700`,
   with no-follow/regular-file/ownership checks and the existing lock discipline.
 - A symlink, special file, group/other-writable file, invalid schema, oversize,
   or concurrent mutation fails closed for telemetry commands.
@@ -1064,22 +1064,22 @@ README adds a top-level **Telemetry** section and command-reference entry:
 Pseudonymous telemetry
 
 After a one-time interactive disclosure and one-invocation opt-out window,
-local-llmup enables pseudonymous usage telemetry to improve hardware,
+rigspark enables pseudonymous usage telemetry to improve hardware,
 model, and setup support: package version, OS/architecture, Node major version,
 coarse RAM/GPU buckets, public catalog model id, backend, command outcome,
 and stable error category. It does not send prompts, responses, paths, usernames,
 hostnames, serial numbers, exact hardware identifiers, environment values, or IP
 addresses in the payload. The network provider necessarily processes an IP to
-route the request, but local-llmup does not retain it for analytics.
+route the request, but rigspark does not retain it for analytics.
 
 Disable and delete the local telemetry identifier/outbox:
-  local-llmup telemetry off
+  rigspark telemetry off
 
 Re-enable with a new identifier:
-  local-llmup telemetry on
+  rigspark telemetry on
 
 Inspect effective state without networking:
-  local-llmup telemetry status
+  rigspark telemetry status
 ```
 
 Also required:

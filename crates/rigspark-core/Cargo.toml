@@ -1,0 +1,23 @@
+[package]
+name = "rigspark-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Deterministic, offline LLM memory and VRAM sizing, KV-cache estimation, hardware-fit scoring and model catalog for rigspark."
+keywords = ["llm", "vram", "kv-cache", "quantization", "local-llm"]
+categories = ["artificial-intelligence"]
+include = ["src/**", "data/**", "fixtures/bootstrap-metadata.json", "fixtures/registry-snapshot.json", "Cargo.toml"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+regex = "1"
+time = { version = "0.3", features = ["parsing", "macros", "formatting"] }
+url = "2"
+
+[lints]
+workspace = true

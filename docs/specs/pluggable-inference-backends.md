@@ -8,7 +8,7 @@
 > auto-detect on Apple Silicon; vector-less embedding fallback; vLLM deferred to a
 > follow-up spec). Pending human approval to start Phase 0.
 > Last updated: 2026-08-06
-> Related: `docs/specs/local-llmup.md` (§2 Tech Stack, §3.2 `up`, §3.6 runtime
+> Related: `docs/specs/rigspark.md` (§2 Tech Stack, §3.2 `up`, §3.6 runtime
 > state), `docs/specs/hardware-advisor.md` (throughput/verdict),
 > `docs/specs/context-window-sizing.md` (KV-cache math).
 
@@ -37,7 +37,7 @@ behavior), it will be a separate spec.
 
 ## 1. Objective
 
-Let `local-llmup` install, serve, rank, and drive local LLMs across **more than
+Let `rigspark` install, serve, rank, and drive local LLMs across **more than
 one inference runtime**, chosen automatically from what the user's machine can
 run — while preserving every domain invariant: the honesty gate, deterministic
 offline advice, fail-closed integrity, and loopback-only serving.
@@ -56,7 +56,7 @@ This spec closes those gaps and defines concrete adapters.
 - Apple-Silicon users who want **MLX** speed instead of the Ollama/llama.cpp
   path.
 - Power users who already run **llama.cpp** (`llama-server`) or **LM Studio**
-  and want `local-llmup`'s advice + lifecycle on top of their runtime.
+  and want `rigspark`'s advice + lifecycle on top of their runtime.
 - Linux/CUDA users who want **vLLM** throughput (deferred to a follow-up spec,
   §10 Q4; llama.cpp serves the CUDA path in v1).
 
@@ -115,8 +115,8 @@ own the active server). Implemented once in `src/backend/select.ts`:
 **A. Commands that _create_ a server (`up`):**
 
 1. Explicit `--backend <name>` flag.
-2. `LOCAL_LLMUP_BACKEND` env var.
-3. Config file preference (`~/.local-llmup/config.json`, new; see §2.6).
+2. `RIGSPARK_BACKEND` env var.
+3. Config file preference (`~/.rigspark/config.json`, new; see §2.6).
 4. Auto-detect: highest-priority **installed** backend that can serve the target
    model (see §2.4). Priority order is platform-aware (§10 Q1, decided): Apple
    Silicon `mlx` → `ollama` → `llamacpp`; everything else (incl. Linux+CUDA in
@@ -255,7 +255,7 @@ active:{backend:"ollama", ownedByUs:true, pid:42, …}}`.
 
 ### 2.6 New config file (optional, additive)
 
-`~/.local-llmup/config.json`, validated by Zod, owner-only (`0600`):
+`~/.rigspark/config.json`, validated by Zod, owner-only (`0600`):
 
 ```jsonc
 { "schemaVersion": 1, "defaultBackend": "mlx" }
@@ -412,7 +412,7 @@ v0.1 security audit tightened this section:
   loopback**; a non-loopback endpoint is refused (state not written, server
   stopped if owned) unless `allowNonLoopback` was explicitly set.
 - **Attach-only trust boundary (M1).** A `canPull:false` backend (LM Studio)
-  serves weights `local-llmup` did not download. Where the resolved GGUF is
+  serves weights `rigspark` did not download. Where the resolved GGUF is
   locatable, verify its digest; otherwise treat it as a **named trust boundary**
   — `PullResult.digestVerified = false` and a printed warning that integrity was
   delegated to the runtime. The “refuse to serve unverified weights” invariant is
@@ -431,7 +431,7 @@ v0.1 security audit tightened this section:
 ### 2.9 GGUF / MLX weight acquisition (new pull path)
 
 Unlike Ollama (whose daemon owns a content-addressed store), llama.cpp/MLX
-require `local-llmup` to fetch weights itself. This is the riskiest new piece,
+require `rigspark` to fetch weights itself. This is the riskiest new piece,
 so it is specified explicitly (review finding I5):
 
 1. **Downloader:** direct HTTPS `fetch` from HuggingFace resolve URLs, pinned to
@@ -443,7 +443,7 @@ so it is specified explicitly (review finding I5):
    is required for self-managed downloads; the size-floor plausibility fallback
    is a last resort only when no digest exists anywhere, and always surfaces
    `digestVerified:false` (review finding L1).
-3. **Location:** `~/.local-llmup/cache/<backend>/<repo>@<revision>/<file>`
+3. **Location:** `~/.rigspark/cache/<backend>/<repo>@<revision>/<file>`
    (`0700` dirs, `0600` files), verify-before-activate via atomic rename.
 4. **Resume/partial:** partial downloads land in the temp file and are discarded
    on digest failure; no partial file is ever promoted or served.
@@ -513,7 +513,7 @@ src/backend/
   mlx.ts              → NEW: mlx_lm.server adapter (Apple Silicon)
   lmstudio.ts         → NEW: LM Studio (`lms`) adapter
   vllm.ts             → NEW (deferred, §10 Q4): vLLM adapter (Linux+CUDA)
-src/config.ts         → + loadUserConfig() for ~/.local-llmup/config.json
+src/config.ts         → + loadUserConfig() for ~/.rigspark/config.json
 src/catalog/schema.ts → + gguf/mlx in ModelSourceSchema
 src/types.ts          → + ModelSource.gguf/mlx, ModelFormat, BackendCapabilities
 src/state/state.ts    → schema v2 (+backend), v1→v2 normalization
@@ -940,7 +940,7 @@ mlx-lm, and llamafile → `up` must probe before claiming ownership (§2.3); (2)
 several runtimes bind `0.0.0.0` by default → the adapter must **force
 `--host 127.0.0.1`** and assert a loopback endpoint (§2.8 H5). Only Ollama and
 LM Studio have first-class digested pulls; llama.cpp/mlx-lm/vLLM pull from
-HuggingFace at load, so `local-llmup` must verify HF revision/sha256 itself
+HuggingFace at load, so `rigspark` must verify HF revision/sha256 itself
 (§2.8–2.9).
 
 ### 12.6 Honesty-gate ledger (what §2.7 seeds vs. marks `unknown`)

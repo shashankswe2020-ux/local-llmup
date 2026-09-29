@@ -24,7 +24,7 @@
 ### C2. `npx` fallback bypasses binary path validation and requires shell execution
 
 - **Section:** §3.3 step 5, §12.2, §16 (Boundaries)
-- **Problem:** §12.2 requires the binary path to be an absolute path with no shell metacharacters, and §16 states "Never use `shell: true` or string interpolation when spawning the `llmup` binary." The `npx --no-install local-llmup` fallback is not an absolute path — it is a command-with-argument string. Spawning `Command::new("npx").arg("--no-install").arg("local-llmup")` resolves `npx` via PATH (not an absolute path), bypasses the absolute-path validation rule, and introduces a supply-chain risk: a malicious package named `local-llmup` in a locally-configured npm registry would execute on first app launch without any user confirmation. There is no npm integrity check equivalent here. Additionally, `npx` itself can make network calls to resolve the package, violating the deterministic, offline posture of the project.
+- **Problem:** §12.2 requires the binary path to be an absolute path with no shell metacharacters, and §16 states "Never use `shell: true` or string interpolation when spawning the `llmup` binary." The `npx --no-install rigspark` fallback is not an absolute path — it is a command-with-argument string. Spawning `Command::new("npx").arg("--no-install").arg("rigspark")` resolves `npx` via PATH (not an absolute path), bypasses the absolute-path validation rule, and introduces a supply-chain risk: a malicious package named `rigspark` in a locally-configured npm registry would execute on first app launch without any user confirmation. There is no npm integrity check equivalent here. Additionally, `npx` itself can make network calls to resolve the package, violating the deterministic, offline posture of the project.
 - **Fix:** Remove the `npx` fallback from §3.3. If the binary is not found via steps 1–4, go directly to the install dialog. Document in §3.3 that `npx` is explicitly excluded as a security boundary. If a future version wants a "download and run" flow, it belongs in a separate D-task with explicit security review.
 
 ### C3. Port probe strategy is inconsistent between §3.2 and §3.5
@@ -67,7 +67,7 @@
 
 - **Section:** §3.2, §8 (D2 acceptance criteria)
 - **Problem:** The D2 acceptance criterion states "Child crash is detected; notification is shown; tray icon dims." It does not specify: (a) whether Rust attempts to respawn the server after a crash and, if so, how many times and with what backoff; (b) what state the window shows (a blank page? an error overlay? the last rendered page?); (c) what happens when the user clicks "Open" in the tray after a crash. Without this, each implementor will make a different choice and the behavior will be inconsistent across versions.
-- **Fix:** Add a §3.6 "Crash recovery" subsection specifying: on child exit with non-zero code or unexpected exit, (1) show OS notification "local-llmup: server stopped — open to restart", (2) dim tray icon, (3) navigate WebView to an error page (`about:blank` with an injected error message or a bundled `error.html`), (4) no automatic respawn in v1 (user must click tray "Open" to trigger a fresh startup sequence from step 1). Add this as a D4 deliverable since it requires the tray to be wired.
+- **Fix:** Add a §3.6 "Crash recovery" subsection specifying: on child exit with non-zero code or unexpected exit, (1) show OS notification "rigspark: server stopped — open to restart", (2) dim tray icon, (3) navigate WebView to an error page (`about:blank` with an injected error message or a bundled `error.html`), (4) no automatic respawn in v1 (user must click tray "Open" to trigger a fresh startup sequence from step 1). Add this as a D4 deliverable since it requires the tray to be wired.
 
 ### I3. macOS universal binary CI step is missing the x86_64 Rust toolchain installation
 
@@ -106,8 +106,8 @@
 ### S1. Update endpoint URL in §9 exposes a specific GitHub username — use a canonical placeholder
 
 - **Section:** §9 (Auto-update endpoints)
-- **Problem:** The `endpoints` URL is `https://github.com/shashankswe2020-ux/local-llmup/releases/...`. This appears to be a personal fork URL left from a draft. If this is not the canonical repository, it will silently route update checks to a different (possibly abandoned or malicious) repository. Even if it is the correct URL, hardcoding a personal GitHub username in a spec is fragile against repository transfers.
-- **Fix:** Replace with `https://github.com/<canonical-owner>/local-llmup/releases/latest/download/latest.json` and resolve the canonical owner before D5.
+- **Problem:** The `endpoints` URL is `https://github.com/shashankswe2020-ux/rigspark/releases/...`. This appears to be a personal fork URL left from a draft. If this is not the canonical repository, it will silently route update checks to a different (possibly abandoned or malicious) repository. Even if it is the correct URL, hardcoding a personal GitHub username in a spec is fragile against repository transfers.
+- **Fix:** Replace with `https://github.com/<canonical-owner>/rigspark/releases/latest/download/latest.json` and resolve the canonical owner before D5.
 
 ### S2. Binary path allowlist does not check file ownership or world-writable bit
 
@@ -118,7 +118,7 @@
 ### S3. "Error splash Retry" behavior conflicts with the "install dialog" for binary not found
 
 - **Section:** §3.3, §14 (D3 deliverables)
-- **Problem:** §3.3 specifies a friendly "Install local-llmup first" dialog on binary discovery failure. D3 specifies a separate "Error splash with Retry and Quit buttons" for startup failure. It is unclear whether binary-not-found hits the install dialog or the error splash, and what "Retry" means in each context (re-run discovery from step 1? re-spawn with the same binary?).
+- **Problem:** §3.3 specifies a friendly "Install rigspark first" dialog on binary discovery failure. D3 specifies a separate "Error splash with Retry and Quit buttons" for startup failure. It is unclear whether binary-not-found hits the install dialog or the error splash, and what "Retry" means in each context (re-run discovery from step 1? re-spawn with the same binary?).
 - **Fix:** Clarify the error handling tree: binary-not-found → install dialog (with copy-npm-command button, no Retry); server-start-failure (JSON timeout, bind failure) → error splash (with Retry triggering full restart from step 1, and Quit). These are distinct failure modes with distinct UX.
 
 ### S4. D3 missing deliverable: Vitest config setup for `desktop/src/tests/`

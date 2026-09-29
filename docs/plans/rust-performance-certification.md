@@ -6,7 +6,7 @@ performance and improvement report, not a completed benchmark report.
 ## Measurement Rules
 
 - User direction (2026-09-22): run comparative performance testing after migration
-  is complete, against a pinned published `local-llmup` npm package, not a rebuilt
+  is complete, against a pinned published `rigspark` npm package, not a rebuilt
   legacy checkout. No comparative benchmarks are authorized by intermediate
   migration checkpoints.
 - Record the exact published package version, registry URL, tarball integrity and

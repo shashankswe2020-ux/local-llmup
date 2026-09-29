@@ -21,7 +21,7 @@ are three user modes:
 | `auto` | Ask a **decider chain**: Jev (if enabled and reachable) → deterministic heuristic → model default |
 
 **Jev can be enabled or disabled independently** through config, the env var
-`LOCAL_LLMUP_JEV=on|off`, the flags `--jev/--no-jev`, or a GUI switch. When
+`RIGSPARK_JEV=on|off`, the flags `--jev/--no-jev`, or a GUI switch. When
 enabled, Jev answers one typed question, "Does this request need multi-step
 reasoning?", as a probability (TypeSafe's `noul` answer type) in a single forward
 pass with no generated text. A threshold turns it into on/off.
@@ -30,8 +30,8 @@ Every reply records **what was decided and why**: `on · jev p=0.82`,
 `off · heuristic`, `on · forced`, or `unsupported by backend`.
 
 Today the gap looks like this:
-- `ChatInput` has no reasoning field ([ollama_inference.rs](../../crates/llmup-runtime/src/ollama_inference.rs#L34-L41)).
-- `chat_body` never sends `think` ([ollama_inference.rs](../../crates/llmup-runtime/src/ollama_inference.rs#L96)).
+- `ChatInput` has no reasoning field ([ollama_inference.rs](../../crates/rigspark-runtime/src/ollama_inference.rs#L34-L41)).
+- `chat_body` never sends `think` ([ollama_inference.rs](../../crates/rigspark-runtime/src/ollama_inference.rs#L96)).
 - `NativeMessage` drops `thinking` output.
 - The GUI only shows a transient "Thinking…" indicator (`buildThinking()` in `chat.js`).
 
@@ -40,7 +40,7 @@ Today the gap looks like this:
 | # | Decision | Blocks | Proposed default | Status |
 | --- | --- | --- | --- | --- |
 | R1 | Default mode. Changing the default alters every existing chat. | J4 | `model-default` (send nothing, today's behaviour); `auto` is opt-in in v1 | ⏳ |
-| R2 | Jev endpoint locality. The hosted TypeSafe API sends user prompts off-machine and needs an API key. | J2 | Loopback only by default (e.g. a local Laya server). Remote needs `allowRemote: true` plus a key from `LOCAL_LLMUP_JEV_API_KEY`; the key is never written to config, never logged, never shown in the GUI | ⏳ |
+| R2 | Jev endpoint locality. The hosted TypeSafe API sends user prompts off-machine and needs an API key. | J2 | Loopback only by default (e.g. a local Laya server). Remote needs `allowRemote: true` plus a key from `RIGSPARK_JEV_API_KEY`; the key is never written to config, never logged, never shown in the GUI | ⏳ |
 | R3 | What is sent to Jev | J2 | Only the latest user message, truncated to 4,000 chars. No system prompt, tool output, files or history | ⏳ |
 | R4 | Wire contract. Pin the `/v1/systemone` request/response shape from a real local server (J0), not from memory. | J2 | Strict serde, `deny_unknown_fields` on our structs, response ≤ 64 KiB checked **before** deserialization | ⏳ |
 | R5 | Latency budget and failure behaviour | J2 | 400 ms timeout. Any error, timeout, 401 or 429 → fall through to the heuristic, with `source: heuristic (jev unavailable: <reason>)`. Chat never blocks on Jev | ⏳ |
@@ -53,10 +53,10 @@ catalog schema change in v1 (that would be an *ask-first* boundary).
 
 ## Architecture decisions
 
-- **Pure heuristic in core** (`llmup-core/src/reasoning.rs`): `heuristic(prompt) -> Decision`.
+- **Pure heuristic in core** (`rigspark-core/src/reasoning.rs`): `heuristic(prompt) -> Decision`.
   - It is deterministic and offline, with table-driven signals: length, math/code markers, "why/prove/plan/step-by-step" cues, multi-question structure.
   - It is fully unit-tested and never claims a probability (`probability: None`).
-- **Decider trait in runtime** (`llmup-runtime/src/reasoning.rs`):
+- **Decider trait in runtime** (`rigspark-runtime/src/reasoning.rs`):
   ```rust
   #[async_trait]
   pub trait ReasoningDecider: Send + Sync {
@@ -105,15 +105,15 @@ J1, J2 and J3 can run in parallel after J0.
 - Capture an Ollama `/api/chat` exchange with `think:true` and one with `think:false` from a reasoning model.
 - Capture a llama-server exchange with `chat_template_kwargs.enable_thinking`.
 - Record versions.
-- **Output:** fixtures in `crates/llmup-runtime/tests/fixtures/reasoning/`, plus an ADR note in this plan confirming or correcting R4 and R7.
+- **Output:** fixtures in `crates/rigspark-runtime/tests/fixtures/reasoning/`, plus an ADR note in this plan confirming or correcting R4 and R7.
 
 ### J1 — Core decision + heuristic
 - **Acceptance:**
   1. A table of at least 40 labelled prompts (math, code, trivia, greetings, multi-step plans) gives the documented outcome.
   2. Identical input → identical output.
   3. The threshold validator rejects NaN and out-of-range values.
-- **Files:** `crates/llmup-core/src/reasoning.rs` (new), `lib.rs`, `crates/llmup-core/tests/reasoning.rs`.
-- **Verify:** `cargo test -p llmup-core --test reasoning`.
+- **Files:** `crates/rigspark-core/src/reasoning.rs` (new), `lib.rs`, `crates/rigspark-core/tests/reasoning.rs`.
+- **Verify:** `cargo test -p rigspark-core --test reasoning`.
 
 ### J2 — JevDecider + chain
 - **Acceptance:**
@@ -122,8 +122,8 @@ J1, J2 and J3 can run in parallel after J0.
   3. A non-loopback URL without `allowRemote` → config error.
   4. A remote URL without an API key → error; the key is sent only as a bearer header and never appears in errors or logs.
   5. Cancellation returns promptly.
-- **Files:** `crates/llmup-runtime/src/reasoning.rs` (new), `lib.rs`, `crates/llmup-runtime/tests/reasoning.rs`.
-- **Verify:** `cargo test -p llmup-runtime --test reasoning`.
+- **Files:** `crates/rigspark-runtime/src/reasoning.rs` (new), `lib.rs`, `crates/rigspark-runtime/tests/reasoning.rs`.
+- **Verify:** `cargo test -p rigspark-runtime --test reasoning`.
 
 ### J3 — Backend mapping + thinking decode
 - **Do:**
@@ -136,12 +136,12 @@ J1, J2 and J3 can run in parallel after J0.
   2. Fixture round-trips work in both modes.
   3. An unsupported adapter returns `Unsupported` and does not send the field.
 - **Files:** `ollama_inference.rs`, `adapters.rs`, `special_adapters.rs`, `openai.rs`, `harness.rs`, their tests.
-- **Verify:** `cargo test -p llmup-runtime`.
+- **Verify:** `cargo test -p rigspark-runtime`.
 
 ### J4 — Configuration + resolution
 - **Do:**
   - `config.json` `schemaVersion: 2` gets an optional `reasoning` object: `{ "mode": "model-default|auto|on|off", "jev": { "enabled": bool, "endpoint": "http://127.0.0.1:3000", "model": "laya", "threshold": 0.5, "timeoutMs": 400, "allowRemote": false } }`.
-  - `LOCAL_LLMUP_JEV=on|off` overrides `jev.enabled`.
+  - `RIGSPARK_JEV=on|off` overrides `jev.enabled`.
   - Resolution order: request flag → env → config → default.
   - Shares the v2 bump with [task-34](./task-34-pluggable-kv-cache.md) C6. Whichever plan lands first owns the migration.
 - **Acceptance:**
@@ -152,7 +152,7 @@ J1, J2 and J3 can run in parallel after J0.
 ### J5 — CLI chat
 - **Do:** `llmup chat --reasoning <model-default|auto|on|off> [--jev|--no-jev] [--show-thinking]`. The plain-output decision line goes to stderr, so stdout stays the answer. JSON output gains `reasoning: {think, source, probability}`.
 - **Acceptance:** goldens for each mode using an injected decider and backend; `--help` golden updated.
-- **Files:** `native_args.rs`, `native.rs`, `native_chat.rs`, `chat_service.rs`, `crates/llmup-cli/tests/*chat*.rs`.
+- **Files:** `native_args.rs`, `native.rs`, `native_chat.rs`, `chat_service.rs`, `crates/rigspark-cli/tests/*chat*.rs`.
 
 ### J6 — GUI
 - **Do:**
@@ -165,7 +165,7 @@ J1, J2 and J3 can run in parallel after J0.
   2. The Jev switch persists.
   3. The WebDriver journey covers toggling and the badge text.
   4. Thinking text is sanitized through the same Marked/DOMPurify path as content.
-- **Files:** `crates/llmup-gui/src/{chat.rs,routes.rs,options.rs}`, `static/{chat.js,index.html,styles.css}`, `crates/llmup-gui/tests/*`.
+- **Files:** `crates/rigspark-gui/src/{chat.rs,routes.rs,options.rs}`, `static/{chat.js,index.html,styles.css}`, `crates/rigspark-gui/tests/*`.
 
 ### J7 — Docs + security review
 - README "Reasoning: auto, on, off" with the Jev setup (local Laya, optional remote), the privacy note on R2/R3, CHANGELOG, and a short security-audit entry covering data egress, key handling and response validation.

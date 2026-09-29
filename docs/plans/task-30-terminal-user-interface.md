@@ -1,13 +1,13 @@
 # Implementation Plan: terminal-user-interface
 
 > Source spec: [docs/specs/terminal-user-interface.md](../specs/terminal-user-interface.md)
-> Related: [docs/specs/local-llmup.md](../specs/local-llmup.md), [docs/plans/task-plan-local-llmup.md](./task-plan-local-llmup.md)
+> Related: [docs/specs/rigspark.md](../specs/rigspark.md), [docs/plans/task-plan-rigspark.md](./task-plan-rigspark.md)
 > Status: **Draft — U1 read-only phase complete; U0b CI matrix and U2 approvals remain**
 > Last updated: 2026-08-08
 
 ## Overview
 
-Deliver a command-specific interactive terminal UI that preserves local-llmup's
+Deliver a command-specific interactive terminal UI that preserves rigspark's
 existing noninteractive contracts byte-for-byte unless explicitly versioned.
 Implementation is phased from runtime proof to read-only surfaces, then mutating
 lifecycle commands, then chat, with hard safety/performance gates at each

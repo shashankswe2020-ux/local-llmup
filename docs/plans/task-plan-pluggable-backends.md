@@ -1,13 +1,13 @@
-# Implementation Plan: local-llmup — Pluggable Inference Backends
+# Implementation Plan: rigspark — Pluggable Inference Backends
 
 > Source spec: [docs/specs/pluggable-inference-backends.md](../specs/pluggable-inference-backends.md) (Draft v0.5)
-> Related: [docs/specs/local-llmup.md](../specs/local-llmup.md), [docs/specs/hardware-advisor.md](../specs/hardware-advisor.md)
+> Related: [docs/specs/rigspark.md](../specs/rigspark.md), [docs/specs/hardware-advisor.md](../specs/hardware-advisor.md)
 > Status: **Complete — Checkpoint E shippable**
 > Last updated: 2026-08-08
 
 ## Overview
 
-Take `local-llmup` from a single-backend (Ollama) tool to a **pluggable
+Take `rigspark` from a single-backend (Ollama) tool to a **pluggable
 multi-runtime** tool, adding `llama.cpp`, `MLX`, and `LM Studio` adapters behind
 the existing `BackendAdapter` contract — while preserving every domain
 invariant (honesty gate, deterministic offline advice, fail-closed integrity,
@@ -179,7 +179,7 @@ Phase 0 registers Ollama only.
       **Verify:** `npm test tests/backend/registry`
       **Deps:** B1 **Files:** `src/backend/registry.ts`, `tests/backend/registry.test.ts` **Scope:** S
 
-#### B3: User config loader (`~/.local-llmup/config.json`)
+#### B3: User config loader (`~/.rigspark/config.json`)
 
 **Description:** `loadUserConfig()` in `config.ts` — Zod
 `{ schemaVersion: z.literal(1), defaultBackend: z.enum([...names]) }.strict()`,
@@ -355,7 +355,7 @@ never `isInstalled()`-derived). Unsourced `(class,backend)` → `unknown`.
 **Description:** `src/backend/acquire.ts` (or similar): direct HTTPS `fetch` from
 HF resolve URL pinned to commit `revision` → `assertSafeFetchUrl`
 (HTTPS-only, HF allowlist, no-credential, no-private-host) → temp `0600` file in
-`0700` cache `~/.local-llmup/cache/<backend>/<repo>@<revision>/<file>` →
+`0700` cache `~/.rigspark/cache/<backend>/<repo>@<revision>/<file>` →
 digest-verify → **atomic rename**. Reject cache symlinks; discard partials.
 **Acceptance:**
 
@@ -507,7 +507,7 @@ presence**; where the resolved GGUF is locatable, verify its digest, else surfac
       process/path-bound readiness and exact marker chat (`LMSTUDIO_RUNTIME_OK`), and
       returned two finite 768-dimensional Nomic embedding vectors. Cleanup unloaded
       the smoke models, released the custom port, and preserved pre-existing
-      local-llmup state.
+      rigspark state.
       **Verify:** `npm test tests/backend/lmstudio tests/backend/adapter-contract`
       **Deps:** B5, B16 **Files:** `src/backend/lmstudio.ts`, `src/backend/registry.ts`, `tests/backend/lmstudio.test.ts` **Scope:** L
 

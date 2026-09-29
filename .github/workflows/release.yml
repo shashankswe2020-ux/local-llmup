@@ -109,10 +109,10 @@ jobs:
           set -euo pipefail
           if ! gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
-              --title "local-llmup $GITHUB_REF_NAME" --notes "Release notes are added when all archives are verified." \
+              --title "rigspark $GITHUB_REF_NAME" --notes "Release notes are added when all archives are verified." \
               || gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null
           fi
-          stem="local-llmup-${{ matrix.target }}"
+          stem="rigspark-${{ matrix.target }}"
           gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber \
             "target/native-dist/$stem.tar.gz" "target/native-dist/$stem.tar.gz.sha256"
 
@@ -157,7 +157,7 @@ jobs:
       - name: Generate Homebrew formula
         run: |
           version="${GITHUB_REF_NAME#v}"
-          cargo native-dist formula --version "$version" --checksums release-assets/SHA256SUMS > release-assets/local-llmup.rb
+          cargo native-dist formula --version "$version" --checksums release-assets/SHA256SUMS > release-assets/rigspark.rb
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -167,10 +167,10 @@ jobs:
           awk -v heading="## $version " 'index($0, heading) == 1 {found=1; next} found && /^## / {exit} found {print}' CHANGELOG.md > release-notes.md
           test -s release-notes.md
           {
-            printf '\n## Install\n\n```bash\nbrew install shashankswe2020-ux/tap/local-llmup\ncargo binstall llmup-cli llmup-gui\ncargo install llmup-cli --locked --bin llmup --bin local-llmup && cargo install llmup-gui --locked\n```\n\n'
+            printf '\n## Install\n\n```bash\nbrew install shashankswe2020-ux/tap/rigspark\ncargo binstall rigspark-cli rigspark-gui\ncargo install rigspark-cli --locked --bin llmup --bin rigspark && cargo install rigspark-gui --locked\n```\n\n'
             printf 'Archives are unsigned. Verify downloads against `SHA256SUMS`.\n'
           } >> release-notes.md
-          gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber release-assets/SHA256SUMS release-assets/local-llmup.rb
+          gh release upload "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --clobber release-assets/SHA256SUMS release-assets/rigspark.rb
           gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --notes-file release-notes.md --draft=false --latest
       - name: Update Homebrew tap
         env:
@@ -178,7 +178,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$TAP_TOKEN" ]; then
-            echo "::notice::HOMEBREW_TAP_TOKEN is not set; copy local-llmup.rb from the release into shashankswe2020-ux/homebrew-tap."
+            echo "::notice::HOMEBREW_TAP_TOKEN is not set; copy rigspark.rb from the release into shashankswe2020-ux/homebrew-tap."
             exit 0
           fi
           AUTH=$(printf 'x-access-token:%s' "$TAP_TOKEN" | base64 | tr -d '\r\n')
@@ -187,14 +187,14 @@ jobs:
           export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $AUTH"
           git clone --depth 1 https://github.com/shashankswe2020-ux/homebrew-tap.git tap
           mkdir -p tap/Formula
-          cp release-assets/local-llmup.rb tap/Formula/local-llmup.rb
+          cp release-assets/rigspark.rb tap/Formula/rigspark.rb
           cd tap
-          git add Formula/local-llmup.rb
+          git add Formula/rigspark.rb
           if git diff --cached --quiet; then
             echo "Formula unchanged."
             exit 0
           fi
           git -c user.name="github-actions[bot]" \
             -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -q -m "local-llmup ${GITHUB_REF_NAME#v}"
+            commit -q -m "rigspark ${GITHUB_REF_NAME#v}"
           git push origin HEAD

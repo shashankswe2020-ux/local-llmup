@@ -32,7 +32,7 @@ None.
 ### 2. `up` create-path does not thread flag/env/config into `select()`
 
 - **File:** `src/commands/up.ts:169-175`
-- **Detail:** `select({ intent: "create", ... })` passes only `platform`/`arch`; `flag`, `env` (`LOCAL_LLMUP_BACKEND`), and `configBackend` are omitted, so those precedence tiers are inert on the serving path. This is consistent with B6's scope (no CLI `--backend` flag exists yet — confirmed no `--backend`/`LOCAL_LLMUP_BACKEND` references in `src/cli.ts`) and harmless in Phase 0 (only Ollama registered). Flag/env/config resolution in `select()` is currently exercised only by unit tests. Recommend tracking the wiring explicitly with the CLI-flag task so the documented env override doesn't silently no-op longer than intended.
+- **Detail:** `select({ intent: "create", ... })` passes only `platform`/`arch`; `flag`, `env` (`RIGSPARK_BACKEND`), and `configBackend` are omitted, so those precedence tiers are inert on the serving path. This is consistent with B6's scope (no CLI `--backend` flag exists yet — confirmed no `--backend`/`RIGSPARK_BACKEND` references in `src/cli.ts`) and harmless in Phase 0 (only Ollama registered). Flag/env/config resolution in `select()` is currently exercised only by unit tests. Recommend tracking the wiring explicitly with the CLI-flag task so the documented env override doesn't silently no-op longer than intended.
 - **Severity:** Low. Deferred wiring, no Phase-0 behavior change.
 
 ### 3. Attach commands surface the generic `unknown backend` error for a stale `active.backend`

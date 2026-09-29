@@ -23,7 +23,7 @@ What AX provides, per its README:
 
 Everything else below is a hypothesis for spike X0.
 
-**Tension with project principles.** local-llmup is local-first and loopback-only,
+**Tension with project principles.** rigspark is local-first and loopback-only,
 while AX runs in a cluster. The plan only allows a *local* cluster by default,
 and treats any path that would expose the local model server as a blocking
 decision (A3).
@@ -46,7 +46,7 @@ decision (A3).
 
 - **Pure orchestration core.**
   - `Crew`, `AgentRole`, `Topology`, `CrewPlan` and `Budget`, with pure functions: validate, schedule (a DAG with a deterministic order), and merge results.
-  - It lives in `crates/llmup-runtime/src/crew.rs`, next to `agent.rs` and `library.rs`.
+  - It lives in `crates/rigspark-runtime/src/crew.rs`, next to `agent.rs` and `library.rs`.
 - **Isolation trait:**
   ```rust
   #[async_trait]
@@ -103,15 +103,15 @@ exposing the model server, stop after Checkpoint A.
   5. What does suspend/resume do to in-flight model calls?
   6. What is the failure/phase vocabulary?
   7. How does the client authenticate to the control plane (the `ax ctx` / tunnel state in `~/.ax/tunnels`)?
-- **Output:** an ADR appended here, fixtures in `crates/llmup-runtime/tests/fixtures/ax/`, and a go/no-go for X4.
+- **Output:** an ADR appended here, fixtures in `crates/rigspark-runtime/tests/fixtures/ax/`, and a go/no-go for X4.
 
 ### X1 — Crew core
 - **Acceptance:**
   1. Validation rejects unknown agent ids, cycles, empty roles, over-budget configs and duplicate role names.
   2. Scheduling is deterministic (same crew → same order).
   3. The merge output is stable and preserves each role's attribution.
-- **Files:** `crates/llmup-runtime/src/crew.rs` (new), `lib.rs`, `crates/llmup-runtime/tests/crew.rs`.
-- **Verify:** `cargo test -p llmup-runtime --test crew`.
+- **Files:** `crates/rigspark-runtime/src/crew.rs` (new), `lib.rs`, `crates/rigspark-runtime/tests/crew.rs`.
+- **Verify:** `cargo test -p rigspark-runtime --test crew`.
 
 ### X2 — LocalProcessIsolation
 - **Do:** a per-role temp workspace under the home staging dir (secure_fs rules), `minimal_env()` only, separate MCP `Connection`s per role, and per-role `SessionGrants`.
@@ -119,7 +119,7 @@ exposing the model server, stop after Checkpoint A.
   1. Role A cannot read role B's workspace; tested by path.
   2. No parent env secrets leak; tested with an injected env.
   3. Teardown removes the workspace even after a panic or cancel.
-- **Files:** `crates/llmup-runtime/src/isolation.rs` (new), `crates/llmup-runtime/tests/isolation.rs`.
+- **Files:** `crates/rigspark-runtime/src/isolation.rs` (new), `crates/rigspark-runtime/tests/isolation.rs`.
 
 ### X3 — Orchestrator engine
 - **Do:** runs a `CrewPlan` over any `IsolationProvider`, with budgets (A9), cancellation, event streaming and result merge. Model calls go through the existing `AgentChat` and harness registry.
@@ -128,7 +128,7 @@ exposing the model server, stop after Checkpoint A.
   2. Hitting a budget stops and tears down every role.
   3. The first failure policy (`fail-fast` or `continue`) is honoured.
   4. Output passed between roles is quoted as data.
-- **Files:** `crates/llmup-runtime/src/crew_engine.rs` (new), tests.
+- **Files:** `crates/rigspark-runtime/src/crew_engine.rs` (new), tests.
 
 ### X4 — AX provider (after X0 go)
 - **Do:**
@@ -141,12 +141,12 @@ exposing the model server, stop after Checkpoint A.
   3. The wrong AX version is refused.
   4. Cancel deletes every created Task, proven by the recorded CLI calls.
   5. No secret value ever appears in manifests or logs.
-- **Files:** `crates/llmup-runtime/src/isolation_ax.rs` (new), tests + fixtures.
+- **Files:** `crates/rigspark-runtime/src/isolation_ax.rs` (new), tests + fixtures.
 
 ### X5 — CLI `llmup crew`
 - **Do:** `crew run <crew.json> [--isolation local|ax] [--allow-remote-cluster] [--json]`, `crew status|logs|suspend|resume|stop <id>`. This is a new subcommand, so the COMMANDS list, help goldens and public_cli rows all change.
 - **Acceptance:** goldens; exit codes (0 ok, 1 role failure, 2 usage, 130 cancelled); `--isolation ax` without AX prints an actionable preflight error.
-- **Files:** `native_args.rs`, `native.rs`, `crates/llmup-cli/tests/{public_cli,crew_cli}.rs`, fixtures manifest.
+- **Files:** `native_args.rs`, `native.rs`, `crates/rigspark-cli/tests/{public_cli,crew_cli}.rs`, fixtures manifest.
 
 ### X6 — GUI crew panel
 - **Do:** pick agents from the library and a topology, then run. Show per-role status, streaming events, and an isolation badge (`local`: fs/env only; `ax`: sandboxed), plus stop and suspend controls.

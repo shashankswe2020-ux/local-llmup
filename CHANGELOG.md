@@ -7,7 +7,7 @@
 ### Fixes
 
 - Tool-using chat works again with Ollama 0.32 and newer. Ollama now adds an
-  `id` and an `index` to each tool call; local-llmup rejected those fields, so
+  `id` and an `index` to each tool call; rigspark rejected those fields, so
   chat with MCP connectors or agent tools either failed outright or silently
   dropped every tool call and returned an empty reply.
 
@@ -17,8 +17,8 @@
 
 - Every tagged release now ships verified prebuilt archives for macOS (Apple
   Silicon, Intel), Linux (x64, ARM64) and Windows (x64) with a `SHA256SUMS` file.
-  Install with `brew install shashankswe2020-ux/tap/local-llmup` or
-  `cargo binstall llmup-cli llmup-gui`.
+  Install with `brew install shashankswe2020-ux/tap/rigspark` or
+  `cargo binstall rigspark-cli rigspark-gui`.
 
 ### Planning and hardware profiles
 
@@ -49,18 +49,18 @@
 
 ### Native Rust release
 
-- `local-llmup` is now a native Rust application. The TypeScript sources, npm
+- `rigspark` is now a native Rust application. The TypeScript sources, npm
   package, Electron shell, and every Node.js build, test and CI dependency are
   retired; `cargo native-retirement` fails if any return.
-- Install from crates.io: `cargo install llmup-cli --locked --bin llmup --bin local-llmup`
-  and `cargo install llmup-gui --locked`. The npm package receives no further
-  releases; commands, flags, JSON output and `~/.local-llmup` state are unchanged.
+- Install from crates.io: `cargo install rigspark-cli --locked --bin llmup --bin rigspark`
+  and `cargo install rigspark-gui --locked`. The npm package receives no further
+  releases; commands, flags, JSON output and `~/.rigspark` state are unchanged.
 - Measured against the published 0.11.4 on an Apple M4 Max: startup is about 24×
   faster (5.8 ms vs 139.6 ms), advice commands 1.4–1.7× faster, and peak memory
   falls from about 72 MiB to 15 MiB. Advice JSON is equivalent.
-- The curated dataset moved to `crates/llmup-core/data/` and the vendored browser
-  libraries to `crates/llmup-gui/vendor/` so they ship inside the published crates.
-- The bounded-input crossterm patch is published as `llmup-crossterm`; Ratatui
+- The curated dataset moved to `crates/rigspark-core/data/` and the vendored browser
+  libraries to `crates/rigspark-gui/vendor/` so they ship inside the published crates.
+- The bounded-input crossterm patch is published as `rigspark-crossterm`; Ratatui
   keeps upstream crossterm for rendering only, and a test pins that all terminal
   input goes through the patched parser.
 
@@ -72,7 +72,7 @@
 - MLX model directories that name a custom loader (`model_file`) are rejected.
 - Windows LM Studio executables are trusted regardless of path prefix, separator
   or case differences.
-- `switch` and `down` reject a `--backend` or `LOCAL_LLMUP_BACKEND` that conflicts
+- `switch` and `down` reject a `--backend` or `RIGSPARK_BACKEND` that conflicts
   with the active server instead of ignoring it.
 - Provider text after an SSE `[DONE]` terminator is no longer shown.
 - Memory stores readable by group or other users now fail closed.
@@ -139,7 +139,7 @@
   works.
 - Fail-closed by default: `permission: "deny"`, `share: "disabled"`,
   `autoupdate: false`, `snapshot: false`, `shell: false`. Setting the env var
-  `LOCAL_LLMUP_OPENCODE_UNRESTRICTED=1` explicitly opts a local machine into
+  `RIGSPARK_OPENCODE_UNRESTRICTED=1` explicitly opts a local machine into
   OpenCode's full tool loop (`permission: "allow"`, `share: "auto"`,
   `autoupdate: true`, `snapshot: true`). This is not the default and must be
   set on the machine — the shipped registry remains deny-by-default.
@@ -521,7 +521,7 @@ Phase 2 llama.cpp production hardening after real-process smoke testing.
 
 Bug fix: `--version` now reports the actual installed version.
 
-- `local-llmup --version` was printing a hard-coded `0.3.2` string that had
+- `rigspark --version` was printing a hard-coded `0.3.2` string that had
   drifted from the real package version. The CLI now reads the version from the
   bundled `package.json` at runtime, so it always matches the installed release
   and can never drift again.
@@ -597,7 +597,7 @@ how well it will run, with no pricing data or maintenance liability.
   bottleneck** (VRAM / RAM / compute / storage); `--json` includes both.
 - New **`can-run <model>`** command: a single `yes | slow | no` verdict with the
   binding reason and an estimated tok/s range. Exits non-zero only for `no`, so
-  it is scriptable (`local-llmup can-run <model> && local-llmup up <model>`).
+  it is scriptable (`rigspark can-run <model> && rigspark up <model>`).
 - `recommend` gains a **Verdict** (✓ yes / ⚠️ slow / ❌ no) and **Est. tok/s**
   column; `--json` gains `verdict` and `estTokPerSec` per row.
 - Added a memory-bandwidth **throughput estimator** (roofline model) backed by a
@@ -608,7 +608,7 @@ how well it will run, with no pricing data or maintenance liability.
 
 ## 0.1.0 - 2026-08-05
 
-- Initial public release of local-llmup.
+- Initial public release of rigspark.
 - Added hardware-aware model recommendation and local install/serve flows.
 - Added chat, migrate, ls, catalog, and doctor commands.
 - Added a curated model catalog with weekly refresh automation hooks.

@@ -27,16 +27,16 @@ The `up` command's handling of untrusted input (model name, `--port`), its spawn
 
 - **Location:** `src/commands/up.ts` — `runUp` (whole flow), specifically the absence of an `state.active` read and the narrow `deps.withLock` scope around `writeState` only.
 - **Description:** `runUp` never reads the current `active` server before spawning. It unconditionally `pull`s, `serve`s, then overwrites `state.active` with the new `ServerState`. The `withLock` critical section wraps **only** `writeState`, not the `serve`+persist sequence. Consequently:
-  1. **Sequential re-run:** `local-llmup up modelA` (spawns pid=1001, port 11434, `ownedByUs:true`) followed by `local-llmup up modelB --port 11500` overwrites `active` with modelB. Pid 1001 is now **erased from state**. `down`/`stop` can no longer see or signal it, so the modelA daemon leaks — it keeps running and holds port 11434 indefinitely.
+  1. **Sequential re-run:** `rigspark up modelA` (spawns pid=1001, port 11434, `ownedByUs:true`) followed by `rigspark up modelB --port 11500` overwrites `active` with modelB. Pid 1001 is now **erased from state**. `down`/`stop` can no longer see or signal it, so the modelA daemon leaks — it keeps running and holds port 11434 indefinitely.
   2. **Same-port re-run:** re-running on the already-bound port makes the second `serve` fail to bind; the tool is then unusable on that port until the orphan is manually killed, because state no longer records the owner.
   3. **Concurrent invocations:** two `up` processes both pass `isInstalled`, both `serve`, and serialize only at `writeState` — last-writer-wins, orphaning the loser's owned child.
 - **Impact:** Loss of control over spawned, network-listening daemons: leaked local processes, port exhaustion, and defeat of the `down` cleanup contract (a process the tool _owned_ becomes untrackable). For a tool whose entire safety model rests on the `ownedByUs`/`pid` bookkeeping, silently discarding an owned pid undermines that model.
 - **Relationship to existing issues:** Distinct from issue #7 (which addresses orphaning when _the current_ server's `writeState` fails — already fixed here via `stopQuietly`). This finding is about a _successful_ `up` discarding a _previously recorded_ owned server. Not a duplicate.
 - **Proof of concept:**
   ```bash
-  local-llmup up llama3            # spawns pid 1001 on :11434, state.active -> pid 1001
-  local-llmup up mistral --port 11500  # spawns pid 2002 on :11500, state.active overwritten -> pid 2002
-  local-llmup down                 # stops only pid 2002; pid 1001 leaks, :11434 stays bound
+  rigspark up llama3            # spawns pid 1001 on :11434, state.active -> pid 1001
+  rigspark up mistral --port 11500  # spawns pid 2002 on :11500, state.active overwritten -> pid 2002
+  rigspark down                 # stops only pid 2002; pid 1001 leaks, :11434 stays bound
   ps aux | grep ollama             # pid 1001 still alive, now untrackable
   ```
 - **Recommendation:** Before spawning, read `state.active` inside the lock and make `up` idempotent / explicit:

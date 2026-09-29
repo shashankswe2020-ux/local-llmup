@@ -61,7 +61,7 @@ Do **not** use it for deterministic advice-only changes that never touch a runti
    secret, instruct the user to enter it directly in the terminal and stop.
 8. **Mandatory cleanup.** Record every PID/port/state mutation. Stop only the
    verified process created by this run, even after inference or readiness failure.
-9. **Preserve user state.** If local-llmup already records an active server, do not
+9. **Preserve user state.** If rigspark already records an active server, do not
    overwrite or stop it for smoke testing. Use adapter-direct mode on a free port,
    or explicitly report that CLI-mutating smoke was skipped.
 10. **Do not fabricate success.** Report partial coverage and blockers precisely.

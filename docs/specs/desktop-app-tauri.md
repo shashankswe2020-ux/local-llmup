@@ -3,7 +3,7 @@
 > Status: **Draft (v0.1)** — pending sub-agent review and human approval.
 > Last updated: 2026-08-28
 > Related: [gui-and-harness-adapters.md](./gui-and-harness-adapters.md),
-> [local-llmup.md](./local-llmup.md),
+> [rigspark.md](./rigspark.md),
 > [terminal-user-interface.md](./terminal-user-interface.md)
 > Prerequisite: GUI spec ([gui-and-harness-adapters.md](./gui-and-harness-adapters.md))
 > must be approved and G1–G6 must be implemented before desktop work begins.
@@ -23,7 +23,7 @@
 | Security model | Node.js process injection risk | OS sandbox + CSP + capability allowlist |
 | Auto-update | electron-updater (npm dep) | tauri-updater (built-in) |
 
-The local-llmup project values minimal footprint and security. Tauri aligns with
+The rigspark project values minimal footprint and security. Tauri aligns with
 those values. Electron would add a ~100 MB Chromium download for every user —
 larger than every model weight considered "tiny" in the catalog.
 
@@ -36,7 +36,7 @@ larger than every model weight considered "tiny" in the catalog.
    installed `llmup` CLI binary as a managed child process using Tauri's
    `sidecar` or platform-native child spawn, then points the embedded WebView at
    the loopback GUI server URL.
-3. **Phase D1 (v1 of this spec)**: The desktop app **requires `local-llmup`
+3. **Phase D1 (v1 of this spec)**: The desktop app **requires `rigspark`
    to be installed** (via npm or the npm package). It discovers the binary at
    runtime — it does NOT bundle Node.js or compile a standalone binary. This
    trades self-containedness for build simplicity and eliminates cross-compilation
@@ -70,7 +70,7 @@ larger than every model weight considered "tiny" in the catalog.
 ## 2. Objective
 
 Provide a native desktop application for macOS, Linux, and Windows that wraps
-`local-llmup`'s browser GUI chat interface in a polished OS-native window — with
+`rigspark`'s browser GUI chat interface in a polished OS-native window — with
 a system tray icon, native menus, automatic server lifecycle, and a dramatically
 smaller footprint than an Electron equivalent.
 
@@ -92,7 +92,7 @@ smaller footprint than an Electron equivalent.
 - Non-technical users who want a "just open the app" experience without a terminal.
 - Developers who want the GUI always available without managing a background process.
 - Users on macOS who want Spotlight launch + dock presence.
-- Teams distributing `local-llmup` to colleagues who should not need npm.
+- Teams distributing `rigspark` to colleagues who should not need npm.
 
 ### Non-goals (v1 / Phase D1)
 
@@ -163,11 +163,11 @@ before desktop work begins.
 The `llmup` binary is located by checking in order:
 
 1. `LLMUP_BIN` environment variable (test seam).
-2. `~/.local-llmup/bin/llmup` (future managed install path).
+2. `~/.rigspark/bin/llmup` (future managed install path).
 3. `which llmup` / `where llmup` (PATH lookup via `std::process::Command`).
 4. Common homebrew paths: `/opt/homebrew/bin/llmup`, `/usr/local/bin/llmup`.
 
-If steps 1–4 fail, transition directly to a friendly "Install local-llmup first"
+If steps 1–4 fail, transition directly to a friendly "Install rigspark first"
 dialog with the npm install command, a copy button, and a link to the README.
 
 `npx` is explicitly excluded from discovery: it is not a validated absolute
@@ -253,7 +253,7 @@ the root `package.json`. The root `package.json` gains one optional script:
 {
   "windows": [{
     "label": "main",
-    "title": "local-llmup",
+    "title": "rigspark",
     "width": 1024,
     "height": 768,
     "minWidth": 600,
@@ -369,7 +369,7 @@ Tray menu items:
 
 | Label | Action |
 |---|---|
-| **local-llmup** (title, non-clickable) | — |
+| **rigspark** (title, non-clickable) | — |
 | Open | Navigate window to server URL, bring to front |
 | Status | Show OS notification with harness + model |
 | Separator | — |
@@ -387,9 +387,9 @@ Notifications are sent (via Tauri `notification` plugin) for:
 
 | Event | Notification |
 |---|---|
-| Model server ready | "local-llmup ready — <model> on <endpoint>" |
-| Model server stopped unexpectedly | "local-llmup: server stopped — open to restart" |
-| Update available | "local-llmup update available — click to install" |
+| Model server ready | "rigspark ready — <model> on <endpoint>" |
+| Model server stopped unexpectedly | "rigspark: server stopped — open to restart" |
+| Update available | "rigspark update available — click to install" |
 
 Notifications are suppressed if the window is focused (avoid double feedback).
 
@@ -404,7 +404,7 @@ Tauri's built-in updater plugin is configured to poll the GitHub Releases endpoi
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/shashankswe2020-ux/local-llmup/releases/latest/download/latest.json"
+        "https://github.com/shashankswe2020-ux/rigspark/releases/latest/download/latest.json"
       ],
       "dialog": true,
       "pubkey": "{{TAURI_SIGNING_PUBLIC_KEY}}"
@@ -621,7 +621,7 @@ These use Vitest with the Tauri API mocked (`vi.mock("@tauri-apps/api/core")`).
 
 A separate `desktop-smoke.test.ts` (run only in CI, gated by `TAURI_SMOKE=1`):
 - Launches the app binary with `LLMUP_BIN=<fake-echo-server>`.
-- Asserts the window title is "local-llmup".
+- Asserts the window title is "rigspark".
 - Asserts the tray icon is registered.
 - Fetches the loopback application document and asserts its HTTP
   `Content-Security-Policy` response header exactly matches the canonical §5.2

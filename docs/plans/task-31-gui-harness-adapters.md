@@ -1,7 +1,7 @@
 # Implementation Plan: Browser GUI + Pluggable Chat Harness Adapters
 
 > Source spec: [docs/specs/gui-and-harness-adapters.md](../specs/gui-and-harness-adapters.md)
-> Related: [docs/specs/local-llmup.md](../specs/local-llmup.md),
+> Related: [docs/specs/rigspark.md](../specs/rigspark.md),
 > [docs/specs/pluggable-inference-backends.md](../specs/pluggable-inference-backends.md),
 > [docs/specs/terminal-user-interface.md](../specs/terminal-user-interface.md)
 > Status: Draft
@@ -9,7 +9,7 @@
 
 ## Overview
 
-Deliver a loopback-only browser chat GUI and a pluggable chat harness system that lets local-llmup route a chat turn to either the active local backend or a supported cloud harness without duplicating business logic. The implementation keeps the existing CLI contract stable, preserves the memory capture path, and gates all external I/O behind validation and loopback-only security guards.
+Deliver a loopback-only browser chat GUI and a pluggable chat harness system that lets rigspark route a chat turn to either the active local backend or a supported cloud harness without duplicating business logic. The implementation keeps the existing CLI contract stable, preserves the memory capture path, and gates all external I/O behind validation and loopback-only security guards.
 
 This plan is intentionally incremental:
 

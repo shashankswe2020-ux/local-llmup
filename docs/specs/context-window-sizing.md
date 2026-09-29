@@ -1,4 +1,4 @@
-# Spec: local-llmup — Context-Window-Aware Sizing
+# Spec: rigspark — Context-Window-Aware Sizing
 
 > Status: **Shipped (v0.3.0)** — decisions D6–D11 implemented across tasks
 > T-CW1–T-CW5; `recommend --context <n>` and `recommend --max-context` ship with
@@ -6,7 +6,7 @@
 > no-flag path is unchanged. Approved v0.2 on 2026-08-06.
 > Last updated: 2026-08-06
 > Extends: [hardware-advisor.md](./hardware-advisor.md) and
-> [local-llmup.md](./local-llmup.md). Adds a **context-length dimension** to the
+> [rigspark.md](./rigspark.md). Adds a **context-length dimension** to the
 > existing fit / verdict / recommend pipeline. Does not replace either base spec.
 
 ## 1. Objective
@@ -26,9 +26,9 @@ for this model?"_
 
 This spec adds two `recommend` flags that answer exactly those questions:
 
-- `local-llmup recommend --context <tokens>` — re-rank and re-verdict every model
+- `rigspark recommend --context <tokens>` — re-rank and re-verdict every model
   at a **specified** context window, sizing the KV cache explicitly.
-- `local-llmup recommend --max-context` — report, per model, the **largest**
+- `rigspark recommend --max-context` — report, per model, the **largest**
   context window this machine can hold (bounded by both memory and the model's
   own advertised `contextLength`).
 
@@ -99,7 +99,7 @@ where the requested context exceeds what the model itself supports (D8).
 **Illustrative output** (labeled illustrative; numbers are examples):
 
 ```
-$ local-llmup recommend --context 32768
+$ rigspark recommend --context 32768
 Ranked local LLMs for arm64/darwin (34.0 GiB ram usable) at 32,768-token context:
 
 Rank  Model         Params  Quant   Weights  KV@32K   Est. Mem  Verdict  Est. tok/s  Score
@@ -143,7 +143,7 @@ memoryMaxTokens`) labels `model`, since the model cap is the true ceiling.
 **Illustrative output:**
 
 ```
-$ local-llmup recommend --max-context
+$ rigspark recommend --max-context
 Max usable context per model on arm64/darwin (34.0 GiB ram usable):
 
 Rank  Model         Params  Quant   Max Context  Bound By    Verdict

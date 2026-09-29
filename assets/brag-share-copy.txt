@@ -1,0 +1,1 @@
+Know which local LLMs your computer can run before downloading the weights. rigspark ranks what fits, explains its estimates, and gives you a local workspace to chat.

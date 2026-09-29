@@ -1,8 +1,8 @@
 # End-to-end demo of the native CLI: version → recommend TUI (details, compare) → doctor → can-run → plan
-# Record: PATH="<dir with llmup, local-llmup, llmup-gui>:$PATH" vhs assets/demo.tape
+# Record: PATH="<dir with llmup, rigspark, rigspark-gui>:$PATH" vhs assets/demo.tape
 Output assets/demo.gif
 
-Require local-llmup
+Require rigspark
 
 Set Shell "zsh"
 Set Theme "Catppuccin Mocha"
@@ -13,18 +13,18 @@ Set Padding 20
 Set TypingSpeed 40ms
 Set PlaybackSpeed 1.5
 
-# Isolated state so the recording never shows or changes real local-llmup state.
+# Isolated state so the recording never shows or changes real rigspark state.
 Hide
-Type "export LOCAL_LLMUP_HOME=$(mktemp -d) && clear"
+Type "export RIGSPARK_HOME=$(mktemp -d) && clear"
 Enter
 Show
 
-Type "local-llmup --version"
+Type "rigspark --version"
 Enter
 Sleep 1.5s
 
 # Recommend is the default command and opens the TUI in a capable terminal.
-Type "local-llmup"
+Type "rigspark"
 Enter
 Sleep 3s
 Down
@@ -50,19 +50,19 @@ Sleep 500ms
 Type "q"
 Sleep 1s
 
-Type "local-llmup doctor"
+Type "rigspark doctor"
 Enter
 Sleep 3s
 Type "q"
 Sleep 1s
 
-Type "local-llmup can-run qwen3:8b --no-tui"
+Type "rigspark can-run qwen3:8b --no-tui"
 Enter
 Sleep 2s
-Type "local-llmup can-run deepseek-r1:671b --no-tui"
+Type "rigspark can-run deepseek-r1:671b --no-tui"
 Enter
 Sleep 2s
 
-Type "clear && local-llmup plan qwen3:30b-a3b"
+Type "clear && rigspark plan qwen3:30b-a3b"
 Enter
 Sleep 3s

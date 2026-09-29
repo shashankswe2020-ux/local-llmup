@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/llmup-core", "crates/llmup-cli", "crates/llmup-runtime", "crates/llmup-gui"]
+members = ["crates/rigspark-core", "crates/rigspark-cli", "crates/rigspark-runtime", "crates/rigspark-gui"]
 resolver = "3"
 exclude = ["apps/desktop/src-tauri", "vendor/crossterm"]
 
@@ -8,8 +8,8 @@ version = "1.0.2"
 edition = "2024"
 rust-version = "1.98"
 license = "MIT"
-repository = "https://github.com/shashankswe2020-ux/local-llmup"
-homepage = "https://shashankswe2020-ux.github.io/local-llmup/"
+repository = "https://github.com/shashankswe2020-ux/rigspark"
+homepage = "https://shashankswe2020-ux.github.io/rigspark/"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }

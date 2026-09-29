@@ -1,7 +1,7 @@
-local-llmup/0.6.1
+rigspark/0.6.1
 
 Usage:
-  $ local-llmup gui
+  $ rigspark gui
 
 Options:
   --port <port>     Port to bind on 127.0.0.1 (default: 4000) 

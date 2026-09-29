@@ -26,7 +26,7 @@ None.
 ### 1. Attach-intent: an explicit matching flag masks a conflicting env override
 
 - **File:** `src/backend/select.ts:104` (`const requested = flag ?? envBackend;`)
-- **Problem:** In `selectAttach`, `requested = flag ?? envBackend` short-circuits on the flag. If the flag matches `activeBackend` (valid) but `LOCAL_LLMUP_BACKEND` names a _different_ backend, the env conflict is silently ignored rather than rejected. Spec §2.2 B says "a `--backend`/env value that conflicts with `active.backend` is a `ValidationError`" — treating each channel independently would honor that more literally.
+- **Problem:** In `selectAttach`, `requested = flag ?? envBackend` short-circuits on the flag. If the flag matches `activeBackend` (valid) but `RIGSPARK_BACKEND` names a _different_ backend, the env conflict is silently ignored rather than rejected. Spec §2.2 B says "a `--backend`/env value that conflicts with `active.backend` is a `ValidationError`" — treating each channel independently would honor that more literally.
 - **Fix:** Validate both channels before resolving, e.g.:
   ```ts
   for (const [via, value] of [
@@ -59,7 +59,7 @@ None.
 ## What's Done Well
 
 - **Config fall-through obligation is handled exactly right.** `isRegistered()` (`select.ts:66`) probes `all()` without throwing and gates `registry.get(configBackend)`, so a known-but-unregistered config default (`llamacpp` in Phase 0) falls through to auto-detect instead of hitting `registry.get()`'s throw — and there's a dedicated test asserting `source === "auto"` for that case.
-- **Fail-closed attach conflict** is precise: the error names the active backend, the offending channel (`--backend` vs `LOCAL_LLMUP_BACKEND`), and the requested value, with actionable "stop it first" guidance.
+- **Fail-closed attach conflict** is precise: the error names the active backend, the offending channel (`--backend` vs `RIGSPARK_BACKEND`), and the requested value, with actionable "stop it first" guidance.
 - **The advice-path guard is proven, not just asserted in prose.** The `fakeAdapter` double wraps `isInstalled` in `vi.fn()` and two tests assert it is never called on the flag-resolve and attach paths — matching the determinism/offline invariant.
 - **`noServableBackendMessage` avoids a latent throw** by filtering through `isRegistered` before calling `registry.get(name)` for hints, so composing the failure message can never itself throw on an unregistered priority entry.
 - **Blank-input normalization** (`normalizeFlag` / `readEnvBackend` trimming to `undefined`) means a blank `--backend`/env cleanly falls through on create and cannot fabricate a false conflict on attach — covered by the "ignores a blank flag" test.

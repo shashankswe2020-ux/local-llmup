@@ -7,16 +7,16 @@ R22 is verified; the PR is not ready to claim complete migration while R23-R26 r
 ## Deleted After Replacement
 
 - `scripts/rust-fit-parity.ts`: replaced by
-  `cargo test --locked -p llmup-cli --test fit_parity`. A frozen independent
+  `cargo test --locked -p rigspark-cli --test fit_parity`. A frozen independent
   TypeScript oracle preserves all 2,849 sizing cases, exact numeric comparisons,
   original batch boundaries, and validation/argument exits. Three native tests pass.
 - `scripts/rust-advice-parity.ts`: replaced by
-  `cargo test --locked -p llmup-cli --test advice_parity`. The frozen oracle retains
+  `cargo test --locked -p rigspark-cli --test advice_parity`. The frozen oracle retains
   78 reports, 5,148 verdicts, and 9,126 resolver/can-run cases, including 918
   resolution and 162 validation errors. Two native tests preserve text/JSON,
   ordering, sanitization, and the original numeric tolerance.
 - `scripts/rust-gui-parity.ts`: replaced by
-  `cargo test --locked -p llmup-gui --test recommendation_parity`. Three native
+  `cargo test --locked -p rigspark-gui --test recommendation_parity`. Three native
   tests cover all 24 GUI recommendation contracts through the native GUI owner,
   with structural/order checks and the original numeric tolerance. Frozen oracle
   fixtures record independent TypeScript provenance and source hashes. These
@@ -72,14 +72,14 @@ R22 is verified; the PR is not ready to claim complete migration while R23-R26 r
   matched the retained oracle byte for byte before deletion. The weekly workflow
   invokes Cargo directly; the transitional npm alias delegates to the same command.
 - `src/catalog/registry-snapshot.ts`: 66 unchanged records moved to the shared
-  JSON snapshot under `crates/llmup-core/fixtures/`. Native `catalog --refresh`
+  JSON snapshot under `crates/rigspark-core/fixtures/`. Native `catalog --refresh`
   embeds and validates it; retained maintenance callers use a validated loader.
   Ninety full enrichment oracle cases and four CLI output goldens pass in Rust.
   The TypeScript enrichment/collector code remains until maintenance tooling moves.
 - `src/tui/cancellation.ts` and `tests/tui/cancellation.test.ts`: no production
   imports existed. State/effect classification, recovery messages, timeout constants,
-  signal exits, and exact display contracts moved to `crates/llmup-cli/src/cancellation.rs`
-  and `crates/llmup-cli/tests/cancellation.rs`. Replacement tests passed before
+  signal exits, and exact display contracts moved to `crates/rigspark-cli/src/cancellation.rs`
+  and `crates/rigspark-cli/tests/cancellation.rs`. Replacement tests passed before
   deletion; remaining TypeScript typecheck and all 2,034 tests passed afterward.
 - The unpublished `src/distribution/native-package.ts`,
   `scripts/package-native-preview.ts`, and `tests/shipping/native-package.test.ts`
@@ -94,7 +94,7 @@ cargo native-dist verify target/native-dist/<package-directory>
 cargo build --manifest-path apps/desktop/src-tauri/Cargo.toml --locked
 ```
 
-The archive contains native `llmup` and `llmup-gui` executables, a strict per-file
+The archive contains native `llmup` and `rigspark-gui` executables, a strict per-file
 SHA-256 manifest, and project/browser-library licenses. An adjacent checksum
 verifies the tarball. Artifacts are explicitly unsigned: checksum consistency
 does not authenticate the publisher. `tar`, a Rust toolchain, and platform-native

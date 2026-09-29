@@ -73,8 +73,8 @@ None.
 ### 4. Unreachable recorded server is `warn`, so it does not flip exit (Focus Q1)
 
 - **File:** `src/commands/doctor.ts` (`checkState` catch → `status: "warn"`)
-- **Problem:** T21 acceptance says "returns nonzero when problems found." A recorded-but-unreachable server is a real state/reality mismatch (`state.json` claims a live daemon that is not answering). It is surfaced as `warn`, which does **not** set `process.exitCode`, so a CI gate of `local-llmup doctor` passes despite the stale record.
-- **Assessment:** Defensible as designed — the condition is recoverable (the detail already tells the user to run `local-llmup down`), transient (the daemon may be starting), and distinct from a broken subsystem. `digestVerified:false` correctly stays `warn` per spec §11.8 / decision 8 ("surfaced," not "fails"). The gap is only that "problem found" is ambiguous between "any non-`ok`" and "any `fail`."
+- **Problem:** T21 acceptance says "returns nonzero when problems found." A recorded-but-unreachable server is a real state/reality mismatch (`state.json` claims a live daemon that is not answering). It is surfaced as `warn`, which does **not** set `process.exitCode`, so a CI gate of `rigspark doctor` passes despite the stale record.
+- **Assessment:** Defensible as designed — the condition is recoverable (the detail already tells the user to run `rigspark down`), transient (the daemon may be starting), and distinct from a broken subsystem. `digestVerified:false` correctly stays `warn` per spec §11.8 / decision 8 ("surfaced," not "fails"). The gap is only that "problem found" is ambiguous between "any non-`ok`" and "any `fail`."
 - **Fix:** No code change required for correctness. Either (a) document the exit contract explicitly ("exit nonzero on `fail` only; `warn` is advisory") in the command help / a code comment, or (b) if CI should catch stale state, promote the unreachable-server branch to `fail` while keeping `digestVerified:false` as `warn`.
 
 ---

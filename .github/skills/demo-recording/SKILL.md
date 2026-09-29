@@ -1,6 +1,6 @@
 # Skill: Demo Recording
 
-Record terminal demos and screenshots of local-llmup using **vhs** (charm.sh
+Record terminal demos and screenshots of rigspark using **vhs** (charm.sh
 terminal recorder). Produces reproducible GIFs and PNGs from `.tape` files.
 
 ---
@@ -16,8 +16,8 @@ terminal recorder). Produces reproducible GIFs and PNGs from `.tape` files.
 ## Prerequisites
 
 - `vhs` installed (`brew install vhs`)
-- The native `local-llmup`, `llmup` and `llmup-gui` binaries for the release on
-  `PATH` (build them with `cargo build --release --locked -p llmup-cli -p llmup-gui`
+- The native `rigspark`, `llmup` and `rigspark-gui` binaries for the release on
+  `PATH` (build them with `cargo build --release --locked -p rigspark-cli -p rigspark-gui`
   from the tagged commit, then prefix `PATH` with `target/release`)
 - Tape files live in `assets/*.tape`
 - Output images go to `assets/` (GIF for demos, PNG for screenshots); copy the
@@ -38,11 +38,11 @@ Set Width 1200
 Set Height <appropriate-height>   # 700 for short, 1100+ for full TUI
 Set Padding 20
 
-Require local-llmup
+Require rigspark
 
 # Record against an empty, throwaway state home.
 Hide
-Type "export LOCAL_LLMUP_HOME=$(mktemp -d) && clear"
+Type "export RIGSPARK_HOME=$(mktemp -d) && clear"
 Enter
 Show
 ```
@@ -75,7 +75,7 @@ Show
 1. **Verify the binaries** — ensure the release build is first on `PATH`:
    ```bash
    export PATH="$PWD/target/release:$PATH"
-   local-llmup --version
+   rigspark --version
    ```
 
 2. **Record all tapes**:

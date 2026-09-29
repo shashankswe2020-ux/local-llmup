@@ -47,7 +47,7 @@ regenerated from a network-sourced registry snapshot (`catalog/bootstrap`,
 malicious `source.gguf`/`source.mlx` values. These values later:
 
 1. compose an HTTPS download URL (`https://huggingface.co/<repo>/resolve/<revision>/<file>`), and
-2. compose a local cache path (`~/.local-llmup/cache/<backend>/<repo>@<revision>/<file>`).
+2. compose a local cache path (`~/.rigspark/cache/<backend>/<repo>@<revision>/<file>`).
 
 The relevant attacker goals are: **path traversal / arbitrary file write** (via
 `file` or `repo`), **SSRF / host-spoofing** (via `repo`), **pin bypass** (via
@@ -232,7 +232,7 @@ GGUF/MLX download flow is implemented, it must:
 - **Reject cross-host redirects** (do not follow a 3xx to a non-`huggingface.co`
   host) to prevent redirect-based SSRF/exfiltration.
 - **Recompose the cache path with `path.join` + a post-`path.resolve` prefix
-  check** (assert the resolved path stays under `~/.local-llmup/cache/`) as
+  check** (assert the resolved path stays under `~/.rigspark/cache/`) as
   defense-in-depth behind the schema validators.
 - Enforce the MEDIUM-1 fail-closed digest behavior.
 

@@ -27,7 +27,7 @@ Review checkpoint: demonstrate exact parity and document what is still TypeScrip
 
 - Rust 1.98.1 installed through rustup and pinned; Cargo.lock checked into the
   working tree for reproducibility. Application crates forbid unsafe code.
-- Implemented `llmup-core` sizing/fit and `llmup-cli`'s experimental
+- Implemented `rigspark-core` sizing/fit and `rigspark-cli`'s experimental
   `llmup-fit-parity` runner. No production entry points changed.
 - 16 Rust tests pass, including numeric validation, unknown geometry, MoE,
   quantization ties, context inverses, bounded input, and I/O error handling.
@@ -65,7 +65,7 @@ Review checkpoint: demonstrate exact parity and document what is still TypeScrip
   display fields, duplicate/overlap checks, resolver tiers, and typed failures.
 - Ported hardware scores, backend-scoped throughput, verdicts, fixed-date ranking,
   context percentages, max-context reporting, and plain advice tables.
-- Added `llmup-runtime` with sysinfo RAM/disk measurements and bounded GPU command
+- Added `rigspark-runtime` with sysinfo RAM/disk measurements and bounded GPU command
   probes: macOS system_profiler, NVIDIA nvidia-smi, Linux DRM sysfs, and Windows
   WMI plus NVIDIA override. Dedicated Intel memory requires explicit evidence.
 - Added experimental `llmup-native` recommend/can-run/catalog/doctor commands.
@@ -273,7 +273,7 @@ Windows/Linux process/filesystem certification remain R25 release gates.
 
 ### Checkpoint 5 Implementation and Evidence
 
-R20-R21 are implemented in `crates/llmup-gui` and
+R20-R21 are implemented in `crates/rigspark-gui` and
 `apps/desktop/src-tauri`. The production npm CLI, TypeScript GUI, and Electron
 entry points are unchanged. The native host and desktop execute no Node backend.
 

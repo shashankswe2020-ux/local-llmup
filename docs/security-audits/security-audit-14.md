@@ -167,7 +167,7 @@ When `--available-backends` is passed on a machine with no installed backend,
 the filter drops every model and the command emits an empty recommendation set.
 This is _honest_ (nothing is installed, so nothing is servable) and is opt-in, so
 it is not a security defect. It is a UX sharp edge: an explicit line such as
-"no installed backend detected — run `local-llmup doctor`" would distinguish
+"no installed backend detected — run `rigspark doctor`" would distinguish
 "nothing installed" from "nothing fits" and avoid a confusing blank result.
 
 ### [INFO-2] Dev-only dependency vulnerabilities (unchanged by B12)

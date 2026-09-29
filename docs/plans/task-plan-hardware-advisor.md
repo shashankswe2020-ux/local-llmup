@@ -1,13 +1,13 @@
-# Implementation Plan: local-llmup — Hardware Advisor
+# Implementation Plan: rigspark — Hardware Advisor
 
 > Source spec: [docs/specs/hardware-advisor.md](../specs/hardware-advisor.md)
-> Base plan: [docs/plans/task-plan-local-llmup.md](./task-plan-local-llmup.md) (ended at T31)
+> Base plan: [docs/plans/task-plan-rigspark.md](./task-plan-rigspark.md) (ended at T31)
 > Status: **Draft — pending human approval + sub-agent review**
 > Last updated: 2026-08-06
 
 ## Overview
 
-Extend `local-llmup` from installer to **Local AI Hardware Advisor** in three
+Extend `rigspark` from installer to **Local AI Hardware Advisor** in three
 independently shippable releases:
 
 - **v1.0 (advisor core, T32–T39):** AI Hardware Score + bottleneck in `doctor`

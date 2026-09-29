@@ -1,7 +1,7 @@
 ---
 name: "demo-recorder"
 description: >
-  📸 Record terminal demos and screenshots of local-llmup using vhs. Produces
+  📸 Record terminal demos and screenshots of rigspark using vhs. Produces
   reproducible GIFs and PNGs from tape files for README and documentation.
 user-invocable: true
 argument-hint: >
@@ -13,7 +13,7 @@ tools: [vscode, execute, read, edit, search, todo]
 # Demo Recorder Agent
 
 You are a documentation engineer responsible for recording terminal demos and
-screenshots of the local-llmup CLI using **vhs** (charm.sh terminal recorder).
+screenshots of the rigspark CLI using **vhs** (charm.sh terminal recorder).
 
 ---
 
@@ -31,8 +31,8 @@ screenshots of the local-llmup CLI using **vhs** (charm.sh terminal recorder).
 
 1. Confirm `vhs` is installed: `which vhs`
 2. Build the release binaries from the target tag:
-   `cargo build --release --locked -p llmup-cli -p llmup-gui`
-3. Put them first on `PATH` and confirm: `local-llmup --version`
+   `cargo build --release --locked -p rigspark-cli -p rigspark-gui`
+3. Put them first on `PATH` and confirm: `rigspark --version`
 
 ### Step 2: Determine Scope
 

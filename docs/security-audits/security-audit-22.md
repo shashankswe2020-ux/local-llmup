@@ -32,7 +32,7 @@
 ### [MEDIUM-1] Printed next-command handoff can become shell-injection copy/paste risk
 
 - **Location:** `docs/specs/terminal-user-interface.md:542`
-- **Description:** The plan prints exact next commands (for example `local-llmup up <id>`) but does not require shell-safe quoting for model identifiers in displayed handoff commands.
+- **Description:** The plan prints exact next commands (for example `rigspark up <id>`) but does not require shell-safe quoting for model identifiers in displayed handoff commands.
 - **Impact:** If a malformed model id reaches display (catalog regression, corrupted state, or future schema relaxation), copied commands could execute unintended shell syntax.
 - **Recommendation:** Require command handoff to be rendered as argv-safe tokens with strict identifier validation. If any identifier fails the model-id allowlist, do not print executable command text; print a diagnostic with escaped value.
 

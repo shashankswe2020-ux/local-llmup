@@ -101,11 +101,11 @@
 - **Problem:** `claude-3-5-haiku-20241022` is hardcoded as the default. Anthropic API model versioning is date-stamped; this default will become stale. The spec should note that this is a pinned default that must be updated in the catalog or via a `DEFAULT_CLAUDE_MODEL` constant (documented for easy update), not buried in prose.
 - **Fix:** Add a note: "The default model string is defined as `DEFAULT_CLAUDE_MODEL = 'claude-3-5-haiku-20241022'` in `src/harness/claude.ts`. It must be updated when the preferred default changes."
 
-### 14. `LOCAL_LLMUP_HARNESS` env var not in §12 Boundaries
+### 14. `RIGSPARK_HARNESS` env var not in §12 Boundaries
 
 - **Section:** §3.1, §12
-- **Problem:** `LOCAL_LLMUP_HARNESS` is introduced in §3.1 as a harness resolution fallback but does not appear in the "Always / Ask first / Never" boundaries in §12. The env var has the same security surface as any env-sourced config and should be listed alongside `ANTHROPIC_API_KEY` etc.
-- **Fix:** Add `LOCAL_LLMUP_HARNESS` to the "Always validate" list in §12: "Validate `LOCAL_LLMUP_HARNESS` against `HARNESS_NAMES` at startup; unknown values → `ValidationError`."
+- **Problem:** `RIGSPARK_HARNESS` is introduced in §3.1 as a harness resolution fallback but does not appear in the "Always / Ask first / Never" boundaries in §12. The env var has the same security surface as any env-sourced config and should be listed alongside `ANTHROPIC_API_KEY` etc.
+- **Fix:** Add `RIGSPARK_HARNESS` to the "Always validate" list in §12: "Validate `RIGSPARK_HARNESS` against `HARNESS_NAMES` at startup; unknown values → `ValidationError`."
 
 ### 15. `resolveStaticPath` uses `root + path.sep` which is fragile
 
@@ -158,5 +158,5 @@
 | 11  | Suggestion | Consider `unavailableHint()` as a method rather than static string               | Before G1 assigned    |
 | 12  | Suggestion | Add HTTP 404/405 default handler to API route table                               | Before G6 assigned    |
 | 13  | Suggestion | Extract `DEFAULT_CLAUDE_MODEL` constant with update note                          | Before G3 assigned    |
-| 14  | Suggestion | Add `LOCAL_LLMUP_HARNESS` to §12 Boundaries validation list                      | Spec edit             |
+| 14  | Suggestion | Add `RIGSPARK_HARNESS` to §12 Boundaries validation list                      | Spec edit             |
 | 15  | Suggestion | Note `resolveStaticPath` case-sensitivity limitation on macOS HFS+               | Before G6 assigned    |

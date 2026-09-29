@@ -2,7 +2,7 @@
 
 > Status: **Draft (v0.2) — llmfit audit and architecture, security, and test-strategy feedback incorporated; pending dependency and human approval.**
 > Last updated: 2026-08-08
-> Related: [local-llmup.md](./local-llmup.md),
+> Related: [rigspark.md](./rigspark.md),
 > [hardware-advisor.md](./hardware-advisor.md),
 > [runtime-performance-benchmarking.md](./runtime-performance-benchmarking.md), and
 > [telemetry.md](./telemetry.md).
@@ -48,7 +48,7 @@ These assumptions become decisions only when this specification is approved:
 
 ## 1. Objective
 
-Provide a consistent, polished interactive experience across local-llmup without
+Provide a consistent, polished interactive experience across rigspark without
 sacrificing its scriptable CLI contract.
 
 The TUI should let users:
@@ -98,7 +98,7 @@ Strengths to retain:
 - visible system hardware and model fit/performance evidence;
 - contextual help and responsive scrollable tables.
 
-Problems local-llmup must avoid:
+Problems rigspark must avoid:
 
 - one overloaded application with a large hidden mode/key matrix;
 - single-letter actions whose meaning changes across many modes;
@@ -114,7 +114,7 @@ The normative claim is a **ten-dimensional quality advantage target**: pass all
 ten independently verifiable dimensions below; failure in one cannot be averaged
 away:
 
-| Dimension       | Required local-llmup advantage                                                                            |
+| Dimension       | Required rigspark advantage                                                                            |
 | --------------- | --------------------------------------------------------------------------------------------------------- |
 | Task focus      | One purpose-built screen flow per command, not one global mode maze                                       |
 | Discoverability | 100% of current actions visible in footer, contextual action bar, or `?`; no undocumented key-only action |
@@ -147,7 +147,7 @@ fixture-safe hardware/model data where supported:
 The audit records visible actions before help, successful task completion,
 keypress count after data load, hidden-mode transitions, evidence fields,
 confirmation/revalidation behavior, accessibility path, terminal restoration,
-network listeners, and scriptable-output availability. local-llmup must meet its
+network listeners, and scriptable-output availability. rigspark must meet its
 absolute gates, use no more keypresses for tasks 1–4, expose every tested action
 without external docs, provide strictly stronger safety/evidence/accessibility for
 tasks 1/3/5, and open no listener. Performance/package measurements are reported
@@ -188,11 +188,11 @@ notice. A failure after mutation starts restores the terminal and reports the
 real product outcome; it never reruns the command.
 
 Auto-mode renderer initialization failure writes exactly
-`local-llmup: interactive UI unavailable (renderer_init); continuing in plain mode\n`.
+`rigspark: interactive UI unavailable (renderer_init); continuing in plain mode\n`.
 Ordinary ineligibility and `--no-tui` write no notice and never import the
 renderer. Explicit `--tui` initialization failure is a pre-domain validation
 error, not fallback. Runtime render failure writes exactly
-`local-llmup: interactive UI failed (renderer_runtime); terminal restored; final result follows\n`
+`rigspark: interactive UI failed (renderer_runtime); terminal restored; final result follows\n`
 after restoration; raw renderer errors are never shown unless a future explicit
 debug mode is approved.
 
@@ -201,7 +201,7 @@ Failure-state matrix:
 | Point                                      | Behavior                                                                                                                                            |
 | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | lazy import/mount before picker            | auto mode uses `renderer_init` fallback; explicit `--tui` fails pre-domain                                                                          |
-| picker/review before acceptance            | restore, execute nothing, write `local-llmup: interactive UI failed (renderer_pre_execution); no action was performed\n`, exit 1                    |
+| picker/review before acceptance            | restore, execute nothing, write `rigspark: interactive UI failed (renderer_pre_execution); no action was performed\n`, exit 1                    |
 | accepted but before controller `execute()` | same pre-execution failure; do not infer consent in plain mode                                                                                      |
 | domain execution in flight, pre-commit     | restore, emit `renderer_runtime`, switch to bounded plain stderr progress, continue/cancel only from the domain signal—not because rendering failed |
 | post-commit/final render                   | restore, emit `renderer_runtime`, write existing final/plain summary once, preserve product result                                                  |
@@ -258,7 +258,7 @@ modes.
 Wide recommendation explorer:
 
 ```text
- local-llmup / Recommend        Apple arm64 · 32.0 GiB unified · ollama estimate
+ rigspark / Recommend        Apple arm64 · 32.0 GiB unified · ollama estimate
  Search: qwen_   Fit: runnable   Task: any   Backend: all   Marked: 2/4
  ───────────────────────────────────────────────────────────────────────────────
    #  Model                 Quant   Mem      Verdict    tok/s       Score
@@ -276,7 +276,7 @@ Wide recommendation explorer:
 Lifecycle progress:
 
 ```text
- local-llmup / Up / qwen3:14b                  Ctrl+C cancels with safe cleanup
+ rigspark / Up / qwen3:14b                  Ctrl+C cancels with safe cleanup
  ✓ Resolve & fit       Q4_K_M · 9.3 GiB
  ✓ Backend             ollama (explicit)
  ● Acquire & verify    3.2 / 8.7 GiB  [███████░░░░░░]  36%
@@ -290,7 +290,7 @@ Lifecycle progress:
 Chat:
 
 ```text
- local-llmup / Chat          qwen3:14b · ollama · memory capture on
+ rigspark / Chat          qwen3:14b · ollama · memory capture on
  ─ You ─────────────────────────────────────────────────────────────────────────
  Explain why KV cache grows with context.
  ─ Assistant ───────────────────────────────────────────────────────────────────
@@ -382,10 +382,10 @@ components.
 Interactive-only omission is additive:
 
 ```text
-local-llmup can-run [model]
-local-llmup up [model]
-local-llmup switch [model]
-local-llmup migrate [--from <model>] [--to <model>]
+rigspark can-run [model]
+rigspark up [model]
+rigspark switch [model]
+rigspark migrate [--from <model>] [--to <model>]
 ```
 
 - In TUI mode, omitted values open bounded offline pickers.
@@ -527,7 +527,7 @@ local model state, but exact target identity must remain visible.
   compatible backends, and score-component explanation. Unknown is never ranked
   as zero or highlighted as best.
 - `Enter` opens details. It does **not** run `up` or probe a runtime.
-- `p` exits and prints the exact sanitized `local-llmup up <id>` next command;
+- `p` exits and prints the exact sanitized `rigspark up <id>` next command;
   it does not access the clipboard.
 - Won't-fit models are a separate view and never disappear silently.
 - Underlying ranking/order/data are exactly `RecommendationResult`.
@@ -642,7 +642,7 @@ resolve → hardware/disk preflight → backend selection → acquire/verify
 **Screen:** ownership-aware confirmation + stop/detach progress.
 
 - Shows exact active model/endpoint and `owned` or `attached` behavior.
-- Owned: “stop verified local-llmup process and clear state.”
+- Owned: “stop verified rigspark process and clear state.”
 - Attached: “leave runtime running and forget local state.”
 - Default is Cancel. `--yes` bypasses confirmation.
 - If no active server, show existing no-op summary and exit 0 without prompt.

@@ -110,7 +110,7 @@ impl EventSource for UnixInternalEventSource {
                                             read_count == TTY_BUFFER_SIZE,
                                         );
                                     }
-                                    // LLMUP-PATCH: the TTY may block; poll so a lone Escape can expire.
+                                    // RIGSPARK-PATCH: the TTY may block; poll so a lone Escape can expire.
                                     if read_count < TTY_BUFFER_SIZE {
                                         if let Some(event) = self.parser.next() {
                                             return Ok(Some(event));

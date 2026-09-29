@@ -16,10 +16,10 @@ sizes it honestly, and the lifecycle applies it to the backend fail-closed:
 | `lmcache` | KV offload/sharing across requests (CPU RAM / local disk) | vLLM only (new backend) | 2, gated |
 
 Today the gap looks like this:
-- `ServeRequest` only carries `context` ([adapters.rs](../../crates/llmup-runtime/src/adapters.rs#L44-L49)).
-- llama.cpp spawns with `-m/--host/--port/--alias/--ctx-size` only ([adapters.rs](../../crates/llmup-runtime/src/adapters.rs#L324-L336)).
-- Ollama gets `OLLAMA_HOST`/`OLLAMA_MODELS` only ([command.rs](../../crates/llmup-runtime/src/command.rs#L20-L25)).
-- Sizing assumes fp16 KV everywhere ([sizing.rs](../../crates/llmup-core/src/sizing.rs#L202)).
+- `ServeRequest` only carries `context` ([adapters.rs](../../crates/rigspark-runtime/src/adapters.rs#L44-L49)).
+- llama.cpp spawns with `-m/--host/--port/--alias/--ctx-size` only ([adapters.rs](../../crates/rigspark-runtime/src/adapters.rs#L324-L336)).
+- Ollama gets `OLLAMA_HOST`/`OLLAMA_MODELS` only ([command.rs](../../crates/rigspark-runtime/src/command.rs#L20-L25)).
+- Sizing assumes fp16 KV everywhere ([sizing.rs](../../crates/rigspark-core/src/sizing.rs#L202)).
 
 The no-flag path must stay byte-identical (same four-channel guard as AC-CW9).
 
@@ -32,17 +32,17 @@ The no-flag path must stay byte-identical (same four-channel guard as AC-CW9).
 | C3 | Ollama KV type and flash attention are **daemon-wide env vars** (`OLLAMA_KV_CACHE_TYPE`, `OLLAMA_FLASH_ATTENTION`). They can only be applied to an **owned** daemon. | K4 | On an attached daemon, refuse with an explanation (fail-closed); never silently ignore | ⏳ |
 | C4 | Quantized V cache needs flash attention on llama.cpp. | K3 | `q8_0`/`q4_0` imply `--flash-attn on`; an explicit `--flash-attn off` with a quantized V → validation error | ⏳ |
 | C5 | Record the applied profile in `ServerState`. `ServerState` is `deny_unknown_fields`, so this is a **state schema bump v2 → v3** with a read-migration. | K4 | Accept; old state still readable, new state not readable by old binaries (documented) | ⏳ |
-| C6 | Persistent defaults: `config.json` is `schemaVersion: 1`, `deny_unknown_fields`, 4 KiB cap ([state.rs](../../crates/llmup-runtime/src/state.rs#L70-L91)). | K5 | `schemaVersion: 2` adds an optional `cache` object; v1 files still accepted | ⏳ |
+| C6 | Persistent defaults: `config.json` is `schemaVersion: 1`, `deny_unknown_fields`, 4 KiB cap ([state.rs](../../crates/rigspark-runtime/src/state.rs#L70-L91)). | K5 | `schemaVersion: 2` adds an optional `cache` object; v1 files still accepted | ⏳ |
 | C7 | LMCache needs **vLLM**, i.e. a new backend: Linux + NVIDIA only, Python runtime, HF safetensors. This is an *ask-first* boundary. | K8 | Spike + ADR first (K7); build only after approval | ⏳ |
 
 ## Architecture decisions
 
 - **Pure core, typed profile.**
-  - `llmup-core` gains `KvCacheType`, which is all the advisor needs.
-  - `CacheProfile { kv_k, kv_v, flash_attention, prompt_reuse }` lives with the providers in `llmup-runtime`, because flash attention and prompt reuse only matter at launch.
+  - `rigspark-core` gains `KvCacheType`, which is all the advisor needs.
+  - `CacheProfile { kv_k, kv_v, flash_attention, prompt_reuse }` lives with the providers in `rigspark-runtime`, because flash attention and prompt reuse only matter at launch.
   - Validation and sizing are pure functions.
   - The runtime never re-derives sizing.
-- **Provider trait in runtime** (`crates/llmup-runtime/src/cache.rs`):
+- **Provider trait in runtime** (`crates/rigspark-runtime/src/cache.rs`):
   ```rust
   pub trait CacheProvider: Send + Sync {
       fn name(&self) -> &'static str;
@@ -87,15 +87,15 @@ K1 and K3 can run in parallel. K7 can start at any time.
 
 ## Task list
 
-### K1 — Typed KV sizing (llmup-core) ✅ Done
+### K1 — Typed KV sizing (rigspark-core) ✅ Done
 - **Do:** `KvCacheType { F16, Q8_0, Q4_0 }` with `bytes_per_element()`, and `kv_cache_bytes_typed(per_token_f16, tokens, k, v)`. Per-token f16 bytes are split evenly between K and V.
 - **Acceptance:**
   1. `f16/f16` equals today's `kv_cache_bytes` for every catalog model; this is a property test over the catalog.
   2. `q8_0/q8_0` = f16 × 1.0625/2 and `q4_0` = f16 × 0.5625/2, with exact integer rounding documented (round up).
   3. Unknown geometry stays `unknown`, with no fabricated number.
   4. Overflow → typed error.
-- **Files:** `crates/llmup-core/src/sizing.rs`, `crates/llmup-core/tests/sizing*.rs`.
-- **Verify:** `cargo test -p llmup-core`.
+- **Files:** `crates/rigspark-core/src/sizing.rs`, `crates/rigspark-core/tests/sizing*.rs`.
+- **Verify:** `cargo test -p rigspark-core`.
 
 ### K2 — Advisor flags ✅ Done
 - **Do:** `--kv-cache <f16|q8_0|q4_0>` (and `--kv-cache-k/--kv-cache-v` for asymmetric caches) on `recommend`, `can-run` and `plan`. The KV column, fit verdict and `--max-context` all use the typed size. JSON gains `kvCacheType`.
@@ -104,8 +104,8 @@ K1 and K3 can run in parallel. K7 can start at any time.
   2. `--kv-cache q8_0` raises `--max-context` for a known model, by a golden-checked amount.
   3. Invalid value → exit 2 with a usage error.
   4. Deterministic and offline.
-- **Files:** `crates/llmup-cli/src/native_args.rs`, `native.rs`, `crates/llmup-core/src/{plan.rs,ranking.rs,reports.rs}`, fixtures under `tests/fixtures/noninteractive/`.
-- **Verify:** `cargo test -p llmup-core -p llmup-cli --test public_cli --test advice_cli`.
+- **Files:** `crates/rigspark-cli/src/native_args.rs`, `native.rs`, `crates/rigspark-core/src/{plan.rs,ranking.rs,reports.rs}`, fixtures under `tests/fixtures/noninteractive/`.
+- **Verify:** `cargo test -p rigspark-core -p rigspark-cli --test public_cli --test advice_cli`.
 
 ### K3 — CacheProvider trait + NativeCacheProvider ✅ Done (verified on llama.cpp b10090, Ollama 0.32.5)
 - **Do:** pure translation per backend:
@@ -116,8 +116,8 @@ K1 and K3 can run in parallel. K7 can start at any time.
   1. Table test: every (provider, backend, profile) combination produces the exact args/env or a typed refusal.
   2. The C4 rule is enforced.
   3. No arbitrary strings reach args: values come only from enums.
-- **Files:** `crates/llmup-runtime/src/cache.rs` (new), `lib.rs`, `crates/llmup-runtime/tests/cache.rs` (new).
-- **Verify:** `cargo test -p llmup-runtime --test cache`.
+- **Files:** `crates/rigspark-runtime/src/cache.rs` (new), `lib.rs`, `crates/rigspark-runtime/tests/cache.rs` (new).
+- **Verify:** `cargo test -p rigspark-runtime --test cache`.
 
 ### K4 — Lifecycle wiring + state v3 ✅ Done
 - **Do:** `ServeRequest.cache: Option<CacheProfile>`. Adapters merge the `SpawnDelta` into `SpawnSpec`. `ServerState.cache` is persisted. v2 → v3 read-migration.
@@ -127,8 +127,8 @@ K1 and K3 can run in parallel. K7 can start at any time.
   3. v2 state files still load; a v3 round-trip is stable.
   4. `switch` preserves the profile unless overridden. *(Moved to K5: the preservation rule lives where CLI flags meet the stored state.)*
 - **As built:** schema 3 is written exactly when an owned runtime carries a non-default profile, so a cacheless session still writes v2 and older binaries keep reading it. The replace path checks the profile before it locks, stops or spawns anything.
-- **Files:** `adapters.rs`, `special_adapters.rs`, `lifecycle.rs`, `state.rs`, `crates/llmup-runtime/tests/{lifecycle,state}.rs`.
-- **Verify:** `cargo test -p llmup-runtime --test lifecycle --test state`.
+- **Files:** `adapters.rs`, `special_adapters.rs`, `lifecycle.rs`, `state.rs`, `crates/rigspark-runtime/tests/{lifecycle,state}.rs`.
+- **Verify:** `cargo test -p rigspark-runtime --test lifecycle --test state`.
 
 ### K5 — CLI + config defaults ✅ Done
 - **Do:**
@@ -140,11 +140,11 @@ K1 and K3 can run in parallel. K7 can start at any time.
   1. Flag beats config beats default.
   2. v1 config still accepted.
   3. Goldens updated; the help ordering of existing flags is unchanged.
-- **Files:** `native_args.rs`, `native.rs`, `state.rs`, `application.rs`, `crates/llmup-cli/tests/{lifecycle_cli,public_cli}.rs`.
-- **Verify:** `cargo test -p llmup-cli`.
+- **Files:** `native_args.rs`, `native.rs`, `state.rs`, `application.rs`, `crates/rigspark-cli/tests/{lifecycle_cli,public_cli}.rs`.
+- **Verify:** `cargo test -p rigspark-cli`.
 - **As built:**
   - Precedence lives in the pure function `cache::requested`. For `up` it is flag > `config.json` v2 `cache` > backend default. For `switch` it is flag > the running profile, so a switch keeps what is running (K4 criterion 4). `--kv-cache f16` clears the profile.
-  - An unchanged profile keeps the Ollama pointer-switch and "already active" shortcuts. A changed profile takes the full replace path, which restarts the runtime local-llmup owns.
+  - An unchanged profile keeps the Ollama pointer-switch and "already active" shortcuts. A changed profile takes the full replace path, which restarts the runtime rigspark owns.
   - The profile is checked against the chosen backend **before** any download. `--installed`, `down` and `doctor` refuse cache flags outright.
   - Launch fit now sizes the KV cache at the requested type. An asymmetric K/V profile keeps the conservative f16 estimate.
   - `up` and `ls` print `Cache: KV q8_0, flash attention auto, prompt reuse off`, and their JSON gains a `cache` object. Both appear only when a profile is applied, so the no-flag output is unchanged.
@@ -156,12 +156,12 @@ K1 and K3 can run in parallel. K7 can start at any time.
   1. An invalid profile → 400 with a reason.
   2. The estimate updates without network calls.
   3. The WebDriver journey covers selecting `q8_0`.
-- **Files:** `crates/llmup-gui/src/models.rs`, `static/index.html`, `static/chat.js` (or the models script), `crates/llmup-gui/tests/api_contracts.rs`.
-- **Verify:** `cargo test -p llmup-gui`; `scripts/native-browser-journeys.sh`.
+- **Files:** `crates/rigspark-gui/src/models.rs`, `static/index.html`, `static/chat.js` (or the models script), `crates/rigspark-gui/tests/api_contracts.rs`.
+- **Verify:** `cargo test -p rigspark-gui`; `scripts/native-browser-journeys.sh`.
 - **As built:**
   - A "KV cache" selector (`f16 · 100%`, `q8_0 · 53%`, `q4_0 · 28%`, the ggml block ratios) sits next to Context window. It is hidden for Installed Ollama, because attached daemons are refused.
   - `GET /api/models/recommended?kvCache=` re-sizes offline. Cards show `KV q8_0` only for models with known geometry; unknown geometry still reads "context fit unknown". The detail panel labels the KV cost with its type.
-  - `POST /api/models/up` accepts `kvCache`, `flashAttention` and `promptCache`, and the start confirmation says the cache applies only to a runtime local-llmup starts. `/api/models/active` and the banner report the applied profile.
+  - `POST /api/models/up` accepts `kvCache`, `flashAttention` and `promptCache`, and the start confirmation says the cache applies only to a runtime rigspark starts. `/api/models/active` and the banner report the applied profile.
   - Checked by hand in the integrated browser. **Open:** criterion 3. The WebDriver journey needs Chrome + chromedriver and is listed under K9.
 
 ### K7 — Spike: vLLM + LMCache (ADR only)
