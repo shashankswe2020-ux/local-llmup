@@ -1,4 +1,4 @@
-# RigSpark: Check Which Local LLMs Your Computer Can Run
+# <img src="crates/rigspark-gui/static/mascot-avatar.jpg" alt="" width="44" height="44"> RigSpark: Check Which Local LLMs Your Computer Can Run
 
 [![CI](https://github.com/shashankswe2020-ux/rigspark/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/shashankswe2020-ux/rigspark/actions/workflows/ci.yml)
 [![crates.io](https://img.shields.io/crates/v/rigspark-cli.svg?label=crates.io)](https://crates.io/crates/rigspark-cli)
