@@ -25,12 +25,41 @@ fn catalog_refresh_is_offline_read_only_and_native() {
 
 #[test]
 fn catalog_refresh_matches_frozen_legacy_text_and_never_writes_input() {
+    use rigspark_core::{
+        catalog::Catalog,
+        enrich::{Mode, enrich, format_diff, parse_candidates},
+        reports::catalog_text,
+    };
     let cases: Vec<serde_json::Value> =
         serde_json::from_str(include_str!("catalog-refresh-goldens.json")).unwrap();
     for case in cases {
         let root = tempfile::tempdir().unwrap();
         let path = root.path().join("catalog.json");
         let before = case["existing"].to_string();
+        let existing = Catalog::parse(&before).unwrap();
+        let hardware = serde_json::from_value(case["hardware"].clone()).unwrap();
+        let candidates = parse_candidates(rigspark_core::REGISTRY_SNAPSHOT_JSON).unwrap();
+        let format = |candidates: &[_]| {
+            let result = enrich(
+                &existing,
+                candidates,
+                Mode::Incremental,
+                "2026-09-30T00:00:00Z",
+                None,
+            )
+            .unwrap();
+            format!(
+                "{}{}",
+                format_diff(&result.diff),
+                catalog_text(&result.catalog, &hardware, case["all"] == true).unwrap()
+            )
+        };
+        let expected = format(&candidates);
+        let historical: Vec<_> = candidates
+            .into_iter()
+            .filter(|model| model.id != "qwen3.6:35b")
+            .collect();
+        assert_eq!(format(&historical), case["expected"].as_str().unwrap());
         std::fs::write(&path, &before).unwrap();
         let mut command = Command::new(env!("CARGO_BIN_EXE_llmup-native"));
         command
@@ -47,10 +76,7 @@ fn catalog_refresh_matches_frozen_legacy_text_and_never_writes_input() {
             "{}",
             String::from_utf8_lossy(&output.stderr)
         );
-        assert_eq!(
-            String::from_utf8(output.stdout).unwrap(),
-            case["expected"].as_str().unwrap()
-        );
+        assert_eq!(String::from_utf8(output.stdout).unwrap(), expected);
         assert_eq!(std::fs::read_to_string(path).unwrap(), before);
     }
 }

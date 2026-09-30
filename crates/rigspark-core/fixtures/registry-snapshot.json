@@ -1,5 +1,24 @@
 [
   {
+    "id": "qwen3.6:35b",
+    "family": "qwen3.6",
+    "params": "35B",
+    "architecture": "moe",
+    "activeParams": "3B",
+    "license": "apache-2.0",
+    "openWeight": true,
+    "contextLength": 262144,
+    "capabilities": ["chat", "vision", "reasoning", "tools", "code"],
+    "releaseDate": "2026-04-15",
+    "source": {"ollama": "qwen3.6:35b", "hf": "Qwen/Qwen3.6-35B-A3B"},
+    "quantizations": [{
+      "name": "Q4_K_M",
+      "diskBytes": 22621302688,
+      "sha256": "d372de8e934898a59e6ccfabc3368474711384d8f1fd4d22d87a3f0a45400cdc",
+      "projectors": [{"bytes": 902821728, "sha256": "a62390d25b4b4a2d8afd7cc3c90021c11935c1fdd48d7cb0723ab71cd02a598e"}]
+    }]
+  },
+  {
     "id": "kimi-k2:instruct",
     "family": "kimi-k2",
     "params": "1T",

@@ -48,6 +48,13 @@ fn run(input: &Value) -> Vec<Value> {
     let mut stderr = tempfile::tempfile().unwrap();
     let mut child = Command::new(env!("CARGO_BIN_EXE_llmup-native"))
         .arg("--parity")
+        .args([
+            "--catalog-path",
+            concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../rigspark-core/fixtures/advice-catalog-v2.0.0.json"
+            ),
+        ])
         .stdin(Stdio::from(stdin))
         .stdout(Stdio::from(stdout.try_clone().unwrap()))
         .stderr(Stdio::from(stderr.try_clone().unwrap()))
@@ -149,7 +156,7 @@ fn complete_typescript_advice_matrix_matches_native_cli() {
 }
 
 fn assert_matrix(oracle: &Value) {
-    let catalog_bytes = include_bytes!("../../rigspark-core/data/models.json");
+    let catalog_bytes = include_bytes!("../../rigspark-core/fixtures/advice-catalog-v2.0.0.json");
     for (path, bytes) in [
         ("data/models.json", catalog_bytes.as_slice()),
         (

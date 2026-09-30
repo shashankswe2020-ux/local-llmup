@@ -190,6 +190,60 @@ struct QueueTransport {
     responses: std::sync::Mutex<std::collections::VecDeque<serde_json::Value>>,
     requests: std::sync::Mutex<Vec<(String, Option<serde_json::Value>)>>,
 }
+
+#[tokio::test]
+async fn projector_pins_reject_substitution_and_missing_layers() {
+    use rigspark_core::sizing::ProjectorArtifact;
+    use rigspark_runtime::ollama_installed::verify_catalog_manifest;
+    let root = tempfile::tempdir().unwrap();
+    let directory = root
+        .path()
+        .join("manifests/registry.ollama.ai/library/test");
+    std::fs::create_dir_all(&directory).unwrap();
+    std::fs::create_dir(root.path().join("blobs")).unwrap();
+    let make_layer = |bytes: &[u8], media_type: &str| {
+        let sha = format!("{:x}", Sha256::digest(bytes));
+        std::fs::write(root.path().join(format!("blobs/sha256-{sha}")), bytes).unwrap();
+        json!({"digest":format!("sha256:{sha}"), "size":bytes.len(), "mediaType":media_type})
+    };
+    let config = make_layer(b"{}", "config");
+    let model = make_layer(b"model", "application/vnd.ollama.image.model");
+    let projector = make_layer(b"projector", "application/vnd.ollama.image.projector");
+    let pins = vec![ProjectorArtifact {
+        bytes: 9,
+        sha256: format!("{:x}", Sha256::digest(b"projector")),
+    }];
+    let cancel = tokio_util::sync::CancellationToken::new();
+    for (layers, success) in [
+        (json!([model.clone(), projector]), true),
+        (json!([model.clone()]), false),
+        (
+            json!([
+                model,
+                make_layer(b"substitute", "application/vnd.ollama.image.projector")
+            ]),
+            false,
+        ),
+    ] {
+        let raw = json!({"schemaVersion":2,"config":config,"layers":layers}).to_string();
+        std::fs::write(directory.join("latest"), &raw).unwrap();
+        let digest = format!("{:x}", Sha256::digest(raw.as_bytes()));
+        assert_eq!(
+            verify_catalog_manifest(
+                root.path(),
+                "test:latest",
+                &digest,
+                None,
+                Some(14),
+                &pins,
+                &cancel
+            )
+            .await
+            .is_ok(),
+            success
+        );
+    }
+}
 #[async_trait::async_trait]
 impl rigspark_runtime::http::Transport for QueueTransport {
     async fn send(

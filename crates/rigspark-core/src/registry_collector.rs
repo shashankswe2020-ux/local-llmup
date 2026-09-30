@@ -1,6 +1,6 @@
 use crate::{
     catalog::{CatalogModel, require},
-    sizing::{Architecture, ValidationError, parse_param_count, quant_bits},
+    sizing::{Architecture, ProjectorArtifact, ValidationError, parse_param_count, quant_bits},
 };
 use regex::Regex;
 use serde::Deserialize;
@@ -12,6 +12,7 @@ pub const MANIFEST_ACCEPT: &str = "application/vnd.docker.distribution.manifest.
 pub struct ModelLayer {
     pub disk_bytes: f64,
     pub sha256: String,
+    pub projectors: Vec<ProjectorArtifact>,
 }
 
 impl ModelLayer {
@@ -79,6 +80,38 @@ pub fn parse_layer(raw: &str) -> Result<Option<ModelLayer>, ValidationError> {
         }),
         "invalid manifest layer size",
     )?;
+    require(manifest.layers.len() <= 10000, "too many manifest layers")?;
+    let projectors = manifest
+        .layers
+        .iter()
+        .filter(|layer| layer.media_type == "application/vnd.ollama.image.projector")
+        .map(|layer| {
+            let sha = layer
+                .digest
+                .strip_prefix("sha256:")
+                .ok_or_else(|| ValidationError("invalid projector digest prefix".into()))?;
+            require(
+                layer.size > 0.0
+                    && sha.len() == 64
+                    && sha.bytes().all(|byte| byte.is_ascii_hexdigit()),
+                "invalid projector artifact",
+            )?;
+            Ok(ProjectorArtifact {
+                bytes: layer.size as u64,
+                sha256: sha.into(),
+            })
+        })
+        .collect::<Result<Vec<_>, ValidationError>>()?;
+    require(projectors.len() <= 16, "too many projector artifacts")?;
+    require(
+        manifest
+            .layers
+            .iter()
+            .filter(|layer| layer.media_type == "application/vnd.ollama.image.model")
+            .count()
+            <= 1,
+        "multiple model layers are unsupported",
+    )?;
     let Some(layer) = manifest
         .layers
         .into_iter()
@@ -91,8 +124,13 @@ pub fn parse_layer(raw: &str) -> Result<Option<ModelLayer>, ValidationError> {
         .strip_prefix("sha256:")
         .ok_or_else(|| ValidationError("invalid model layer digest prefix".into()))?;
     let result = ModelLayer {
-        disk_bytes: layer.size,
+        disk_bytes: layer.size
+            + projectors
+                .iter()
+                .map(|projector| projector.bytes as f64)
+                .sum::<f64>(),
         sha256: digest.into(),
+        projectors,
     };
     result.validate()?;
     Ok(Some(result))
@@ -116,26 +154,33 @@ pub fn apply_layer(
             .as_ref()
             .map_or(index == 0, |target| quant.name == *target)
             || (quant.disk_bytes == layer.disk_bytes
-                && quant.sha256.as_deref() == Some(&layer.sha256))
+                && quant.sha256.as_deref() == Some(&layer.sha256)
+                && quant.projectors == layer.projectors)
         {
             continue;
         }
-        if quant.disk_bytes != layer.disk_bytes {
+        if quant.disk_bytes != layer.disk_bytes || !layer.projectors.is_empty() {
             let bits = quant_bits(&quant.name);
             require(
                 bits.is_some() || !matches!(model.architecture, Architecture::Moe),
                 "unknown MoE quantization",
             )?;
             let count = parse_param_count(&model.params)?;
-            let resident = layer
-                .disk_bytes
-                .max(bits.map(|bits| (count * bits / 8.0).ceil()).unwrap_or(0.0));
+            let projector_bytes = layer
+                .projectors
+                .iter()
+                .map(|projector| projector.bytes as f64)
+                .sum::<f64>();
+            let resident = (layer.disk_bytes - projector_bytes)
+                .max(bits.map(|bits| (count * bits / 8.0).ceil()).unwrap_or(0.0))
+                + projector_bytes;
             let memory = resident + (resident * 0.15).ceil();
             quant.min_ram_bytes = memory;
             quant.min_vram_bytes = memory;
         }
         quant.disk_bytes = layer.disk_bytes;
         quant.sha256 = Some(layer.sha256.clone());
+        quant.projectors = layer.projectors.clone();
         changed = true;
     }
     if !changed {

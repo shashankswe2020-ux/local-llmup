@@ -352,12 +352,8 @@ fn hangup_restores_visual_terminal_without_state_changes() {
 fn visual_picker_fragmented_end_selects_last_model_without_cancelling() {
     for (initial, fragment, expected) in [
         (b"\x1b".as_slice(), b"[F\r".as_slice(), "mistral:7b"),
-        (
-            b"\x1b[B\x1b".as_slice(),
-            b"[H\r".as_slice(),
-            "gemma4:e4b-it-qat",
-        ),
-        (b"\x1b[B".as_slice(), b"\r".as_slice(), "kimi-k2-thinking"),
+        (b"\x1b[B\x1b".as_slice(), b"[H\r".as_slice(), "qwen3.6:35b"),
+        (b"\x1b[B".as_slice(), b"\r".as_slice(), "gemma4:e4b-it-qat"),
     ] {
         let (exit, output) = run_scripted_with_fragment(
             "up",

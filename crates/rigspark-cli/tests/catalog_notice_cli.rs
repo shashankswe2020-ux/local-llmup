@@ -15,7 +15,7 @@ fn native_report_producers_feed_native_workflow_decisions_without_node() {
     )
     .unwrap();
     let fresh = Command::new(env!("CARGO_BIN_EXE_llmup-catalog-freshness"))
-        .args(["--now", "2026-09-19T00:00:00Z"])
+        .args(["--now", "2026-10-19T00:00:00Z"])
         .current_dir(root.path())
         .env("PATH", "")
         .env_remove("GITHUB_STEP_SUMMARY")

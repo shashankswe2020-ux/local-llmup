@@ -2,6 +2,14 @@
 
 ## Trust Setup
 
+Production provisioning was completed on 2026-09-30 for the v2.1.0 activation
+branch. The embedded public key is
+`f7b01f46cc7206dbf72ef9e046dfa6e2c450b2dfa0617f88cfcbe56f3479c521`.
+The `catalog-signing` environment is main-only and requires approval by
+`shashankswe2020-ux`; self-approval is allowed. The seed is stored as an environment
+secret. Publication still requires the reviewed activation code to reach `main`.
+The following steps also serve as the initial-setup/rotation checklist.
+
 1. Generate a dedicated Ed25519 signing key using an approved local key-management
    tool. Keep the private 32-byte seed outside this repository. Never paste it
    into chat, issue bodies, logs, command arguments, or source files.
@@ -103,5 +111,13 @@ catalog. Existing cached signatures then fail closed and fall back to bundled
 data. Freeze publication and distribute a recovery release on key compromise.
 
 This implementation does not change the model schema or independently update
-performance datasets. A new architecture requiring unsupported schema or sizing
-logic still needs an application release. New compatible models do not.
+performance datasets in its original update transport. v2.1.0 extends schema v2
+quantizations with an optional `projectors` array of exact byte counts and
+SHA-256 digests. Older strict readers reject that field; they never silently
+discard projector integrity requirements. The production trust key first ships
+with a reader that understands this extension. A new architecture requiring
+unsupported schema or sizing logic still needs an application release. New
+compatible models do not.
+
+Qwen 3.6 admission and artifact sources are recorded in
+[Qwen 3.6 catalog provenance](qwen36-catalog-provenance.md).

@@ -5,7 +5,7 @@ use crate::{
     http::{HttpError, NativeTransport, Request, Response, Transport},
     identity::{NativeProcessProbe, ProcessIdentity},
     lifecycle::{Activation, Lifecycle, Registry},
-    ollama_installed::{InstalledModels, LocalVerifier, verify_manifest},
+    ollama_installed::{InstalledModels, LocalVerifier, verify_catalog_manifest},
     process_control::{
         NativeProcessControl, ProcessControl, listener, resolve_binary, same_process,
     },
@@ -133,6 +133,7 @@ struct ContextActivation<'runtime> {
     expected_manifest: Option<String>,
     expected_sha: Option<String>,
     expected_bytes: Option<u64>,
+    projectors: Vec<rigspark_core::sizing::ProjectorArtifact>,
     root: PathBuf,
     http: &'runtime NativeTransport,
     probe: &'runtime NativeProcessProbe,
@@ -179,12 +180,13 @@ impl Activation for ContextActivation<'_> {
             LifecycleScope::Runtime,
             LifecycleStage::Verification,
             async {
-                verify_manifest(
+                verify_catalog_manifest(
                     &self.root,
                     &model.id,
                     &model.digest,
                     self.expected_sha.as_deref(),
                     self.expected_bytes,
+                    &self.projectors,
                     cancel,
                 )
                 .await
@@ -424,6 +426,7 @@ fn catalog_pull_request(
         },
         expected_bytes: quant.disk_bytes as u64,
         expected_sha256: quant.sha256.clone(),
+        projectors: quant.projectors.clone(),
         gguf: model.source.gguf.clone(),
         mlx: model.source.mlx.clone(),
     })
@@ -784,6 +787,9 @@ pub async fn run_native_with_config_observed(
             expected_manifest: Some(model.digest),
             expected_sha: catalog_quant.and_then(|quant| quant.sha256.clone()),
             expected_bytes: catalog_quant.map(|quant| quant.disk_bytes as u64),
+            projectors: catalog_quant
+                .map(|quant| quant.projectors.clone())
+                .unwrap_or_default(),
             root: ollama_root,
             http: &http,
             probe: &probe,
@@ -974,6 +980,7 @@ pub async fn run_native_with_config_observed(
             expected_manifest: prepared.local_manifest_digest,
             expected_sha: quant.sha256.clone(),
             expected_bytes: Some(quant.disk_bytes as u64),
+            projectors: quant.projectors.clone(),
             root: ollama_root,
             http: &http,
             probe: &probe,

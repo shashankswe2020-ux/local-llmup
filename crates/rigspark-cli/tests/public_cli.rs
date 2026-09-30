@@ -575,7 +575,16 @@ fn public_advice_options_match_frozen_typescript_reports() {
                 );
             }
         }
-        let mut args = vec!["recommend", "--hardware-json", &hardware];
+        let mut args = vec![
+            "recommend",
+            "--hardware-json",
+            &hardware,
+            "--catalog-path",
+            concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../rigspark-core/fixtures/advice-catalog-v2.0.0.json"
+            ),
+        ];
         args.extend(flags.iter().map(String::as_str));
         let output = invoke(&args);
         assert_success(&output);

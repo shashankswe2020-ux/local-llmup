@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 2.1.0 - 2026-09-30
+
+### Independently Updated Catalogs
+
+- `rigspark catalog --update` explicitly downloads and activates a signed model
+  catalog without replacing the application. Advice stays offline.
+- `rigspark catalog --status` and the Models view expose snapshot provenance;
+  the GUI has an explicit update action with non-destructive failure handling.
+- Ed25519 verification, bounded HTTPS downloads, atomic shared cache activation,
+  revision rollback checks, and verified previous/bundled fallback protect updates.
+- Provision the production public key and protected catalog-only publication
+  workflow. The channel must be published before live updates are available.
+
+### Qwen 3.6 and Projector Integrity
+
+- Add `qwen3.6:35b` (35B total / 3B active) with sourced model and vision-projector
+  sizes/digests. Hybrid KV geometry and unsourced benchmark proxy remain unknown.
+- Count projector weights in enrichment sizing and pin projector identity/size
+  during Ollama pull and context activation. Invalid pins fail before acquisition.
+- Add optional `projectors` metadata to catalog quantizations. Older strict
+  readers reject this extension instead of ignoring integrity requirements.
+
 ## 2.0.0 - 2026-09-30
 
 ### Breaking: renamed to RigSpark

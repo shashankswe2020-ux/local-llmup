@@ -133,3 +133,26 @@ fn digest_only_changes_preserve_memory_and_moe_uses_total_parameters() {
     let updated = apply_layer(&dense, &layer).unwrap().unwrap();
     assert_eq!(updated.quantizations[0].min_ram_bytes, 1_150_000.0);
 }
+
+#[test]
+fn projector_weights_are_sized_and_pinned_with_the_model() {
+    let raw = json!({"layers":[
+        {"mediaType":"application/vnd.ollama.image.model","size":5_000_000_000_u64,"digest":format!("sha256:{}", "a".repeat(64))},
+        {"mediaType":"application/vnd.ollama.image.projector","size":900_000_000_u64,"digest":format!("sha256:{}", "b".repeat(64))}
+    ]});
+    let layer = parse_layer(&raw.to_string()).unwrap().unwrap();
+    assert_eq!(layer.disk_bytes, 5_900_000_000.0);
+    let updated = apply_layer(&model(), &layer).unwrap().unwrap();
+    let quant = serde_json::to_value(&updated.quantizations[0]).unwrap();
+    assert_eq!(quant["projectors"][0]["sha256"], "b".repeat(64));
+    assert_eq!(quant["projectors"][0]["bytes"], 900_000_000_u64);
+    assert_eq!(
+        updated.quantizations[0].sha256.as_deref(),
+        Some("a".repeat(64).as_str())
+    );
+    assert_eq!(updated.quantizations[0].min_ram_bytes, 6_785_000_000.0);
+    assert!(apply_layer(&updated, &layer).unwrap().is_none());
+    let mut invalid = raw;
+    invalid["layers"][1]["digest"] = json!("sha256:invalid");
+    assert!(parse_layer(&invalid.to_string()).is_err());
+}
