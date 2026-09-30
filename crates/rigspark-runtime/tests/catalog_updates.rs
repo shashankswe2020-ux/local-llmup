@@ -6,12 +6,18 @@ fn key() -> SigningKey {
     SigningKey::from_bytes(&[7; 32])
 }
 
+fn fixture_catalog() -> String {
+    let mut catalog: Value = serde_json::from_str(rigspark_core::MODELS_JSON).unwrap();
+    catalog["generatedAt"] = json!("2026-09-30T00:00:00Z");
+    catalog.to_string()
+}
+
 fn payload(revision: u64) -> Value {
     json!({
         "formatVersion": 1,
         "revision": revision,
         "publishedAt": "2026-09-30T00:00:00Z",
-        "catalog": rigspark_core::MODELS_JSON,
+        "catalog": fixture_catalog(),
     })
 }
 
@@ -83,9 +89,18 @@ fn rejects_incompatible_or_invalid_signed_payloads() {
         );
     }
     let mut invalid = payload(1);
-    let mut catalog: Value = serde_json::from_str(rigspark_core::MODELS_JSON).unwrap();
+    let mut catalog: Value = serde_json::from_str(&fixture_catalog()).unwrap();
     catalog["schemaVersion"] = json!(99);
     invalid["catalog"] = json!(serde_json::to_string(&catalog).unwrap());
+    assert!(verify(&signed(invalid), &key().verifying_key().to_bytes()).is_err());
+}
+
+#[test]
+fn publication_before_catalog_generation_is_rejected() {
+    let mut invalid = payload(1);
+    let mut catalog: Value = serde_json::from_str(&fixture_catalog()).unwrap();
+    catalog["generatedAt"] = json!("2026-10-01T00:00:00Z");
+    invalid["catalog"] = json!(catalog.to_string());
     assert!(verify(&signed(invalid), &key().verifying_key().to_bytes()).is_err());
 }
 
@@ -107,7 +122,7 @@ fn publication_round_trips_and_refuses_wrong_signing_key() {
         format_version: 1,
         revision: 9,
         published_at: "2026-09-30T00:00:00Z".into(),
-        catalog: rigspark_core::MODELS_JSON.into(),
+        catalog: fixture_catalog(),
     };
     let artifact = sign_catalog(
         document(),
@@ -260,7 +275,7 @@ fn update_lock_is_exclusive_and_new_models_need_no_binary_rebuild() {
     ));
     lock.unlock().unwrap();
     let mut candidate = payload(2);
-    let mut catalog: Value = serde_json::from_str(rigspark_core::MODELS_JSON).unwrap();
+    let mut catalog: Value = serde_json::from_str(&fixture_catalog()).unwrap();
     catalog["models"][0]["id"] = json!("fixture-new-model:4b");
     candidate["catalog"] = json!(serde_json::to_string(&catalog).unwrap());
     store.install(&signed(candidate)).unwrap();
