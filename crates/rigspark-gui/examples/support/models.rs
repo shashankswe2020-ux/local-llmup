@@ -87,6 +87,19 @@ async fn open_first_detail(client: &Client) -> TestResult {
 
 pub async fn details(client: &Client, origin: &str, artifacts: &std::path::Path) -> TestResult {
     open_models(client, origin).await?;
+    wait_for(
+        client,
+        "document.querySelector('#catalog-status')?.textContent.includes('bundled')",
+    )
+    .await?;
+    click(client, "#update-catalog").await?;
+    wait_for(client, "document.querySelector('#catalog-status')?.textContent.includes('revision 1') && !document.querySelector('#update-catalog').disabled").await?;
+    click(client, "#update-catalog").await?;
+    wait_for(client, "document.querySelector('#catalog-update-error')?.textContent.includes('offline') && !document.querySelector('#update-catalog').disabled && document.querySelector('.model-card-item')").await?;
+    std::fs::write(
+        artifacts.join("catalog-update-desktop.png"),
+        client.screenshot().await?,
+    )?;
     let name = client
         .execute(
             "return document.querySelector('.model-card-item .model-card-title').textContent;",
@@ -144,6 +157,11 @@ pub async fn narrow_details(
     artifacts: &std::path::Path,
 ) -> TestResult {
     open_models(client, origin).await?;
+    wait_for(client, "document.querySelector('#catalog-status')?.textContent.includes('revision 1') && document.documentElement.scrollWidth <= innerWidth").await?;
+    std::fs::write(
+        artifacts.join("catalog-update-mobile.png"),
+        client.screenshot().await?,
+    )?;
     open_first_detail(client).await?;
     wait_for(client, &format!("[...document.querySelectorAll('#model-detail h3')].some((node) => node.textContent.trim() === 'Quantization options' && {VISIBLE}(node)) && getComputedStyle(document.querySelector('.model-detail-metrics')).gridTemplateColumns.length > 0 && document.documentElement.scrollWidth <= innerWidth")).await?;
     std::fs::write(

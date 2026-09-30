@@ -8,6 +8,7 @@ catalog-refresh = "run --quiet --locked -p rigspark-cli --bin llmup-catalog-refr
 catalog-enrich = "run --quiet --locked -p rigspark-cli --bin llmup-catalog-enrich --"
 catalog-coverage = "run --quiet --locked -p rigspark-cli --bin llmup-catalog-coverage --"
 catalog-notice = "run --quiet --locked -p rigspark-cli --bin llmup-catalog-notice --"
+catalog-sign = "run --quiet --locked -p rigspark-cli --bin llmup-catalog-sign --"
 native-performance = "run --quiet --locked --release -p rigspark-cli --example native-performance --"
 native-retirement = "run --quiet --locked -p rigspark-cli --example retirement-check --"
 native-browser-smoke = "run --quiet --locked -p rigspark-gui --example browser_smoke --"

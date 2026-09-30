@@ -103,6 +103,39 @@ async fn workspace_shell_names_its_primary_regions() {
 }
 
 #[tokio::test]
+async fn catalog_status_reports_offline_provenance_and_rejects_update_parameters() {
+    let (home, host) = host(Arc::default());
+    let (status, value) = json_call(&host, "GET", "/api/catalog/status", Value::Null).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(value["catalog"]["source"], "bundled");
+    assert!(value["catalog"]["generatedAt"].is_string());
+    assert!(value["catalog"]["modelCount"].as_u64().unwrap() > 0);
+    assert!(!home.path().join("catalog").exists());
+    let (status, _) = json_call(
+        &host,
+        "POST",
+        "/api/catalog/update",
+        json!({"url":"https://untrusted.invalid"}),
+    )
+    .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(!home.path().join("catalog").exists());
+    let response = router(host.clone())
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/catalog/update")
+                .header("host", format!("127.0.0.1:{}", host.port))
+                .header("content-type", "application/json")
+                .body(Body::from("{}"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+}
+
+#[tokio::test]
 async fn chat_forwards_prompt_options_and_rebuilds_turns_from_the_session() {
     let engine = Arc::new(Capture::default());
     let (_home, host) = host(engine.clone());

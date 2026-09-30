@@ -337,6 +337,10 @@ fn severe_messages(entries: &serde_json::Value) -> Option<Vec<String>> {
             .filter(|entry| entry["level"] == "SEVERE")
             .filter_map(|entry| entry["message"].as_str())
             .filter(|message| !message.contains("favicon") && !message.contains("ERR_ABORTED"))
+            .filter(|message| {
+                !(message.contains("http://127.0.0.1:48231/api/catalog/update")
+                    && message.contains("502 (Bad Gateway)"))
+            })
             .map(str::to_owned)
             .collect(),
     )

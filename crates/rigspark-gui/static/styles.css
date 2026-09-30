@@ -1547,6 +1547,26 @@ input {
   gap: 0.6rem;
 }
 
+.catalog-update-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.catalog-update-bar .section-note {
+  margin: 0;
+  overflow-wrap: anywhere;
+  flex: 1 1 240px;
+}
+
+#update-catalog {
+  min-width: 136px;
+  min-height: 36px;
+}
+
 .context-control {
   display: grid;
   gap: 0.3rem;

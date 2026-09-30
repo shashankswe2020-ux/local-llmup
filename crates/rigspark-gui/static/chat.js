@@ -1819,6 +1819,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function loadModels() {
+    void loadCatalogStatus();
     const requestSequence = ++modelsRequestSequence;
     if (modelError) {
       modelError.hidden = true;
@@ -1883,6 +1884,68 @@ document.addEventListener("DOMContentLoaded", () => {
   if (refreshModels) {
     refreshModels.addEventListener("click", () => loadModels());
   }
+
+  const catalogStatus = document.querySelector("#catalog-status");
+  const updateCatalog = document.querySelector("#update-catalog");
+  const catalogUpdateError = document.querySelector("#catalog-update-error");
+  let catalogUpdating = false;
+  let catalogStatusSequence = 0;
+
+  function renderCatalogStatus(status) {
+    if (!catalogStatus || !updateCatalog) return;
+    const date = status.publishedAt || status.generatedAt;
+    const revision = status.revision ? `, revision ${status.revision}` : "";
+    catalogStatus.textContent = `Catalog: ${status.source}, ${String(date || "unknown").slice(0, 10)}${revision} (${status.modelCount} models)`;
+    catalogStatus.title = `Snapshot digest: ${status.digest}`;
+    updateCatalog.disabled = catalogUpdating || !status.updatesConfigured;
+    updateCatalog.title = status.updatesConfigured ? "Download the latest signed catalog" : "Catalog updates unavailable: production signing key not provisioned";
+    if (Array.isArray(status.warnings) && status.warnings.length) {
+      catalogUpdateError.textContent = status.warnings.join(" ");
+      catalogUpdateError.hidden = false;
+    }
+  }
+
+  async function loadCatalogStatus() {
+    if (!catalogStatus || catalogUpdating) return;
+    const sequence = ++catalogStatusSequence;
+    try {
+      const response = await globalThis.fetch("/api/catalog/status");
+      if (!response.ok) throw new Error("Catalog status unavailable");
+      const data = await response.json();
+      if (sequence === catalogStatusSequence && !catalogUpdating) renderCatalogStatus(data.catalog);
+    } catch {
+      if (sequence === catalogStatusSequence && !catalogUpdating) catalogStatus.textContent = "Catalog status unavailable";
+    }
+  }
+
+  updateCatalog?.addEventListener("click", async () => {
+    if (catalogUpdating) return;
+    catalogUpdating = true;
+    ++catalogStatusSequence;
+    updateCatalog.disabled = true;
+    updateCatalog.textContent = "Updating...";
+    catalogUpdateError.hidden = true;
+    catalogStatus.textContent = "Downloading and verifying catalog...";
+    try {
+      const response = await globalThis.fetch("/api/catalog/update", {
+        method: "POST",
+        headers: workspaceHeaders({ "Content-Type": "application/json" }),
+        body: "{}",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "Catalog update failed");
+      renderCatalogStatus(data.catalog);
+      await loadModels();
+    } catch (error) {
+      catalogUpdateError.textContent = error.message;
+      catalogUpdateError.hidden = false;
+    } finally {
+      catalogUpdating = false;
+      updateCatalog.textContent = "Update catalog";
+      updateCatalog.disabled = false;
+      await loadCatalogStatus();
+    }
+  });
 
   if (contextWindow) {
     contextWindow.addEventListener("change", () => {

@@ -231,6 +231,44 @@ quantizations, artifact size, source coordinates, and integrity digest. Run
 `rigspark catalog --all` to browse it or open a model in the browser GUI for
 its complete performance and fit breakdown.
 
+### Independent Catalog Updates
+
+Catalog-capable releases can use a signed local snapshot instead of the bundled
+catalog, without downloading a new application binary:
+
+```bash
+rigspark catalog --status  # offline source, date, revision, digest, model count
+rigspark catalog --update  # explicitly download and verify the official catalog
+```
+
+The Models view shows catalog provenance and has a separate **Update catalog**
+action. Its existing **Refresh** action only reloads the selected local data.
+CLI advice, GUI model operations, and local chat alias resolution use the same
+snapshot under `RIGSPARK_HOME` (normally `~/.rigspark`). Explicit `--catalog-path`
+inputs and parity fixtures keep their existing precedence. The standalone
+`advice_json` helper intentionally remains bundled and deterministic.
+
+Updates verify an Ed25519 signature and model schema before atomic activation.
+Offline recommendations never download a catalog. An unavailable network or
+invalid update leaves the current snapshot unchanged. Cache reads reverify
+signatures and fall back to the previous verified snapshot, then the bundled
+catalog, with visible warnings. `catalog --refresh` still previews enrichment
+from the bundled registry snapshot; it is not a network update.
+
+**Launch prerequisite:** official updates are disabled until the production
+public key is provisioned in the application and a signed channel is published.
+The initial integration deliberately contains `UNPROVISIONED`, not a test trust
+key. Status reports this, and the GUI disables the update action.
+
+An updated date does not promise complete coverage of upstream models. New
+entries still require curation. Performance evidence remains bundled; missing
+evidence continues to render as `unknown`. Catalog revisions and digests identify
+the selected snapshot; preserve that snapshot together with the application
+version and hardware inputs when reproducing a recommendation.
+
+Maintainer setup, publication, and recovery:
+[Signed catalog operations](catalog-updates.md).
+
 Catalog metadata is deliberately conservative. A model with unknown attention
 geometry remains eligible for weight-based ranking, but its KV-cache cost and
 maximum safe context are reported as `unknown` rather than inferred from a
