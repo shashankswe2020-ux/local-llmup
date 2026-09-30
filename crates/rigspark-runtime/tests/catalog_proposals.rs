@@ -32,6 +32,20 @@ fn proposed_facts_must_match_source_values_and_known_field_paths() {
     assert!(validate_claims(r#"{"claims":[]}"#, &config).is_ok());
 }
 
+#[test]
+fn ollama_model_type_is_parameter_label_not_architecture() {
+    let config = json!({"model_family":"falcon","model_type":"42B","file_type":"Q4_0"});
+    let claims = json!({"claims":[
+        {"field":"architecture","pointer":"/model_family","valueJson":"\"falcon\""},
+        {"field":"parameters","pointer":"/model_type","valueJson":"\"42B\""},
+        {"field":"quantization","pointer":"/file_type","valueJson":"\"Q4_0\""}
+    ]});
+    assert!(validate_claims(&claims.to_string(), &config).is_ok());
+    let invalid =
+        json!({"claims":[{"field":"architecture","pointer":"/model_type","valueJson":"\"42B\""}]});
+    assert!(validate_claims(&invalid.to_string(), &config).is_err());
+}
+
 struct Fixture {
     corrupt: bool,
     ai: bool,
@@ -86,7 +100,132 @@ async fn collects_public_sources_without_claiming_quality_verification() {
         assert!(report.requires_review);
         assert_eq!(report.proposals[0].extraction_status, expected);
         assert_eq!(report.proposals[0].artifact_bytes, Some(1234.0));
+        let serialized = serde_json::to_value(&report).unwrap();
+        assert_eq!(
+            serialized["proposals"][0]["sourceClaims"]
+                .as_array()
+                .unwrap()
+                .len(),
+            if corrupt { 0 } else { 1 }
+        );
     }
+}
+
+#[test]
+fn literal_source_extraction_uses_one_preferred_path_and_never_infers() {
+    use rigspark_runtime::catalog_proposals::source_claims;
+    let config = json!({"model_family":"falcon","model_type":"42B","parameter_size":"42.0B","file_type":"Q4_0","context_length":null});
+    let claims = source_claims(&config);
+    let raw = json!({"claims":claims});
+    assert_eq!(raw["claims"].as_array().unwrap().len(), 3);
+    assert!(validate_claims(&raw.to_string(), &config).is_ok());
+    assert!(
+        raw["claims"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|claim| claim["field"] == "parameters" && claim["pointer"] == "/parameter_size")
+    );
+    assert!(source_claims(&json!({"architecture":"amd64"})).is_empty());
+}
+
+#[test]
+fn rejection_reasons_distinguish_duplicates_from_source_mismatches() {
+    let config = json!({"model_family":"qwen"});
+    let claim = json!({"field":"architecture","pointer":"/model_family","valueJson":"\"qwen\""});
+    assert_eq!(
+        validate_claims(
+            &json!({"claims":[claim.clone(),claim]}).to_string(),
+            &config
+        )
+        .unwrap_err()
+        .0,
+        "duplicate claim field"
+    );
+    assert_eq!(validate_claims(r#"{"claims":[{"field":"architecture","pointer":"/model_family","valueJson":"\"fabricated\""}]}"#, &config).unwrap_err().0, "claim value differs from source");
+}
+
+struct RejectingExtractor;
+
+#[async_trait::async_trait]
+impl rigspark_runtime::catalog_proposals::ProposalTransport for RejectingExtractor {
+    async fn fetch(
+        &self,
+        url: &str,
+        maximum: usize,
+    ) -> Result<Vec<u8>, rigspark_runtime::catalog_proposals::ProposalError> {
+        Fixture {
+            corrupt: false,
+            ai: false,
+        }
+        .fetch(url, maximum)
+        .await
+    }
+    async fn extract(
+        &self,
+        _: &serde_json::Value,
+    ) -> Result<Option<String>, rigspark_runtime::catalog_proposals::ProposalError> {
+        Ok(Some(r#"{"claims":[{"field":"architecture","pointer":"/model_family","valueJson":"\"fabricated\""}]}"#.into()))
+    }
+}
+
+#[tokio::test]
+async fn batches_advance_and_source_only_never_calls_extractor() {
+    use rigspark_runtime::catalog_proposals::collect_batch;
+    let catalog = rigspark_core::catalog::Catalog::parse(rigspark_core::MODELS_JSON).unwrap();
+    let upstream = vec!["new-a".into(), "new-b".into(), "new-c".into()];
+    let first = collect_batch(
+        &catalog,
+        &upstream,
+        2,
+        None,
+        "2026-09-30T00:00:00Z",
+        true,
+        &RejectingExtractor,
+    )
+    .await
+    .unwrap();
+    assert_eq!(first.next_after.as_deref(), Some("new-b"));
+    assert_eq!(first.remaining_candidates, 1);
+    assert!(
+        first
+            .proposals
+            .iter()
+            .all(|proposal| proposal.extraction_status == "disabled")
+    );
+    let second = collect_batch(
+        &catalog,
+        &upstream,
+        2,
+        first.next_after.as_deref(),
+        "2026-09-30T00:00:00Z",
+        false,
+        &RejectingExtractor,
+    )
+    .await
+    .unwrap();
+    assert_eq!(second.proposals[0].repository, "new-c");
+    assert_eq!(second.next_after, None);
+    assert_eq!(second.remaining_candidates, 0);
+    assert_eq!(
+        second.proposals[0].extraction_error,
+        Some("claim value differs from source")
+    );
+    assert_eq!(second.proposals[0].source_claims.len(), 1);
+    assert!(second.proposals[0].claims.is_empty());
+    assert!(
+        collect_batch(
+            &catalog,
+            &upstream,
+            2,
+            Some("../unsafe"),
+            "2026-09-30T00:00:00Z",
+            true,
+            &RejectingExtractor
+        )
+        .await
+        .is_err()
+    );
 }
 
 #[test]
