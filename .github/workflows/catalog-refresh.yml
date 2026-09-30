@@ -5,6 +5,23 @@ on:
     # Every Monday 03:17 UTC.
     - cron: "17 3 * * 1"
   workflow_dispatch:
+    inputs:
+      candidate_limit:
+        description: "Candidate budget (1-10)"
+        type: choice
+        options: ["1", "2", "5", "10"]
+        default: "1"
+      use_ai:
+        description: "Enable paid OpenAI extraction"
+        type: boolean
+        default: false
+      after:
+        description: "Optional repository cursor override"
+        type: string
+      restart:
+        description: "Start from the beginning instead of the merged report cursor"
+        type: boolean
+        default: false
 
 # Write the refreshed catalog to a dedicated branch and merge it through a
 # reviewed PR — never a direct push to the protected default branch.
@@ -18,9 +35,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  pending-review:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+    steps:
+      - name: Preserve pending catalog review
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PENDING=$(gh pr list --repo "$GITHUB_REPOSITORY" --base main --state open --limit 100 --json headRefName,url --jq '.[] | select(.headRefName | startswith("catalog/auto-refresh-")) | .url')
+          if [ -n "$PENDING" ]; then
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+            printf 'Catalog collection paused: review or close the existing PR before another run.\n%s\n' "$PENDING" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          fi
+
   refresh:
     name: Weekly catalog refresh
-    if: github.ref == 'refs/heads/main'
+    needs: pending-review
+    if: github.ref == 'refs/heads/main' && needs.pending-review.outputs.proceed == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     defaults:
@@ -60,10 +101,38 @@ jobs:
           cargo build --locked -p rigspark-cli --bin llmup-catalog-propose
 
       - name: Collect candidates with optional OpenAI extraction
+        id: proposals
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_CATALOG_MODEL: ${{ vars.OPENAI_CATALOG_MODEL }}
-        run: target/debug/llmup-catalog-propose --limit 10 --out docs/references/catalog-proposals.json
+          CANDIDATE_LIMIT: ${{ inputs.candidate_limit || '10' }}
+          USE_AI: ${{ github.event_name == 'schedule' || inputs.use_ai }}
+          AFTER: ${{ inputs.after }}
+          RESTART: ${{ inputs.restart }}
+        run: |
+          set -euo pipefail
+          ARGS=(--limit "$CANDIDATE_LIMIT" --out docs/references/catalog-proposals.json)
+          if [ "$USE_AI" != "true" ]; then
+            ARGS+=(--source-only)
+          fi
+          if [ -n "$AFTER" ]; then
+            ARGS+=(--after "$AFTER")
+          elif [ "$RESTART" != "true" ] && [ -f docs/references/catalog-proposals.json ]; then
+            cp docs/references/catalog-proposals.json "$RUNNER_TEMP/catalog-proposals-previous.json"
+            ARGS+=(--resume-from "$RUNNER_TEMP/catalog-proposals-previous.json")
+          fi
+          code=0
+          target/debug/llmup-catalog-propose "${ARGS[@]}" || code=$?
+          if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then
+            exit "$code"
+          fi
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Summarize candidate diagnostics
+        run: |
+          set -euo pipefail
+          jq -r '["## Catalog proposals", "", "Review required; inventory is not complete.", "", ("Candidates: " + (.proposals | length | tostring)), ("Remaining after this batch: " + (.remainingCandidates | tostring)), ("Next cursor: " + ((.nextAfter // "(restart next cycle)") | tojson)), "", (.proposals[] | "- " + (.repository | tojson) + ": " + .status + "; " + .extractionStatus + "; source claims=" + (.sourceClaims | length | tostring) + "; diagnostic=" + ((.extractionError // "none") | tojson))] | .[]' docs/references/catalog-proposals.json > "$RUNNER_TEMP/catalog-review-summary.md"
+          cat "$RUNNER_TEMP/catalog-review-summary.md" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Report release quality without promoting evidence
         run: |
@@ -76,6 +145,13 @@ jobs:
             test -s docs/references/catalog-quality-latest-report.json
             echo "Catalog quality gates blocked publication; opening a remediation PR only."
           fi
+          jq -e '.passed | type == "boolean"' docs/references/catalog-quality-latest-report.json > /dev/null
+
+      - name: Summarize publication blockers and evidence work
+        run: |
+          set -euo pipefail
+          jq -r '["", "## Publication quality", "", ("Passed: " + (.passed | tostring)), ("Freshness: " + (if .freshnessPercent == null then "unknown" else (.freshnessPercent | tostring) + "%" end)), ("Correctness: " + (.correctnessPercent | tostring) + "%"), ("Fresh entries: " + (.freshEntries | tostring) + "/" + (.catalogEntries | tostring)), ("Verified entries: " + (.verifiedEntries | tostring) + "/" + (.catalogEntries | tostring)), "", (.blockers[] | "- Blocker: " + tojson), "", "### Entries needing evidence or correction", (.entries[] | select(.verified == false) | "- " + (.id | tojson) + ": " + (.reason | tojson)), "", "### Missing variants", (.missingVariants[] | "- " + tojson), "", "Review and update catalog-quality-evidence.json separately using authoritative sources. These reports do not certify facts. Publication still requires both 90% gates and protected signing approval."] | .[]' docs/references/catalog-quality-latest-report.json >> "$RUNNER_TEMP/catalog-review-summary.md"
+          cat "$RUNNER_TEMP/catalog-review-summary.md" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Audit upstream catalog coverage
         run: cargo catalog-coverage
@@ -112,6 +188,8 @@ jobs:
           TITLE="chore(catalog): weekly automated refresh"
           BODY=$(cargo catalog-notice refresh-pr --input catalog-freshness.json)
           BODY+=$'\n\nSource-backed discovery proposals: docs/references/catalog-proposals.json. All proposals are unverified and require review; OpenAI never updates quality evidence. Publication eligibility: docs/references/catalog-quality-latest-report.json. Repository discovery is not complete variant coverage.'
+          BODY+=$'\n\n'
+          BODY+=$(cat "$RUNNER_TEMP/catalog-review-summary.md")
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
@@ -121,11 +199,6 @@ jobs:
           AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\r\n')
           git -c "http.${GITHUB_SERVER_URL}/.extraheader=AUTHORIZATION: basic $AUTH" push origin "$BRANCH"
           unset AUTH
-
-          # Supersede any previous open auto-refresh PR so only the latest stands.
-          for number in $(gh pr list --state open --search "$TITLE in:title" --json number --jq '.[].number'); do
-            gh pr close "$number" --comment "Superseded by a newer automated refresh." --delete-branch || true
-          done
 
           gh pr create --base main --head "$BRANCH" --title "$TITLE" --body "$BODY"
 
@@ -177,3 +250,9 @@ jobs:
             echo "Creating a catalog coverage issue"
             gh issue create --title "$TITLE" --body "$BODY"
           fi
+
+      - name: Fail visibly after preserving partial collection results
+        if: steps.proposals.outputs.exit_code == '2'
+        run: |
+          echo "Collection or extraction failed for some candidates. Review the persisted report and diagnostics before retrying; publication remains independently gated."
+          exit 2
