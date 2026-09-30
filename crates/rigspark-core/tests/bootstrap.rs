@@ -9,6 +9,10 @@ fn snapshot_entries_build_independently_and_have_pinned_family_offsets() {
     let candidates = parse_candidates(include_str!("../fixtures/registry-snapshot.json")).unwrap();
     let expected = Catalog::parse(include_str!("../fixtures/bootstrap-oracle.json")).unwrap();
     for candidate in candidates {
+        if candidate.id == "qwen3.6:35b" {
+            assert!(rigspark_core::bootstrap::family_quality_offset(&candidate.family).is_none());
+            continue;
+        }
         assert!(
             rigspark_core::bootstrap::family_quality_offset(&candidate.family).is_some(),
             "{}",
@@ -48,7 +52,9 @@ fn committed_curated_fields_match_bootstrap_without_overwriting_live_quant_facts
 
 #[test]
 fn complete_bootstrap_matches_frozen_typescript_oracle() {
-    let candidates = parse_candidates(include_str!("../fixtures/registry-snapshot.json")).unwrap();
+    let mut candidates =
+        parse_candidates(include_str!("../fixtures/registry-snapshot.json")).unwrap();
+    candidates.retain(|candidate| candidate.id != "qwen3.6:35b");
     let expected = Catalog::parse(include_str!("../fixtures/bootstrap-oracle.json")).unwrap();
     let actual = build_catalog(&candidates, BOOTSTRAP_CLOCK).unwrap();
     assert_eq!(actual.models.len(), 66);
@@ -128,7 +134,8 @@ fn reproduces_every_curated_catalog_proxy() {
     let catalog = Catalog::parse(include_str!("../../rigspark-core/data/models.json")).unwrap();
     for model in catalog.models {
         assert_eq!(
-            Some(derive_benchmark_proxy(&model.family, &model.params).unwrap()),
+            rigspark_core::bootstrap::family_quality_offset(&model.family)
+                .map(|_| derive_benchmark_proxy(&model.family, &model.params).unwrap()),
             model.benchmark_proxy,
             "{}",
             model.id

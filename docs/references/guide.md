@@ -224,7 +224,7 @@ flowchart LR
 
 ## Model Catalog
 
-`rigspark` ships a deterministic, offline catalog of 66 curated model
+`rigspark` ships a deterministic, offline catalog of 67 curated model
 variants. Each record connects model identity and capabilities to the evidence
 the advisor needs: parameter count, architecture, license, context ceiling,
 quantizations, artifact size, source coordinates, and integrity digest. Run
@@ -255,10 +255,10 @@ signatures and fall back to the previous verified snapshot, then the bundled
 catalog, with visible warnings. `catalog --refresh` still previews enrichment
 from the bundled registry snapshot; it is not a network update.
 
-**Launch prerequisite:** official updates are disabled until the production
-public key is provisioned in the application and a signed channel is published.
-The initial integration deliberately contains `UNPROVISIONED`, not a test trust
-key. Status reports this, and the GUI disables the update action.
+**Launch prerequisite:** v2.1.0 embeds the production public key. Official
+downloads require the signed channel to be published; until then an update
+fails without changing the local catalog. Earlier unprovisioned builds report
+updates unavailable and disable the GUI action.
 
 An updated date does not promise complete coverage of upstream models. New
 entries still require curation. Performance evidence remains bundled; missing

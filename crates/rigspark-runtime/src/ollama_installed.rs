@@ -258,6 +258,27 @@ pub async fn verify_manifest(
     expected_bytes: Option<u64>,
     cancel: &CancellationToken,
 ) -> Result<(), OllamaError> {
+    verify_catalog_manifest(
+        root,
+        id,
+        expected_manifest,
+        expected_weight,
+        expected_bytes,
+        &[],
+        cancel,
+    )
+    .await
+}
+
+pub async fn verify_catalog_manifest(
+    root: &Path,
+    id: &str,
+    expected_manifest: &str,
+    expected_weight: Option<&str>,
+    expected_bytes: Option<u64>,
+    projectors: &[rigspark_core::sizing::ProjectorArtifact],
+    cancel: &CancellationToken,
+) -> Result<(), OllamaError> {
     if !digest(expected_manifest)
         || expected_weight.is_some_and(|value| !digest(value))
         || expected_bytes.is_some_and(|value| value == 0 || value > 9007199254740991)
@@ -287,6 +308,28 @@ pub async fn verify_manifest(
         .iter()
         .filter(|layer| layer.media_type == "application/vnd.ollama.image.model")
         .collect();
+    if !projectors.is_empty() {
+        let actual: Vec<_> = manifest
+            .layers
+            .iter()
+            .filter(|layer| layer.media_type == "application/vnd.ollama.image.projector")
+            .collect();
+        let mut digests = std::collections::HashSet::new();
+        if projectors.len() > 16
+            || actual.len() != projectors.len()
+            || projectors.iter().any(|expected| {
+                !digest(&expected.sha256)
+                    || expected.bytes == 0
+                    || !digests.insert(&expected.sha256)
+                    || !actual.iter().any(|layer| {
+                        layer.digest == format!("sha256:{}", expected.sha256)
+                            && layer.size == expected.bytes
+                    })
+            })
+        {
+            return Err(OllamaError::Integrity("catalog projector mismatch"));
+        }
+    }
     if weights.is_empty() {
         return Err(OllamaError::Integrity("manifest has no model weights"));
     }
@@ -297,8 +340,13 @@ pub async fn verify_manifest(
     }) {
         return Err(OllamaError::Integrity("catalog digest mismatch"));
     }
-    let total = weights
+    let total = manifest
+        .layers
         .iter()
+        .filter(|layer| {
+            layer.media_type == "application/vnd.ollama.image.model"
+                || layer.media_type == "application/vnd.ollama.image.projector"
+        })
         .try_fold(0u64, |total, layer| total.checked_add(layer.size))
         .ok_or(OllamaError::Invalid("weight size overflow"))?;
     if expected_bytes.is_some_and(|expected| total < expected.div_ceil(2)) {

@@ -36,6 +36,7 @@ async fn unsafe_ollama_context_is_rejected_before_commands_or_downloads() {
         model_id: "test:latest".into(),
         expected_bytes: 8,
         expected_sha256: None,
+        projectors: Vec::new(),
         gguf: None,
         mlx: None,
     };
@@ -131,6 +132,7 @@ async fn ollama_pull_uses_discrete_argv_and_verifies_manifest_blobs() {
         model_id: "test:latest".into(),
         expected_bytes: 8,
         expected_sha256: Some(sha.clone()),
+        projectors: Vec::new(),
         gguf: None,
         mlx: None,
     };
@@ -178,6 +180,103 @@ async fn ollama_pull_uses_discrete_argv_and_verifies_manifest_blobs() {
         assert_eq!((event.stage, event.status), (stage, status));
     }
     assert!(events.try_recv().is_err());
+    std::fs::write(blobs.join(format!("sha256-{sha}")), weight).unwrap();
+    let projector_sha = format!("{:x}", Sha256::digest(b"projector"));
+    std::fs::write(blobs.join(format!("sha256-{projector_sha}")), b"projector").unwrap();
+    let mut manifest: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(manifests.join("latest")).unwrap()).unwrap();
+    manifest["layers"].as_array_mut().unwrap().push(json!({"digest":format!("sha256:{projector_sha}"),"size":9,"mediaType":"application/vnd.ollama.image.projector"}));
+    std::fs::write(manifests.join("latest"), manifest.to_string()).unwrap();
+    let mut request = request;
+    request.expected_bytes = 17;
+    request
+        .projectors
+        .push(rigspark_core::sizing::ProjectorArtifact {
+            bytes: 9,
+            sha256: projector_sha,
+        });
+    assert!(
+        service
+            .pull_at(
+                &request,
+                Path::new("/fake/ollama"),
+                "http://127.0.0.1:59125",
+                &CancellationToken::new()
+            )
+            .await
+            .is_ok()
+    );
+    request.projectors[0].sha256 = "b".repeat(64);
+    assert!(
+        service
+            .pull_at(
+                &request,
+                Path::new("/fake/ollama"),
+                "http://127.0.0.1:59125",
+                &CancellationToken::new()
+            )
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn invalid_projector_request_is_rejected_before_commands() {
+    struct NoCommands;
+    #[async_trait::async_trait]
+    impl CommandRunner for NoCommands {
+        async fn run(
+            &self,
+            _: &Path,
+            _: &[String],
+            _: &CancellationToken,
+            _: Duration,
+        ) -> Result<String, String> {
+            panic!("unexpected command")
+        }
+        async fn run_ollama(
+            &self,
+            _: &Path,
+            _: &[String],
+            _: &OllamaCommandContext,
+            _: &CancellationToken,
+            _: Duration,
+        ) -> Result<String, String> {
+            panic!("unexpected Ollama command")
+        }
+    }
+    let root = tempfile::tempdir().unwrap();
+    let acquisition = Acquisition::new(root.path()).unwrap();
+    let service = PullService {
+        acquisition: &acquisition,
+        download: &Download,
+        commands: &NoCommands,
+        ollama_models: root.path(),
+        studio_models: root.path(),
+    };
+    let request = PullRequest {
+        backend: "ollama".into(),
+        model_id: "test:latest".into(),
+        expected_bytes: 100,
+        expected_sha256: Some("a".repeat(64)),
+        projectors: vec![rigspark_core::sizing::ProjectorArtifact {
+            bytes: 0,
+            sha256: "bad".into(),
+        }],
+        gguf: None,
+        mlx: None,
+    };
+    assert!(
+        service
+            .pull_at(
+                &request,
+                Path::new("/fake/ollama"),
+                "http://127.0.0.1:59125",
+                &CancellationToken::new()
+            )
+            .await
+            .is_err()
+    );
 }
 
 #[tokio::test]
@@ -220,6 +319,7 @@ async fn runtime_events_ollama_pull_failure_never_starts_verification() {
         expected_bytes: 8,
         expected_sha256: None,
         gguf: None,
+        projectors: Vec::new(),
         mlx: None,
     };
     let (observer, mut events) = LifecycleObserver::channel();
@@ -266,6 +366,7 @@ async fn self_managed_pull_requires_pinned_source_before_side_effects() {
             model_id: "test:latest".into(),
             expected_bytes: 100,
             expected_sha256: None,
+            projectors: Vec::new(),
             gguf: None,
             mlx: None,
         };
@@ -313,6 +414,7 @@ async fn self_managed_preparation_verifies_gguf_and_complete_mlx_snapshot() {
         model_id: "test:latest".into(),
         expected_bytes: 100,
         expected_sha256: None,
+        projectors: Vec::new(),
         gguf: Some(GgufSource {
             repo: "owner/model".into(),
             revision: "a".repeat(40),
@@ -400,6 +502,7 @@ async fn delegated_pull_checks_exact_local_digest_without_download() {
         model_id: "test:latest".into(),
         expected_bytes: 8,
         expected_sha256: None,
+        projectors: Vec::new(),
         gguf: Some(GgufSource {
             repo: "owner/model".into(),
             revision: "a".repeat(40),

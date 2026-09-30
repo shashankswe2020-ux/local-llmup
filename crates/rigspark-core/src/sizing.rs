@@ -70,6 +70,13 @@ impl Hardware {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ProjectorArtifact {
+    pub bytes: u64,
+    pub sha256: String,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Quantization {
@@ -81,6 +88,8 @@ pub struct Quantization {
     pub sha256: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub digest_verified: Option<bool>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub projectors: Vec<ProjectorArtifact>,
 }
 
 #[derive(Debug, Deserialize)]

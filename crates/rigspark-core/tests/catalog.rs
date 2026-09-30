@@ -8,7 +8,7 @@ fn catalog() -> Value {
 #[test]
 fn loads_shipped_catalog_and_performance_evidence() {
     let loaded = Catalog::parse(&catalog().to_string()).unwrap();
-    assert_eq!(loaded.models.len(), 66);
+    assert_eq!(loaded.models.len(), 67);
     assert!(
         !PerfDataset::parse(include_str!("../../rigspark-core/data/perf.json"))
             .unwrap()

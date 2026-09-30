@@ -31,7 +31,9 @@ pub fn build_catalog(candidates: &[RawModel], now: &str) -> Result<Catalog, Vali
             model.source.gguf = entry.gguf.clone();
             model.source.mlx = entry.mlx.clone();
         }
-        model.benchmark_proxy = Some(derive_benchmark_proxy(&model.family, &model.params)?);
+        model.benchmark_proxy = family_quality_offset(&model.family)
+            .map(|_| derive_benchmark_proxy(&model.family, &model.params))
+            .transpose()?;
     }
     let encoded =
         serde_json::to_string(&catalog).map_err(|error| ValidationError(error.to_string()))?;

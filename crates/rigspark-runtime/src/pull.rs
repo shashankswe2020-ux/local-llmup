@@ -3,7 +3,7 @@ use crate::{
     adapters::{BackendAdapter, BackendError, ServeRequest, model_id},
     application::events::{LifecycleObserver, LifecycleScope, LifecycleStage, observe},
     command::{CommandRunner, OllamaCommandContext},
-    ollama_installed::{model_path, verify_manifest},
+    ollama_installed::{model_path, verify_catalog_manifest},
     state::secure_read,
 };
 use rigspark_core::catalog::{GgufSource, MlxSource};
@@ -67,6 +67,7 @@ pub struct PullRequest {
     pub model_id: String,
     pub expected_bytes: u64,
     pub expected_sha256: Option<String>,
+    pub projectors: Vec<rigspark_core::sizing::ProjectorArtifact>,
     pub gguf: Option<GgufSource>,
     pub mlx: Option<MlxSource>,
 }
@@ -114,6 +115,29 @@ impl PullService<'_> {
         observer: Option<&LifecycleObserver>,
     ) -> Result<PreparedModel, BackendError> {
         model_id(&request.model_id)?;
+        let mut projector_digests = std::collections::HashSet::new();
+        let projector_bytes = request
+            .projectors
+            .iter()
+            .try_fold(0_u64, |total, projector| {
+                if projector.bytes == 0
+                    || projector.sha256.len() != 64
+                    || !projector
+                        .sha256
+                        .bytes()
+                        .all(|byte| byte.is_ascii_hexdigit())
+                    || !projector_digests.insert(&projector.sha256)
+                {
+                    return None;
+                }
+                total.checked_add(projector.bytes)
+            });
+        if request.projectors.len() > 16
+            || projector_bytes.is_none_or(|total| total >= request.expected_bytes)
+            || (!request.projectors.is_empty() && request.expected_sha256.is_none())
+        {
+            return Err(BackendError("invalid expected projector integrity".into()));
+        }
         if request.expected_bytes == 0
             || request.expected_bytes > 9007199254740991
             || request.expected_sha256.as_ref().is_some_and(|value| {
@@ -162,12 +186,13 @@ impl PullService<'_> {
                         let raw = secure_read(&path, 4 * 1024 * 1024, false)
                             .map_err(|error| BackendError(error.to_string()))?;
                         let digest = format!("{:x}", Sha256::digest(raw.as_bytes()));
-                        verify_manifest(
+                        verify_catalog_manifest(
                             self.ollama_models,
                             &request.model_id,
                             &digest,
                             request.expected_sha256.as_deref(),
                             Some(request.expected_bytes),
+                            &request.projectors,
                             cancel,
                         )
                         .await

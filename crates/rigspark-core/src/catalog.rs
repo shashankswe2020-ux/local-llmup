@@ -249,6 +249,28 @@ impl CatalogModel {
             if let Some(sha) = &quant.sha256 {
                 digest(sha)?;
             }
+            require(quant.projectors.len() <= 16, "too many projector artifacts")?;
+            let mut projector_digests = std::collections::HashSet::new();
+            let mut projector_bytes = 0_u64;
+            for projector in &quant.projectors {
+                digest(&projector.sha256)?;
+                require(
+                    projector.bytes > 0
+                        && projector.bytes <= 9_007_199_254_740_991
+                        && projector_digests.insert(&projector.sha256),
+                    "invalid projector artifact",
+                )?;
+                projector_bytes = projector_bytes
+                    .checked_add(projector.bytes)
+                    .ok_or_else(|| ValidationError("projector size overflow".into()))?;
+            }
+            require(
+                quant.projectors.is_empty()
+                    || (self.source.ollama.is_some()
+                        && quant.sha256.is_some()
+                        && (projector_bytes as f64) < quant.disk_bytes),
+                "projector artifacts require pinned Ollama weights and aggregate size",
+            )?;
         }
         let source = &self.source;
         require(

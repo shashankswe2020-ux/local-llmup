@@ -20,6 +20,8 @@ pub struct RawQuant {
     pub disk_bytes: f64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub projectors: Vec<crate::sizing::ProjectorArtifact>,
 }
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -93,9 +95,18 @@ impl RawModel {
                 bits.is_some() || !matches!(self.architecture, Architecture::Moe),
                 "unknown MoE quantization",
             )?;
-            let resident = quant
-                .disk_bytes
-                .max(bits.map(|bits| (count * bits / 8.0).ceil()).unwrap_or(0.0));
+            let projector_bytes = quant
+                .projectors
+                .iter()
+                .map(|projector| projector.bytes as f64)
+                .sum::<f64>();
+            require(
+                projector_bytes < quant.disk_bytes,
+                "projector size exceeds aggregate weights",
+            )?;
+            let resident = (quant.disk_bytes - projector_bytes)
+                .max(bits.map(|bits| (count * bits / 8.0).ceil()).unwrap_or(0.0))
+                + projector_bytes;
             let memory = resident + (resident * 0.15).ceil();
             quantizations.push(Quantization {
                 name: strip_control(&quant.name),
@@ -104,6 +115,7 @@ impl RawModel {
                 min_vram_bytes: memory,
                 sha256: quant.sha256.as_ref().map(|sha| strip_control(sha)),
                 digest_verified: None,
+                projectors: quant.projectors.clone(),
             });
         }
         let model = CatalogModel {
