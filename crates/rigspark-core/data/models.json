@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-30T00:00:00.000Z",
+  "generatedAt": "2026-09-30T14:33:14.970Z",
   "models": [
     {
       "id": "qwen3.6:35b",
@@ -10,18 +10,34 @@
       "activeParams": "3B",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 262144,
-      "capabilities": ["chat", "vision", "reasoning", "tools", "code"],
+      "contextLength": 262144.0,
+      "capabilities": [
+        "chat",
+        "vision",
+        "reasoning",
+        "tools",
+        "code"
+      ],
       "releaseDate": "2026-04-15",
-      "source": {"ollama": "qwen3.6:35b", "hf": "Qwen/Qwen3.6-35B-A3B"},
-      "quantizations": [{
-        "name": "Q4_K_M",
-        "diskBytes": 22621302688,
-        "minRamBytes": 26014498092,
-        "minVramBytes": 26014498092,
-        "sha256": "d372de8e934898a59e6ccfabc3368474711384d8f1fd4d22d87a3f0a45400cdc",
-        "projectors": [{"bytes": 902821728, "sha256": "a62390d25b4b4a2d8afd7cc3c90021c11935c1fdd48d7cb0723ab71cd02a598e"}]
-      }]
+      "source": {
+        "ollama": "qwen3.6:35b",
+        "hf": "Qwen/Qwen3.6-35B-A3B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 22621302688.0,
+          "minRamBytes": 26014498092.0,
+          "minVramBytes": 26014498092.0,
+          "sha256": "d372de8e934898a59e6ccfabc3368474711384d8f1fd4d22d87a3f0a45400cdc",
+          "projectors": [
+            {
+              "bytes": 902821728,
+              "sha256": "a62390d25b4b4a2d8afd7cc3c90021c11935c1fdd48d7cb0723ab71cd02a598e"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "gemma4:e4b-it-qat",
@@ -30,7 +46,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "vision",
@@ -46,10 +62,16 @@
       "quantizations": [
         {
           "name": "Q4_0",
-          "diskBytes": 5154939136,
-          "minRamBytes": 5928180007,
-          "minVramBytes": 5928180007,
-          "sha256": "e8b6a059ba86947a44ace84d6e5679795bc41862c25c30513142588f0e9dba1d"
+          "diskBytes": 6146491040.0,
+          "minRamBytes": 7068464696.0,
+          "minVramBytes": 7068464696.0,
+          "sha256": "e8b6a059ba86947a44ace84d6e5679795bc41862c25c30513142588f0e9dba1d",
+          "projectors": [
+            {
+              "bytes": 991551904,
+              "sha256": "c6398448d84a4836fdedf58f9775979e69ae0cc4dfdf4d697b5597693a555b12"
+            }
+          ]
         }
       ],
       "benchmarkProxy": 0.52
@@ -62,7 +84,7 @@
       "activeParams": "32B",
       "license": "modified-mit",
       "openWeight": true,
-      "contextLength": 262144,
+      "contextLength": 262144.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -75,9 +97,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 600000000000,
-          "minRamBytes": 690000000000,
-          "minVramBytes": 690000000000
+          "diskBytes": 600000000000.0,
+          "minRamBytes": 690000000000.0,
+          "minVramBytes": 690000000000.0
         }
       ],
       "benchmarkProxy": 0.99
@@ -90,7 +112,7 @@
       "activeParams": "3B",
       "license": "modified-mit",
       "openWeight": true,
-      "contextLength": 262144,
+      "contextLength": 262144.0,
       "capabilities": [
         "chat",
         "reasoning"
@@ -102,9 +124,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 29000000000,
-          "minRamBytes": 33350000000,
-          "minVramBytes": 33350000000
+          "diskBytes": 29000000000.0,
+          "minRamBytes": 33350000000.0,
+          "minVramBytes": 33350000000.0
         }
       ],
       "benchmarkProxy": 0.78
@@ -117,7 +139,7 @@
       "activeParams": "32B",
       "license": "modified-mit",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "code"
@@ -129,9 +151,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 600000000000,
-          "minRamBytes": 690000000000,
-          "minVramBytes": 690000000000
+          "diskBytes": 600000000000.0,
+          "minRamBytes": 690000000000.0,
+          "minVramBytes": 690000000000.0
         }
       ],
       "benchmarkProxy": 0.97
@@ -144,7 +166,7 @@
       "activeParams": "32B",
       "license": "modified-mit",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -159,9 +181,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 600000000000,
-          "minRamBytes": 690000000000,
-          "minVramBytes": 690000000000
+          "diskBytes": 600000000000.0,
+          "minRamBytes": 690000000000.0,
+          "minVramBytes": 690000000000.0
         }
       ],
       "benchmarkProxy": 0.97
@@ -173,7 +195,7 @@
       "architecture": "dense",
       "license": "gemma",
       "openWeight": true,
-      "contextLength": 32768,
+      "contextLength": 32768.0,
       "capabilities": [
         "chat",
         "vision",
@@ -187,9 +209,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 5621607424,
-          "minRamBytes": 6464848538,
-          "minVramBytes": 6464848538,
+          "diskBytes": 5621607424.0,
+          "minRamBytes": 6464848538.0,
+          "minVramBytes": 6464848538.0,
           "sha256": "3839a254cf2d00b208c6e2524c129e4438f9d106bba4c3fbc12b631f519d1de1"
         }
       ],
@@ -202,7 +224,7 @@
       "architecture": "dense",
       "license": "gemma",
       "openWeight": true,
-      "contextLength": 32768,
+      "contextLength": 32768.0,
       "capabilities": [
         "chat",
         "vision",
@@ -216,9 +238,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 7547579904,
-          "minRamBytes": 8679716890,
-          "minVramBytes": 8679716890,
+          "diskBytes": 7547579904.0,
+          "minRamBytes": 8679716890.0,
+          "minVramBytes": 8679716890.0,
           "sha256": "38e8dcc30df4eb0e29eaf5c74ba6ce3f2cd66badad50768fc14362acfb8b8cb6"
         }
       ],
@@ -231,7 +253,7 @@
       "architecture": "dense",
       "license": "modified-mit",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "code",
         "chat",
@@ -244,9 +266,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 43000000000,
-          "minRamBytes": 49450000000,
-          "minVramBytes": 49450000000
+          "diskBytes": 43000000000.0,
+          "minRamBytes": 49450000000.0,
+          "minVramBytes": 49450000000.0
         }
       ],
       "benchmarkProxy": 0.78
@@ -258,7 +280,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 40960,
+      "contextLength": 40960.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -273,9 +295,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 522640096,
-          "minRamBytes": 601036111,
-          "minVramBytes": 601036111,
+          "diskBytes": 522640096.0,
+          "minRamBytes": 601036111.0,
+          "minVramBytes": 601036111.0,
           "sha256": "7f4030143c1c477224c5434f8272c662a8b042079a0a584f0a27a1684fe2e1fa"
         }
       ],
@@ -288,7 +310,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 40960,
+      "contextLength": 40960.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -303,9 +325,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 1359279776,
-          "minRamBytes": 1563171743,
-          "minVramBytes": 1563171743,
+          "diskBytes": 1359279776.0,
+          "minRamBytes": 1563171743.0,
+          "minVramBytes": 1563171743.0,
           "sha256": "3d0b790534fe4b79525fc3692950408dca41171676ed7e21db57af5c65ef6ab6"
         }
       ],
@@ -318,7 +340,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 262144,
+      "contextLength": 262144.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -333,9 +355,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 2497280480,
-          "minRamBytes": 2871872552,
-          "minVramBytes": 2871872552,
+          "diskBytes": 2497280480.0,
+          "minRamBytes": 2871872552.0,
+          "minVramBytes": 2871872552.0,
           "sha256": "3e4cb14174460404e7a233e531675303b2fbf7749c02f91864fe311ab6344e4f"
         }
       ],
@@ -348,7 +370,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 40960,
+      "contextLength": 40960.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -369,9 +391,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 9276184896,
-          "minRamBytes": 10667612631,
-          "minVramBytes": 10667612631,
+          "diskBytes": 9276184896.0,
+          "minRamBytes": 10667612631.0,
+          "minVramBytes": 10667612631.0,
           "sha256": "a8cc1361f3145dc01f6d77c6c82c9116b9ffe3c97b34716fe20418455876c40e"
         }
       ],
@@ -385,7 +407,7 @@
       "activeParams": "22B",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 262144,
+      "contextLength": 262144.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -400,9 +422,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 142154073664,
-          "minRamBytes": 163477184714,
-          "minVramBytes": 163477184714,
+          "diskBytes": 142154073664.0,
+          "minRamBytes": 163477184714.0,
+          "minVramBytes": 163477184714.0,
           "sha256": "791d5d11998e006548d6b58c31756562ea61446ebc7d19686608402a797ecc82"
         }
       ],
@@ -416,7 +438,7 @@
       "activeParams": "3B",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 262144,
+      "contextLength": 262144.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -437,9 +459,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 18556685856,
-          "minRamBytes": 21340188735,
-          "minVramBytes": 21340188735,
+          "diskBytes": 18556685856.0,
+          "minRamBytes": 21340188735.0,
+          "minVramBytes": 21340188735.0,
           "sha256": "58574f2e94b99fb9e4391408b57e5aeaaaec10f6384e9a699fc2cb43a5c8eabf"
         }
       ],
@@ -452,7 +474,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 40960,
+      "contextLength": 40960.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -473,9 +495,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 20201240160,
-          "minRamBytes": 23231426184,
-          "minVramBytes": 23231426184,
+          "diskBytes": 20201240160.0,
+          "minRamBytes": 23231426184.0,
+          "minVramBytes": 23231426184.0,
           "sha256": "3291abe70f16ee9682de7bfae08db5373ea9d6497e614aaad63340ad421d6312"
         }
       ],
@@ -488,7 +510,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 40960,
+      "contextLength": 40960.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -503,9 +525,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 5225374496,
-          "minRamBytes": 6009180671,
-          "minVramBytes": 6009180671,
+          "diskBytes": 5225374496.0,
+          "minRamBytes": 6009180671.0,
+          "minVramBytes": 6009180671.0,
           "sha256": "a3de86cd1c132c822487ededd47a324c50491393e6565cd14bafa40d0b8e686f"
         }
       ],
@@ -518,7 +540,7 @@
       "architecture": "dense",
       "license": "mit",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "tools"
@@ -531,9 +553,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 5455319040,
-          "minRamBytes": 6273616896,
-          "minVramBytes": 6273616896,
+          "diskBytes": 5455319040.0,
+          "minRamBytes": 6273616896.0,
+          "minVramBytes": 6273616896.0,
           "sha256": "b506a070d1152798d435ec4e7687336567ae653b3106f73b7b4ac7be1cbc4449"
         }
       ],
@@ -547,7 +569,7 @@
       "activeParams": "3B",
       "license": "modified-mit",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "vision"
@@ -559,9 +581,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 10000000000,
-          "minRamBytes": 11500000000,
-          "minVramBytes": 11500000000
+          "diskBytes": 10000000000.0,
+          "minRamBytes": 11500000000.0,
+          "minVramBytes": 11500000000.0
         }
       ],
       "benchmarkProxy": 0.64
@@ -573,7 +595,7 @@
       "architecture": "dense",
       "license": "gemma",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "vision",
@@ -587,9 +609,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 8149180896,
-          "minRamBytes": 9371558031,
-          "minVramBytes": 9371558031,
+          "diskBytes": 8149180896.0,
+          "minRamBytes": 9371558031.0,
+          "minVramBytes": 9371558031.0,
           "sha256": "e8ad13eff07a78d89926e9e8b882317d082ef5bf9768ad7b50fcdbbcd63748de"
         }
       ],
@@ -602,7 +624,7 @@
       "architecture": "dense",
       "license": "gemma",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "vision",
@@ -617,9 +639,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 17396927584,
-          "minRamBytes": 20006466722,
-          "minVramBytes": 20006466722,
+          "diskBytes": 17396927584.0,
+          "minRamBytes": 20006466722.0,
+          "minVramBytes": 20006466722.0,
           "sha256": "e796792eba26c4d3b04b0ac5adb01a453dd9ec2dfd83b6c59cbf6fe5f30b0f68"
         }
       ],
@@ -632,7 +654,7 @@
       "architecture": "dense",
       "license": "gemma",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "vision"
@@ -645,9 +667,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 3338792448,
-          "minRamBytes": 3839611316,
-          "minVramBytes": 3839611316,
+          "diskBytes": 3338792448.0,
+          "minRamBytes": 3839611316.0,
+          "minVramBytes": 3839611316.0,
           "sha256": "aeda25e63ebd698fab8638ffb778e68bed908b960d39d0becc650fa981609d25"
         }
       ],
@@ -660,7 +682,7 @@
       "architecture": "dense",
       "license": "mit",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -675,9 +697,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 2491874624,
-          "minRamBytes": 2865655818,
-          "minVramBytes": 2865655818,
+          "diskBytes": 2491874624.0,
+          "minRamBytes": 2865655818.0,
+          "minVramBytes": 2865655818.0,
           "sha256": "3c168af1dea0a414299c7d9077e100ac763370e5a98b3c53801a958a47f0a5db"
         }
       ],
@@ -690,7 +712,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 32768,
+      "contextLength": 32768.0,
       "capabilities": [
         "chat",
         "code",
@@ -704,13 +726,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 14333908384,
-          "minRamBytes": 16483994642,
-          "minVramBytes": 16483994642,
+          "diskBytes": 14333908384.0,
+          "minRamBytes": 16483994642.0,
+          "minVramBytes": 16483994642.0,
           "sha256": "102a747c137683e81d431dab05d8f2158df4ab6f162f8f9019425a43d51e0e9f"
         }
       ],
-      "kvBytesPerToken": 163840,
+      "kvBytesPerToken": 163840.0,
       "benchmarkProxy": 0.63
     },
     {
@@ -720,7 +742,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -734,9 +756,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 8988109952,
-          "minRamBytes": 10336326445,
-          "minVramBytes": 10336326445,
+          "diskBytes": 8988109952.0,
+          "minRamBytes": 10336326445.0,
+          "minVramBytes": 10336326445.0,
           "sha256": "6e9f90f02bb3b39b59e81916e8cfce9deb45aeaeb9a54a5be4414486b907dc1e"
         }
       ],
@@ -749,7 +771,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -763,9 +785,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 19851335552,
-          "minRamBytes": 22829035885,
-          "minVramBytes": 22829035885,
+          "diskBytes": 19851335552.0,
+          "minRamBytes": 22829035885.0,
+          "minVramBytes": 22829035885.0,
           "sha256": "6150cb382311b69f09cc0f9a1b69fc029cbd742b66bb8ec531aa5ecf5c613e93"
         }
       ],
@@ -779,7 +801,7 @@
       "activeParams": "37B",
       "license": "mit",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "reasoning",
         "chat",
@@ -793,9 +815,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 404430186848,
-          "minRamBytes": 465094714876,
-          "minVramBytes": 465094714876,
+          "diskBytes": 404430186848.0,
+          "minRamBytes": 465094714876.0,
+          "minVramBytes": 465094714876.0,
           "sha256": "439dd1a5e05286918f54941f49f9b56118c757440f6333f67f1cd5cbb5c8520b"
         }
       ],
@@ -808,7 +830,7 @@
       "architecture": "dense",
       "license": "llama-3.3-community",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -822,9 +844,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 42520395616,
-          "minRamBytes": 48898454959,
-          "minVramBytes": 48898454959,
+          "diskBytes": 42520395616.0,
+          "minRamBytes": 48898454959.0,
+          "minVramBytes": 48898454959.0,
           "sha256": "4cd576d9aa16961244012223abf01445567b061f1814b57dfef699e4cf8df339"
         }
       ],
@@ -837,7 +859,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -851,9 +873,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4683073184,
-          "minRamBytes": 5385534162,
-          "minVramBytes": 5385534162,
+          "diskBytes": 4683073184.0,
+          "minRamBytes": 5385534162.0,
+          "minVramBytes": 5385534162.0,
           "sha256": "96c415656d377afbff962f6cdb2394ab092ccbcbaab4b82525bc4ca800fe8a49"
         }
       ],
@@ -866,7 +888,7 @@
       "architecture": "dense",
       "license": "llama-3.1-community",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "reasoning",
@@ -880,9 +902,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 5225373760,
-          "minRamBytes": 6009179824,
-          "minVramBytes": 6009179824,
+          "diskBytes": 5225373760.0,
+          "minRamBytes": 6009179824.0,
+          "minVramBytes": 6009179824.0,
           "sha256": "e6a7edc1a4d7d9b2de136a221a57336b76316cfe53a252aeba814496c5ae439d"
         }
       ],
@@ -896,7 +918,7 @@
       "activeParams": "37B",
       "license": "deepseek",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "code",
@@ -910,9 +932,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 404430186016,
-          "minRamBytes": 465094713919,
-          "minVramBytes": 465094713919,
+          "diskBytes": 404430186016.0,
+          "minRamBytes": 465094713919.0,
+          "minVramBytes": 465094713919.0,
           "sha256": "d83c18fb2a2ccca56d641920f01e6fe533dfb3fcf4b77c007c931497cd24a517"
         }
       ],
@@ -925,7 +947,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "tools"
@@ -938,9 +960,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 1569676320,
-          "minRamBytes": 1805127768,
-          "minVramBytes": 1805127768,
+          "diskBytes": 1569676320.0,
+          "minRamBytes": 1805127768.0,
+          "minVramBytes": 1805127768.0,
           "sha256": "5c56bb0256a2c402e95282a29bb5cb747bb805eda0e14a84b1f6c594a297ec1a"
         }
       ],
@@ -953,7 +975,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "code",
@@ -967,9 +989,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4991620512,
-          "minRamBytes": 5740363589,
-          "minVramBytes": 5740363589,
+          "diskBytes": 4991620512.0,
+          "minRamBytes": 5740363589.0,
+          "minVramBytes": 5740363589.0,
           "sha256": "44d19d212d76a6f3fc442e8411fdb44ea6b67ceccfb00be4b4345c9a4cf813e8"
         }
       ],
@@ -982,7 +1004,7 @@
       "architecture": "dense",
       "license": "mit",
       "openWeight": true,
-      "contextLength": 16384,
+      "contextLength": 16384.0,
       "capabilities": [
         "chat",
         "code",
@@ -996,9 +1018,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 9053114464,
-          "minRamBytes": 10411081634,
-          "minVramBytes": 10411081634,
+          "diskBytes": 9053114464.0,
+          "minRamBytes": 10411081634.0,
+          "minVramBytes": 10411081634.0,
           "sha256": "fd7b6731c33c57f61767612f56517460ec2d1e2e5a3f0163e0eb3d8d8cb5df20"
         }
       ],
@@ -1011,7 +1033,7 @@
       "architecture": "dense",
       "license": "llama-3.3-community",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "code",
@@ -1026,13 +1048,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 42520398528,
-          "minRamBytes": 48898458308,
-          "minVramBytes": 48898458308,
+          "diskBytes": 42520398528.0,
+          "minRamBytes": 48898458308.0,
+          "minVramBytes": 48898458308.0,
           "sha256": "4824460d29f2058aaf6e1118a63a7a197a09bed509f0e7d4e2efb1ee273b447d"
         }
       ],
-      "kvBytesPerToken": 327680,
+      "kvBytesPerToken": 327680.0,
       "benchmarkProxy": 0.78
     },
     {
@@ -1042,7 +1064,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 4096,
+      "contextLength": 4096.0,
       "capabilities": [
         "chat",
         "code"
@@ -1055,9 +1077,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 8354349536,
-          "minRamBytes": 9607501967,
-          "minVramBytes": 9607501967,
+          "diskBytes": 8354349536.0,
+          "minRamBytes": 9607501967.0,
+          "minVramBytes": 9607501967.0,
           "sha256": "cd836509a1a051178be134eba84115eb3a6653a1bd58473a706bf8ee4ab3a764"
         }
       ],
@@ -1070,7 +1092,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 4096,
+      "contextLength": 4096.0,
       "capabilities": [
         "chat"
       ],
@@ -1082,9 +1104,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4472020256,
-          "minRamBytes": 5142823295,
-          "minVramBytes": 5142823295,
+          "diskBytes": 4472020256.0,
+          "minRamBytes": 5142823295.0,
+          "minVramBytes": 5142823295.0,
           "sha256": "ea89e3927d5ef671159a1359a22cdd418856c4baa2098e665f1c6eed59973968"
         }
       ],
@@ -1097,7 +1119,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "code",
         "chat",
@@ -1111,13 +1133,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 19851336384,
-          "minRamBytes": 22829036842,
-          "minVramBytes": 22829036842,
+          "diskBytes": 19851336384.0,
+          "minRamBytes": 22829036842.0,
+          "minVramBytes": 22829036842.0,
           "sha256": "ac3d1ba8aa77755dab3806d9024e9c385ea0d5b412d6bdf9157f8a4a7e9fc0d9"
         }
       ],
-      "kvBytesPerToken": 262144,
+      "kvBytesPerToken": 262144.0,
       "benchmarkProxy": 0.72
     },
     {
@@ -1127,7 +1149,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "code",
         "chat",
@@ -1141,13 +1163,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4683074048,
-          "minRamBytes": 5385535156,
-          "minVramBytes": 5385535156,
+          "diskBytes": 4683074048.0,
+          "minRamBytes": 5385535156.0,
+          "minVramBytes": 5385535156.0,
           "sha256": "60e05f2100071479f596b964f89f510f057ce397ea22f2833a0cfe029bfc2463"
         }
       ],
-      "kvBytesPerToken": 57344,
+      "kvBytesPerToken": 57344.0,
       "benchmarkProxy": 0.52
     },
     {
@@ -1157,7 +1179,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 8192,
+      "contextLength": 8192.0,
       "capabilities": [
         "chat",
         "tools"
@@ -1170,9 +1192,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 1820414656,
-          "minRamBytes": 2093476855,
-          "minVramBytes": 2093476855,
+          "diskBytes": 1820414656.0,
+          "minRamBytes": 2093476855.0,
+          "minVramBytes": 2093476855.0,
           "sha256": "4d2396b16114669389d7555c15a1592aad584750310f648edad5ca8c4eccda17"
         }
       ],
@@ -1185,7 +1207,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 8192,
+      "contextLength": 8192.0,
       "capabilities": [
         "chat"
       ],
@@ -1197,9 +1219,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 270885952,
-          "minRamBytes": 311518845,
-          "minVramBytes": 311518845,
+          "diskBytes": 270885952.0,
+          "minRamBytes": 311518845.0,
+          "minVramBytes": 311518845.0,
           "sha256": "f535f83ec568d040f88ddc04a199fa6da90923bbb41d4dcaed02caa924d6ef57"
         }
       ],
@@ -1212,7 +1234,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 8192,
+      "contextLength": 8192.0,
       "capabilities": [
         "chat"
       ],
@@ -1224,9 +1246,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 725553792,
-          "minRamBytes": 834386861,
-          "minVramBytes": 834386861,
+          "diskBytes": 725553792.0,
+          "minRamBytes": 834386861.0,
+          "minVramBytes": 834386861.0,
           "sha256": "7d23be4097d67c5c43c3df62ebc19609a25f483c7d0b77d3989e1d94e36ccab6"
         }
       ],
@@ -1240,7 +1262,7 @@
       "activeParams": "0.8B",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 4096,
+      "contextLength": 4096.0,
       "capabilities": [
         "chat",
         "tools"
@@ -1253,9 +1275,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 2059355712,
-          "minRamBytes": 2368259069,
-          "minVramBytes": 2368259069,
+          "diskBytes": 2059355712.0,
+          "minRamBytes": 2368259069.0,
+          "minVramBytes": 2368259069.0,
           "sha256": "2c931bb3b330f26b3d4bd0ee56b828196750c244b3c40450dfc8e4074962e215"
         }
       ],
@@ -1268,7 +1290,7 @@
       "architecture": "dense",
       "license": "llama-3.2-community",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "tools"
@@ -1281,13 +1303,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 1321082688,
-          "minRamBytes": 1519245092,
-          "minVramBytes": 1519245092,
+          "diskBytes": 1321082688.0,
+          "minRamBytes": 1519245092.0,
+          "minVramBytes": 1519245092.0,
           "sha256": "74701a8c35f6c8d9a4b91f3f3497643001d63e0c7a84e085bed452548fa88d45"
         }
       ],
-      "kvBytesPerToken": 32768,
+      "kvBytesPerToken": 32768.0,
       "benchmarkProxy": 0.2
     },
     {
@@ -1297,7 +1319,7 @@
       "architecture": "dense",
       "license": "llama-3.2-community",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "tools"
@@ -1310,13 +1332,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 2019377376,
-          "minRamBytes": 2322283983,
-          "minVramBytes": 2322283983,
+          "diskBytes": 2019377376.0,
+          "minRamBytes": 2322283983.0,
+          "minVramBytes": 2322283983.0,
           "sha256": "dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff"
         }
       ],
-      "kvBytesPerToken": 114688,
+      "kvBytesPerToken": 114688.0,
       "benchmarkProxy": 0.28
     },
     {
@@ -1326,7 +1348,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 32768,
+      "contextLength": 32768.0,
       "capabilities": [
         "chat"
       ],
@@ -1344,13 +1366,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 397807936,
-          "minRamBytes": 457479127,
-          "minVramBytes": 457479127,
+          "diskBytes": 397807936.0,
+          "minRamBytes": 457479127.0,
+          "minVramBytes": 457479127.0,
           "sha256": "c5396e06af294bd101b30dce59131a76d2b773e76950acc870eda801d3ab0515"
         }
       ],
-      "kvBytesPerToken": 12288,
+      "kvBytesPerToken": 12288.0,
       "benchmarkProxy": 0.18
     },
     {
@@ -1360,7 +1382,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 32768,
+      "contextLength": 32768.0,
       "capabilities": [
         "chat"
       ],
@@ -1374,47 +1396,47 @@
             {
               "file": "config.json",
               "sha256": "b045e57ea90b8f1b35f89f954b176a5c1faa02bd0af2c89bcec191239d66cef4",
-              "bytes": 783
+              "bytes": 783.0
             },
             {
               "file": "model.safetensors",
               "sha256": "ddffab9cbc7bf6dde941c6724841eeca8981fcfa81ca20ff8efff1396326d153",
-              "bytes": 278064920
+              "bytes": 278064920.0
             },
             {
               "file": "model.safetensors.index.json",
               "sha256": "54001cb4c11197119c206dde28e7be08e5872aab6c6d271aed339ec77e84f870",
-              "bytes": 44209
+              "bytes": 44209.0
             },
             {
               "file": "tokenizer.json",
               "sha256": "a8506e7111b80c6d8635951a02eab0f4e1a8e4e5772da83846579e97b16f61bf",
-              "bytes": 7031673
+              "bytes": 7031673.0
             },
             {
               "file": "tokenizer_config.json",
               "sha256": "f7c61e32b7a17d19bf8e7037dcb74079a833e53ea9801f24008cac68458f03b7",
-              "bytes": 7308
+              "bytes": 7308.0
             },
             {
               "file": "special_tokens_map.json",
               "sha256": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd",
-              "bytes": 613
+              "bytes": 613.0
             },
             {
               "file": "vocab.json",
               "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910",
-              "bytes": 2776833
+              "bytes": 2776833.0
             },
             {
               "file": "merges.txt",
               "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5",
-              "bytes": 1671853
+              "bytes": 1671853.0
             },
             {
               "file": "added_tokens.json",
               "sha256": "58b54bbe36fc752f79a24a271ef66a0a0830054b4dfad94bde757d851968060b",
-              "bytes": 605
+              "bytes": 605.0
             }
           ]
         }
@@ -1422,12 +1444,12 @@
       "quantizations": [
         {
           "name": "4bit",
-          "diskBytes": 289598797,
-          "minRamBytes": 333038617,
-          "minVramBytes": 333038617
+          "diskBytes": 289598797.0,
+          "minRamBytes": 333038617.0,
+          "minVramBytes": 333038617.0
         }
       ],
-      "kvBytesPerToken": 12288,
+      "kvBytesPerToken": 12288.0,
       "benchmarkProxy": 0.18
     },
     {
@@ -1437,7 +1459,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 32768,
+      "contextLength": 32768.0,
       "capabilities": [
         "chat",
         "tools"
@@ -1450,13 +1472,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 986048512,
-          "minRamBytes": 1133955789,
-          "minVramBytes": 1133955789,
+          "diskBytes": 986048512.0,
+          "minRamBytes": 1133955789.0,
+          "minVramBytes": 1133955789.0,
           "sha256": "183715c435899236895da3869489cc30ac241476b4971a20285b1a462818a5b4"
         }
       ],
-      "kvBytesPerToken": 28672,
+      "kvBytesPerToken": 28672.0,
       "benchmarkProxy": 0.26
     },
     {
@@ -1466,7 +1488,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "code",
@@ -1480,13 +1502,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 8988110688,
-          "minRamBytes": 10336327292,
-          "minVramBytes": 10336327292,
+          "diskBytes": 8988110688.0,
+          "minRamBytes": 10336327292.0,
+          "minVramBytes": 10336327292.0,
           "sha256": "2049f5674b1e92b4464e5729975c9689fcfbf0b0e4443ccf10b5339f370f9a54"
         }
       ],
-      "kvBytesPerToken": 196608,
+      "kvBytesPerToken": 196608.0,
       "benchmarkProxy": 0.58
     },
     {
@@ -1496,7 +1518,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "code",
@@ -1510,13 +1532,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 19851336288,
-          "minRamBytes": 22829036732,
-          "minVramBytes": 22829036732,
+          "diskBytes": 19851336288.0,
+          "minRamBytes": 22829036732.0,
+          "minVramBytes": 22829036732.0,
           "sha256": "eabc98a9bcbfce7fd70f3e07de599f8fda98120fefed5881934161ede8bd1a41"
         }
       ],
-      "kvBytesPerToken": 262144,
+      "kvBytesPerToken": 262144.0,
       "benchmarkProxy": 0.7
     },
     {
@@ -1526,7 +1548,7 @@
       "architecture": "dense",
       "license": "qwen",
       "openWeight": true,
-      "contextLength": 32768,
+      "contextLength": 32768.0,
       "capabilities": [
         "chat",
         "tools"
@@ -1539,13 +1561,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 1929903008,
-          "minRamBytes": 2219388460,
-          "minVramBytes": 2219388460,
+          "diskBytes": 1929903008.0,
+          "minRamBytes": 2219388460.0,
+          "minVramBytes": 2219388460.0,
           "sha256": "5ee4f07cdb9beadbbb293e85803c569b01bd37ed059d2715faa7bb405f31caa6"
         }
       ],
-      "kvBytesPerToken": 36864,
+      "kvBytesPerToken": 36864.0,
       "benchmarkProxy": 0.34
     },
     {
@@ -1555,7 +1577,7 @@
       "architecture": "dense",
       "license": "qwen",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "code",
@@ -1569,13 +1591,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 47415715200,
-          "minRamBytes": 54528072480,
-          "minVramBytes": 54528072480,
+          "diskBytes": 47415715200.0,
+          "minRamBytes": 54528072480.0,
+          "minVramBytes": 54528072480.0,
           "sha256": "6e7fdda508e91cb0f63de5c15ff79ac63a1584ccafd751c07ca12b7f442101b8"
         }
       ],
-      "kvBytesPerToken": 327680,
+      "kvBytesPerToken": 327680.0,
       "benchmarkProxy": 0.76
     },
     {
@@ -1585,7 +1607,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "code",
@@ -1599,13 +1621,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4683073952,
-          "minRamBytes": 5385535045,
-          "minVramBytes": 5385535045,
+          "diskBytes": 4683073952.0,
+          "minRamBytes": 5385535045.0,
+          "minVramBytes": 5385535045.0,
           "sha256": "2bada8a7450677000f678be90653b85d364de7db25eb5ea54136ada5f3933730"
         }
       ],
-      "kvBytesPerToken": 57344,
+      "kvBytesPerToken": 57344.0,
       "benchmarkProxy": 0.5
     },
     {
@@ -1615,7 +1637,7 @@
       "architecture": "dense",
       "license": "mit",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "code",
@@ -1629,9 +1651,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 2176177152,
-          "minRamBytes": 2567375000,
-          "minVramBytes": 2567375000,
+          "diskBytes": 2176177152.0,
+          "minRamBytes": 2567375000.0,
+          "minVramBytes": 2567375000.0,
           "sha256": "b5374915da534cb93df39f03bd4f2cd5a0c533df0d5e21957dc9556c260be9eb"
         }
       ],
@@ -1644,7 +1666,7 @@
       "architecture": "dense",
       "license": "gemma",
       "openWeight": true,
-      "contextLength": 8192,
+      "contextLength": 8192.0,
       "capabilities": [
         "chat"
       ],
@@ -1656,9 +1678,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 1629509152,
-          "minRamBytes": 1873935525,
-          "minVramBytes": 1873935525,
+          "diskBytes": 1629509152.0,
+          "minRamBytes": 1873935525.0,
+          "minVramBytes": 1873935525.0,
           "sha256": "7462734796d67c40ecec2ca98eddf970e171dbb6b370e43fd633ee75b69abe1b"
         }
       ],
@@ -1671,7 +1693,7 @@
       "architecture": "dense",
       "license": "llama-3.1-community",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "code",
@@ -1685,13 +1707,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 42520398176,
-          "minRamBytes": 48898457903,
-          "minVramBytes": 48898457903,
+          "diskBytes": 42520398176.0,
+          "minRamBytes": 48898457903.0,
+          "minVramBytes": 48898457903.0,
           "sha256": "de20d2cf2dc430b1717a8b07a9df029d651f3895dbffec4729a3902a6fe344c9"
         }
       ],
-      "kvBytesPerToken": 327680,
+      "kvBytesPerToken": 327680.0,
       "benchmarkProxy": 0.74
     },
     {
@@ -1701,7 +1723,7 @@
       "architecture": "dense",
       "license": "llama-3.1-community",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "code",
@@ -1715,13 +1737,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4920738944,
-          "minRamBytes": 5658849786,
-          "minVramBytes": 5658849786,
+          "diskBytes": 4920738944.0,
+          "minRamBytes": 5658849786.0,
+          "minVramBytes": 5658849786.0,
           "sha256": "667b0c1932bc6ffc593ed1d03f895bf2dc8dc6df21db3042284a6f4416b06a29"
         }
       ],
-      "kvBytesPerToken": 131072,
+      "kvBytesPerToken": 131072.0,
       "benchmarkProxy": 0.48
     },
     {
@@ -1731,7 +1753,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "code",
@@ -1745,13 +1767,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 7071700672,
-          "minRamBytes": 8132455773,
-          "minVramBytes": 8132455773,
+          "diskBytes": 7071700672.0,
+          "minRamBytes": 8132455773.0,
+          "minVramBytes": 8132455773.0,
           "sha256": "b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94"
         }
       ],
-      "kvBytesPerToken": 163840,
+      "kvBytesPerToken": 163840.0,
       "benchmarkProxy": 0.55
     },
     {
@@ -1761,7 +1783,7 @@
       "architecture": "dense",
       "license": "gemma",
       "openWeight": true,
-      "contextLength": 8192,
+      "contextLength": 8192.0,
       "capabilities": [
         "chat",
         "code"
@@ -1774,9 +1796,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 15628378336,
-          "minRamBytes": 18241875000,
-          "minVramBytes": 18241875000,
+          "diskBytes": 15628378336.0,
+          "minRamBytes": 18241875000.0,
+          "minVramBytes": 18241875000.0,
           "sha256": "d7e4b00a7d7a8d03d4eed9b0f3f61a427e9f0fc5dea6aeb414e41dee23dc8ecc"
         }
       ],
@@ -1789,7 +1811,7 @@
       "architecture": "dense",
       "license": "gemma",
       "openWeight": true,
-      "contextLength": 8192,
+      "contextLength": 8192.0,
       "capabilities": [
         "chat",
         "code"
@@ -1802,9 +1824,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 5443143296,
-          "minRamBytes": 6259614791,
-          "minVramBytes": 6259614791,
+          "diskBytes": 5443143296.0,
+          "minRamBytes": 6259614791.0,
+          "minVramBytes": 6259614791.0,
           "sha256": "ff1d1fc78170d787ee1201778e2dd65ea211654ca5fb7d69b5a2e7b123a50373"
         }
       ],
@@ -1817,7 +1839,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 4096,
+      "contextLength": 4096.0,
       "capabilities": [
         "chat",
         "code"
@@ -1830,9 +1852,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 19466529344,
-          "minRamBytes": 22971250000,
-          "minVramBytes": 22971250000,
+          "diskBytes": 19466529344.0,
+          "minRamBytes": 22971250000.0,
+          "minVramBytes": 22971250000.0,
           "sha256": "648f108f6a1ef7e12c33003d2308028ec98356d4ebda894d7db541f9e8c11aeb"
         }
       ],
@@ -1845,7 +1867,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 4096,
+      "contextLength": 4096.0,
       "capabilities": [
         "chat"
       ],
@@ -1857,9 +1879,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 3479326560,
-          "minRamBytes": 4053750000,
-          "minVramBytes": 4053750000,
+          "diskBytes": 3479326560.0,
+          "minRamBytes": 4053750000.0,
+          "minVramBytes": 4053750000.0,
           "sha256": "3502ee168c97b13ce3966acea684973e73c22f0ede62ca05f886b009b43b2f09"
         }
       ],
@@ -1872,7 +1894,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 4096,
+      "contextLength": 4096.0,
       "capabilities": [
         "chat",
         "code"
@@ -1885,9 +1907,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 5036994816,
-          "minRamBytes": 6080625000,
-          "minVramBytes": 6080625000,
+          "diskBytes": 5036994816.0,
+          "minRamBytes": 6080625000.0,
+          "minVramBytes": 6080625000.0,
           "sha256": "59b1e2a78cb0a5b8f7ba25e459ee17788242cd996e1f62a295dcbd65e5344b11"
         }
       ],
@@ -1900,7 +1922,7 @@
       "architecture": "dense",
       "license": "mit",
       "openWeight": true,
-      "contextLength": 131072,
+      "contextLength": 131072.0,
       "capabilities": [
         "chat",
         "code"
@@ -1913,9 +1935,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 2176177120,
-          "minRamBytes": 2567375000,
-          "minVramBytes": 2567375000,
+          "diskBytes": 2176177120.0,
+          "minRamBytes": 2567375000.0,
+          "minVramBytes": 2567375000.0,
           "sha256": "633fc5be925f9a484b61d6f9b9a78021eeb462100bd557309f01ba84cac26adf"
         }
       ],
@@ -1929,7 +1951,7 @@
       "activeParams": "39B",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 65536,
+      "contextLength": 65536.0,
       "capabilities": [
         "chat",
         "code",
@@ -1943,9 +1965,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 79521266688,
-          "minRamBytes": 95263125000,
-          "minVramBytes": 95263125000,
+          "diskBytes": 79521266688.0,
+          "minRamBytes": 95263125000.0,
+          "minVramBytes": 95263125000.0,
           "sha256": "94e70a590f93b8f12eb2bc6ddb2e48b3f2fab0bc577fee4b1cb42305ba590916"
         }
       ],
@@ -1959,7 +1981,7 @@
       "activeParams": "13B",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 32768,
+      "contextLength": 32768.0,
       "capabilities": [
         "chat",
         "code",
@@ -1973,9 +1995,9 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 26443590560,
-          "minRamBytes": 31754375000,
-          "minVramBytes": 31754375000,
+          "diskBytes": 26443590560.0,
+          "minRamBytes": 31754375000.0,
+          "minVramBytes": 31754375000.0,
           "sha256": "f2dc41fa964b42bfe34e9fb09c0acdcfbfd6e52f1332930b4eacc9d6ad1c6cd2"
         }
       ],
@@ -1988,7 +2010,7 @@
       "architecture": "dense",
       "license": "apache-2.0",
       "openWeight": true,
-      "contextLength": 32768,
+      "contextLength": 32768.0,
       "capabilities": [
         "chat",
         "code"
@@ -2001,13 +2023,13 @@
       "quantizations": [
         {
           "name": "Q4_K_M",
-          "diskBytes": 4372811712,
-          "minRamBytes": 5028733469,
-          "minVramBytes": 5028733469,
+          "diskBytes": 4372811712.0,
+          "minRamBytes": 5028733469.0,
+          "minVramBytes": 5028733469.0,
           "sha256": "f5074b1221da0f5a2910d33b642efa5b9eb58cfdddca1c79e16d7ad28aa2b31f"
         }
       ],
-      "kvBytesPerToken": 131072,
+      "kvBytesPerToken": 131072.0,
       "benchmarkProxy": 0.46
     }
   ]

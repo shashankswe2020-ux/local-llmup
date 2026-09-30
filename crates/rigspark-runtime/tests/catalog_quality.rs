@@ -10,6 +10,7 @@ fn fixture() -> (String, Value) {
 
 fn fixture_count(count: usize) -> (String, Value) {
     let mut catalog = Catalog::parse(rigspark_core::MODELS_JSON).unwrap();
+    catalog.generated_at = "2026-09-30T00:00:00Z".into();
     let template = catalog.models.remove(0);
     catalog.models = (0..count)
         .map(|index| {
@@ -91,6 +92,9 @@ fn one_known_contradiction_blocks_even_at_ninety_percent() {
 #[test]
 fn rejects_future_duplicate_and_unbound_evidence() {
     let (catalog, mut evidence) = fixture();
+    let mut future_catalog: Value = serde_json::from_str(&catalog).unwrap();
+    future_catalog["generatedAt"] = json!("2026-10-01T00:00:00Z");
+    assert!(evaluate(&future_catalog.to_string(), &evidence.to_string(), NOW).is_err());
     evidence["observations"][0]["checkedAt"] = json!("2026-10-01T00:00:00Z");
     assert!(evaluate(&catalog, &evidence.to_string(), NOW).is_err());
     let (_, mut evidence) = fixture();

@@ -41,6 +41,7 @@ fn signer_validates_key_and_refuses_to_overwrite_output() {
     }
     fs::write(root.path().join("public"), PUBLIC).unwrap();
     let mut catalog = rigspark_core::catalog::Catalog::parse(rigspark_core::MODELS_JSON).unwrap();
+    catalog.generated_at = "2026-09-30T00:00:00Z".into();
     catalog.models.truncate(1);
     let evidence = serde_json::json!({"policyVersion":1,"scopes":[{
         "name":"ollama-local-variants","checkedAt":"2026-09-30T00:00:00Z",
