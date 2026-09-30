@@ -13,10 +13,16 @@ permissions:
   pull-requests: write
   issues: write
 
+concurrency:
+  group: catalog-enrichment
+  cancel-in-progress: false
+
 jobs:
   refresh:
     name: Weekly catalog refresh
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     defaults:
       run:
         shell: bash
@@ -46,6 +52,31 @@ jobs:
       - name: Enrich catalog quant sizes + digests from the live registry
         run: cargo catalog-enrich
 
+      - name: Verify and build source-backed proposal collector
+        run: |
+          set -euo pipefail
+          cargo test --locked -p rigspark-runtime --test catalog_proposals
+          cargo test --locked -p rigspark-cli --test catalog_propose_cli
+          cargo build --locked -p rigspark-cli --bin llmup-catalog-propose
+
+      - name: Collect candidates with optional OpenAI extraction
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_CATALOG_MODEL: ${{ vars.OPENAI_CATALOG_MODEL }}
+        run: target/debug/llmup-catalog-propose --limit 10 --out docs/references/catalog-proposals.json
+
+      - name: Report release quality without promoting evidence
+        run: |
+          set -euo pipefail
+          if cargo catalog-quality > docs/references/catalog-quality-latest-report.json; then
+            echo "Catalog quality gates passed; publication still requires review and signing approval."
+          else
+            code=$?
+            test "$code" -eq 1
+            test -s docs/references/catalog-quality-latest-report.json
+            echo "Catalog quality gates blocked publication; opening a remediation PR only."
+          fi
+
       - name: Audit upstream catalog coverage
         run: cargo catalog-coverage
 
@@ -57,7 +88,8 @@ jobs:
       - name: Detect catalog changes
         id: diff
         run: |
-          if git diff --quiet -- crates/rigspark-core/data/models.json; then
+          if git diff --quiet -- crates/rigspark-core/data/models.json docs/references/catalog-proposals.json docs/references/catalog-quality-latest-report.json &&
+             [ -z "$(git ls-files --others --exclude-standard -- docs/references/catalog-proposals.json docs/references/catalog-quality-latest-report.json)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
@@ -79,10 +111,12 @@ jobs:
           BRANCH="catalog/auto-refresh-${GITHUB_RUN_ID}"
           TITLE="chore(catalog): weekly automated refresh"
           BODY=$(cargo catalog-notice refresh-pr --input catalog-freshness.json)
+          BODY+=$'\n\nSource-backed discovery proposals: docs/references/catalog-proposals.json. All proposals are unverified and require review; OpenAI never updates quality evidence. Publication eligibility: docs/references/catalog-quality-latest-report.json. Repository discovery is not complete variant coverage.'
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
           git add crates/rigspark-core/data/models.json
+          git add docs/references/catalog-proposals.json docs/references/catalog-quality-latest-report.json
           git commit -m "$TITLE"
           AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\r\n')
           git -c "http.${GITHUB_SERVER_URL}/.extraheader=AUTHORIZATION: basic $AUTH" push origin "$BRANCH"
