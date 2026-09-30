@@ -35,6 +35,12 @@ Run **Publish Signed Catalog** manually from `main` and approve its protected
 environment. No workflow triggers on a pull request, and publication does not
 automatically admit upstream models.
 
+Future publications also require independent freshness and correctness scores
+of at least 90% under the [catalog quality policy](catalog-quality.md). Run
+`cargo catalog-quality` against reviewed evidence before dispatching. Unknown
+coverage, stale/missing evidence, or known contradictions block publication.
+Revision 1 predates this policy and has no certified quality scores.
+
 The workflow tests catalog/signing contracts, signs the reviewed commit, and
 publishes `catalog.json` to an immutable `catalog-r<run-number>` prerelease. It
 then replaces the same file in the `catalog-v1` channel release. Both releases
@@ -62,6 +68,8 @@ cargo catalog-sign --catalog-path reviewed-models.json \
   --key-file /secure/location/test-seed.hex \
   --public-key-file /secure/location/test-public.hex \
   --revision 1 --published-at 2026-09-30T00:00:00Z \
+   --quality-evidence reviewed-evidence.json \
+   --quality-output catalog-quality.json \
   --output catalog.json
 ```
 
