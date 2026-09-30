@@ -1,0 +1,561 @@
+{
+  "policyVersion": 1,
+  "evaluatedAt": "2026-09-30T14:35:30.801484943Z",
+  "catalogSha256": "1ac2374cc13762271aa048bd3e2373a3c4cccde92a8d26d6fd7025bf32c6a5fb",
+  "evidenceSha256": "83d50a28729fe17ee20c8b43df97e31d614ce08c490ca8babcb15d9c76a23c67",
+  "minimumPercent": 90,
+  "evidenceMaxAgeDays": 7,
+  "catalogEntries": 67,
+  "freshEntries": 0,
+  "verifiedEntries": 0,
+  "eligibleVariants": 0,
+  "coveredVariants": 0,
+  "coveragePercent": null,
+  "recencyPercent": 0.0,
+  "freshnessPercent": null,
+  "correctnessPercent": 0.0,
+  "passed": false,
+  "blockers": [
+    "Upstream variant inventory is missing, incomplete, empty, or older than 7 days."
+  ],
+  "missingVariants": [],
+  "scopes": [],
+  "entries": [
+    {
+      "id": "qwen3.6:35b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "gemma4:e4b-it-qat",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "kimi-k2-thinking",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "kimi-linear",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "kimi-k2:base",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "kimi-k2:instruct",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "gemma3n:e2b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "gemma3n:e4b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "kimi-dev-72b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen3:0.6b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen3:1.7b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen3:4b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen3:14b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen3:235b-a22b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen3:30b-a3b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen3:32b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen3:8b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "glm4:9b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "kimi-vl-a3b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "gemma3:12b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "gemma3:27b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "gemma3:4b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "phi4-mini:3.8b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "mistral-small:24b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "deepseek-r1:14b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "deepseek-r1:32b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "deepseek-r1:671b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "deepseek-r1:70b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "deepseek-r1:7b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "deepseek-r1:8b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "deepseek-v3",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "granite3.1:2b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "granite3.1:8b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "phi4:14b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "llama3.3:70b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "olmo2:13b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "olmo2:7b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen2.5-coder:32b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen2.5-coder:7b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "smollm2:1.7b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "smollm2:135m",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "smollm2:360m",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "granite3-moe:3b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "llama3.2:1b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "llama3.2:3b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen2.5:0.5b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen2.5:0.5b-mlx",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen2.5:1.5b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen2.5:14b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen2.5:32b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen2.5:3b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen2.5:72b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "qwen2.5:7b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "phi3.5:mini",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "gemma2:2b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "llama3.1:70b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "llama3.1:8b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "mistral-nemo:12b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "gemma2:27b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "gemma2:9b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "yi:34b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "yi:6b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "yi:9b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "phi3:mini",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "mixtral:8x22b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "mixtral:8x7b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    },
+    {
+      "id": "mistral:7b",
+      "checkedAt": null,
+      "sources": [],
+      "fresh": false,
+      "verified": false,
+      "reason": "missing evidence"
+    }
+  ]
+}
