@@ -31,6 +31,7 @@ pub fn timestamp() -> Result<String, HarnessError> {
 fn local_model(
     requested: Option<&str>,
     active: &crate::state::ServerState,
+    catalog: &rigspark_core::catalog::Catalog,
 ) -> Result<(String, String), HarnessError> {
     let runtime_id = active
         .runtime_model_id
@@ -42,10 +43,8 @@ fn local_model(
     if requested == active.model_id || requested == runtime_id {
         return Ok((runtime_id.into(), active.model_id.clone()));
     }
-    let catalog = rigspark_core::catalog::Catalog::parse(rigspark_core::MODELS_JSON)
-        .map_err(|_| HarnessError::Invalid)?;
     let resolved =
-        rigspark_core::catalog::resolve(&catalog, requested).map_err(|_| HarnessError::Invalid)?;
+        rigspark_core::catalog::resolve(catalog, requested).map_err(|_| HarnessError::Invalid)?;
     if active.backend != "ollama" && resolved.model.id != active.model_id {
         return Err(HarnessError::Invalid);
     }
@@ -136,9 +135,13 @@ pub async fn run_with_history(
         return Err(HarnessError::Unavailable);
     }
     let (model, memory_owner) = if options.provider == "local" {
+        let loaded = crate::catalog_update::CatalogStore::official(&config.home)
+            .load()
+            .map_err(|_| HarnessError::Invalid)?;
         local_model(
             options.model.as_deref(),
             active.as_ref().ok_or(HarnessError::Unavailable)?,
+            &loaded.catalog,
         )?
     } else {
         (options.model.clone().unwrap_or_default(), String::new())
@@ -256,6 +259,14 @@ pub async fn run_with_history(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn local_model(
+        requested: Option<&str>,
+        active: &crate::state::ServerState,
+    ) -> Result<(String, String), HarnessError> {
+        let catalog = rigspark_core::catalog::Catalog::parse(rigspark_core::MODELS_JSON).unwrap();
+        super::local_model(requested, active, &catalog)
+    }
 
     fn active(backend: &str) -> crate::state::ServerState {
         serde_json::from_value(serde_json::json!({

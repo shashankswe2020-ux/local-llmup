@@ -23,6 +23,7 @@ tokio-util = { version = "0.7", features = ["io", "rt"] }
 thiserror.workspace = true
 url = "2"
 sha2 = "0.10"
+ed25519-dalek = "2.2"
 regex = "1"
 rmcp = { version = "3.4", default-features = false, features = ["client", "transport-async-rw", "transport-streamable-http-client-reqwest", "reqwest"] }
 reqwest-mcp = { package = "reqwest", version = "0.13", default-features = false, features = ["rustls", "json", "stream"] }
@@ -36,7 +37,7 @@ http = "1"
 sse-stream = "0.2"
 bytes = "1"
 percent-encoding = "2"
-time = { version = "0.3", features = ["formatting"] }
+time = { version = "0.3", features = ["formatting", "parsing"] }
 
 [target.'cfg(unix)'.dependencies]
 rustix = { version = "1", features = ["fs", "process"] }

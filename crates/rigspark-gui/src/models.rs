@@ -129,6 +129,32 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
     let method = request.method().as_str().to_owned();
     let url = url::Url::parse(&format!("{}{}", host.origin(), request.uri())).map_err(|_| bad())?;
     let path = url.path();
+    if path.starts_with("/api/catalog/") {
+        use rigspark_runtime::catalog_update::{CatalogStore, OfficialCatalogTransport};
+        let store = CatalogStore::official(&host.home);
+        if url.query().is_some() {
+            return Err(bad());
+        }
+        if path == "/api/catalog/status" && method == "GET" {
+            return Ok(json_response(
+                json!({"catalog": store.load().map_err(|_| bad())?.status}),
+            ));
+        }
+        if path == "/api/catalog/update" && method == "POST" {
+            #[derive(Deserialize)]
+            #[serde(deny_unknown_fields)]
+            struct UpdateRequest {}
+            let _: UpdateRequest = body(request, 1024).await?;
+            return match store.update(&OfficialCatalogTransport).await {
+                Ok(status) => Ok(json_response(json!({"catalog": status}))),
+                Err(error) => Ok(crate::error(
+                    axum::http::StatusCode::BAD_REQUEST,
+                    &error.to_string(),
+                )),
+            };
+        }
+        return Err(bad());
+    }
     if path == "/api/models/active" && method == "GET" {
         return Ok(json_response(json!({"active":active(&host)?})));
     }
@@ -159,7 +185,10 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
     if path == "/api/hardware" && method == "GET" {
         return Ok(json_response(json!({"hardware":hardware})));
     }
-    let catalog = Catalog::parse(rigspark_core::MODELS_JSON).map_err(|_| bad())?;
+    let catalog = rigspark_runtime::catalog_update::CatalogStore::official(&host.home)
+        .load()
+        .map_err(|_| bad())?
+        .catalog;
     if path == "/api/models/recommended" && method == "GET" {
         let query: BTreeMap<String, String> = url
             .query_pairs()

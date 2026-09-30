@@ -1,0 +1,80 @@
+name: Publish Signed Catalog
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalog-publication
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: catalog-signing
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Fetch reviewed main revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          AUTH=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\r\n')
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL}/.extraheader"
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $AUTH"
+          git fetch --no-tags origin "$GITHUB_SHA"
+          unset AUTH GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GH_TOKEN
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Validate catalog and signing contracts
+        run: |
+          set -euo pipefail
+          cargo test --locked -p rigspark-core --test catalog
+          cargo test --locked -p rigspark-runtime --test catalog_updates
+          cargo test --locked -p rigspark-cli --test catalog_sign_cli
+          cargo build --locked -p rigspark-cli --bin llmup-catalog-sign
+
+      - name: Sign reviewed catalog
+        env:
+          CATALOG_SIGNING_SEED: ${{ secrets.CATALOG_SIGNING_SEED }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key_file=$(mktemp)
+          trap 'rm -f "$key_file"' EXIT
+          test -n "$CATALOG_SIGNING_SEED"
+          printf '%s' "$CATALOG_SIGNING_SEED" > "$key_file"
+          unset CATALOG_SIGNING_SEED
+          target/debug/llmup-catalog-sign \
+            --key-file "$key_file" \
+            --revision "$GITHUB_RUN_NUMBER" \
+            --published-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --output catalog.json
+
+      - name: Publish immutable revision and advance channel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          revision="catalog-r${GITHUB_RUN_NUMBER}"
+          gh release create "$revision" catalog.json \
+            --target "$GITHUB_SHA" --prerelease --latest=false \
+            --title "Catalog revision ${GITHUB_RUN_NUMBER}" \
+            --notes "Signed catalog from reviewed commit ${GITHUB_SHA}. Model metadata only; no application binaries."
+          if ! gh release view catalog-v1 >/dev/null 2>&1; then
+            gh release create catalog-v1 --target "$GITHUB_SHA" --prerelease --latest=false \
+              --title "Signed catalog v1 channel" \
+              --notes "Latest signed catalog. Immutable historical artifacts are available in catalog-r* releases."
+          fi
+          gh release upload catalog-v1 catalog.json --clobber

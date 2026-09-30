@@ -271,7 +271,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         (models.clone(), models.clone(), models.clone(), models);
     let inner = rigspark_gui::router(host.clone());
     let tool_host = host.clone();
+    let catalog_revision = Arc::new(Mutex::new(0_u64));
+    let catalog_status = catalog_revision.clone();
     let router = rigspark_gui::router(host.clone())
+        .route("/api/catalog/status", axum::routing::get(move || {
+            let revision = *catalog_status.lock().unwrap();
+            async move { Json(json!({"catalog": {"source": if revision == 0 { "bundled" } else { "updated" }, "revision": revision, "generatedAt": "2026-09-01T00:00:00Z", "publishedAt": if revision == 0 { None } else { Some("2026-09-30T00:00:00Z") }, "modelCount": 66, "digest": "fixture-digest", "updatesConfigured": true, "warnings": []}})) }
+        }))
+        .route("/api/catalog/update", axum::routing::post(move || {
+            let mut revision = catalog_revision.lock().unwrap();
+            let failed = *revision > 0;
+            *revision = 1;
+            async move {
+                if failed {
+                    (StatusCode::BAD_GATEWAY, Json(json!({"error":"Catalog download failed (offline)."}))).into_response()
+                } else {
+                    Json(json!({"catalog": {"source":"updated", "revision":1, "generatedAt":"2026-09-01T00:00:00Z", "publishedAt":"2026-09-30T00:00:00Z", "modelCount":66, "digest":"fixture-digest", "updatesConfigured":true, "warnings":[]}})).into_response()
+                }
+            }
+        }))
         .route(
             "/api/models/recommended",
             axum::routing::get(move |request: Request| async move {

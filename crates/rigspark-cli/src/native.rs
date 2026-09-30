@@ -158,6 +158,10 @@ struct Args {
     flash_attn: Option<String>,
     #[arg(long, value_parser = ["off", "reuse"])]
     prompt_cache: Option<String>,
+    #[arg(long, conflicts_with = "status")]
+    update: bool,
+    #[arg(long)]
+    status: bool,
 }
 
 impl Args {
@@ -253,6 +257,21 @@ impl Args {
 
 fn read_file(path: &PathBuf) -> Result<String, Box<dyn std::error::Error>> {
     read_bounded(path, 16 * 1024 * 1024)
+}
+
+fn load_catalog_raw(args: &Args) -> Result<String, Box<dyn std::error::Error>> {
+    if let Some(path) = &args.catalog_path {
+        return read_file(path);
+    }
+    if args.parity {
+        return Ok(rigspark_core::MODELS_JSON.into());
+    }
+    let config = rigspark_runtime::state::Config::load()?;
+    let loaded = rigspark_runtime::catalog_update::CatalogStore::official(config.home).load()?;
+    for warning in &loaded.status.warnings {
+        eprintln!("Catalog: {warning}");
+    }
+    Ok(loaded.raw)
 }
 
 fn read_bounded(path: &PathBuf, limit: usize) -> Result<String, Box<dyn std::error::Error>> {
@@ -393,6 +412,54 @@ fn picker_models<'catalog>(
 }
 
 async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
+    if args.update || args.status {
+        if args.command != "catalog"
+            || args.refresh
+            || args.all
+            || args.catalog_path.is_some()
+            || args.perf_path.is_some()
+            || args.hardware.is_some()
+            || args.hardware_json.is_some()
+            || args.parity
+            || args.tui
+            || args.accessible
+            || args.model.is_some()
+        {
+            return Err("--update and --status require catalog without browse, refresh, fixture, or interactive options".into());
+        }
+        let config = rigspark_runtime::state::Config::load()?;
+        let store = rigspark_runtime::catalog_update::CatalogStore::official(config.home);
+        let status = if args.update {
+            store
+                .update(&rigspark_runtime::catalog_update::OfficialCatalogTransport)
+                .await?
+        } else {
+            store.load()?.status
+        };
+        println!(
+            "Source: {}\nGenerated: {}\nRevision: {}\nDigest: {}\nModels: {}\nUpdates: {}",
+            status.source,
+            status.generated_at,
+            status
+                .revision
+                .map(|revision| revision.to_string())
+                .unwrap_or_else(|| "bundled".into()),
+            status.digest,
+            status.model_count,
+            if status.updates_configured {
+                "configured"
+            } else {
+                "unavailable (production signing key not provisioned)"
+            }
+        );
+        if let Some(published) = status.published_at {
+            println!("Published: {published}");
+        }
+        for warning in status.warnings {
+            eprintln!("Catalog: {warning}");
+        }
+        return Ok(0);
+    }
     if args.accessible && (args.no_tui || args.json || args.message.is_some()) {
         return Err("--accessible conflicts with --no-tui, --json, and --message".into());
     }
@@ -712,12 +779,7 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         if args.move_memory && !args.yes && !args.dry_run {
             return Err("--move requires explicit --yes".into());
         }
-        let catalog_raw = args
-            .catalog_path
-            .as_ref()
-            .map(read_file)
-            .transpose()?
-            .unwrap_or_else(|| rigspark_core::MODELS_JSON.into());
+        let catalog_raw = load_catalog_raw(&args)?;
         let catalog = Catalog::parse(&catalog_raw)?;
         let context = match args.context {
             Some(context)
@@ -932,12 +994,7 @@ async fn execute(mut args: Args) -> Result<u8, Box<dyn std::error::Error>> {
         }
         return Ok(exit);
     }
-    let catalog_raw = args
-        .catalog_path
-        .as_ref()
-        .map(read_file)
-        .transpose()?
-        .unwrap_or_else(|| rigspark_core::MODELS_JSON.into());
+    let catalog_raw = load_catalog_raw(&args)?;
     let perf_raw = args
         .perf_path
         .as_ref()
@@ -1444,12 +1501,7 @@ async fn collect_doctor(args: &Args, supplied: Option<Hardware>) -> Value {
             .map(|(hardware, _)| hardware)
             .map_err(|error| error.to_string()),
     };
-    let catalog = args
-        .catalog_path
-        .as_ref()
-        .map(read_file)
-        .transpose()
-        .map(|raw| raw.unwrap_or_else(|| rigspark_core::MODELS_JSON.into()))
+    let catalog = load_catalog_raw(args)
         .map_err(|error| error.to_string())
         .and_then(|raw| Catalog::parse(&raw).map_err(|error| error.to_string()));
     let backends = diagnostics::probe_available_backends(hardware.as_ref().ok()).await;

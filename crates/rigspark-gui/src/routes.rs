@@ -110,6 +110,7 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
         return Ok(json_response(value));
     }
     if request.uri().path().starts_with("/api/models/")
+        || request.uri().path().starts_with("/api/catalog/")
         || request.uri().path().starts_with("/api/runtimes")
         || request.uri().path() == "/api/hardware"
     {

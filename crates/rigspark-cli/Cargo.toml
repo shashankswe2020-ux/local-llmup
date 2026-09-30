@@ -75,6 +75,11 @@ name = "llmup-catalog-enrich"
 path = "src/catalog_enrich.rs"
 required-features = ["maintainer-tools"]
 
+[[bin]]
+name = "llmup-catalog-sign"
+path = "src/catalog_sign.rs"
+required-features = ["maintainer-tools"]
+
 [dependencies]
 rigspark-core = { path = "../rigspark-core", version = "2.0.0" }
 rigspark-runtime = { path = "../rigspark-runtime", version = "2.0.0" }

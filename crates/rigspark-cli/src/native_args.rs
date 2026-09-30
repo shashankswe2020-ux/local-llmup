@@ -131,6 +131,8 @@ const COMMANDS: &[CommandSpec] = &[
         flags: &[
             "all",
             "refresh",
+            "update",
+            "status",
             "catalog_path",
             "perf_path",
             "hardware_json",
@@ -242,6 +244,8 @@ fn help_command(spec: &CommandSpec, flat: &Command) -> Command {
                 "available_backends" => "Only show models an installed backend can serve",
                 "all" => "Show every catalog model, including non-fitting models",
                 "refresh" => "Preview catalog enrichment without writing the catalog",
+                "update" => "Download and activate the latest signed catalog (requires network)",
+                "status" => "Show the selected catalog source, date, revision, and digest offline",
                 "tui" => "Use the interactive terminal UI (fails when incompatible)",
                 "no_tui" => "Force plain noninteractive output",
                 "no_color" => "Disable terminal color while retaining layout",
