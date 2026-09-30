@@ -42,8 +42,14 @@ jobs:
           set -euo pipefail
           cargo test --locked -p rigspark-core --test catalog
           cargo test --locked -p rigspark-runtime --test catalog_updates
+          cargo test --locked -p rigspark-runtime --test catalog_quality
           cargo test --locked -p rigspark-cli --test catalog_sign_cli
           cargo build --locked -p rigspark-cli --bin llmup-catalog-sign
+
+      - name: Require freshness and correctness at least 90 percent
+        run: |
+          set -euo pipefail
+          cargo catalog-quality
 
       - name: Sign reviewed catalog
         env:
@@ -60,6 +66,8 @@ jobs:
             --key-file "$key_file" \
             --revision "$GITHUB_RUN_NUMBER" \
             --published-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --quality-evidence docs/references/catalog-quality-evidence.json \
+            --quality-output catalog-quality.json \
             --output catalog.json
 
       - name: Publish immutable revision and advance channel
@@ -68,13 +76,14 @@ jobs:
         run: |
           set -euo pipefail
           revision="catalog-r${GITHUB_RUN_NUMBER}"
-          gh release create "$revision" catalog.json \
+          gh release create "$revision" catalog.json catalog-quality.json \
             --target "$GITHUB_SHA" --prerelease --latest=false \
             --title "Catalog revision ${GITHUB_RUN_NUMBER}" \
-            --notes "Signed catalog from reviewed commit ${GITHUB_SHA}. Model metadata only; no application binaries."
+            --notes "Signed catalog from reviewed commit ${GITHUB_SHA}. Freshness and correctness each >= 90% under evidence policy v1. Exact scores, denominators, sources, and evidence are in signed catalog-quality.json. Model metadata only; no application binaries."
           if ! gh release view catalog-v1 >/dev/null 2>&1; then
             gh release create catalog-v1 --target "$GITHUB_SHA" --prerelease --latest=false \
               --title "Signed catalog v1 channel" \
               --notes "Latest signed catalog. Immutable historical artifacts are available in catalog-r* releases."
           fi
           gh release upload catalog-v1 catalog.json --clobber
+          gh release upload catalog-v1 catalog-quality.json --clobber

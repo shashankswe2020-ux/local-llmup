@@ -80,6 +80,11 @@ name = "llmup-catalog-sign"
 path = "src/catalog_sign.rs"
 required-features = ["maintainer-tools"]
 
+[[bin]]
+name = "llmup-catalog-quality"
+path = "src/catalog_quality.rs"
+required-features = ["maintainer-tools"]
+
 [dependencies]
 rigspark-core = { path = "../rigspark-core", version = "2.1.0" }
 rigspark-runtime = { path = "../rigspark-runtime", version = "2.1.0" }

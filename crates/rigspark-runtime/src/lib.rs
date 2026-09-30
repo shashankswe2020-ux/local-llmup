@@ -3,6 +3,7 @@ pub mod adapters;
 pub mod agent;
 pub mod application;
 pub mod cache;
+pub mod catalog_quality;
 pub mod catalog_update;
 pub mod chat_service;
 pub mod command;

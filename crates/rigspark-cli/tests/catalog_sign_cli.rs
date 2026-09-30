@@ -15,11 +15,19 @@ fn publication_is_protected_separate_from_binary_releases_and_not_latest() {
         "--prerelease --latest=false",
         "catalog-r${GITHUB_RUN_NUMBER}",
         "gh release upload catalog-v1 catalog.json --clobber",
+        "cargo catalog-quality",
+        "--quality-evidence docs/references/catalog-quality-evidence.json",
+        "--quality-output catalog-quality.json",
+        "gh release upload catalog-v1 catalog-quality.json --clobber",
     ] {
         assert!(workflow.contains(required), "{required}");
     }
     assert!(!workflow.contains("pull_request"));
     assert!(!workflow.contains("set -x"));
+    assert!(
+        workflow.find("cargo catalog-quality").unwrap()
+            < workflow.find("- name: Sign reviewed catalog").unwrap()
+    );
 }
 
 #[test]
@@ -32,7 +40,19 @@ fn signer_validates_key_and_refuses_to_overwrite_output() {
         fs::set_permissions(root.path().join("seed"), fs::Permissions::from_mode(0o600)).unwrap();
     }
     fs::write(root.path().join("public"), PUBLIC).unwrap();
-    fs::write(root.path().join("models.json"), rigspark_core::MODELS_JSON).unwrap();
+    let mut catalog = rigspark_core::catalog::Catalog::parse(rigspark_core::MODELS_JSON).unwrap();
+    catalog.models.truncate(1);
+    let evidence = serde_json::json!({"policyVersion":1,"scopes":[{
+        "name":"ollama-local-variants","checkedAt":"2026-09-30T00:00:00Z",
+        "source":"https://ollama.com/library","complete":true,"variants":[catalog.models[0].id]
+    }],"observations":[{"id":catalog.models[0].id,"checkedAt":"2026-09-30T00:00:00Z",
+        "sources":["https://huggingface.co/Qwen/Qwen3.6-35B-A3B","https://registry.ollama.ai/v2/library/qwen3.6/manifests/35b"],"model":catalog.models[0]}]});
+    fs::write(
+        root.path().join("models.json"),
+        serde_json::to_vec(&catalog).unwrap(),
+    )
+    .unwrap();
+    fs::write(root.path().join("evidence.json"), evidence.to_string()).unwrap();
     let run = || {
         Command::new(env!("CARGO_BIN_EXE_llmup-catalog-sign"))
             .current_dir(root.path())
@@ -45,6 +65,10 @@ fn signer_validates_key_and_refuses_to_overwrite_output() {
                 "public",
                 "--output",
                 "catalog.json",
+                "--quality-evidence",
+                "evidence.json",
+                "--quality-output",
+                "catalog-quality.json",
                 "--revision",
                 "1",
                 "--published-at",
@@ -73,6 +97,14 @@ fn signer_validates_key_and_refuses_to_overwrite_output() {
         artifact
     );
     fs::remove_file(root.path().join("catalog.json")).unwrap();
+    fs::remove_file(root.path().join("catalog-quality.json")).unwrap();
+    let mut stale = evidence.clone();
+    stale["observations"][0]["checkedAt"] = serde_json::json!("2026-09-01T00:00:00Z");
+    fs::write(root.path().join("evidence.json"), stale.to_string()).unwrap();
+    assert!(!run().status.success());
+    assert!(!root.path().join("catalog.json").exists());
+    assert!(!root.path().join("catalog-quality.json").exists());
+    fs::write(root.path().join("evidence.json"), evidence.to_string()).unwrap();
     fs::write(root.path().join("public"), "00".repeat(32)).unwrap();
     assert!(!run().status.success());
     assert!(!root.path().join("catalog.json").exists());
