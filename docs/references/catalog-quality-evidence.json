@@ -21,6 +21,43 @@
   ],
   "observations": [
     {
+      "id": "bonsai:8b",
+      "checkedAt": "2026-10-01T12:32:41Z",
+      "sources": [
+        "https://prismml.com/news/bonsai-8b",
+        "https://huggingface.co/prism-ml/Bonsai-8B-gguf/blob/48516770dd04643643e9f9019a2a349cf26c5dbd/README.md",
+        "https://huggingface.co/api/models/prism-ml/Bonsai-8B-gguf/revision/48516770dd04643643e9f9019a2a349cf26c5dbd",
+        "https://huggingface.co/prism-ml/Bonsai-8B-gguf/blob/48516770dd04643643e9f9019a2a349cf26c5dbd/Bonsai-8B-Q1_0.gguf"
+      ],
+      "model": {
+        "id": "bonsai:8b",
+        "family": "bonsai",
+        "params": "8.19B",
+        "architecture": "dense",
+        "license": "apache-2.0",
+        "openWeight": true,
+        "contextLength": 65536,
+        "capabilities": ["chat", "code", "tools"],
+        "releaseDate": "2026-03-31",
+        "source": {
+          "hf": "prism-ml/Bonsai-8B-gguf",
+          "gguf": {
+            "repo": "prism-ml/Bonsai-8B-gguf",
+            "revision": "48516770dd04643643e9f9019a2a349cf26c5dbd",
+            "file": "Bonsai-8B-Q1_0.gguf",
+            "sha256": "284a335aa3fb2ced3b1b01fcb40b08aa783e3b70832767f0dd2e3fdfa134bd54"
+          }
+        },
+        "quantizations": [{
+          "name": "Q1_0",
+          "diskBytes": 1158654496,
+          "minRamBytes": 1332452671,
+          "minVramBytes": 1332452671,
+          "sha256": "284a335aa3fb2ced3b1b01fcb40b08aa783e3b70832767f0dd2e3fdfa134bd54"
+        }]
+      }
+    },
+    {
       "id": "qwen3.6:35b",
       "checkedAt": "2026-09-30T11:03:28Z",
       "sources": [

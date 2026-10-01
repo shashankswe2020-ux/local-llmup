@@ -1,0 +1,378 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-01T09:22:16.01323Z",
+  "inventoryComplete": false,
+  "requiresReview": true,
+  "proposals": [
+    {
+      "repository": "mistral-small3.2",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistral-small3.2/manifests/latest",
+          "sha256": "5a408ab55df5c1b5cf46533c368813b30bf9e4d8fc39263bf2a3338cfa3b895b",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:7ae301728ba8f217be575419ca950190a4d43cfa293ffa9732ce6eb6498d7f6d\",\"size\":568},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:41a5b0c36a28a3a0480ce2e4007d3a21e3298be70e2b9a103960581412997dca\",\"size\":15177369888},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:706c4d1164f7f1bbce2a852f2bc9cfa66b98d24f79300b9034388e07fcda98c8\",\"size\":699},{\"mediaType\":\"application/vnd.ollama.image.system\",\"digest\":\"sha256:9c810f69c610d59a322085379f81ad72814b84916a1c3d0262cf1b1114bbfb36\",\"size\":2330},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1\",\"size\":11356},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:e0daf17ff83eace4813f9e8554b262f6cc33ad880ff8df41a156ff9ef5522ddb\",\"size\":21}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistral-small3.2/blobs/sha256:7ae301728ba8f217be575419ca950190a4d43cfa293ffa9732ce6eb6498d7f6d",
+          "sha256": "7ae301728ba8f217be575419ca950190a4d43cfa293ffa9732ce6eb6498d7f6d",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"mistral3\",\"model_families\":[\"mistral3\"],\"model_type\":\"24.0B\",\"file_type\":\"Q4_K_M\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:41a5b0c36a28a3a0480ce2e4007d3a21e3298be70e2b9a103960581412997dca\",\"sha256:706c4d1164f7f1bbce2a852f2bc9cfa66b98d24f79300b9034388e07fcda98c8\",\"sha256:9c810f69c610d59a322085379f81ad72814b84916a1c3d0262cf1b1114bbfb36\",\"sha256:43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1\",\"sha256:e0daf17ff83eace4813f9e8554b262f6cc33ad880ff8df41a156ff9ef5522ddb\"]}}\n"
+        }
+      ],
+      "artifactBytes": 15177369888.0,
+      "modelSha256": "41a5b0c36a28a3a0480ce2e4007d3a21e3298be70e2b9a103960581412997dca",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"mistral3\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_K_M\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"24.0B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "mistrallite",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistrallite/manifests/latest",
+          "sha256": "5393d4f5f2623b1224406328f504cfdd211e05c252c1c9b7e12dac0b4da1cdcc",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:3021fa9416b9a4f5166124386898420b698ff907732b971afa7b607c286e6bf7\",\"size\":381},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:fcfc737faf6b2bb5050752602ca341e92ec4d8208f2b5762bd656d447be9910e\",\"size\":4108933440},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:2511cfa9ebda14de4dac136ae62cc84423b3937316d962e8e596ab482f8fc543\",\"size\":57},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:437fd6dee5dd16ec65867f6cc62789d14ed3ab72f6922dc976b181d5c4a84099\",\"size\":94}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistrallite/blobs/sha256:3021fa9416b9a4f5166124386898420b698ff907732b971afa7b607c286e6bf7",
+          "sha256": "3021fa9416b9a4f5166124386898420b698ff907732b971afa7b607c286e6bf7",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"llama\",\"model_type\":\"7B\",\"file_type\":\"Q4_0\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:fcfc737faf6b2bb5050752602ca341e92ec4d8208f2b5762bd656d447be9910e\",\"sha256:2511cfa9ebda14de4dac136ae62cc84423b3937316d962e8e596ab482f8fc543\",\"sha256:437fd6dee5dd16ec65867f6cc62789d14ed3ab72f6922dc976b181d5c4a84099\"]},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+        }
+      ],
+      "artifactBytes": 4108933440.0,
+      "modelSha256": "fcfc737faf6b2bb5050752602ca341e92ec4d8208f2b5762bd656d447be9910e",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"llama\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_0\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"7B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "moondream",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/moondream/manifests/latest",
+          "sha256": "55fc3abd386771e5b5d1bbcc732f3c3f4df6e9f9f08f1131f9cc27ba2d1eec5b",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:ba5fbb481ada654c85475473fa862b81eb5539cecc56da57f90ef5af56798be2\",\"size\":562},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:e554c6b9de016673fd2c732e0342967727e9659ca5f853a4947cc96263fa602b\",\"size\":828661152},{\"mediaType\":\"application/vnd.ollama.image.projector\",\"digest\":\"sha256:4cc1cb3660d87ff56432ebeb7884ad35d67c48c7b9f6b2856f305e39c38eed8f\",\"size\":909777984},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4\",\"size\":11357},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:4b021a3b4b4a58b06921bdf163d1b61e78b74d7df434a7f735edfdc807e68377\",\"size\":77},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:9468773bdc1f9908492a3cdaab70bf5ac0a45d2d52717e8208c0deece2765262\",\"size\":65}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/moondream/blobs/sha256:ba5fbb481ada654c85475473fa862b81eb5539cecc56da57f90ef5af56798be2",
+          "sha256": "ba5fbb481ada654c85475473fa862b81eb5539cecc56da57f90ef5af56798be2",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"phi2\",\"model_families\":[\"phi2\",\"clip\"],\"model_type\":\"1B\",\"file_type\":\"Q4_0\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:e554c6b9de016673fd2c732e0342967727e9659ca5f853a4947cc96263fa602b\",\"sha256:4cc1cb3660d87ff56432ebeb7884ad35d67c48c7b9f6b2856f305e39c38eed8f\",\"sha256:c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4\",\"sha256:4b021a3b4b4a58b06921bdf163d1b61e78b74d7df434a7f735edfdc807e68377\",\"sha256:9468773bdc1f9908492a3cdaab70bf5ac0a45d2d52717e8208c0deece2765262\"]}}\n"
+        }
+      ],
+      "artifactBytes": 1738439136.0,
+      "modelSha256": "e554c6b9de016673fd2c732e0342967727e9659ca5f853a4947cc96263fa602b",
+      "projectors": [
+        {
+          "bytes": 909777984,
+          "sha256": "4cc1cb3660d87ff56432ebeb7884ad35d67c48c7b9f6b2856f305e39c38eed8f"
+        }
+      ],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"phi2\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_0\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"1B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "mxbai-embed-large",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/mxbai-embed-large/manifests/latest",
+          "sha256": "468836162de7f81e041c43663fedbbba921dcea9b9fefea135685a39b2d83dd8",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:38badd946f91096f47f2f84de521ca1ef8ba233625c312163d0ad9e9d253cdda\",\"size\":408},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:819c2adf5ce6df2b6bd2ae4ca90d2a69f060afeb438d0c171db57daa02e39c3d\",\"size\":669603712},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4\",\"size\":11357},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:b837481ff8556a29d9bb27ac280c23495a491e7268d8f043f2e617f7f795d089\",\"size\":16}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/mxbai-embed-large/blobs/sha256:38badd946f91096f47f2f84de521ca1ef8ba233625c312163d0ad9e9d253cdda",
+          "sha256": "38badd946f91096f47f2f84de521ca1ef8ba233625c312163d0ad9e9d253cdda",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"bert\",\"model_families\":[\"bert\"],\"model_type\":\"334M\",\"file_type\":\"F16\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:819c2adf5ce6df2b6bd2ae4ca90d2a69f060afeb438d0c171db57daa02e39c3d\",\"sha256:c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4\",\"sha256:b837481ff8556a29d9bb27ac280c23495a491e7268d8f043f2e617f7f795d089\"]}}\n"
+        }
+      ],
+      "artifactBytes": 669603712.0,
+      "modelSha256": "819c2adf5ce6df2b6bd2ae4ca90d2a69f060afeb438d0c171db57daa02e39c3d",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"bert\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"F16\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"334M\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "nemotron",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/nemotron/manifests/latest",
+          "sha256": "2262f047a28a348ebbdb44fd275f68907aa8916cac6775456348a60f93add589",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:2b4e98e1c22e252beb0c43e8a7075a2f6c04270b848044a2e96049fd3fe8bd8a\",\"size\":562},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:c147388e99312d168a2c5a75d2048cd7654828c0bb9ed5f0ad1735c655aa5b45\",\"size\":42520398432},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:4863fe3335f3e1614eac6a2cff56ae522f7ed8b4d83da72888e3bf8de374e13d\",\"size\":1165},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:64e1b2889b7892e6bbe7a7ed5bfe6ff793c61f9d584345f8f41cf9f5cb30a369\",\"size\":7627},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:a568f2ebc73cec3fd74ba2afd992d4e945a8c7a9d851f9b66163aac834b7b859\",\"size\":4691},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:56bb8bd477a519ffa694fc449c2413c6f0e1d3b1c88fa7e3c9d88d3ae49d4dcb\",\"size\":96}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/nemotron/blobs/sha256:2b4e98e1c22e252beb0c43e8a7075a2f6c04270b848044a2e96049fd3fe8bd8a",
+          "sha256": "2b4e98e1c22e252beb0c43e8a7075a2f6c04270b848044a2e96049fd3fe8bd8a",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"llama\",\"model_families\":[\"llama\"],\"model_type\":\"70.6B\",\"file_type\":\"Q4_K_M\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:c147388e99312d168a2c5a75d2048cd7654828c0bb9ed5f0ad1735c655aa5b45\",\"sha256:4863fe3335f3e1614eac6a2cff56ae522f7ed8b4d83da72888e3bf8de374e13d\",\"sha256:64e1b2889b7892e6bbe7a7ed5bfe6ff793c61f9d584345f8f41cf9f5cb30a369\",\"sha256:a568f2ebc73cec3fd74ba2afd992d4e945a8c7a9d851f9b66163aac834b7b859\",\"sha256:56bb8bd477a519ffa694fc449c2413c6f0e1d3b1c88fa7e3c9d88d3ae49d4dcb\"]}}\n"
+        }
+      ],
+      "artifactBytes": 42520398432.0,
+      "modelSha256": "c147388e99312d168a2c5a75d2048cd7654828c0bb9ed5f0ad1735c655aa5b45",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"llama\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_K_M\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"70.6B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "nemotron-3-nano",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/nemotron-3-nano/manifests/latest",
+          "sha256": "b725f11174073334edd0c2ff396b8d4e66d7dab22a5a63717ccad5a08a270cf1",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:12bee8c08a36f44726e1d9601a9142208a42671984d3eba44dada7f8149501a0\",\"size\":488},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:a70437c41b3b0b768c48737e15f8160c90f13dc963f5226aabb3a160f708d1ce\",\"size\":24271924224},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:bca58c750377d01da1bea95cdbc6f0176f3b58003f6a31c7b069a2746cbea78f\",\"size\":10126},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:12e88b2a8727339b5a4a8b3e2d0d637ac1c61085b1072e77865f0c25d6e468eb\",\"size\":28}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/nemotron-3-nano/blobs/sha256:12bee8c08a36f44726e1d9601a9142208a42671984d3eba44dada7f8149501a0",
+          "sha256": "12bee8c08a36f44726e1d9601a9142208a42671984d3eba44dada7f8149501a0",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"nemotron_h_moe\",\"model_families\":[\"nemotron_h_moe\"],\"model_type\":\"31.6B\",\"file_type\":\"Q4_K_M\",\"renderer\":\"nemotron-3-nano\",\"parser\":\"nemotron-3-nano\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:a70437c41b3b0b768c48737e15f8160c90f13dc963f5226aabb3a160f708d1ce\",\"sha256:bca58c750377d01da1bea95cdbc6f0176f3b58003f6a31c7b069a2746cbea78f\",\"sha256:12e88b2a8727339b5a4a8b3e2d0d637ac1c61085b1072e77865f0c25d6e468eb\"]}}\n"
+        }
+      ],
+      "artifactBytes": 24271924224.0,
+      "modelSha256": "a70437c41b3b0b768c48737e15f8160c90f13dc963f5226aabb3a160f708d1ce",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"nemotron_h_moe\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_K_M\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"31.6B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "nemotron-3-super",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/nemotron-3-super/manifests/latest",
+          "sha256": "95acc78b3ffdf21e34b4182a08e1b06c49b5966b6821ccabd359f0ece770aa8d",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:9c35241878aa45423d55d11a9d098c9913c4873bd1dca31ce2f414c3a01a93f4\",\"size\":509},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:0fc53cc990a2cf4b540b21b8b5a7a7cb1bb21932378549d0250c50b6b316e05e\",\"size\":86827809984},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:d02d998e5ae6cbc8aeb70b4038303ddaf898bf992132c3799ac4ad36d12f9f85\",\"size\":23580},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:02897ca0d6a33881b1581b775af2884e9eed3ea9b7db8141e0dc0ef2e707fd18\",\"size\":31}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/nemotron-3-super/blobs/sha256:9c35241878aa45423d55d11a9d098c9913c4873bd1dca31ce2f414c3a01a93f4",
+          "sha256": "9c35241878aa45423d55d11a9d098c9913c4873bd1dca31ce2f414c3a01a93f4",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"nemotron_h_moe\",\"model_families\":[\"nemotron_h_moe\"],\"model_type\":\"123.6B\",\"file_type\":\"Q4_K_M\",\"renderer\":\"nemotron-3-nano\",\"parser\":\"nemotron-3-nano\",\"requires\":\"0.17.1\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:0fc53cc990a2cf4b540b21b8b5a7a7cb1bb21932378549d0250c50b6b316e05e\",\"sha256:d02d998e5ae6cbc8aeb70b4038303ddaf898bf992132c3799ac4ad36d12f9f85\",\"sha256:02897ca0d6a33881b1581b775af2884e9eed3ea9b7db8141e0dc0ef2e707fd18\"]}}\n"
+        }
+      ],
+      "artifactBytes": 86827809984.0,
+      "modelSha256": "0fc53cc990a2cf4b540b21b8b5a7a7cb1bb21932378549d0250c50b6b316e05e",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"nemotron_h_moe\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_K_M\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"123.6B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "nemotron-cascade-2",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/nemotron-cascade-2/manifests/latest",
+          "sha256": "e0705e3fe8f71df9a7d6e181310aa2c35ee9babcdc858435a9821be5aff3693a",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:849acac69f0cd838bede0821bf69a652692e6568140eb60d4c9cd404f521b8ec\",\"size\":508},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:9e0c827cfd6a6d000032be3da3d0914668b0c1112977e927186d29c4487466c4\",\"size\":24272433056},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:355e036064fa9b3a96ce0cdbb69abe54f5c7ce0b6aa2c7d5f8ec8580b011c20e\",\"size\":10124},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:02897ca0d6a33881b1581b775af2884e9eed3ea9b7db8141e0dc0ef2e707fd18\",\"size\":31}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/nemotron-cascade-2/blobs/sha256:849acac69f0cd838bede0821bf69a652692e6568140eb60d4c9cd404f521b8ec",
+          "sha256": "849acac69f0cd838bede0821bf69a652692e6568140eb60d4c9cd404f521b8ec",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"nemotron_h_moe\",\"model_families\":[\"nemotron_h_moe\"],\"model_type\":\"31.6B\",\"file_type\":\"Q4_K_M\",\"renderer\":\"nemotron-3-nano\",\"parser\":\"nemotron-3-nano\",\"requires\":\"0.17.1\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:9e0c827cfd6a6d000032be3da3d0914668b0c1112977e927186d29c4487466c4\",\"sha256:355e036064fa9b3a96ce0cdbb69abe54f5c7ce0b6aa2c7d5f8ec8580b011c20e\",\"sha256:02897ca0d6a33881b1581b775af2884e9eed3ea9b7db8141e0dc0ef2e707fd18\"]}}\n"
+        }
+      ],
+      "artifactBytes": 24272433056.0,
+      "modelSha256": "9e0c827cfd6a6d000032be3da3d0914668b0c1112977e927186d29c4487466c4",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"nemotron_h_moe\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_K_M\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"31.6B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "nemotron-mini",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/nemotron-mini/manifests/latest",
+          "sha256": "ed76ab18784f5a01c9ec5b3c250e964d4f9c7a983e59ba041bb995f0fe2e8fb3",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:505fc75543c641b8b8e10c522202ede24243b0b3aeab358365d0834ae7f87465\",\"size\":419},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:1dcbd925825b41744ddc2fc3047db6d3ad0aecf8d336f4fadc044eaaf79779d5\",\"size\":2697386784},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:fd80a52b9db8e75acade873e3b0469a7a5546ec3355cd06031b4c61339c84e93\",\"size\":773},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:3436c20529fb222e51e629abeff67ebbddd8f2ad244ef8d9fd36cfa31222cbba\",\"size\":14570}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/nemotron-mini/blobs/sha256:505fc75543c641b8b8e10c522202ede24243b0b3aeab358365d0834ae7f87465",
+          "sha256": "505fc75543c641b8b8e10c522202ede24243b0b3aeab358365d0834ae7f87465",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"nemotron\",\"model_families\":[\"nemotron\"],\"model_type\":\"4.2B\",\"file_type\":\"Q4_K_M\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:1dcbd925825b41744ddc2fc3047db6d3ad0aecf8d336f4fadc044eaaf79779d5\",\"sha256:fd80a52b9db8e75acade873e3b0469a7a5546ec3355cd06031b4c61339c84e93\",\"sha256:3436c20529fb222e51e629abeff67ebbddd8f2ad244ef8d9fd36cfa31222cbba\"]}}\n"
+        }
+      ],
+      "artifactBytes": 2697386784.0,
+      "modelSha256": "1dcbd925825b41744ddc2fc3047db6d3ad0aecf8d336f4fadc044eaaf79779d5",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"nemotron\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_K_M\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"4.2B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "nemotron3",
+      "status": "unavailable",
+      "sources": [],
+      "artifactBytes": null,
+      "modelSha256": null,
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [],
+      "extractionStatus": "not-attempted",
+      "extractionError": null
+    }
+  ],
+  "nextAfter": "nemotron3",
+  "remainingCandidates": 72
+}
