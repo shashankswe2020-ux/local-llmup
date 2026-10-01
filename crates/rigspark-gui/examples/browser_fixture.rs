@@ -273,6 +273,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tool_host = host.clone();
     let catalog_revision = Arc::new(Mutex::new(0_u64));
     let catalog_status = catalog_revision.clone();
+    let catalog_update_calls = Arc::new(Mutex::new(0_u64));
     let router = rigspark_gui::router(host.clone())
         .route("/api/catalog/status", axum::routing::get(move || {
             let revision = *catalog_status.lock().unwrap();
@@ -280,7 +281,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }))
         .route("/api/catalog/update", axum::routing::post(move || {
             let mut revision = catalog_revision.lock().unwrap();
-            let failed = *revision > 0;
+            let mut calls = catalog_update_calls.lock().unwrap();
+            let failed = *calls >= 2;
+            *calls += 1;
             *revision = 1;
             async move {
                 if failed {

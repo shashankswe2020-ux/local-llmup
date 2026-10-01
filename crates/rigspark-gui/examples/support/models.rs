@@ -94,8 +94,16 @@ pub async fn details(client: &Client, origin: &str, artifacts: &std::path::Path)
     .await?;
     click(client, "#update-catalog").await?;
     wait_for(client, "document.querySelector('#catalog-status')?.textContent.includes('revision 1') && !document.querySelector('#update-catalog').disabled").await?;
+    wait_for(client, "document.querySelector('#catalog-update-result')?.textContent.includes('Catalog updated to revision 1') && !document.querySelector('#catalog-update-result').hidden").await?;
+    click(client, "#update-catalog").await?;
+    wait_for(client, "document.querySelector('#catalog-update-result')?.textContent.includes('Already using the latest published catalog') && !document.querySelector('#catalog-update-result').hidden && !document.querySelector('#update-catalog').disabled").await?;
     click(client, "#update-catalog").await?;
     wait_for(client, "document.querySelector('#catalog-update-error')?.textContent.includes('offline') && !document.querySelector('#update-catalog').disabled && document.querySelector('.model-card-item')").await?;
+    wait_for(
+        client,
+        "document.querySelector('#catalog-update-result')?.hidden === true",
+    )
+    .await?;
     std::fs::write(
         artifacts.join("catalog-update-desktop.png"),
         client.screenshot().await?,

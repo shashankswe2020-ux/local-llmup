@@ -1892,11 +1892,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const catalogStatus = document.querySelector("#catalog-status");
   const updateCatalog = document.querySelector("#update-catalog");
   const catalogUpdateError = document.querySelector("#catalog-update-error");
+  const catalogUpdateResult = document.querySelector("#catalog-update-result");
   let catalogUpdating = false;
   let catalogStatusSequence = 0;
+  let currentCatalogStatus = null;
 
   function renderCatalogStatus(status) {
     if (!catalogStatus || !updateCatalog) return;
+    currentCatalogStatus = status;
     const date = status.publishedAt || status.generatedAt;
     const revision = status.revision ? `, revision ${status.revision}` : "";
     catalogStatus.textContent = `Catalog: ${status.source}, ${String(date || "unknown").slice(0, 10)}${revision} (${status.modelCount} models)`;
@@ -1924,11 +1927,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   updateCatalog?.addEventListener("click", async () => {
     if (catalogUpdating) return;
+    const previousCatalog = currentCatalogStatus;
     catalogUpdating = true;
     ++catalogStatusSequence;
     updateCatalog.disabled = true;
     updateCatalog.textContent = "Updating...";
     catalogUpdateError.hidden = true;
+    catalogUpdateResult.hidden = true;
     catalogStatus.textContent = "Downloading and verifying catalog...";
     try {
       const response = await globalThis.fetch("/api/catalog/update", {
@@ -1940,6 +1945,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "Catalog update failed");
       renderCatalogStatus(data.catalog);
       await loadModels();
+      const unchanged = previousCatalog?.source === data.catalog.source
+        && previousCatalog?.revision === data.catalog.revision
+        && previousCatalog?.digest === data.catalog.digest;
+      catalogUpdateResult.textContent = unchanged
+        ? `Already using the latest published catalog: revision ${data.catalog.revision} (${data.catalog.modelCount} models).`
+        : `Catalog updated to revision ${data.catalog.revision} (${data.catalog.modelCount} models).`;
+      catalogUpdateResult.hidden = false;
     } catch (error) {
       catalogUpdateError.textContent = error.message;
       catalogUpdateError.hidden = false;
