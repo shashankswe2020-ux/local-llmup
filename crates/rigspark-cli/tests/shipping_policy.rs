@@ -212,6 +212,11 @@ fn readme_documents_native_install_and_primary_workflows() {
         "rigspark up",
         "rigspark chat",
         "rigspark catalog",
+        "rigspark catalog --status",
+        "rigspark catalog --update",
+        "recommendations and normal startup remain\noffline",
+        "rigspark catalog --refresh",
+        "docs/references/guide.md#independent-catalog-updates",
         "rigspark gui",
         "`llmup` remains a compatibility alias",
     ] {

@@ -68,6 +68,28 @@ Advice works without a backend. To serve and chat, install
 Use `rigspark --help` for all commands, `--json` for scripting, and
 `--accessible` for screen readers. `llmup` remains a compatibility alias.
 
+## Catalog Updates
+
+RigSpark can activate a signed model catalog independently of an application
+release. Updating is always explicit; recommendations and normal startup remain
+offline.
+
+```bash
+rigspark catalog --status  # show the active source, revision, digest, and model count offline
+rigspark catalog --update  # download, verify, and atomically activate the official catalog
+```
+
+The Models view exposes the same provenance and an **Update catalog** action.
+Invalid signatures, incompatible catalogs, and network failures leave the current
+snapshot unchanged. RigSpark can recover through the previous verified snapshot
+and then its bundled catalog, with visible warnings.
+
+`rigspark catalog --refresh` is different: it previews maintainer enrichment from
+the bundled registry snapshot and does not install a published catalog. New model
+admission still requires reviewed evidence; a newer catalog date is not a promise
+of complete upstream coverage. See [catalog behavior, trust, and launch
+availability](docs/references/guide.md#independent-catalog-updates).
+
 ## Browser Workspace
 
 Run **`rigspark gui`** to pick a model that fits and chat with it, with agents,
