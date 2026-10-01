@@ -1,0 +1,4600 @@
+{
+  "schemaVersion": 1,
+  "catalogSha256": "1d465423f9d6d64e4b761d0a4ad9750333a82f95a0a24b7ce3b22ed7b300156a",
+  "requiresReview": true,
+  "entries": [
+    {
+      "id": "qwen3.6:35b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3.6-35B-A3B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:23:51Z",
+          "sha256": "1d252427e42b16c4dd13dbbb899ab4f475091c24149cd21a0122e80bc67df0b0"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3.6-35B-A3B/revision/995ad96eacd98c81ed38be0c5b274b04031597b0",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:23:52Z",
+          "sha256": "0f0e5e90d7b345b6b6bf33af8e21472df04976d8d01e863fc17ce7106addfa8b"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3.6-35B-A3B/raw/995ad96eacd98c81ed38be0c5b274b04031597b0/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:23:52Z",
+          "sha256": "93a4693fa9d8392fbfccd4b3c9873f4bfdcb14fdede978b123d07d19675efe99"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3.6-35B-A3B/raw/995ad96eacd98c81ed38be0c5b274b04031597b0/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:23:52Z",
+          "sha256": "c4ddaa065649ff6352648f64747a16eda31726f3e34add94ce04abb461c77b75"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen3.6/manifests/35b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:01Z",
+          "sha256": "a7eb95c53bcf96b4bdd008d0fab4a5dac88047d9c1a7a9ab88ed453423fbd87c"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "995ad96eacd98c81ed38be0c5b274b04031597b0",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 35951822704,
+      "pipelineTag": "image-text-to-text",
+      "config": {
+        "modelType": "qwen3_5_moe_text",
+        "context": 262144,
+        "experts": 256,
+        "activeExperts": 8,
+        "layers": 40,
+        "attentionHeads": 16,
+        "kvHeads": 2,
+        "headDimension": 256,
+        "hiddenSize": 2048,
+        "ropeScaling": null,
+        "layerTypes": [
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention"
+        ]
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:d372de8e934898a59e6ccfabc3368474711384d8f1fd4d22d87a3f0a45400cdc",
+          "size": 21718480960,
+          "from": "qwen3.6-source:35b-a3b-mtp-q4_K_M-20260824"
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.projector",
+          "digest": "sha256:a62390d25b4b4a2d8afd7cc3c90021c11935c1fdd48d7cb0723ab71cd02a598e",
+          "size": 902821728,
+          "from": "qwen3.6-source:35b-a3b-mtp-q4_K_M-20260824"
+        }
+      ]
+    },
+    {
+      "id": "bonsai:8b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/prism-ml/Bonsai-8B-gguf",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:02Z",
+          "sha256": "d816a4f9883f4c7ef950a9520fc20d2db8911188a02d341c2e54bf11d4544d5e"
+        },
+        {
+          "url": "https://huggingface.co/api/models/prism-ml/Bonsai-8B-gguf/revision/48516770dd04643643e9f9019a2a349cf26c5dbd",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:02Z",
+          "sha256": "d816a4f9883f4c7ef950a9520fc20d2db8911188a02d341c2e54bf11d4544d5e"
+        },
+        {
+          "url": "https://huggingface.co/prism-ml/Bonsai-8B-gguf/raw/48516770dd04643643e9f9019a2a349cf26c5dbd/config.json",
+          "status": 404,
+          "checkedAt": "2026-10-01T13:24:02Z",
+          "sha256": "f36668ddf22403a332f978057d527cf285b01468bc3431b04094a7bafa6aba59"
+        },
+        {
+          "url": "https://huggingface.co/prism-ml/Bonsai-8B-gguf/raw/48516770dd04643643e9f9019a2a349cf26c5dbd/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:03Z",
+          "sha256": "14c8f3000f2d58544ca7355ff6edc0d9873bf592a057d64ed298648ada82ae88"
+        }
+      ],
+      "issues": [
+        "config inaccessible: HTTP 404"
+      ],
+      "requiresReview": true,
+      "revision": "48516770dd04643643e9f9019a2a349cf26c5dbd",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 8188548096,
+      "pipelineTag": "text-generation"
+    },
+    {
+      "id": "gemma4:e4b-it-qat",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-4-E4B-it-qat-q4_0-gguf",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:03Z",
+          "sha256": "eeb991f34c4d4f6aef7782a7a6bbe09e40b7df8a81eaa60e2322799971610420"
+        },
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-4-E4B-it-qat-q4_0-gguf/revision/4b4a2c1d584be7264f87aac328a1bc739ce81b6c",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:03Z",
+          "sha256": "eeb991f34c4d4f6aef7782a7a6bbe09e40b7df8a81eaa60e2322799971610420"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-4-E4B-it-qat-q4_0-gguf/raw/4b4a2c1d584be7264f87aac328a1bc739ce81b6c/config.json",
+          "status": 404,
+          "checkedAt": "2026-10-01T13:24:03Z",
+          "sha256": "f36668ddf22403a332f978057d527cf285b01468bc3431b04094a7bafa6aba59"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-4-E4B-it-qat-q4_0-gguf/raw/4b4a2c1d584be7264f87aac328a1bc739ce81b6c/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:04Z",
+          "sha256": "6c8dbc23d482d76d6a02e6804941fae6dccdcd20e6372c26e4dec35e21348607"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/gemma4/manifests/e4b-it-qat",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:04Z",
+          "sha256": "ee665637121887cf3befff38abbb1be4ee117c7db867d97a67e29049ecd7e15f"
+        }
+      ],
+      "issues": [
+        "config inaccessible: HTTP 404"
+      ],
+      "requiresReview": true,
+      "revision": "4b4a2c1d584be7264f87aac328a1bc739ce81b6c",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 7463013674,
+      "pipelineTag": "any-to-any",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.projector",
+          "digest": "sha256:c6398448d84a4836fdedf58f9775979e69ae0cc4dfdf4d697b5597693a555b12",
+          "size": 991551904,
+          "from": "gemma-4-E4B-it-mmproj.gguf"
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:e8b6a059ba86947a44ace84d6e5679795bc41862c25c30513142588f0e9dba1d",
+          "size": 5154939136
+        }
+      ]
+    },
+    {
+      "id": "qwen3.5:4b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3.5-4B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:05Z",
+          "sha256": "e1e55b33a24eb1edf7bef9152eb7e4cedd3adb3f1e311794db81137b3a0e3225"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3.5-4B/revision/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:05Z",
+          "sha256": "e1e55b33a24eb1edf7bef9152eb7e4cedd3adb3f1e311794db81137b3a0e3225"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3.5-4B/raw/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:05Z",
+          "sha256": "ddc63e1c717afa86c865bb5e01313d89d72bb53b97ad4a8a03ba8510c0621670"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3.5-4B/raw/851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:05Z",
+          "sha256": "1406be1b6b8fd8a6545870da516912804756593628a1d0fb0a7965211e82a7bb"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen3.5/manifests/4b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:06Z",
+          "sha256": "2a654d98e6fba55d452b7043684e9b57a947e393bbffa62485a7aac05ee4eefd"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 4659865088,
+      "pipelineTag": "image-text-to-text",
+      "config": {
+        "modelType": "qwen3_5_text",
+        "context": 262144,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 32,
+        "attentionHeads": 16,
+        "kvHeads": 4,
+        "headDimension": 256,
+        "hiddenSize": 2560,
+        "ropeScaling": null,
+        "layerTypes": [
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention",
+          "linear_attention",
+          "linear_attention",
+          "linear_attention",
+          "full_attention"
+        ]
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:81fb60c7daa80fc1123380b98970b320ae233409f0f71a72ed7b9b0d62f40490",
+          "size": 3389971840
+        }
+      ]
+    },
+    {
+      "id": "kimi-k2-thinking",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/moonshotai/Kimi-K2-Thinking",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:06Z",
+          "sha256": "7eeefdeb54774b0ec31c6eaf433edc0a9247538b0daa03463b936b8db1795918"
+        },
+        {
+          "url": "https://huggingface.co/api/models/moonshotai/Kimi-K2-Thinking/revision/a51ccc050d73dab088bf7b0e2dd9b30ae85a4e55",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:11Z",
+          "sha256": "1cbd12b3467973245bc2ca2fb9e9855bab39b5136c1dabd41783dae78c19e6cb"
+        },
+        {
+          "url": "https://huggingface.co/moonshotai/Kimi-K2-Thinking/raw/a51ccc050d73dab088bf7b0e2dd9b30ae85a4e55/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:11Z",
+          "sha256": "666ee58fc3871ecc369a22bc8c100075c2ad24ccbe8b3e336fa5f726e6111c15"
+        },
+        {
+          "url": "https://huggingface.co/moonshotai/Kimi-K2-Thinking/raw/a51ccc050d73dab088bf7b0e2dd9b30ae85a4e55/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:13Z",
+          "sha256": "8343341da86d2a74ee576768ea2f8c0be2d3e9cf1cb51838a794581e7a1466cd"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation"
+      ],
+      "requiresReview": true,
+      "revision": "a51ccc050d73dab088bf7b0e2dd9b30ae85a4e55",
+      "license": "other",
+      "licenseName": "modified-mit",
+      "tensorParameters": 1026408240256,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "kimi_k2",
+        "context": 262144,
+        "experts": 384,
+        "activeExperts": 8,
+        "layers": 61,
+        "attentionHeads": 64,
+        "kvHeads": 64,
+        "headDimension": null,
+        "hiddenSize": 7168,
+        "ropeScaling": {
+          "beta_fast": 1.0,
+          "beta_slow": 1.0,
+          "factor": 64.0,
+          "mscale": 1.0,
+          "mscale_all_dim": 1.0,
+          "original_max_position_embeddings": 4096,
+          "type": "yarn"
+        },
+        "layerTypes": null
+      }
+    },
+    {
+      "id": "kimi-linear",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/moonshotai/Kimi-Linear-48B-A3B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:13Z",
+          "sha256": "c4ff9172afec1cbabe549ea517f6ae9877f184e9cc7d9e228292bebe9aac4702"
+        },
+        {
+          "url": "https://huggingface.co/api/models/moonshotai/Kimi-Linear-48B-A3B-Instruct/revision/e1df551a447157d4658b573f9a695d57658590e9",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:13Z",
+          "sha256": "9e8fab1145399b50bc4ef25bff563405b102556c29b42331d39eccaff7418822"
+        },
+        {
+          "url": "https://huggingface.co/moonshotai/Kimi-Linear-48B-A3B-Instruct/raw/e1df551a447157d4658b573f9a695d57658590e9/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:14Z",
+          "sha256": "a6ac3c2c4b5aa72370f9727f49ffa4432715d20061889acdb37c688be853096e"
+        },
+        {
+          "url": "https://huggingface.co/moonshotai/Kimi-Linear-48B-A3B-Instruct/raw/e1df551a447157d4658b573f9a695d57658590e9/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:14Z",
+          "sha256": "d2332c5f1c7318737c2d42c6ec09ff7f26223d1b595fd5d0e1a189ba53064dd9"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation"
+      ],
+      "requiresReview": true,
+      "revision": "e1df551a447157d4658b573f9a695d57658590e9",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 49122681728,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "kimi_linear",
+        "context": null,
+        "experts": 256,
+        "activeExperts": 8,
+        "layers": 27,
+        "attentionHeads": 32,
+        "kvHeads": 32,
+        "headDimension": 72,
+        "hiddenSize": 2304,
+        "ropeScaling": null,
+        "layerTypes": null
+      }
+    },
+    {
+      "id": "kimi-k2:base",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/moonshotai/Kimi-K2-Base",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:14Z",
+          "sha256": "ac33b9ee9ebadaefcb5e8882fd60df5ccaa05a91d1a1c1b58dcf069de1a72f52"
+        },
+        {
+          "url": "https://huggingface.co/api/models/moonshotai/Kimi-K2-Base/revision/ce72df012259dcc55d945e890f815fe7ef69159c",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:15Z",
+          "sha256": "ac33b9ee9ebadaefcb5e8882fd60df5ccaa05a91d1a1c1b58dcf069de1a72f52"
+        },
+        {
+          "url": "https://huggingface.co/moonshotai/Kimi-K2-Base/raw/ce72df012259dcc55d945e890f815fe7ef69159c/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:15Z",
+          "sha256": "8c13ae1049df55f29b3bdcae69a562433f243ff70dac251d819ecad8dbdf7439"
+        },
+        {
+          "url": "https://huggingface.co/moonshotai/Kimi-K2-Base/raw/ce72df012259dcc55d945e890f815fe7ef69159c/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:15Z",
+          "sha256": "2640030b9d1f37481ebb055b78a57a7b7b9f6caf26038852349ca98b3d0da7d4"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation"
+      ],
+      "requiresReview": true,
+      "revision": "ce72df012259dcc55d945e890f815fe7ef69159c",
+      "license": "other",
+      "licenseName": "modified-mit",
+      "tensorParameters": 1026470731056,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "kimi_k2",
+        "context": 131072,
+        "experts": 384,
+        "activeExperts": 8,
+        "layers": 61,
+        "attentionHeads": 64,
+        "kvHeads": 64,
+        "headDimension": null,
+        "hiddenSize": 7168,
+        "ropeScaling": {
+          "beta_fast": 1.0,
+          "beta_slow": 1.0,
+          "factor": 32.0,
+          "mscale": 1.0,
+          "mscale_all_dim": 1.0,
+          "original_max_position_embeddings": 4096,
+          "type": "yarn"
+        },
+        "layerTypes": null
+      }
+    },
+    {
+      "id": "kimi-k2:instruct",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/moonshotai/Kimi-K2-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:15Z",
+          "sha256": "906bc1ee12c199efb8c0f9718f51d8564e5e712bb3eb68c3ff26cdfca65eaf83"
+        },
+        {
+          "url": "https://huggingface.co/api/models/moonshotai/Kimi-K2-Instruct/revision/fd1984e2b7a3350dbf7305fe73a4ede25c14de50",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:16Z",
+          "sha256": "87f00b0387c312917eacfc19207af4fbfb88923b22e51059e400900e7dc912ad"
+        },
+        {
+          "url": "https://huggingface.co/moonshotai/Kimi-K2-Instruct/raw/fd1984e2b7a3350dbf7305fe73a4ede25c14de50/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:16Z",
+          "sha256": "8c13ae1049df55f29b3bdcae69a562433f243ff70dac251d819ecad8dbdf7439"
+        },
+        {
+          "url": "https://huggingface.co/moonshotai/Kimi-K2-Instruct/raw/fd1984e2b7a3350dbf7305fe73a4ede25c14de50/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:16Z",
+          "sha256": "72e2785dbd9ada9355ea3a812d2a9da606f1ae07feea7a0f7e18b8111deb8837"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/kimi-k2/manifests/instruct",
+          "status": 404,
+          "checkedAt": "2026-10-01T13:24:17Z",
+          "sha256": "fa197eb72c7cd2e1fd94107c48aab83c08e988f9fd52f39784ef72843c13e18f"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation",
+        "HTTP 404"
+      ],
+      "requiresReview": true,
+      "revision": "fd1984e2b7a3350dbf7305fe73a4ede25c14de50",
+      "license": "other",
+      "licenseName": "modified-mit",
+      "tensorParameters": 1026408235864,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "kimi_k2",
+        "context": 131072,
+        "experts": 384,
+        "activeExperts": 8,
+        "layers": 61,
+        "attentionHeads": 64,
+        "kvHeads": 64,
+        "headDimension": null,
+        "hiddenSize": 7168,
+        "ropeScaling": {
+          "beta_fast": 1.0,
+          "beta_slow": 1.0,
+          "factor": 32.0,
+          "mscale": 1.0,
+          "mscale_all_dim": 1.0,
+          "original_max_position_embeddings": 4096,
+          "type": "yarn"
+        },
+        "layerTypes": null
+      }
+    },
+    {
+      "id": "gemma3n:e2b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-3n-E2B-it",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:17Z",
+          "sha256": "af1a58827980bc4f68193964a5301db93ead93a49f9471d1dd9de596d27ec04f"
+        },
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-3n-E2B-it/revision/5e092ebca197cdcd8d8b195040accf22693501bc",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:17Z",
+          "sha256": "db205a76eedf073a5a2fb420c7dff5d825c58fc0389f2489ed8c72ec3cd34314"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-3n-E2B-it/raw/5e092ebca197cdcd8d8b195040accf22693501bc/config.json",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:24:18Z",
+          "sha256": "241a24811e7469dad1107845e93d82b0a34c7930c7c73c2d6587256e462d1986"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-3n-E2B-it/raw/5e092ebca197cdcd8d8b195040accf22693501bc/README.md",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:24:18Z",
+          "sha256": "241a24811e7469dad1107845e93d82b0a34c7930c7c73c2d6587256e462d1986"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/gemma3n/manifests/e2b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:19Z",
+          "sha256": "719372f8c7deee188821a4dcbaf75efa13a342d7e88a79d4fc2412b24947f6fd"
+        }
+      ],
+      "issues": [
+        "config inaccessible: HTTP 401",
+        "card inaccessible: HTTP 401"
+      ],
+      "requiresReview": true,
+      "revision": "5e092ebca197cdcd8d8b195040accf22693501bc",
+      "license": "gemma",
+      "licenseName": null,
+      "tensorParameters": 5439438272,
+      "pipelineTag": "image-text-to-text",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:3839a254cf2d00b208c6e2524c129e4438f9d106bba4c3fbc12b631f519d1de1",
+          "size": 5621607424
+        }
+      ]
+    },
+    {
+      "id": "gemma3n:e4b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-3n-E4B-it",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:20Z",
+          "sha256": "ee971bee28077512b7ef9a4d8dc5fd3532eb4cd3c2b80028a6ce1eb68fb5259d"
+        },
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-3n-E4B-it/revision/c1221e9c62e34a43ab7ffacd1be0ea71f126ef10",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:20Z",
+          "sha256": "ee971bee28077512b7ef9a4d8dc5fd3532eb4cd3c2b80028a6ce1eb68fb5259d"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-3n-E4B-it/raw/c1221e9c62e34a43ab7ffacd1be0ea71f126ef10/config.json",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:24:21Z",
+          "sha256": "cc68fd1fb741a26770fa17d5b19fafc88bb12f58d23c09c1877609b4313c5b81"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-3n-E4B-it/raw/c1221e9c62e34a43ab7ffacd1be0ea71f126ef10/README.md",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:24:21Z",
+          "sha256": "cc68fd1fb741a26770fa17d5b19fafc88bb12f58d23c09c1877609b4313c5b81"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/gemma3n/manifests/e4b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:21Z",
+          "sha256": "15cb39fd9394fd2549f6df9081cfc84dd134ecf2c9c5be911e5629920489ac32"
+        }
+      ],
+      "issues": [
+        "config inaccessible: HTTP 401",
+        "card inaccessible: HTTP 401"
+      ],
+      "requiresReview": true,
+      "revision": "c1221e9c62e34a43ab7ffacd1be0ea71f126ef10",
+      "license": "gemma",
+      "licenseName": null,
+      "tensorParameters": 7849978192,
+      "pipelineTag": "image-text-to-text",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:38e8dcc30df4eb0e29eaf5c74ba6ce3f2cd66badad50768fc14362acfb8b8cb6",
+          "size": 7547579904
+        }
+      ]
+    },
+    {
+      "id": "kimi-dev-72b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/moonshotai/Kimi-Dev-72B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:22Z",
+          "sha256": "6eeb9d71565e1f5e47a29f9d59ca1936333efd7b1bc0882362f448a072cacf03"
+        },
+        {
+          "url": "https://huggingface.co/api/models/moonshotai/Kimi-Dev-72B/revision/8791d7981945752a51f692d66f2bbfb3573c9722",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:22Z",
+          "sha256": "dd56c98de40325cbaea6866fbe68064de4b12547d39521b89419165aedafb66e"
+        },
+        {
+          "url": "https://huggingface.co/moonshotai/Kimi-Dev-72B/raw/8791d7981945752a51f692d66f2bbfb3573c9722/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:23Z",
+          "sha256": "9c114c3da81d4db6027c0caab398b59fe800024df5a0ed27d341501575cecaf9"
+        },
+        {
+          "url": "https://huggingface.co/moonshotai/Kimi-Dev-72B/raw/8791d7981945752a51f692d66f2bbfb3573c9722/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:23Z",
+          "sha256": "91cc7034a24a788f842590f71019941a8489ddd6791e0a9c349a5be18b7f38c2"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation"
+      ],
+      "requiresReview": true,
+      "revision": "8791d7981945752a51f692d66f2bbfb3573c9722",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 72706203648,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 131072,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 80,
+        "attentionHeads": 64,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 8192,
+        "ropeScaling": null,
+        "layerTypes": null
+      }
+    },
+    {
+      "id": "qwen3:0.6b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-0.6B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:23Z",
+          "sha256": "596b4e6948357f9920c252506ade59c4c43b9a660b72a7109dcc6b3d8fcdc404"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-0.6B/revision/c1899de289a04d12100db370d81485cdf75e47ca",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:23Z",
+          "sha256": "414628c566e768cf006e69309b57ec017101751bbe81d0975560958ab5c14788"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-0.6B/raw/c1899de289a04d12100db370d81485cdf75e47ca/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:24Z",
+          "sha256": "660db3b73d788119c04535e48cf9be5f55bc3100841a718637ae695b442f27dd"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-0.6B/raw/c1899de289a04d12100db370d81485cdf75e47ca/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:24Z",
+          "sha256": "1ab64a26fcb3b461423b89a433a8c858f1bf8d4086f979cbb3ff878d47cf20e9"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen3/manifests/0.6b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:25Z",
+          "sha256": "7df6b6e09427a769808717c0a93cadc4ae99ed4eb8bf5ca557c90846becea435"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "c1899de289a04d12100db370d81485cdf75e47ca",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 751632384,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen3",
+        "context": 40960,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 28,
+        "attentionHeads": 16,
+        "kvHeads": 8,
+        "headDimension": 128,
+        "hiddenSize": 1024,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:7f4030143c1c477224c5434f8272c662a8b042079a0a584f0a27a1684fe2e1fa",
+          "size": 522640096
+        }
+      ]
+    },
+    {
+      "id": "qwen3:1.7b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-1.7B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:25Z",
+          "sha256": "efe5ac97d69bd85297aade805f18e83e69d4fa5687fab98f34d32cb8c231bf5c"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-1.7B/revision/70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:25Z",
+          "sha256": "681629881d7cf042f3a963f937b78ba7932c8fa6f1fd24b57de9d9bc3931353a"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-1.7B/raw/70d244cc86ccca08cf5af4e1e306ecf908b1ad5e/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:25Z",
+          "sha256": "1ddb5b89ebc90dcb417a45c213d818577e65976454d29385c8f6140771d95197"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-1.7B/raw/70d244cc86ccca08cf5af4e1e306ecf908b1ad5e/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:26Z",
+          "sha256": "257e52c419dac2258852643f18af6c974f21f8c6c1b6f371b6cca6201cf29091"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen3/manifests/1.7b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:27Z",
+          "sha256": "8f68893c685c3ddff2aa3fffce2aa60a30bb2da65ca488b61fff134a4d1730e7"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 2031739904,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen3",
+        "context": 40960,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 28,
+        "attentionHeads": 16,
+        "kvHeads": 8,
+        "headDimension": 128,
+        "hiddenSize": 2048,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:3d0b790534fe4b79525fc3692950408dca41171676ed7e21db57af5c65ef6ab6",
+          "size": 1359279776
+        }
+      ]
+    },
+    {
+      "id": "qwen3:4b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-4B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:27Z",
+          "sha256": "1a57ab71fcd0916424dd06feef78e2d7c8dbf6880e8c74181fec0957fb85b2e5"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-4B/revision/1cfa9a7208912126459214e8b04321603b3df60c",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:28Z",
+          "sha256": "12034134873c6a5381274c2bd3ab92270956f1c0d81142ef622b57a2a289bb04"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-4B/raw/1cfa9a7208912126459214e8b04321603b3df60c/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:28Z",
+          "sha256": "8ba006f74fecfaaeb392872a60f4a480e7ec9860153d2e1b769ec81f9a147f8a"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-4B/raw/1cfa9a7208912126459214e8b04321603b3df60c/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:28Z",
+          "sha256": "71add1cd091c309b1cb1a6b943f2476eb2b004124b3bd1d32dcd0b24cc1abc47"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen3/manifests/4b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:29Z",
+          "sha256": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7"
+        }
+      ],
+      "issues": [
+        "config context differs; inspect card/scaling and artifact identity"
+      ],
+      "requiresReview": true,
+      "revision": "1cfa9a7208912126459214e8b04321603b3df60c",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 4022468096,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen3",
+        "context": 40960,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 36,
+        "attentionHeads": 32,
+        "kvHeads": 8,
+        "headDimension": 128,
+        "hiddenSize": 2560,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:3e4cb14174460404e7a233e531675303b2fbf7749c02f91864fe311ab6344e4f",
+          "size": 2497280480
+        }
+      ]
+    },
+    {
+      "id": "qwen3:14b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-14B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:29Z",
+          "sha256": "1af696f0f2210b1e00d8a8f8f64dc4861d5d96a87300a13a18bd06108fb777ae"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-14B/revision/40c069824f4251a91eefaf281ebe4c544efd3e18",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:29Z",
+          "sha256": "8a22fefae0859e2b9069065321e14434cbfa0734def7977ae5c749bf93c9c8c3"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-14B/raw/40c069824f4251a91eefaf281ebe4c544efd3e18/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:30Z",
+          "sha256": "e73c3664ca09b10a673fef0c22e8a6b456201d49bd4713c9691f775720e8857a"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-14B/raw/40c069824f4251a91eefaf281ebe4c544efd3e18/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:30Z",
+          "sha256": "7ef503e68996a4e32007fedc7d8e198846e9b1f36620d38a79b89934100b1250"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen3/manifests/14b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:36Z",
+          "sha256": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "40c069824f4251a91eefaf281ebe4c544efd3e18",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 14768307200,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen3",
+        "context": 40960,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 40,
+        "attentionHeads": 40,
+        "kvHeads": 8,
+        "headDimension": 128,
+        "hiddenSize": 5120,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:a8cc1361f3145dc01f6d77c6c82c9116b9ffe3c97b34716fe20418455876c40e",
+          "size": 9276184896
+        }
+      ]
+    },
+    {
+      "id": "qwen3:235b-a22b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-235B-A22B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:36Z",
+          "sha256": "cf46d6bdf172bf94f8d6db9950deed02d5c224b2e7d472573fa1343500c9d45e"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-235B-A22B/revision/8efa61729e24bd65b1d152b5ab5409052aa80e65",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:36Z",
+          "sha256": "f9aad339bae4579fc28e11a40ffead899ecd83334b633847f2b8e834d6d6ebb3"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-235B-A22B/raw/8efa61729e24bd65b1d152b5ab5409052aa80e65/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:36Z",
+          "sha256": "0ecd5d6fe6f2db6739e4e36ab06b88ebe7bd013ef31b9583f43796059a2b23a4"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-235B-A22B/raw/8efa61729e24bd65b1d152b5ab5409052aa80e65/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:37Z",
+          "sha256": "30c0bf0d8f2f926d22db64d47bc78cb0790b898742aecfb2e208bad77b190907"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen3/manifests/235b-a22b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:37Z",
+          "sha256": "754a872f1290d6a685e7be7997962d6518823c32036358794b650db505f6bf99"
+        }
+      ],
+      "issues": [
+        "config context differs; inspect card/scaling and artifact identity"
+      ],
+      "requiresReview": true,
+      "revision": "8efa61729e24bd65b1d152b5ab5409052aa80e65",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 235093634560,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen3_moe",
+        "context": 40960,
+        "experts": 128,
+        "activeExperts": 8,
+        "layers": 94,
+        "attentionHeads": 64,
+        "kvHeads": 4,
+        "headDimension": 128,
+        "hiddenSize": 4096,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:791d5d11998e006548d6b58c31756562ea61446ebc7d19686608402a797ecc82",
+          "size": 142154073664
+        }
+      ]
+    },
+    {
+      "id": "qwen3:30b-a3b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-30B-A3B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:38Z",
+          "sha256": "da33171ea1e6aab6b0133020c402b2004dff4b653c05c28df9ced1313e8a6ace"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-30B-A3B/revision/ad44e777bcd18fa416d9da3bd8f70d33ebb85d39",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:38Z",
+          "sha256": "aed74e4970c156f90d34fbbec50260b55d8009e994e2ab988caf205151afbbe9"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-30B-A3B/raw/ad44e777bcd18fa416d9da3bd8f70d33ebb85d39/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:38Z",
+          "sha256": "2850ddb3bf7aecad20b611e2d44f3077fc8193f4827c93beddd4c02ad63c2297"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-30B-A3B/raw/ad44e777bcd18fa416d9da3bd8f70d33ebb85d39/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:38Z",
+          "sha256": "1897b7cdf7b5f45ae847b87f9b416d4635fe73228e0daac669a4e1f3e5948858"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen3/manifests/30b-a3b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:40Z",
+          "sha256": "ad815644918f0eaab341c12b67837cc6dd4562342cdaf118f83d5d554cb37226"
+        }
+      ],
+      "issues": [
+        "config context differs; inspect card/scaling and artifact identity"
+      ],
+      "requiresReview": true,
+      "revision": "ad44e777bcd18fa416d9da3bd8f70d33ebb85d39",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 30532122624,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen3_moe",
+        "context": 40960,
+        "experts": 128,
+        "activeExperts": 8,
+        "layers": 48,
+        "attentionHeads": 32,
+        "kvHeads": 4,
+        "headDimension": 128,
+        "hiddenSize": 2048,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:58574f2e94b99fb9e4391408b57e5aeaaaec10f6384e9a699fc2cb43a5c8eabf",
+          "size": 18556685856
+        }
+      ]
+    },
+    {
+      "id": "qwen3:32b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-32B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:40Z",
+          "sha256": "b0ef4238a170bbeeb0cecb73745ff7fa2fbafe6c2d6e2b1b92c3a25c99a7be13"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-32B/revision/9216db5781bf21249d130ec9da846c4624c16137",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:40Z",
+          "sha256": "1a74c0bf0400a9da9a891ca0cec4906202358ad17a47e687330b06cbdeec7858"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-32B/raw/9216db5781bf21249d130ec9da846c4624c16137/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:41Z",
+          "sha256": "97e295b63283935788fac5e4f8860862a56d4089538cafc93f0431f2ebe483bb"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-32B/raw/9216db5781bf21249d130ec9da846c4624c16137/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:41Z",
+          "sha256": "0af37735eef45eb3b406f3d74952e6cbcbc180904dc68b73a31a690719a235da"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen3/manifests/32b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:41Z",
+          "sha256": "030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "9216db5781bf21249d130ec9da846c4624c16137",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 32762123264,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen3",
+        "context": 40960,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 64,
+        "attentionHeads": 64,
+        "kvHeads": 8,
+        "headDimension": 128,
+        "hiddenSize": 5120,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:3291abe70f16ee9682de7bfae08db5373ea9d6497e614aaad63340ad421d6312",
+          "size": 20201240160
+        }
+      ]
+    },
+    {
+      "id": "qwen3:8b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-8B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:42Z",
+          "sha256": "4763c2eb9917b785cc94534d507dbe42484241aadb37567306ae605638c91dfb"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen3-8B/revision/b968826d9c46dd6066d109eabc6255188de91218",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:42Z",
+          "sha256": "5668b42ac92145d9d2bd96d097d084cf8128af3b006bfe1d16c8069721dcd6ce"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-8B/raw/b968826d9c46dd6066d109eabc6255188de91218/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:42Z",
+          "sha256": "f7c4eadfbbf522470667b797a3c89be2524832d2d599797248dc304fff447c30"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen3-8B/raw/b968826d9c46dd6066d109eabc6255188de91218/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:43Z",
+          "sha256": "0f36caaff9c2516411a7738db384606263ba653c1e63e61d72f511606164d5a6"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen3/manifests/8b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:43Z",
+          "sha256": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 8190735360,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen3",
+        "context": 40960,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 36,
+        "attentionHeads": 32,
+        "kvHeads": 8,
+        "headDimension": 128,
+        "hiddenSize": 4096,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:a3de86cd1c132c822487ededd47a324c50491393e6565cd14bafa40d0b8e686f",
+          "size": 5225374496
+        }
+      ]
+    },
+    {
+      "id": "glm4:9b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/zai-org/GLM-4-9B-0414",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:44Z",
+          "sha256": "fb2ae0414880c9a900527464576a05b047378fdc732533c8a2d88891ef34de68"
+        },
+        {
+          "url": "https://huggingface.co/api/models/zai-org/GLM-4-9B-0414/revision/645b8482494e31b6b752272bf7f7f273ef0f3caf",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:44Z",
+          "sha256": "4c80dd35d0634e494714789a4cebeb2aefaf62ea7be2c48cdec78fdad57553c7"
+        },
+        {
+          "url": "https://huggingface.co/zai-org/GLM-4-9B-0414/raw/645b8482494e31b6b752272bf7f7f273ef0f3caf/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:45Z",
+          "sha256": "98794d8150da03ca7baec63208584810d01caf43427e376071c00e770f4b4fa7"
+        },
+        {
+          "url": "https://huggingface.co/zai-org/GLM-4-9B-0414/raw/645b8482494e31b6b752272bf7f7f273ef0f3caf/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:45Z",
+          "sha256": "ee4acfb2911d66b487f5d49373910e08d8f1c776c7adbfab2aebeafbb9350b7f"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/glm4/manifests/9b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:46Z",
+          "sha256": "5b699761eca535dc55047ad9d2dbf54e3b8697709419ef78a70503ed4bfbcf44"
+        }
+      ],
+      "issues": [
+        "config context differs; inspect card/scaling and artifact identity"
+      ],
+      "requiresReview": true,
+      "revision": "645b8482494e31b6b752272bf7f7f273ef0f3caf",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 9400279040,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "glm4",
+        "context": 32768,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 40,
+        "attentionHeads": 32,
+        "kvHeads": 2,
+        "headDimension": 128,
+        "hiddenSize": 4096,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:b506a070d1152798d435ec4e7687336567ae653b3106f73b7b4ac7be1cbc4449",
+          "size": 5455319040
+        }
+      ]
+    },
+    {
+      "id": "kimi-vl-a3b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/moonshotai/Kimi-VL-A3B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:46Z",
+          "sha256": "0132f3a461174cc8594200dc48cf391980c47dc4a1234c8e40beaa2c6b0b9cde"
+        },
+        {
+          "url": "https://huggingface.co/api/models/moonshotai/Kimi-VL-A3B-Instruct/revision/398eede0903cd983a2bfa0cc634e9ac1d843f375",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:47Z",
+          "sha256": "0132f3a461174cc8594200dc48cf391980c47dc4a1234c8e40beaa2c6b0b9cde"
+        },
+        {
+          "url": "https://huggingface.co/moonshotai/Kimi-VL-A3B-Instruct/raw/398eede0903cd983a2bfa0cc634e9ac1d843f375/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:47Z",
+          "sha256": "af3810295de6b08232776b74110ed482fa0183f4aeaec586ff4f7593910951cb"
+        },
+        {
+          "url": "https://huggingface.co/moonshotai/Kimi-VL-A3B-Instruct/raw/398eede0903cd983a2bfa0cc634e9ac1d843f375/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:47Z",
+          "sha256": "7fa4d4e39537a43a7d6cc6f62873eb014b2f8bc3da2142111ba2ad29d4984794"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation"
+      ],
+      "requiresReview": true,
+      "revision": "398eede0903cd983a2bfa0cc634e9ac1d843f375",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 16407657776,
+      "pipelineTag": "image-text-to-text",
+      "config": {
+        "modelType": null,
+        "context": 131072,
+        "experts": 64,
+        "activeExperts": 6,
+        "layers": 27,
+        "attentionHeads": 16,
+        "kvHeads": 16,
+        "headDimension": null,
+        "hiddenSize": 2048,
+        "ropeScaling": null,
+        "layerTypes": null
+      }
+    },
+    {
+      "id": "gemma3:12b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-3-12b-it",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:47Z",
+          "sha256": "9a7fb09bac6c48f76c7efd32fcdd1f40a57fff46485e744a9ff028091c65b6fa"
+        },
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-3-12b-it/revision/96b6f1eccf38110c56df3a15bffe176da04bfd80",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:48Z",
+          "sha256": "edf81d80cad6cf792abc2fddbc39bc4d9641a39073d05bb337d214e92c939a22"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-3-12b-it/raw/96b6f1eccf38110c56df3a15bffe176da04bfd80/config.json",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:24:48Z",
+          "sha256": "912e87b4d871f9922c14c83b6a3fdae5be1bde760a9374f984f9b4119bffe478"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-3-12b-it/raw/96b6f1eccf38110c56df3a15bffe176da04bfd80/README.md",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:24:48Z",
+          "sha256": "912e87b4d871f9922c14c83b6a3fdae5be1bde760a9374f984f9b4119bffe478"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/gemma3/manifests/12b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:49Z",
+          "sha256": "f4031aab637d1ffa37b42570452ae0e4fad0314754d17ded67322e4b95836f8a"
+        }
+      ],
+      "issues": [
+        "config inaccessible: HTTP 401",
+        "card inaccessible: HTTP 401"
+      ],
+      "requiresReview": true,
+      "revision": "96b6f1eccf38110c56df3a15bffe176da04bfd80",
+      "license": "gemma",
+      "licenseName": null,
+      "tensorParameters": 12187325040,
+      "pipelineTag": "image-text-to-text",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:e8ad13eff07a78d89926e9e8b882317d082ef5bf9768ad7b50fcdbbcd63748de",
+          "size": 8149180896
+        }
+      ]
+    },
+    {
+      "id": "gemma3:27b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-3-27b-it",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:49Z",
+          "sha256": "c75ce920690a8a1d5c2f16c8e9c1218a07752f32b547e56d1c61c5b099b0e4a1"
+        },
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-3-27b-it/revision/005ad3404e59d6023443cb575daa05336842228a",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:49Z",
+          "sha256": "67a9a8adffd3d33565bcacacbfcf600dcfabbbbc55979440dfca45effdf6bfce"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-3-27b-it/raw/005ad3404e59d6023443cb575daa05336842228a/config.json",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:24:50Z",
+          "sha256": "e5de78ca4c15da235e8bfa01f27fed83c677917203651b868b1affda0828f79b"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-3-27b-it/raw/005ad3404e59d6023443cb575daa05336842228a/README.md",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:24:50Z",
+          "sha256": "e5de78ca4c15da235e8bfa01f27fed83c677917203651b868b1affda0828f79b"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/gemma3/manifests/27b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:51Z",
+          "sha256": "a418f5838eaf7fe2cfe0a3046c8384b68ba43a4435542c942f9db00a5f342203"
+        }
+      ],
+      "issues": [
+        "config inaccessible: HTTP 401",
+        "card inaccessible: HTTP 401"
+      ],
+      "requiresReview": true,
+      "revision": "005ad3404e59d6023443cb575daa05336842228a",
+      "license": "gemma",
+      "licenseName": null,
+      "tensorParameters": 27432406640,
+      "pipelineTag": "image-text-to-text",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:e796792eba26c4d3b04b0ac5adb01a453dd9ec2dfd83b6c59cbf6fe5f30b0f68",
+          "size": 17396927584
+        }
+      ]
+    },
+    {
+      "id": "gemma3:4b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-3-4b-it",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:51Z",
+          "sha256": "a9886238097f227f7dbd173d3c75539d9a8aed5ce81bd51f96cbbf97abadb4b4"
+        },
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-3-4b-it/revision/093f9f388b31de276ce2de164bdc2081324b9767",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:51Z",
+          "sha256": "a79608522802ede2f7a512e48f54c7fc50a62e036bdccad292d11837c4cbe465"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-3-4b-it/raw/093f9f388b31de276ce2de164bdc2081324b9767/config.json",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:24:52Z",
+          "sha256": "08bfdb18db042e3bec3e3037e9f0b0e29aa0b691f5a0cc4ebc2286ed45541fbd"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-3-4b-it/raw/093f9f388b31de276ce2de164bdc2081324b9767/README.md",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:24:52Z",
+          "sha256": "08bfdb18db042e3bec3e3037e9f0b0e29aa0b691f5a0cc4ebc2286ed45541fbd"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/gemma3/manifests/4b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:53Z",
+          "sha256": "a2af6cc3eb7fa8be8504abaf9b04e88f17a119ec3f04a3addf55f92841195f5a"
+        }
+      ],
+      "issues": [
+        "config inaccessible: HTTP 401",
+        "card inaccessible: HTTP 401"
+      ],
+      "requiresReview": true,
+      "revision": "093f9f388b31de276ce2de164bdc2081324b9767",
+      "license": "gemma",
+      "licenseName": null,
+      "tensorParameters": 4300079472,
+      "pipelineTag": "image-text-to-text",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:aeda25e63ebd698fab8638ffb778e68bed908b960d39d0becc650fa981609d25",
+          "size": 3338792448
+        }
+      ]
+    },
+    {
+      "id": "phi4-mini:3.8b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/microsoft/Phi-4-mini-instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:53Z",
+          "sha256": "c5189d38aa799751ce733106541586b195c9e09af9e1e2df38fc99420132c5f4"
+        },
+        {
+          "url": "https://huggingface.co/api/models/microsoft/Phi-4-mini-instruct/revision/cfbefacb99257ffa30c83adab238a50856ac3083",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:53Z",
+          "sha256": "71db1766f10fb2fefb9416a263ffc4bc39205d67ccb6034e502982afcdfcbaf8"
+        },
+        {
+          "url": "https://huggingface.co/microsoft/Phi-4-mini-instruct/raw/cfbefacb99257ffa30c83adab238a50856ac3083/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:53Z",
+          "sha256": "ac65d86061d3d0d704ee2511fd0eb8713ef19eb6eedba17c3080a4165d5b933b"
+        },
+        {
+          "url": "https://huggingface.co/microsoft/Phi-4-mini-instruct/raw/cfbefacb99257ffa30c83adab238a50856ac3083/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:54Z",
+          "sha256": "c4f34916182a3ee87d95d00c92847cfa687ab21dc338a577275f0c34cf0e1dfd"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/phi4-mini/manifests/3.8b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:54Z",
+          "sha256": "78fad5d182a7c33065e153a5f8ba210754207ba9d91973f57dffa7f487363753"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "cfbefacb99257ffa30c83adab238a50856ac3083",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 3836021760,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "phi3",
+        "context": 131072,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 32,
+        "attentionHeads": 24,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 3072,
+        "ropeScaling": {
+          "long_factor": [
+            1,
+            1.118320672,
+            1.250641126,
+            1.398617824,
+            1.564103225,
+            1.74916897,
+            1.956131817,
+            2.187582649,
+            2.446418898,
+            2.735880826,
+            3.059592084,
+            3.421605075,
+            3.826451687,
+            4.279200023,
+            4.785517845,
+            5.351743533,
+            5.984965424,
+            6.693110555,
+            7.485043894,
+            8.370679318,
+            9.36110372,
+            10.4687158,
+            11.70738129,
+            13.09260651,
+            14.64173252,
+            16.37415215,
+            18.31155283,
+            20.47818807,
+            22.90118105,
+            25.61086418,
+            28.64115884,
+            32.03,
+            32.1,
+            32.13,
+            32.23,
+            32.6,
+            32.61,
+            32.64,
+            32.66,
+            32.7,
+            32.71,
+            32.93,
+            32.97,
+            33.28,
+            33.49,
+            33.5,
+            44.16,
+            47.77
+          ],
+          "short_factor": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "type": "longrope"
+        },
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:3c168af1dea0a414299c7d9077e100ac763370e5a98b3c53801a958a47f0a5db",
+          "size": 2491874624
+        }
+      ]
+    },
+    {
+      "id": "mistral-small:24b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/mistralai/Mistral-Small-24B-Instruct-2501",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:55Z",
+          "sha256": "d17f7fbe5e531040edf1a2de20f5340e9a87199b4a25059c5e5eb2381874828e"
+        },
+        {
+          "url": "https://huggingface.co/api/models/mistralai/Mistral-Small-24B-Instruct-2501/revision/9527884be6e5616bdd54de542f9ae13384489724",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:55Z",
+          "sha256": "2d310340f5d46f1b8676b135145f6a8d21e5066f023acccddb3c4c0a94d52cb4"
+        },
+        {
+          "url": "https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501/raw/9527884be6e5616bdd54de542f9ae13384489724/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:55Z",
+          "sha256": "ff5f8d1747db4e16def20db719d867e74d0b764330249357351b2b44520b8001"
+        },
+        {
+          "url": "https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501/raw/9527884be6e5616bdd54de542f9ae13384489724/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:56Z",
+          "sha256": "c3889bddcf96969899f867f657f1929f0f66ee9e91cf15870a7b0452a6b5a6ca"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistral-small/manifests/24b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:56Z",
+          "sha256": "8039dd90c1138d772437a0779a33b7349efd5d9cca71edcd26e4dd463f90439d"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "9527884be6e5616bdd54de542f9ae13384489724",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 23572403200,
+      "pipelineTag": null,
+      "config": {
+        "modelType": "mistral",
+        "context": 32768,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 40,
+        "attentionHeads": 32,
+        "kvHeads": 8,
+        "headDimension": 128,
+        "hiddenSize": 5120,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:102a747c137683e81d431dab05d8f2158df4ab6f162f8f9019425a43d51e0e9f",
+          "size": 14333908384
+        }
+      ]
+    },
+    {
+      "id": "deepseek-r1:14b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:56Z",
+          "sha256": "2ceee6c000ad3bd357158dc83d407814094a88c426203ab30c8367a29e68756a"
+        },
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-R1-Distill-Qwen-14B/revision/1df8507178afcc1bef68cd8c393f61a886323761",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:57Z",
+          "sha256": "12ca68888f84a456512a5fee29c707c3c50db188a050b36f9ef7d7e026714bf8"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-14B/raw/1df8507178afcc1bef68cd8c393f61a886323761/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:57Z",
+          "sha256": "fdb89460be9a6383451437cdf632a3e087522efa682265461f33507e7069f026"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-14B/raw/1df8507178afcc1bef68cd8c393f61a886323761/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:57Z",
+          "sha256": "d26d26ddb518fee60c6c6bf7a708bd751b1619d93a4944f188143693d956c77f"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/deepseek-r1/manifests/14b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:58Z",
+          "sha256": "c333b7232bdb521236694ffbb5f5a6b11cc45d98e9142c73123b670fca400b09"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation"
+      ],
+      "requiresReview": true,
+      "revision": "1df8507178afcc1bef68cd8c393f61a886323761",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 14770033664,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 131072,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 48,
+        "attentionHeads": 40,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 5120,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:6e9f90f02bb3b39b59e81916e8cfce9deb45aeaeb9a54a5be4414486b907dc1e",
+          "size": 8988109952
+        }
+      ]
+    },
+    {
+      "id": "deepseek-r1:32b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:58Z",
+          "sha256": "3cc2b0f6ad530c5749717453f7c77b67f6bf3212d3511f94b31645b84b529ca5"
+        },
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-R1-Distill-Qwen-32B/revision/711ad2ea6aa40cfca18895e8aca02ab92df1a746",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:58Z",
+          "sha256": "24fbe85fb54181a837826af3413637c79f2134fc257b16ea54540c3628bd7d51"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-32B/raw/711ad2ea6aa40cfca18895e8aca02ab92df1a746/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:59Z",
+          "sha256": "2c003fe40b13d2d1f372254d77177ed753176150f3d424d1b5ad22ff1d78a987"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-32B/raw/711ad2ea6aa40cfca18895e8aca02ab92df1a746/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:59Z",
+          "sha256": "d26d26ddb518fee60c6c6bf7a708bd751b1619d93a4944f188143693d956c77f"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/deepseek-r1/manifests/32b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:24:59Z",
+          "sha256": "edba8017331d15236e57480eb45406c0d721db77a4cdcf234df500fc2ad3960c"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation"
+      ],
+      "requiresReview": true,
+      "revision": "711ad2ea6aa40cfca18895e8aca02ab92df1a746",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 32763876352,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 131072,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 64,
+        "attentionHeads": 40,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 5120,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:6150cb382311b69f09cc0f9a1b69fc029cbd742b66bb8ec531aa5ecf5c613e93",
+          "size": 19851335552
+        }
+      ]
+    },
+    {
+      "id": "deepseek-r1:671b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-R1",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:00Z",
+          "sha256": "df3e291fd802e72cf615247df1d74118b3246cdec77c7f59b1aa24ef39225fdd"
+        },
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-R1/revision/56d4cbbb4d29f4355bab4b9a39ccb717a14ad5ad",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:00Z",
+          "sha256": "fb0e25eb9b247684cb7613fa6d69898e96a778b7e5b2f5ab02c7716324f39566"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1/raw/56d4cbbb4d29f4355bab4b9a39ccb717a14ad5ad/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:00Z",
+          "sha256": "79ddea672a62e95d3f0be27be434375538e1988975971cffcf87c96c1de84a65"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1/raw/56d4cbbb4d29f4355bab4b9a39ccb717a14ad5ad/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:01Z",
+          "sha256": "d26d26ddb518fee60c6c6bf7a708bd751b1619d93a4944f188143693d956c77f"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/deepseek-r1/manifests/671b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:01Z",
+          "sha256": "14a4e575643d409086c6162cd5610d3d6e25ba186ce72353d0c87904eb881b20"
+        }
+      ],
+      "issues": [
+        "config context differs; inspect card/scaling and artifact identity"
+      ],
+      "requiresReview": true,
+      "revision": "56d4cbbb4d29f4355bab4b9a39ccb717a14ad5ad",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 684489845504,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "deepseek_v3",
+        "context": 163840,
+        "experts": 256,
+        "activeExperts": 8,
+        "layers": 61,
+        "attentionHeads": 128,
+        "kvHeads": 128,
+        "headDimension": null,
+        "hiddenSize": 7168,
+        "ropeScaling": {
+          "beta_fast": 32,
+          "beta_slow": 1,
+          "factor": 40,
+          "mscale": 1.0,
+          "mscale_all_dim": 1.0,
+          "original_max_position_embeddings": 4096,
+          "type": "yarn"
+        },
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:439dd1a5e05286918f54941f49f9b56118c757440f6333f67f1cd5cbb5c8520b",
+          "size": 404430186848,
+          "from": "deepseek-r1:671b-2508-q4_K_M"
+        }
+      ]
+    },
+    {
+      "id": "deepseek-r1:70b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:02Z",
+          "sha256": "dd7406cdcacef9db058a4d0771d3658eff92ba11c41f2bfe1c140a0e9867e549"
+        },
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-R1-Distill-Llama-70B/revision/b1c0b44b4369b597ad119a196caf79a9c40e141e",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:02Z",
+          "sha256": "bc2543ded8c7082521fa611cd82d5361cc77bafa276435587b741739e5a41ffc"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-70B/raw/b1c0b44b4369b597ad119a196caf79a9c40e141e/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:02Z",
+          "sha256": "95ef9768e4741543dbfaf0c274f101855883ff338b235c99eca2b6a4f4abee12"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-70B/raw/b1c0b44b4369b597ad119a196caf79a9c40e141e/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:03Z",
+          "sha256": "d26d26ddb518fee60c6c6bf7a708bd751b1619d93a4944f188143693d956c77f"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/deepseek-r1/manifests/70b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:03Z",
+          "sha256": "d37b54d01a76512a5adbaa9da4ee1c00833bf2dfefb0d4cc54351ba529e0f4da"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation"
+      ],
+      "requiresReview": true,
+      "revision": "b1c0b44b4369b597ad119a196caf79a9c40e141e",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 70553706496,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "llama",
+        "context": 131072,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 80,
+        "attentionHeads": 64,
+        "kvHeads": 8,
+        "headDimension": 128,
+        "hiddenSize": 8192,
+        "ropeScaling": {
+          "factor": 8.0,
+          "high_freq_factor": 4.0,
+          "low_freq_factor": 1.0,
+          "original_max_position_embeddings": 8192,
+          "rope_type": "llama3"
+        },
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:4cd576d9aa16961244012223abf01445567b061f1814b57dfef699e4cf8df339",
+          "size": 42520395616
+        }
+      ]
+    },
+    {
+      "id": "deepseek-r1:7b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:04Z",
+          "sha256": "db29c7135b41785d3612d408acc8584e94a48c91aff522877baca114c0a19410"
+        },
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B/revision/916b56a44061fd5cd7d6a8fb632557ed4f724f60",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:04Z",
+          "sha256": "58619de792ea13a0f591072e159ecd32fdaca3cab4440dd3ac36ef2e37797e4f"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B/raw/916b56a44061fd5cd7d6a8fb632557ed4f724f60/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:05Z",
+          "sha256": "8290d3c1e385e2616572eb6926f7e2745f901d1c13da95970326a8a73f6c379c"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B/raw/916b56a44061fd5cd7d6a8fb632557ed4f724f60/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:06Z",
+          "sha256": "d26d26ddb518fee60c6c6bf7a708bd751b1619d93a4944f188143693d956c77f"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/deepseek-r1/manifests/7b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:07Z",
+          "sha256": "755ced02ce7befdb13b7ca74e1e4d08cddba4986afdb63a480f2c93d3140383f"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation"
+      ],
+      "requiresReview": true,
+      "revision": "916b56a44061fd5cd7d6a8fb632557ed4f724f60",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 7615616512,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 131072,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 28,
+        "attentionHeads": 28,
+        "kvHeads": 4,
+        "headDimension": null,
+        "hiddenSize": 3584,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:96c415656d377afbff962f6cdb2394ab092ccbcbaab4b82525bc4ca800fe8a49",
+          "size": 4683073184
+        }
+      ]
+    },
+    {
+      "id": "deepseek-r1:8b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-R1-Distill-Llama-8B",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:07Z",
+          "sha256": "bc7a0ff7c0b71c82d143b14ae39efb293aa7f0617e170851bdf4d5eb958dfba8"
+        },
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-R1-Distill-Llama-8B/revision/6a6f4aa4197940add57724a7707d069478df56b1",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:07Z",
+          "sha256": "1509c32ecb06e5750c168cb9606796260ebd2b9bf7a37ab12a39203a25699e9b"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-8B/raw/6a6f4aa4197940add57724a7707d069478df56b1/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:08Z",
+          "sha256": "54acfad3cffe057640904ca8a1e83525e6551c70c7a04c641f5a9eda0bbf64bd"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Llama-8B/raw/6a6f4aa4197940add57724a7707d069478df56b1/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:08Z",
+          "sha256": "d26d26ddb518fee60c6c6bf7a708bd751b1619d93a4944f188143693d956c77f"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/deepseek-r1/manifests/8b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:09Z",
+          "sha256": "6995872bfe4c521a67b32da386cd21d5c6e819b6e0d62f79f64ec83be99f5763"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation"
+      ],
+      "requiresReview": true,
+      "revision": "6a6f4aa4197940add57724a7707d069478df56b1",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 8030261248,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "llama",
+        "context": 131072,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 32,
+        "attentionHeads": 32,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 4096,
+        "ropeScaling": {
+          "factor": 8.0,
+          "low_freq_factor": 1.0,
+          "high_freq_factor": 4.0,
+          "original_max_position_embeddings": 8192,
+          "rope_type": "llama3"
+        },
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:e6a7edc1a4d7d9b2de136a221a57336b76316cfe53a252aeba814496c5ae439d",
+          "size": 5225373760
+        }
+      ]
+    },
+    {
+      "id": "deepseek-v3",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-V3",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:09Z",
+          "sha256": "988f9c8931a362cd5d38e3fd3008f894c43cc7d06334a55565760659c7424c70"
+        },
+        {
+          "url": "https://huggingface.co/api/models/deepseek-ai/DeepSeek-V3/revision/e815299b0bcbac849fa540c768ef21845365c9eb",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:09Z",
+          "sha256": "670f03d393f46ca49645ccbce19527a237ea133886a8b878543849b1e5c69ac7"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-V3/raw/e815299b0bcbac849fa540c768ef21845365c9eb/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:10Z",
+          "sha256": "cbf0b95dc614de208a109bb5fd4e7eed11385e9c68411d2c17db5319443035d9"
+        },
+        {
+          "url": "https://huggingface.co/deepseek-ai/DeepSeek-V3/raw/e815299b0bcbac849fa540c768ef21845365c9eb/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:10Z",
+          "sha256": "3739763a851074c810f1565f9823956f3a095231f8c591dd3c254581bdd3cf08"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/deepseek-v3/manifests/latest",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:16Z",
+          "sha256": "5da0e2d4a9e0e3cc2cac1e952a6808f1eccdc75acd9cf4387e41c8ccc77a929a"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation",
+        "config context differs; inspect card/scaling and artifact identity"
+      ],
+      "requiresReview": true,
+      "revision": "e815299b0bcbac849fa540c768ef21845365c9eb",
+      "license": null,
+      "licenseName": null,
+      "tensorParameters": 684531386000,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "deepseek_v3",
+        "context": 163840,
+        "experts": 256,
+        "activeExperts": 8,
+        "layers": 61,
+        "attentionHeads": 128,
+        "kvHeads": 128,
+        "headDimension": null,
+        "hiddenSize": 7168,
+        "ropeScaling": {
+          "beta_fast": 32,
+          "beta_slow": 1,
+          "factor": 40,
+          "mscale": 1.0,
+          "mscale_all_dim": 1.0,
+          "original_max_position_embeddings": 4096,
+          "type": "yarn"
+        },
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:d83c18fb2a2ccca56d641920f01e6fe533dfb3fcf4b77c007c931497cd24a517",
+          "size": 404430186016,
+          "from": "/home/ollama/.ollama/models/blobs/sha256-d83c18fb2a2ccca56d641920f01e6fe533dfb3fcf4b77c007c931497cd24a517"
+        }
+      ]
+    },
+    {
+      "id": "granite3.1:2b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/ibm-granite/granite-3.1-2b-instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:21Z",
+          "sha256": "dbd6c2f21c0f0a3f0a49d02e913c6c24c52cbb5df63a983fea2559b2b68f3ecf"
+        },
+        {
+          "url": "https://huggingface.co/api/models/ibm-granite/granite-3.1-2b-instruct/revision/bbc2aed595bd38bd770263dc3ab831db9794441d",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:21Z",
+          "sha256": "80c4346296e6fa52bdeecc94e83ff54b83223e2bd93fb5043ab45e183189cab4"
+        },
+        {
+          "url": "https://huggingface.co/ibm-granite/granite-3.1-2b-instruct/raw/bbc2aed595bd38bd770263dc3ab831db9794441d/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:22Z",
+          "sha256": "5832d470c0ebb05cb0760fe05f80fa3e67ba42ba2d0a549bd36c6807f8d18672"
+        },
+        {
+          "url": "https://huggingface.co/ibm-granite/granite-3.1-2b-instruct/raw/bbc2aed595bd38bd770263dc3ab831db9794441d/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:22Z",
+          "sha256": "a7802fae8f3a9077d120af7448d3ec00964e3de192e99714062657b4cd061d44"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/granite3.1-dense/manifests/2b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:23Z",
+          "sha256": "fba1ad01113e0dea1bd9817fa41852e98ddada7a07a3c1cddffef8d588e1fa1e"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "bbc2aed595bd38bd770263dc3ab831db9794441d",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 2533531648,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "granite",
+        "context": 131072,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 40,
+        "attentionHeads": 32,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 2048,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:5c56bb0256a2c402e95282a29bb5cb747bb805eda0e14a84b1f6c594a297ec1a",
+          "size": 1569676320
+        }
+      ]
+    },
+    {
+      "id": "granite3.1:8b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/ibm-granite/granite-3.1-8b-instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:23Z",
+          "sha256": "b7b3e97c3a134bfc0846c0b53f945ef14e304b46d6c97ca38099e01a5f3054e6"
+        },
+        {
+          "url": "https://huggingface.co/api/models/ibm-granite/granite-3.1-8b-instruct/revision/4009206d5fc95d2e65a7b7633e159d6e97e25d35",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:23Z",
+          "sha256": "49874f26cf0e37d89f8cff09791494693ad4bba69dd267716fdc105c4ca2e171"
+        },
+        {
+          "url": "https://huggingface.co/ibm-granite/granite-3.1-8b-instruct/raw/4009206d5fc95d2e65a7b7633e159d6e97e25d35/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:24Z",
+          "sha256": "03c19685d37a17a541641fb17fa40ba371d1d892e87334d3068d90e8f296a365"
+        },
+        {
+          "url": "https://huggingface.co/ibm-granite/granite-3.1-8b-instruct/raw/4009206d5fc95d2e65a7b7633e159d6e97e25d35/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:24Z",
+          "sha256": "0d5ebfafcdfa5344c23b6ea35b63c17f96fec4909d72dafe5b132a2480302a19"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/granite3.1-dense/manifests/8b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:25Z",
+          "sha256": "34d3be74ec547c3e1969a9ea125e1869f052f7cfd3d0bbbb5aa5e42ec033108c"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "4009206d5fc95d2e65a7b7633e159d6e97e25d35",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 8170848256,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "granite",
+        "context": 131072,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 40,
+        "attentionHeads": 32,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 4096,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:44d19d212d76a6f3fc442e8411fdb44ea6b67ceccfb00be4b4345c9a4cf813e8",
+          "size": 4991620512
+        }
+      ]
+    },
+    {
+      "id": "phi4:14b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/microsoft/phi-4",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:25Z",
+          "sha256": "fa855510c3ec535355b90b796189686bc3238c068b3ccba39fe897266d1b391f"
+        },
+        {
+          "url": "https://huggingface.co/api/models/microsoft/phi-4/revision/2db69c1c3e91a05d2c64a3185acfbaf36f744e25",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:25Z",
+          "sha256": "c27c1763e85033347024b55942ff8078fa2df6d79f68879ebf126c2e78e9d9a0"
+        },
+        {
+          "url": "https://huggingface.co/microsoft/phi-4/raw/2db69c1c3e91a05d2c64a3185acfbaf36f744e25/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:25Z",
+          "sha256": "07eedad2c48798b6e3728e4a1b75e0e092019a375ba725a40e40c78d13664045"
+        },
+        {
+          "url": "https://huggingface.co/microsoft/phi-4/raw/2db69c1c3e91a05d2c64a3185acfbaf36f744e25/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:26Z",
+          "sha256": "4cc56faa6a5bcbde6227789b2ef9aedfde481ca660c8a4b686703aae19b00011"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/phi4/manifests/14b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:26Z",
+          "sha256": "ac896e5b8b34a1f4efa7b14d7520725140d5512484457fab45d2a4ea14c69dba"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "2db69c1c3e91a05d2c64a3185acfbaf36f744e25",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 14659507200,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "phi3",
+        "context": 16384,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 40,
+        "attentionHeads": 40,
+        "kvHeads": 10,
+        "headDimension": null,
+        "hiddenSize": 5120,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:fd7b6731c33c57f61767612f56517460ec2d1e2e5a3f0163e0eb3d8d8cb5df20",
+          "size": 9053114464
+        }
+      ]
+    },
+    {
+      "id": "llama3.3:70b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/meta-llama/Llama-3.3-70B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:27Z",
+          "sha256": "6466cc661ca44a416d8f82ca5724b47ffd7b44d9762405d5a880664f4275aee5"
+        },
+        {
+          "url": "https://huggingface.co/api/models/meta-llama/Llama-3.3-70B-Instruct/revision/6f6073b423013f6a7d4d9f39144961bfbfbc386b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:27Z",
+          "sha256": "05fb859194609c5441b3919110747950a52ccb4e34d3ee71eb0354621414ac36"
+        },
+        {
+          "url": "https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct/raw/6f6073b423013f6a7d4d9f39144961bfbfbc386b/config.json",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:25:27Z",
+          "sha256": "8878688b14ac18050eda909e0280474d351f5085db9a5ff36ee0bc21271cf21b"
+        },
+        {
+          "url": "https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct/raw/6f6073b423013f6a7d4d9f39144961bfbfbc386b/README.md",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:25:27Z",
+          "sha256": "8878688b14ac18050eda909e0280474d351f5085db9a5ff36ee0bc21271cf21b"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/llama3.3/manifests/70b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:28Z",
+          "sha256": "a6eb4748fd2990ad2952b2335a95a7f952d1a06119a0aa6a2df6cd052a93a3fa"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation",
+        "config inaccessible: HTTP 401",
+        "card inaccessible: HTTP 401"
+      ],
+      "requiresReview": true,
+      "revision": "6f6073b423013f6a7d4d9f39144961bfbfbc386b",
+      "license": "llama3.3",
+      "licenseName": null,
+      "tensorParameters": 70553706496,
+      "pipelineTag": "text-generation",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:4824460d29f2058aaf6e1118a63a7a197a09bed509f0e7d4e2efb1ee273b447d",
+          "size": 42520398528
+        }
+      ]
+    },
+    {
+      "id": "olmo2:13b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/allenai/OLMo-2-1124-13B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:28Z",
+          "sha256": "d5943c41f6e69f1d62375f4ec53044ba8ac110f55c93ff4fcd4d988b3155a803"
+        },
+        {
+          "url": "https://huggingface.co/api/models/allenai/OLMo-2-1124-13B-Instruct/revision/3a5c85baefbb1896a54d56fe2e76c0395627ddf4",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:29Z",
+          "sha256": "3ed4eb51d66b19f3cd19381b72afacab1d5e54152ce9646907a7db27132b184f"
+        },
+        {
+          "url": "https://huggingface.co/allenai/OLMo-2-1124-13B-Instruct/raw/3a5c85baefbb1896a54d56fe2e76c0395627ddf4/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:29Z",
+          "sha256": "10b1de896314ca2dbf5aeda0035113dbeaa34e086f2a29bb4944596a15f4861e"
+        },
+        {
+          "url": "https://huggingface.co/allenai/OLMo-2-1124-13B-Instruct/raw/3a5c85baefbb1896a54d56fe2e76c0395627ddf4/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:29Z",
+          "sha256": "ca667a7d680a0165460ba0549b1aa26732c52b841650040a2db773e28bddcd8c"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/olmo2/manifests/13b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:30Z",
+          "sha256": "6c279ebc980fb07ca7b49cccf17b5faef6a73082cac4b3d44d2226981de676da"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "3a5c85baefbb1896a54d56fe2e76c0395627ddf4",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 13716198400,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "olmo2",
+        "context": 4096,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 40,
+        "attentionHeads": 40,
+        "kvHeads": 40,
+        "headDimension": null,
+        "hiddenSize": 5120,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:cd836509a1a051178be134eba84115eb3a6653a1bd58473a706bf8ee4ab3a764",
+          "size": 8354349536
+        }
+      ]
+    },
+    {
+      "id": "olmo2:7b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/allenai/OLMo-2-1124-7B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:30Z",
+          "sha256": "f95827ceccbe947436630a1af6ba798a53fb780e3dcce9597d906be89a033851"
+        },
+        {
+          "url": "https://huggingface.co/api/models/allenai/OLMo-2-1124-7B-Instruct/revision/470b1fba1ae01581f270116362ee4aa1b97f4c84",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:30Z",
+          "sha256": "f95827ceccbe947436630a1af6ba798a53fb780e3dcce9597d906be89a033851"
+        },
+        {
+          "url": "https://huggingface.co/allenai/OLMo-2-1124-7B-Instruct/raw/470b1fba1ae01581f270116362ee4aa1b97f4c84/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:31Z",
+          "sha256": "ff8cc8709a229515676797ab6f343a09391041c9a8fbbc78bfec5be4c2e3664e"
+        },
+        {
+          "url": "https://huggingface.co/allenai/OLMo-2-1124-7B-Instruct/raw/470b1fba1ae01581f270116362ee4aa1b97f4c84/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:31Z",
+          "sha256": "1c64f5f2cb6158d24a2fa1241687cd93854154bc6cce6c2b86f6dc3e69cc87de"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/olmo2/manifests/7b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:31Z",
+          "sha256": "4208d3b406db076e1569c97a2fb67cf9c86b845544c1a61ff218259daf9e3538"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "470b1fba1ae01581f270116362ee4aa1b97f4c84",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 7298617344,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "olmo2",
+        "context": 4096,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 32,
+        "attentionHeads": 32,
+        "kvHeads": 32,
+        "headDimension": null,
+        "hiddenSize": 4096,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:ea89e3927d5ef671159a1359a22cdd418856c4baa2098e665f1c6eed59973968",
+          "size": 4472020256
+        }
+      ]
+    },
+    {
+      "id": "qwen2.5-coder:32b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-Coder-32B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:32Z",
+          "sha256": "60ea7595a371e334909512bb3775de28e5fbcd4a0eccec4e629d6567ded647b2"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-Coder-32B-Instruct/revision/381fc969f78efac66bc87ff7ddeadb7e73c218a7",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:32Z",
+          "sha256": "6c7f84da4dd8a1b07e5f32ec7a162b69afcd6997e3859fcd79e135e449b7e3c7"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct/raw/381fc969f78efac66bc87ff7ddeadb7e73c218a7/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:32Z",
+          "sha256": "9fb1473a47db69c00c02f365c7b9e9d84fd2163c687c63b5a31167ebb2b189a6"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct/raw/381fc969f78efac66bc87ff7ddeadb7e73c218a7/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:32Z",
+          "sha256": "a5a35b614244ebc10946c05972f4b0d8785406214afac5c6c08ce793e9272ead"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen2.5-coder/manifests/32b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:33Z",
+          "sha256": "b92d6a0bd47ee79114298de0177bf920c05a706d12633950b3936778492bef41"
+        }
+      ],
+      "issues": [
+        "config context differs; inspect card/scaling and artifact identity"
+      ],
+      "requiresReview": true,
+      "revision": "381fc969f78efac66bc87ff7ddeadb7e73c218a7",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 32763876352,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 32768,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 64,
+        "attentionHeads": 40,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 5120,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:ac3d1ba8aa77755dab3806d9024e9c385ea0d5b412d6bdf9157f8a4a7e9fc0d9",
+          "size": 19851336384
+        }
+      ]
+    },
+    {
+      "id": "qwen2.5-coder:7b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-Coder-7B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:34Z",
+          "sha256": "a7d96189188210f05e1236e5ccd085bcead63260e80943d3d35a28df61eea940"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-Coder-7B-Instruct/revision/c03e6d358207e414f1eca0bb1891e29f1db0e242",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:34Z",
+          "sha256": "a312c91626828a866a66e1614a33b577affa2a7dd4d003f0a7225e2e7caa6666"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct/raw/c03e6d358207e414f1eca0bb1891e29f1db0e242/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:34Z",
+          "sha256": "c0242402ad6a13b331ea320feea8c7e3776ffb7a4eff0757b9cd667e116d9a28"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct/raw/c03e6d358207e414f1eca0bb1891e29f1db0e242/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:34Z",
+          "sha256": "3c090be37f829adc1e4cdb78733667437732541470430ab2cd785d7f0d460077"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen2.5-coder/manifests/7b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:35Z",
+          "sha256": "dae161e27b0e90dd1856c8bb3209201fd6736d8eb66298e75ed87571486f4364"
+        }
+      ],
+      "issues": [
+        "config context differs; inspect card/scaling and artifact identity"
+      ],
+      "requiresReview": true,
+      "revision": "c03e6d358207e414f1eca0bb1891e29f1db0e242",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 7615616512,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 32768,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 28,
+        "attentionHeads": 28,
+        "kvHeads": 4,
+        "headDimension": null,
+        "hiddenSize": 3584,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:60e05f2100071479f596b964f89f510f057ce397ea22f2833a0cfe029bfc2463",
+          "size": 4683074048
+        }
+      ]
+    },
+    {
+      "id": "smollm2:1.7b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/HuggingFaceTB/SmolLM2-1.7B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:35Z",
+          "sha256": "47d5b95a329aa6516b4d050b4e7af014f4791e7ab65349bfab7021c09f7dd8d1"
+        },
+        {
+          "url": "https://huggingface.co/api/models/HuggingFaceTB/SmolLM2-1.7B-Instruct/revision/31b70e2e869a7173562077fd711b654946d38674",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:36Z",
+          "sha256": "c76f5fc3f957a906e015cfcb6fc564f996c635586084d845f2a37881780df21d"
+        },
+        {
+          "url": "https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct/raw/31b70e2e869a7173562077fd711b654946d38674/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:36Z",
+          "sha256": "994f50b16abb4ae00880baefe03c10260b5bd608d2bf586f7056ca05a534feea"
+        },
+        {
+          "url": "https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B-Instruct/raw/31b70e2e869a7173562077fd711b654946d38674/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:36Z",
+          "sha256": "b00c0570dbc43674a0028d088fc72f40d83eea90f47cd987706ca2f95ed114c0"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/smollm2/manifests/1.7b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:37Z",
+          "sha256": "cef4a1e09247f018ca0c482ad4c2ce1474aba5e87f245dacf97f07948d05d8b4"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "31b70e2e869a7173562077fd711b654946d38674",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 1711376384,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "llama",
+        "context": 8192,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 24,
+        "attentionHeads": 32,
+        "kvHeads": 32,
+        "headDimension": null,
+        "hiddenSize": 2048,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:4d2396b16114669389d7555c15a1592aad584750310f648edad5ca8c4eccda17",
+          "size": 1820414656
+        }
+      ]
+    },
+    {
+      "id": "smollm2:135m",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/HuggingFaceTB/SmolLM2-135M-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:37Z",
+          "sha256": "1cb06a9b42e201275176af6499d3631a7314459af7f81575bdfef7389359d1e1"
+        },
+        {
+          "url": "https://huggingface.co/api/models/HuggingFaceTB/SmolLM2-135M-Instruct/revision/12fd25f77366fa6b3b4b768ec3050bf629380bac",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:37Z",
+          "sha256": "1cb06a9b42e201275176af6499d3631a7314459af7f81575bdfef7389359d1e1"
+        },
+        {
+          "url": "https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct/raw/12fd25f77366fa6b3b4b768ec3050bf629380bac/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:38Z",
+          "sha256": "8eb740e8bbe4cff95ea7b4588d17a2432deb16e8075bc5828ff7ba9be94d982a"
+        },
+        {
+          "url": "https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct/raw/12fd25f77366fa6b3b4b768ec3050bf629380bac/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:38Z",
+          "sha256": "4f97533ad95b1b2fea15fbc075c01b94578ebdd7c8138888fa43fa3abd530dc4"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/smollm2/manifests/135m",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:39Z",
+          "sha256": "9077fe9d2ae1a4a41a868836b56b8163731a8fe16621397028c2c76f838c6907"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "12fd25f77366fa6b3b4b768ec3050bf629380bac",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 134515008,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "llama",
+        "context": 8192,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 30,
+        "attentionHeads": 9,
+        "kvHeads": 3,
+        "headDimension": null,
+        "hiddenSize": 576,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:f535f83ec568d040f88ddc04a199fa6da90923bbb41d4dcaed02caa924d6ef57",
+          "size": 270885952,
+          "from": "/Users/administrator/.ollama/models/blobs/sha256-f535f83ec568d040f88ddc04a199fa6da90923bbb41d4dcaed02caa924d6ef57"
+        }
+      ]
+    },
+    {
+      "id": "smollm2:360m",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/HuggingFaceTB/SmolLM2-360M-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:39Z",
+          "sha256": "584f21f706b11d4fb7a2bf11d28f23c4a11ef725c20e7564008364d19a7ca327"
+        },
+        {
+          "url": "https://huggingface.co/api/models/HuggingFaceTB/SmolLM2-360M-Instruct/revision/a10cc1512eabd3dde888204e902eca88bddb4951",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:40Z",
+          "sha256": "4c53663b8220ad26769e5353341458e8e2fc43f047266ebd91847ac065a89f10"
+        },
+        {
+          "url": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/raw/a10cc1512eabd3dde888204e902eca88bddb4951/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:40Z",
+          "sha256": "224f72354f10d617a359cc82ad15a3c96e866b9b2ffadb81997eeea9e88e22ee"
+        },
+        {
+          "url": "https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/raw/a10cc1512eabd3dde888204e902eca88bddb4951/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:40Z",
+          "sha256": "6b88794416ac9da8f254ebb0bec228967a2bdd0badf9a2853863928b25facd95"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/smollm2/manifests/360m",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:41Z",
+          "sha256": "297281b699fc51376006233ca400cd664c4f7b80ed88a47ef084f1e4b089803b"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "a10cc1512eabd3dde888204e902eca88bddb4951",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 361821120,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "llama",
+        "context": 8192,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 32,
+        "attentionHeads": 15,
+        "kvHeads": 5,
+        "headDimension": null,
+        "hiddenSize": 960,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:7d23be4097d67c5c43c3df62ebc19609a25f483c7d0b77d3989e1d94e36ccab6",
+          "size": 725553792,
+          "from": "/Users/administrator/.ollama/models/blobs/sha256-7d23be4097d67c5c43c3df62ebc19609a25f483c7d0b77d3989e1d94e36ccab6"
+        }
+      ]
+    },
+    {
+      "id": "granite3-moe:3b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/ibm-granite/granite-3.0-3b-a800m-instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:41Z",
+          "sha256": "6ed11546a2bfb76535957150df74c324f0703066c0762e80bb5eb5409e746989"
+        },
+        {
+          "url": "https://huggingface.co/api/models/ibm-granite/granite-3.0-3b-a800m-instruct/revision/51ced9b4d6ecb3a6671e2e52c937bc12a4a470a5",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:42Z",
+          "sha256": "6ed11546a2bfb76535957150df74c324f0703066c0762e80bb5eb5409e746989"
+        },
+        {
+          "url": "https://huggingface.co/ibm-granite/granite-3.0-3b-a800m-instruct/raw/51ced9b4d6ecb3a6671e2e52c937bc12a4a470a5/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:42Z",
+          "sha256": "bb3e856a8761c4e6a6cbaacd7674f99f848f83069c326abec8481d0a6700d929"
+        },
+        {
+          "url": "https://huggingface.co/ibm-granite/granite-3.0-3b-a800m-instruct/raw/51ced9b4d6ecb3a6671e2e52c937bc12a4a470a5/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:42Z",
+          "sha256": "d5bef7344ed89affc2f95fcf5bf835519abf9bf30414c6220f2eb8449499f75b"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/granite3-moe/manifests/3b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:43Z",
+          "sha256": "157f538ae66e0663cee4fb30ef11e3ccf1ae3c1bf6da2698dbac1df3a25698c7"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "51ced9b4d6ecb3a6671e2e52c937bc12a4a470a5",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 3374295552,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "granitemoe",
+        "context": 4096,
+        "experts": 40,
+        "activeExperts": 8,
+        "layers": 32,
+        "attentionHeads": 24,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 1536,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:2c931bb3b330f26b3d4bd0ee56b828196750c244b3c40450dfc8e4074962e215",
+          "size": 2059355712
+        }
+      ]
+    },
+    {
+      "id": "llama3.2:1b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/meta-llama/Llama-3.2-1B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:43Z",
+          "sha256": "49179873f50d7bafde86930f955a9e33299fdff97cf155a226156ca5c29f2432"
+        },
+        {
+          "url": "https://huggingface.co/api/models/meta-llama/Llama-3.2-1B-Instruct/revision/9213176726f574b556790deb65791e0c5aa438b6",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:44Z",
+          "sha256": "b4b6953689785bdcf5583a549da9c6856de4da2c1fe7e1ae663184876a6cae2f"
+        },
+        {
+          "url": "https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct/raw/9213176726f574b556790deb65791e0c5aa438b6/config.json",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:25:44Z",
+          "sha256": "8567d8ef07275a5fe99029730cf738ae2a1eb266ff78388617d98b9925d37ed4"
+        },
+        {
+          "url": "https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct/raw/9213176726f574b556790deb65791e0c5aa438b6/README.md",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:25:44Z",
+          "sha256": "8567d8ef07275a5fe99029730cf738ae2a1eb266ff78388617d98b9925d37ed4"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/llama3.2/manifests/1b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:50Z",
+          "sha256": "baf6a787fdffd633537aa2eb51cfd54cb93ff08e28040095462bb63daf552878"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation",
+        "config inaccessible: HTTP 401",
+        "card inaccessible: HTTP 401"
+      ],
+      "requiresReview": true,
+      "revision": "9213176726f574b556790deb65791e0c5aa438b6",
+      "license": "llama3.2",
+      "licenseName": null,
+      "tensorParameters": 1235814400,
+      "pipelineTag": "text-generation",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:74701a8c35f6c8d9a4b91f3f3497643001d63e0c7a84e085bed452548fa88d45",
+          "size": 1321082688
+        }
+      ]
+    },
+    {
+      "id": "llama3.2:3b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/meta-llama/Llama-3.2-3B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:50Z",
+          "sha256": "732c257f251e30f7a546a2e179fdf3e9ab5135816462b29043ad8027909ee1fb"
+        },
+        {
+          "url": "https://huggingface.co/api/models/meta-llama/Llama-3.2-3B-Instruct/revision/0cb88a4f764b7a12671c53f0838cd831a0843b95",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:50Z",
+          "sha256": "9620d9b86ceaa4683c33006c7ee5a649de4fa3a05d63d6ef26ccebcd7870f66a"
+        },
+        {
+          "url": "https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct/raw/0cb88a4f764b7a12671c53f0838cd831a0843b95/config.json",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:25:51Z",
+          "sha256": "1545b848bcfd174d743847ed4239c1490131b1ef3bc4aae62ff7ffae2f625259"
+        },
+        {
+          "url": "https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct/raw/0cb88a4f764b7a12671c53f0838cd831a0843b95/README.md",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:25:51Z",
+          "sha256": "1545b848bcfd174d743847ed4239c1490131b1ef3bc4aae62ff7ffae2f625259"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/llama3.2/manifests/3b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:52Z",
+          "sha256": "a80c4f17acd55265feec403c7aef86be0c25983ab279d83f3bcd3abbcb5b8b72"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation",
+        "config inaccessible: HTTP 401",
+        "card inaccessible: HTTP 401"
+      ],
+      "requiresReview": true,
+      "revision": "0cb88a4f764b7a12671c53f0838cd831a0843b95",
+      "license": "llama3.2",
+      "licenseName": null,
+      "tensorParameters": 3212749824,
+      "pipelineTag": "text-generation",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:dde5aa3fc5ffc17176b5e8bdc82f587b24b2678c6c66101bf7da77af9f7ccdff",
+          "size": 2019377376
+        }
+      ]
+    },
+    {
+      "id": "qwen2.5:0.5b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-0.5B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:52Z",
+          "sha256": "e1685cf00b1da1e838a12394e6e68e3daacd1c4e7e72efea0f1814b545dfaf26"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-0.5B-Instruct/revision/7ae557604adf67be50417f59c2c2f167def9a775",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:52Z",
+          "sha256": "e46de558c7c1ed190266030cd4bb7d51cfa4ef7512776247578cfbdc5c7e1381"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/raw/7ae557604adf67be50417f59c2c2f167def9a775/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:52Z",
+          "sha256": "18e18afcaccafade98daf13a54092927904649e1dd4eba8299ab717d5d94ff45"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/raw/7ae557604adf67be50417f59c2c2f167def9a775/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:53Z",
+          "sha256": "b19c806a904db6dc878a0462e70b551f6b7ac78dfbb88c2eb966ca2b9109ae15"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen2.5/manifests/0.5b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:53Z",
+          "sha256": "a8b0c51577010a279d933d14c2a8ab4b268079d44c5c8830c0a93900f1827c67"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 494032768,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 32768,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 24,
+        "attentionHeads": 14,
+        "kvHeads": 2,
+        "headDimension": null,
+        "hiddenSize": 896,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:c5396e06af294bd101b30dce59131a76d2b773e76950acc870eda801d3ab0515",
+          "size": 397807936
+        }
+      ]
+    },
+    {
+      "id": "qwen2.5:0.5b-mlx",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/mlx-community/Qwen2.5-0.5B-Instruct-4bit",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:54Z",
+          "sha256": "c7a7c272c4e1130df24413bed4edc40320a0d52e1d83aa05f26f4c50696e17eb"
+        },
+        {
+          "url": "https://huggingface.co/api/models/mlx-community/Qwen2.5-0.5B-Instruct-4bit/revision/a5339a4131f135d0fdc6a5c8b5bbed2753bbe0f3",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:54Z",
+          "sha256": "c7a7c272c4e1130df24413bed4edc40320a0d52e1d83aa05f26f4c50696e17eb"
+        },
+        {
+          "url": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/raw/a5339a4131f135d0fdc6a5c8b5bbed2753bbe0f3/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:54Z",
+          "sha256": "b045e57ea90b8f1b35f89f954b176a5c1faa02bd0af2c89bcec191239d66cef4"
+        },
+        {
+          "url": "https://huggingface.co/mlx-community/Qwen2.5-0.5B-Instruct-4bit/raw/a5339a4131f135d0fdc6a5c8b5bbed2753bbe0f3/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:55Z",
+          "sha256": "8cd48183a9d10279e02291f12f03a2db5585c222a0cf77f97dca3c87f79bd5e1"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "a5339a4131f135d0fdc6a5c8b5bbed2753bbe0f3",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 494032768,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 32768,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 24,
+        "attentionHeads": 14,
+        "kvHeads": 2,
+        "headDimension": null,
+        "hiddenSize": 896,
+        "ropeScaling": null,
+        "layerTypes": null
+      }
+    },
+    {
+      "id": "qwen2.5:1.5b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:55Z",
+          "sha256": "e219a92f24305c55601e5ff47db629231161df1e36a6a396849190d07b31a6c9"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-1.5B-Instruct/revision/989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:55Z",
+          "sha256": "2715cc3a2c4659bd574e591596c29b1bfd1fc7e5a2c825a2ccb5cbdb3bf67047"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct/raw/989aa7980e4cf806f80c7fef2b1adb7bc71aa306/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:55Z",
+          "sha256": "98d2ff8cc47488d08a2b0b3acf4eb99ef210779b42bd48605f6b8e36acdbf670"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct/raw/989aa7980e4cf806f80c7fef2b1adb7bc71aa306/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:56Z",
+          "sha256": "2e1bcd8bd964728a820be709fa0f7b9dd54817a94fd2254c535df70c5e67fada"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen2.5/manifests/1.5b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:56Z",
+          "sha256": "65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 1543714304,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 32768,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 28,
+        "attentionHeads": 12,
+        "kvHeads": 2,
+        "headDimension": null,
+        "hiddenSize": 1536,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:183715c435899236895da3869489cc30ac241476b4971a20285b1a462818a5b4",
+          "size": 986048512
+        }
+      ]
+    },
+    {
+      "id": "qwen2.5:14b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-14B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:56Z",
+          "sha256": "a3d4d14f8c093681afaaab2d091d79624c316b8b277a5b7b3ab66e109a6ff459"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-14B-Instruct/revision/cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:57Z",
+          "sha256": "c00e01cf51df1416bdcb4fa391a37b7edca445c4af84025208c3bc23cc8c4bca"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-14B-Instruct/raw/cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:57Z",
+          "sha256": "0f2085dbbe2ee251bd6a6a0797d84a6ce34436044d629aa3cba793b43d311a9e"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-14B-Instruct/raw/cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:57Z",
+          "sha256": "7ea9d73d5e0a0381121db8bfb04dee739c7b8d3c6cb25af7121e75c9d7cac94c"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen2.5/manifests/14b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:58Z",
+          "sha256": "7cdf5a0187d5c58cc5d369b255592f7841d1c4696d45a8c8a9489440385b22f6"
+        }
+      ],
+      "issues": [
+        "config context differs; inspect card/scaling and artifact identity"
+      ],
+      "requiresReview": true,
+      "revision": "cf98f3b3bbb457ad9e2bb7baf9a0125b6b88caa8",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 14770033664,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 32768,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 48,
+        "attentionHeads": 40,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 5120,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:2049f5674b1e92b4464e5729975c9689fcfbf0b0e4443ccf10b5339f370f9a54",
+          "size": 8988110688
+        }
+      ]
+    },
+    {
+      "id": "qwen2.5:32b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-32B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:58Z",
+          "sha256": "f026b63894bd821297b96f113e3f4ecf50387692a013270fae975a39fd3639f9"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-32B-Instruct/revision/5ede1c97bbab6ce5cda5812749b4c0bdf79b18dd",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:59Z",
+          "sha256": "363a9dbe7e09d7a2bfa7f9600dbbd6c0c67269aa71387f0d6ab42c13356938ca"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-32B-Instruct/raw/5ede1c97bbab6ce5cda5812749b4c0bdf79b18dd/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:59Z",
+          "sha256": "9c6772f138ef9e5b3d1c18f2c87e451bbc01f5f1a4eabb36f9bf4f53829b903e"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-32B-Instruct/raw/5ede1c97bbab6ce5cda5812749b4c0bdf79b18dd/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:25:59Z",
+          "sha256": "6d137cdde7224657e7a6d22139e175eb17d635db901c0a6c7d6ff362640f0c99"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen2.5/manifests/32b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:00Z",
+          "sha256": "9f13ba1299afea09d9a956fc6a85becc99115a6d596fae201a5487a03bdc4368"
+        }
+      ],
+      "issues": [
+        "config context differs; inspect card/scaling and artifact identity"
+      ],
+      "requiresReview": true,
+      "revision": "5ede1c97bbab6ce5cda5812749b4c0bdf79b18dd",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 32763876352,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 32768,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 64,
+        "attentionHeads": 40,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 5120,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:eabc98a9bcbfce7fd70f3e07de599f8fda98120fefed5881934161ede8bd1a41",
+          "size": 19851336288
+        }
+      ]
+    },
+    {
+      "id": "qwen2.5:3b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-3B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:00Z",
+          "sha256": "18ae491f7701b5d76c2c7d511d8c0d0cb4e475a4ad686725ee2daaf278993a1a"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-3B-Instruct/revision/aa8e72537993ba99e69dfaafa59ed015b17504d1",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:00Z",
+          "sha256": "e3894c554732a108b129148e6d45d5d4347a965fd5a4ff28fee6c59e881b1f38"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/raw/aa8e72537993ba99e69dfaafa59ed015b17504d1/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:01Z",
+          "sha256": "eed00b17e22553979d090fa492e587e92885e328914c8e0b0b78f0a0d3576b3b"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/raw/aa8e72537993ba99e69dfaafa59ed015b17504d1/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:01Z",
+          "sha256": "2c74693e6ae36ba878124d465195b4dad0f71035b54ece1c9fd1553cc497ef8c"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen2.5/manifests/3b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:02Z",
+          "sha256": "357c53fb659c5076de1d65ccb0b397446227b71a42be9d1603d46168015c9e4b"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation"
+      ],
+      "requiresReview": true,
+      "revision": "aa8e72537993ba99e69dfaafa59ed015b17504d1",
+      "license": "other",
+      "licenseName": "qwen-research",
+      "tensorParameters": 3085938688,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 32768,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 36,
+        "attentionHeads": 16,
+        "kvHeads": 2,
+        "headDimension": null,
+        "hiddenSize": 2048,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:5ee4f07cdb9beadbbb293e85803c569b01bd37ed059d2715faa7bb405f31caa6",
+          "size": 1929903008
+        }
+      ]
+    },
+    {
+      "id": "qwen2.5:72b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-72B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:06Z",
+          "sha256": "5d582447a4e9aac8590e2eaaea5f910880a7e484e3c4cfe97a70de5ff906cd73"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-72B-Instruct/revision/495f39366efef23836d0cfae4fbe635880d2be31",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:06Z",
+          "sha256": "015b72bc64c9bda5ab3ee31721d02854835e22d301fc88d3a0945bcec105b6de"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-72B-Instruct/raw/495f39366efef23836d0cfae4fbe635880d2be31/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:07Z",
+          "sha256": "14ca217334fe0fd10148413592d68c99eeb33431ed89c1afa130fee560be2a29"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-72B-Instruct/raw/495f39366efef23836d0cfae4fbe635880d2be31/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:07Z",
+          "sha256": "62d6f2176c0925b7c7e5ec6c5ee06cad83868bb21a8e25d58283e3d7707d3f79"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen2.5/manifests/72b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:08Z",
+          "sha256": "424bad2cc13f72f5bcd8085de63f48e7ef2ae5bf50a30be4b3ade7d3258f5796"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation",
+        "config context differs; inspect card/scaling and artifact identity"
+      ],
+      "requiresReview": true,
+      "revision": "495f39366efef23836d0cfae4fbe635880d2be31",
+      "license": "other",
+      "licenseName": "qwen",
+      "tensorParameters": 72706203648,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 32768,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 80,
+        "attentionHeads": 64,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 8192,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:6e7fdda508e91cb0f63de5c15ff79ac63a1584ccafd751c07ca12b7f442101b8",
+          "size": 47415715200
+        }
+      ]
+    },
+    {
+      "id": "qwen2.5:7b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-7B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:08Z",
+          "sha256": "cc0a7e8ff3881905581d441b38025018f972a48fe277adc9a9a32ff9147cec2b"
+        },
+        {
+          "url": "https://huggingface.co/api/models/Qwen/Qwen2.5-7B-Instruct/revision/a09a35458c702b33eeacc393d103063234e8bc28",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:08Z",
+          "sha256": "06ffbb79ada0376ce5663cfa7f90ce6330d98bf41b873421093152474d7fbc33"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/raw/a09a35458c702b33eeacc393d103063234e8bc28/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:08Z",
+          "sha256": "7463bb0ea78315365e6c6b74de4e73bbcc8359dfb0c5a737584e077d42c0b03c"
+        },
+        {
+          "url": "https://huggingface.co/Qwen/Qwen2.5-7B-Instruct/raw/a09a35458c702b33eeacc393d103063234e8bc28/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:09Z",
+          "sha256": "f366f33bbf6bcadbb7d87f0a21a7b65584a56b8d58b0743c77c88bee625b93a6"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/qwen2.5/manifests/7b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:09Z",
+          "sha256": "845dbda0ea48ed749caafd9e6037047aa19acfcfd82e704d7ca97d631a0b697e"
+        }
+      ],
+      "issues": [
+        "config context differs; inspect card/scaling and artifact identity"
+      ],
+      "requiresReview": true,
+      "revision": "a09a35458c702b33eeacc393d103063234e8bc28",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 7615616512,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "qwen2",
+        "context": 32768,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 28,
+        "attentionHeads": 28,
+        "kvHeads": 4,
+        "headDimension": null,
+        "hiddenSize": 3584,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:2bada8a7450677000f678be90653b85d364de7db25eb5ea54136ada5f3933730",
+          "size": 4683073952
+        }
+      ]
+    },
+    {
+      "id": "phi3.5:mini",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/microsoft/Phi-3.5-mini-instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:10Z",
+          "sha256": "8756b9de9ec26feb07ea44ff1200d04fa4e3ccd698273fd638157239e4573c99"
+        },
+        {
+          "url": "https://huggingface.co/api/models/microsoft/Phi-3.5-mini-instruct/revision/2fe192450127e6a83f7441aef6e3ca586c338b77",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:10Z",
+          "sha256": "8756b9de9ec26feb07ea44ff1200d04fa4e3ccd698273fd638157239e4573c99"
+        },
+        {
+          "url": "https://huggingface.co/microsoft/Phi-3.5-mini-instruct/raw/2fe192450127e6a83f7441aef6e3ca586c338b77/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:10Z",
+          "sha256": "224de4f6a15b9d2a89695ec04b7f7ab2dd93a008a506979925e5a88cb5804974"
+        },
+        {
+          "url": "https://huggingface.co/microsoft/Phi-3.5-mini-instruct/raw/2fe192450127e6a83f7441aef6e3ca586c338b77/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:10Z",
+          "sha256": "cab9d7e23368cf9e8ba469e6c9facf2535f4d32eb9381a604d6d6757f9915b94"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/phi3.5/manifests/3.8b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:11Z",
+          "sha256": "61819fb370a3c1a9be6694869331e5f85f867a079e9271d66cb223acb81d04ba"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "2fe192450127e6a83f7441aef6e3ca586c338b77",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 3821079552,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "phi3",
+        "context": 131072,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 32,
+        "attentionHeads": 32,
+        "kvHeads": 32,
+        "headDimension": null,
+        "hiddenSize": 3072,
+        "ropeScaling": {
+          "long_factor": [
+            1.0800000429153442,
+            1.1100000143051147,
+            1.1399999856948853,
+            1.340000033378601,
+            1.5899999141693115,
+            1.600000023841858,
+            1.6200000047683716,
+            2.620000123977661,
+            3.2300000190734863,
+            3.2300000190734863,
+            4.789999961853027,
+            7.400000095367432,
+            7.700000286102295,
+            9.09000015258789,
+            12.199999809265137,
+            17.670000076293945,
+            24.46000099182129,
+            28.57000160217285,
+            30.420001983642578,
+            30.840002059936523,
+            32.590003967285156,
+            32.93000411987305,
+            42.320003509521484,
+            44.96000289916992,
+            50.340003967285156,
+            50.45000457763672,
+            57.55000305175781,
+            57.93000411987305,
+            58.21000289916992,
+            60.1400032043457,
+            62.61000442504883,
+            62.62000274658203,
+            62.71000289916992,
+            63.1400032043457,
+            63.1400032043457,
+            63.77000427246094,
+            63.93000411987305,
+            63.96000289916992,
+            63.970001220703125,
+            64.02999877929688,
+            64.06999969482422,
+            64.08000183105469,
+            64.12000274658203,
+            64.41000366210938,
+            64.4800033569336,
+            64.51000213623047,
+            64.52999877929688,
+            64.83999633789062
+          ],
+          "short_factor": [
+            1.0,
+            1.0199999809265137,
+            1.0299999713897705,
+            1.0299999713897705,
+            1.0499999523162842,
+            1.0499999523162842,
+            1.0499999523162842,
+            1.0499999523162842,
+            1.0499999523162842,
+            1.0699999332427979,
+            1.0999999046325684,
+            1.1099998950958252,
+            1.1599998474121094,
+            1.1599998474121094,
+            1.1699998378753662,
+            1.2899998426437378,
+            1.339999794960022,
+            1.679999828338623,
+            1.7899998426437378,
+            1.8199998140335083,
+            1.8499997854232788,
+            1.8799997568130493,
+            1.9099997282028198,
+            1.9399996995925903,
+            1.9899996519088745,
+            2.0199997425079346,
+            2.0199997425079346,
+            2.0199997425079346,
+            2.0199997425079346,
+            2.0199997425079346,
+            2.0199997425079346,
+            2.0299997329711914,
+            2.0299997329711914,
+            2.0299997329711914,
+            2.0299997329711914,
+            2.0299997329711914,
+            2.0299997329711914,
+            2.0299997329711914,
+            2.0299997329711914,
+            2.0299997329711914,
+            2.0799996852874756,
+            2.0899996757507324,
+            2.189999580383301,
+            2.2199995517730713,
+            2.5899994373321533,
+            2.729999542236328,
+            2.749999523162842,
+            2.8399994373321533
+          ],
+          "type": "longrope"
+        },
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:b5374915da534cb93df39f03bd4f2cd5a0c533df0d5e21957dc9556c260be9eb",
+          "size": 2176177152
+        }
+      ]
+    },
+    {
+      "id": "gemma2:2b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-2-2b-it",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:11Z",
+          "sha256": "683f3b9ebbd718e54e5eb3cf1384a3fb88984eb19e88fb09b6bee1a7fd643974"
+        },
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-2-2b-it/revision/299a8560bedf22ed1c72a8a11e7dce4a7f9f51f8",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:11Z",
+          "sha256": "4809a21987f04d7e3bc60f99f509b7d4997ead40dd4ad6f1a4acd77800d59614"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-2-2b-it/raw/299a8560bedf22ed1c72a8a11e7dce4a7f9f51f8/config.json",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:26:12Z",
+          "sha256": "a630653f33b49b65013f657684ccb3822adffcec991eab75d5d081769bc32621"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-2-2b-it/raw/299a8560bedf22ed1c72a8a11e7dce4a7f9f51f8/README.md",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:26:12Z",
+          "sha256": "a630653f33b49b65013f657684ccb3822adffcec991eab75d5d081769bc32621"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/gemma2/manifests/2b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:13Z",
+          "sha256": "8ccf136fdd5298f3ffe2d69862750ea7fb56555fa4d5b18c04e3fa4d82ee09d7"
+        }
+      ],
+      "issues": [
+        "config inaccessible: HTTP 401",
+        "card inaccessible: HTTP 401"
+      ],
+      "requiresReview": true,
+      "revision": "299a8560bedf22ed1c72a8a11e7dce4a7f9f51f8",
+      "license": "gemma",
+      "licenseName": null,
+      "tensorParameters": 2614341888,
+      "pipelineTag": "text-generation",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:7462734796d67c40ecec2ca98eddf970e171dbb6b370e43fd633ee75b69abe1b",
+          "size": 1629509152
+        }
+      ]
+    },
+    {
+      "id": "llama3.1:70b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/meta-llama/Llama-3.1-70B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:13Z",
+          "sha256": "3b4bf1a31d83d6e47402add812e37a4fb7d25830abd026a16b090b7bbbed26b4"
+        },
+        {
+          "url": "https://huggingface.co/api/models/meta-llama/Llama-3.1-70B-Instruct/revision/1605565b47bb9346c5515c34102e054115b4f98b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:13Z",
+          "sha256": "c8d6f9892d457ce8509b74914c8295d35534d8443417683d5bc7f22883ec22f4"
+        },
+        {
+          "url": "https://huggingface.co/meta-llama/Llama-3.1-70B-Instruct/raw/1605565b47bb9346c5515c34102e054115b4f98b/config.json",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:26:14Z",
+          "sha256": "d707330d2b371d350f12605914245b354a7966e8dde7709382db955472bdf757"
+        },
+        {
+          "url": "https://huggingface.co/meta-llama/Llama-3.1-70B-Instruct/raw/1605565b47bb9346c5515c34102e054115b4f98b/README.md",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:26:14Z",
+          "sha256": "d707330d2b371d350f12605914245b354a7966e8dde7709382db955472bdf757"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/llama3.1/manifests/70b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:14Z",
+          "sha256": "711a9e8463afd8edd580debd3b5c521521ebe55ba95bb80d576f4149969e07c6"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation",
+        "config inaccessible: HTTP 401",
+        "card inaccessible: HTTP 401"
+      ],
+      "requiresReview": true,
+      "revision": "1605565b47bb9346c5515c34102e054115b4f98b",
+      "license": "llama3.1",
+      "licenseName": null,
+      "tensorParameters": 70553706496,
+      "pipelineTag": "text-generation",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:de20d2cf2dc430b1717a8b07a9df029d651f3895dbffec4729a3902a6fe344c9",
+          "size": 42520398176
+        }
+      ]
+    },
+    {
+      "id": "llama3.1:8b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/meta-llama/Llama-3.1-8B-Instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:15Z",
+          "sha256": "c98afc0ffb90326cba5ab61121a158d30d7e06b343060c7b460c846d5ff81a66"
+        },
+        {
+          "url": "https://huggingface.co/api/models/meta-llama/Llama-3.1-8B-Instruct/revision/0e9e39f249a16976918f6564b8830bc894c89659",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:15Z",
+          "sha256": "1fd930893de7ebe8b217b3e0d36842da814547b9f257e5cc9aafad2c30e59579"
+        },
+        {
+          "url": "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct/raw/0e9e39f249a16976918f6564b8830bc894c89659/config.json",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:26:15Z",
+          "sha256": "550efef218a27c6d15f3f1130615dafad962b423143a06e9600459b0ea3f3269"
+        },
+        {
+          "url": "https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct/raw/0e9e39f249a16976918f6564b8830bc894c89659/README.md",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:26:16Z",
+          "sha256": "550efef218a27c6d15f3f1130615dafad962b423143a06e9600459b0ea3f3269"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/llama3.1/manifests/8b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:16Z",
+          "sha256": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e"
+        }
+      ],
+      "issues": [
+        "license needs reconciliation",
+        "config inaccessible: HTTP 401",
+        "card inaccessible: HTTP 401"
+      ],
+      "requiresReview": true,
+      "revision": "0e9e39f249a16976918f6564b8830bc894c89659",
+      "license": "llama3.1",
+      "licenseName": null,
+      "tensorParameters": 8030261248,
+      "pipelineTag": "text-generation",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:667b0c1932bc6ffc593ed1d03f895bf2dc8dc6df21db3042284a6f4416b06a29",
+          "size": 4920738944
+        }
+      ]
+    },
+    {
+      "id": "mistral-nemo:12b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/mistralai/Mistral-Nemo-Instruct-2407",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:16Z",
+          "sha256": "d9fe9dba39fcde3cd37f3f6ec039e165df8b000db3055a4fecc7dc7e957590ee"
+        },
+        {
+          "url": "https://huggingface.co/api/models/mistralai/Mistral-Nemo-Instruct-2407/revision/04d8a90549d23fc6bd7f642064003592df51e9b3",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:17Z",
+          "sha256": "d9fe9dba39fcde3cd37f3f6ec039e165df8b000db3055a4fecc7dc7e957590ee"
+        },
+        {
+          "url": "https://huggingface.co/mistralai/Mistral-Nemo-Instruct-2407/raw/04d8a90549d23fc6bd7f642064003592df51e9b3/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:17Z",
+          "sha256": "8a42669219f4caadedb891be88c34712572573d42b3d02d665d527f92d94ddfe"
+        },
+        {
+          "url": "https://huggingface.co/mistralai/Mistral-Nemo-Instruct-2407/raw/04d8a90549d23fc6bd7f642064003592df51e9b3/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:17Z",
+          "sha256": "445377992e7404021555e689a5df79b90a3293c38829ec1dcaa9dfed5b7526b0"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistral-nemo/manifests/12b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:18Z",
+          "sha256": "e7e06d107c6c86ed0cf45445f1790720b5092149c4c95f4d965844e9afbfdc89"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "04d8a90549d23fc6bd7f642064003592df51e9b3",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 12247782400,
+      "pipelineTag": null,
+      "config": {
+        "modelType": "mistral",
+        "context": 131072,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 40,
+        "attentionHeads": 32,
+        "kvHeads": 8,
+        "headDimension": 128,
+        "hiddenSize": 5120,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:b559938ab7a0392fc9ea9675b82280f2a15669ec3e0e0fc491c9cb0a7681cf94",
+          "size": 7071700672
+        }
+      ]
+    },
+    {
+      "id": "gemma2:27b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-2-27b-it",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:18Z",
+          "sha256": "3e94c5698628c517b9e31b81bd266fb1320c3c40b1cda8862c3bf16ddfab0803"
+        },
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-2-27b-it/revision/aaf20e6b9f4c0fcf043f6fb2a2068419086d77b0",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:18Z",
+          "sha256": "2d3a675d884620c17c6377134be9078cf8457a160ca725dc3679337d7b4e6799"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-2-27b-it/raw/aaf20e6b9f4c0fcf043f6fb2a2068419086d77b0/config.json",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:26:19Z",
+          "sha256": "6c6493a672c733c4eb97b486d134c8d63fe865ba7e7d0762adfb1737b635d00d"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-2-27b-it/raw/aaf20e6b9f4c0fcf043f6fb2a2068419086d77b0/README.md",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:26:19Z",
+          "sha256": "6c6493a672c733c4eb97b486d134c8d63fe865ba7e7d0762adfb1737b635d00d"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/gemma2/manifests/27b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:19Z",
+          "sha256": "53261bc9c192c1cb5fcc898dd3aa15da093f5ab6f08e17e48cf838bb1c58abfe"
+        }
+      ],
+      "issues": [
+        "config inaccessible: HTTP 401",
+        "card inaccessible: HTTP 401"
+      ],
+      "requiresReview": true,
+      "revision": "aaf20e6b9f4c0fcf043f6fb2a2068419086d77b0",
+      "license": "gemma",
+      "licenseName": null,
+      "tensorParameters": 27227128320,
+      "pipelineTag": "text-generation",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:d7e4b00a7d7a8d03d4eed9b0f3f61a427e9f0fc5dea6aeb414e41dee23dc8ecc",
+          "size": 15628378336
+        }
+      ]
+    },
+    {
+      "id": "gemma2:9b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-2-9b-it",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:25Z",
+          "sha256": "f55e0cad064056efd0df8182318e57e2790f28d8ac775b11492ac1dda11891f4"
+        },
+        {
+          "url": "https://huggingface.co/api/models/google/gemma-2-9b-it/revision/11c9b309abf73637e4b6f9a3fa1e92e615547819",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:26Z",
+          "sha256": "057a921bd2730940d8a9d7469439f5b4cdb27d5cfa4fa75ba37a389138407ef7"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-2-9b-it/raw/11c9b309abf73637e4b6f9a3fa1e92e615547819/config.json",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:26:27Z",
+          "sha256": "ddc36914d17b4cc2a3e897e580b57d3abc56a9604213788907e34113b7cd1a42"
+        },
+        {
+          "url": "https://huggingface.co/google/gemma-2-9b-it/raw/11c9b309abf73637e4b6f9a3fa1e92e615547819/README.md",
+          "status": 401,
+          "checkedAt": "2026-10-01T13:26:27Z",
+          "sha256": "ddc36914d17b4cc2a3e897e580b57d3abc56a9604213788907e34113b7cd1a42"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/gemma2/manifests/9b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:28Z",
+          "sha256": "ff02c3702f322b9e075e9568332d96c0a7028002f1a5a056e0a6784320a4db0b"
+        }
+      ],
+      "issues": [
+        "config inaccessible: HTTP 401",
+        "card inaccessible: HTTP 401"
+      ],
+      "requiresReview": true,
+      "revision": "11c9b309abf73637e4b6f9a3fa1e92e615547819",
+      "license": "gemma",
+      "licenseName": null,
+      "tensorParameters": 9241705984,
+      "pipelineTag": "text-generation",
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:ff1d1fc78170d787ee1201778e2dd65ea211654ca5fb7d69b5a2e7b123a50373",
+          "size": 5443143296
+        }
+      ]
+    },
+    {
+      "id": "yi:34b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/01-ai/Yi-1.5-34B-Chat",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:28Z",
+          "sha256": "3aa6dd84b1ce929e002fea5f68e55f4d4458d7036b50a4526663d094510b650e"
+        },
+        {
+          "url": "https://huggingface.co/api/models/01-ai/Yi-1.5-34B-Chat/revision/fa4ffba162f20948bf77c2a30eca952bf0812b7f",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:28Z",
+          "sha256": "3aa6dd84b1ce929e002fea5f68e55f4d4458d7036b50a4526663d094510b650e"
+        },
+        {
+          "url": "https://huggingface.co/01-ai/Yi-1.5-34B-Chat/raw/fa4ffba162f20948bf77c2a30eca952bf0812b7f/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:29Z",
+          "sha256": "5aee47078b2c1ca2e784306df05d8ccf5cdf253694f05e0abdc5b023d34c5a38"
+        },
+        {
+          "url": "https://huggingface.co/01-ai/Yi-1.5-34B-Chat/raw/fa4ffba162f20948bf77c2a30eca952bf0812b7f/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:29Z",
+          "sha256": "5b245685718cc62faa5a588e87ccc215532ff93bb2a6f24f1fd698445432b460"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/yi/manifests/34b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:29Z",
+          "sha256": "ff94bc7c1b7a4792e2fb6a9e8d1062e205c97180b18cc93c4ec943961bd8ab53"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "fa4ffba162f20948bf77c2a30eca952bf0812b7f",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 34388917248,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "llama",
+        "context": 4096,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 60,
+        "attentionHeads": 56,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 7168,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:648f108f6a1ef7e12c33003d2308028ec98356d4ebda894d7db541f9e8c11aeb",
+          "size": 19466529344
+        }
+      ]
+    },
+    {
+      "id": "yi:6b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/01-ai/Yi-1.5-6B-Chat",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:30Z",
+          "sha256": "e4f93bea26112657c49e80e2f8413ea6cf7dbbe381e7de3c20d68b7d09c29356"
+        },
+        {
+          "url": "https://huggingface.co/api/models/01-ai/Yi-1.5-6B-Chat/revision/771924d1c83d67527d665913415d7086f11ea9c0",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:30Z",
+          "sha256": "e4f93bea26112657c49e80e2f8413ea6cf7dbbe381e7de3c20d68b7d09c29356"
+        },
+        {
+          "url": "https://huggingface.co/01-ai/Yi-1.5-6B-Chat/raw/771924d1c83d67527d665913415d7086f11ea9c0/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:30Z",
+          "sha256": "74e1d68c56a03b43b752997f600feff7d67a156f6affd2ae491aaac014cd8c17"
+        },
+        {
+          "url": "https://huggingface.co/01-ai/Yi-1.5-6B-Chat/raw/771924d1c83d67527d665913415d7086f11ea9c0/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:31Z",
+          "sha256": "5b245685718cc62faa5a588e87ccc215532ff93bb2a6f24f1fd698445432b460"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/yi/manifests/6b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:31Z",
+          "sha256": "a7f031bb846ffb148caf7c67f4ad50bf0487f2c0b13882cff74b9668674e959a"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "771924d1c83d67527d665913415d7086f11ea9c0",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 6061035520,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "llama",
+        "context": 4096,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 32,
+        "attentionHeads": 32,
+        "kvHeads": 4,
+        "headDimension": null,
+        "hiddenSize": 4096,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:3502ee168c97b13ce3966acea684973e73c22f0ede62ca05f886b009b43b2f09",
+          "size": 3479326560
+        }
+      ]
+    },
+    {
+      "id": "yi:9b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/01-ai/Yi-1.5-9B-Chat",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:31Z",
+          "sha256": "82501895fb1a9a3856452c9227a003377077149d9928636c1075c917c734e6bd"
+        },
+        {
+          "url": "https://huggingface.co/api/models/01-ai/Yi-1.5-9B-Chat/revision/1a0fc698cf883c4f5c325f026ca79f0ebd9955a5",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:32Z",
+          "sha256": "82501895fb1a9a3856452c9227a003377077149d9928636c1075c917c734e6bd"
+        },
+        {
+          "url": "https://huggingface.co/01-ai/Yi-1.5-9B-Chat/raw/1a0fc698cf883c4f5c325f026ca79f0ebd9955a5/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:32Z",
+          "sha256": "a96597f583645c70ebda338eb3e3681c582eccc85b2a3e4b98eb031bce6e100d"
+        },
+        {
+          "url": "https://huggingface.co/01-ai/Yi-1.5-9B-Chat/raw/1a0fc698cf883c4f5c325f026ca79f0ebd9955a5/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:32Z",
+          "sha256": "5b245685718cc62faa5a588e87ccc215532ff93bb2a6f24f1fd698445432b460"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/yi/manifests/9b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:33Z",
+          "sha256": "3af70141e8ebd597c62c01a8521b8833656e9a734bfb258803bc2ea21987587a"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "1a0fc698cf883c4f5c325f026ca79f0ebd9955a5",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 8829407232,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "llama",
+        "context": 4096,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 48,
+        "attentionHeads": 32,
+        "kvHeads": 4,
+        "headDimension": null,
+        "hiddenSize": 4096,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:59b1e2a78cb0a5b8f7ba25e459ee17788242cd996e1f62a295dcbd65e5344b11",
+          "size": 5036994816
+        }
+      ]
+    },
+    {
+      "id": "phi3:mini",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/microsoft/Phi-3-mini-128k-instruct",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:34Z",
+          "sha256": "331fecb01645c121c9e8af6e22c2c488ea6e7dcb27d1173e4a3a5e562154ea61"
+        },
+        {
+          "url": "https://huggingface.co/api/models/microsoft/Phi-3-mini-128k-instruct/revision/f3c06aed622e14ca0abf5115094e4fc9a9948f36",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:34Z",
+          "sha256": "9065c814ee48cab409dfa3451c7552cff100bc20ebebd064391a84467cd8041a"
+        },
+        {
+          "url": "https://huggingface.co/microsoft/Phi-3-mini-128k-instruct/raw/f3c06aed622e14ca0abf5115094e4fc9a9948f36/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:34Z",
+          "sha256": "af70441b867458d18788c564ea69894adddaa4de47ab6534391604fc4893f03b"
+        },
+        {
+          "url": "https://huggingface.co/microsoft/Phi-3-mini-128k-instruct/raw/f3c06aed622e14ca0abf5115094e4fc9a9948f36/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:35Z",
+          "sha256": "e8ca83c574daf04766f44af8d60699b995fee48128b84f582c240eee28a5ffd1"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/phi3/manifests/mini",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:35Z",
+          "sha256": "4f222292793889a9a40a020799cfd28d53f3e01af25d48e06c5e708610fc47e9"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "f3c06aed622e14ca0abf5115094e4fc9a9948f36",
+      "license": "mit",
+      "licenseName": null,
+      "tensorParameters": 3821079552,
+      "pipelineTag": "text-generation",
+      "config": {
+        "modelType": "phi3",
+        "context": 131072,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 32,
+        "attentionHeads": 32,
+        "kvHeads": 32,
+        "headDimension": null,
+        "hiddenSize": 3072,
+        "ropeScaling": {
+          "long_factor": [
+            1.0700000524520874,
+            1.1200000047683716,
+            1.149999976158142,
+            1.4199999570846558,
+            1.5699999332427979,
+            1.7999999523162842,
+            2.129999876022339,
+            2.129999876022339,
+            3.009999990463257,
+            5.910000324249268,
+            6.950000286102295,
+            9.070000648498535,
+            9.930000305175781,
+            10.710000038146973,
+            11.130000114440918,
+            14.609999656677246,
+            15.409998893737793,
+            19.809999465942383,
+            37.279998779296875,
+            38.279998779296875,
+            38.599998474121094,
+            40.12000274658203,
+            46.20000457763672,
+            50.940006256103516,
+            53.66000747680664,
+            54.9373893737793,
+            56.89738845825195,
+            57.28738784790039,
+            59.98738479614258,
+            60.86738586425781,
+            60.887386322021484,
+            61.71739196777344,
+            62.91739273071289,
+            62.957393646240234,
+            63.41739273071289,
+            63.8173942565918,
+            63.83739471435547,
+            63.897396087646484,
+            63.93739700317383,
+            64.06739807128906,
+            64.11434936523438,
+            64.12435150146484,
+            64.15435028076172,
+            64.19435119628906,
+            64.24435424804688,
+            64.57435607910156,
+            64.69000244140625,
+            64.76000213623047
+          ],
+          "short_factor": [
+            1.1,
+            1.1,
+            1.1,
+            1.3000000000000003,
+            1.3500000000000003,
+            1.3500000000000003,
+            1.4000000000000004,
+            1.5500000000000005,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.000000000000001,
+            2.0500000000000007,
+            2.0500000000000007,
+            2.0500000000000007,
+            2.0500000000000007,
+            2.0500000000000007,
+            2.0500000000000007,
+            2.1000000000000005,
+            2.1000000000000005,
+            2.1500000000000004,
+            2.25,
+            2.25,
+            2.25,
+            2.25,
+            2.25,
+            2.3999999999999995,
+            2.4499999999999993,
+            2.499999999999999,
+            2.6999999999999984,
+            2.6999999999999984,
+            2.7499999999999982,
+            2.799999999999998,
+            2.8999999999999977,
+            3.049999999999997
+          ],
+          "type": "longrope"
+        },
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:633fc5be925f9a484b61d6f9b9a78021eeb462100bd557309f01ba84cac26adf",
+          "size": 2176177120
+        }
+      ]
+    },
+    {
+      "id": "mixtral:8x22b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/mistralai/Mixtral-8x22B-Instruct-v0.1",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:36Z",
+          "sha256": "d0c413817f2c34ed4a1bd9081c5ba19c79bb0800c1c895c459e1d6b1b54df59d"
+        },
+        {
+          "url": "https://huggingface.co/api/models/mistralai/Mixtral-8x22B-Instruct-v0.1/revision/cc88a6cc19fbd17d9f1c0ee0b0d70a748dce698d",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:36Z",
+          "sha256": "693d0ba48282be23eb5dd52e29cc47e8708b0638e08d1d742c990c0f049c846c"
+        },
+        {
+          "url": "https://huggingface.co/mistralai/Mixtral-8x22B-Instruct-v0.1/raw/cc88a6cc19fbd17d9f1c0ee0b0d70a748dce698d/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:36Z",
+          "sha256": "9c4a6138d84029ab666943613e3d5844d2ea8fd6149f44f77188c62e2915e0f5"
+        },
+        {
+          "url": "https://huggingface.co/mistralai/Mixtral-8x22B-Instruct-v0.1/raw/cc88a6cc19fbd17d9f1c0ee0b0d70a748dce698d/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:37Z",
+          "sha256": "312e8fa9f360c5064f68d9ccc4f14b139a88da57119394abcc795e78f137688b"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/mixtral/manifests/8x22b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:38Z",
+          "sha256": "e8479ee1cb51a2b82027bab45847b043be6de2cc5993bda964e931b6f934544b"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "cc88a6cc19fbd17d9f1c0ee0b0d70a748dce698d",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 140630071296,
+      "pipelineTag": null,
+      "config": {
+        "modelType": "mixtral",
+        "context": 65536,
+        "experts": 8,
+        "activeExperts": 2,
+        "layers": 56,
+        "attentionHeads": 48,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 6144,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:94e70a590f93b8f12eb2bc6ddb2e48b3f2fab0bc577fee4b1cb42305ba590916",
+          "size": 79521266688
+        }
+      ]
+    },
+    {
+      "id": "mixtral:8x7b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/mistralai/Mixtral-8x7B-Instruct-v0.1",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:38Z",
+          "sha256": "6fc65fa36dc3fa15de6a4be7960cb6547cea80a63e703d6bf4b4401bc1129afb"
+        },
+        {
+          "url": "https://huggingface.co/api/models/mistralai/Mixtral-8x7B-Instruct-v0.1/revision/eba92302a2861cdc0098cc54bc9f17cb2c47eb61",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:38Z",
+          "sha256": "6fc65fa36dc3fa15de6a4be7960cb6547cea80a63e703d6bf4b4401bc1129afb"
+        },
+        {
+          "url": "https://huggingface.co/mistralai/Mixtral-8x7B-Instruct-v0.1/raw/eba92302a2861cdc0098cc54bc9f17cb2c47eb61/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:39Z",
+          "sha256": "9d56d04b36d0fd12ff54ae4c5bac769cc176e254e64ff71144614b6318b40793"
+        },
+        {
+          "url": "https://huggingface.co/mistralai/Mixtral-8x7B-Instruct-v0.1/raw/eba92302a2861cdc0098cc54bc9f17cb2c47eb61/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:39Z",
+          "sha256": "b18a029ab6963341c72c7018efd61a600f794efd5945a2bf0d80960bfd624ff0"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/mixtral/manifests/8x7b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:40Z",
+          "sha256": "a3b6bef0f836ff29ddb576a80eeb1b7def43ec9b809466f62e96adb871fe8498"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "eba92302a2861cdc0098cc54bc9f17cb2c47eb61",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 46702792704,
+      "pipelineTag": null,
+      "config": {
+        "modelType": "mixtral",
+        "context": 32768,
+        "experts": 8,
+        "activeExperts": 2,
+        "layers": 32,
+        "attentionHeads": 32,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 4096,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:f2dc41fa964b42bfe34e9fb09c0acdcfbfd6e52f1332930b4eacc9d6ad1c6cd2",
+          "size": 26443590560
+        }
+      ]
+    },
+    {
+      "id": "mistral:7b",
+      "sources": [
+        {
+          "url": "https://huggingface.co/api/models/mistralai/Mistral-7B-Instruct-v0.3",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:40Z",
+          "sha256": "bab819afeb64e238a443389036057b24fec45d9adb8da0706beeb1ad19267004"
+        },
+        {
+          "url": "https://huggingface.co/api/models/mistralai/Mistral-7B-Instruct-v0.3/revision/c170c708c41dac9275d15a8fff4eca08d52bab71",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:40Z",
+          "sha256": "bab819afeb64e238a443389036057b24fec45d9adb8da0706beeb1ad19267004"
+        },
+        {
+          "url": "https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3/raw/c170c708c41dac9275d15a8fff4eca08d52bab71/config.json",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:40Z",
+          "sha256": "affafc6478ec0fd07a32f0ca57aa2fc57743f4d17d6730f86a96ac24d1507f99"
+        },
+        {
+          "url": "https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.3/raw/c170c708c41dac9275d15a8fff4eca08d52bab71/README.md",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:41Z",
+          "sha256": "3166974023134d972368b585d730fa5f70100873684f90a10a773b20e80b30ba"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistral/manifests/7b",
+          "status": 200,
+          "checkedAt": "2026-10-01T13:26:41Z",
+          "sha256": "6577803aa9a036369e481d648a2baebb381ebc6e897f2bb9a766a2aa7bfbc1cf"
+        }
+      ],
+      "issues": [
+
+      ],
+      "requiresReview": true,
+      "revision": "c170c708c41dac9275d15a8fff4eca08d52bab71",
+      "license": "apache-2.0",
+      "licenseName": null,
+      "tensorParameters": 7248023552,
+      "pipelineTag": null,
+      "config": {
+        "modelType": "mistral",
+        "context": 32768,
+        "experts": null,
+        "activeExperts": null,
+        "layers": 32,
+        "attentionHeads": 32,
+        "kvHeads": 8,
+        "headDimension": null,
+        "hiddenSize": 4096,
+        "ropeScaling": null,
+        "layerTypes": null
+      },
+      "artifactLayers": [
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "digest": "sha256:f5074b1221da0f5a2910d33b642efa5b9eb58cfdddca1c79e16d7ad28aa2b31f",
+          "size": 4372811712
+        }
+      ]
+    }
+  ]
+}

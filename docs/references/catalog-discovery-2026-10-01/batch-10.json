@@ -1,0 +1,405 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-01T09:21:52.813666Z",
+  "inventoryComplete": false,
+  "requiresReview": true,
+  "proposals": [
+    {
+      "repository": "medgemma1.5",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/medgemma1.5/manifests/latest",
+          "sha256": "433252621ab154668b5d8be6aff6c1b771bacba045e46e6193da8d6ad1630f2c",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:b785fcc637b245ffe1aad4dbb78b3dc617cbadca93012c3cf468230e8663d531\",\"size\":489},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:a051c2bd4ab8d5b7f4df8eec344f2fdd603efb2d098da799dc16c95e9e8bc838\",\"size\":3338928384},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:f79eab3dd094a88a34ba63d44a5b8a03504786626bd2316017752f1ecb14fac8\",\"size\":394},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:12cef37dd8275db7a4adf6d29f85c21b66903d9bb3976c0948e437bc4a2945f2\",\"size\":11684},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:d3a76cb8c4a07d0a6c82ac6e839f98816b5077699d393b2cc77008c16d8078ac\",\"size\":37}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/medgemma1.5/blobs/sha256:b785fcc637b245ffe1aad4dbb78b3dc617cbadca93012c3cf468230e8663d531",
+          "sha256": "b785fcc637b245ffe1aad4dbb78b3dc617cbadca93012c3cf468230e8663d531",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"gemma3\",\"model_families\":[\"gemma3\"],\"model_type\":\"4.3B\",\"file_type\":\"Q4_K_M\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:a051c2bd4ab8d5b7f4df8eec344f2fdd603efb2d098da799dc16c95e9e8bc838\",\"sha256:f79eab3dd094a88a34ba63d44a5b8a03504786626bd2316017752f1ecb14fac8\",\"sha256:12cef37dd8275db7a4adf6d29f85c21b66903d9bb3976c0948e437bc4a2945f2\",\"sha256:d3a76cb8c4a07d0a6c82ac6e839f98816b5077699d393b2cc77008c16d8078ac\"]}}\n"
+        }
+      ],
+      "artifactBytes": 3338928384.0,
+      "modelSha256": "a051c2bd4ab8d5b7f4df8eec344f2fdd603efb2d098da799dc16c95e9e8bc838",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"gemma3\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_K_M\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"4.3B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "meditron",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/meditron/manifests/latest",
+          "sha256": "ad11a6250f543902a2b963367aa86bb60982b12129d6943ed8fd4465854e3133",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:25481b76a226bb32d07b08b869a4e92650731b0f9d26c14fd83b2132eca2b9a6\",\"size\":455},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:ca7d20b78b4a51111bb532a88e450512de046adfb566b2c188a26e4ac866393d\",\"size\":3825807072},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:a47b02e00552cd7022ea700b1abf8c572bb26c9bc8c1a37e01b566f2344df5dc\",\"size\":106},{\"mediaType\":\"application/vnd.ollama.image.system\",\"digest\":\"sha256:e3d94d483bb9f76c701a17107764a3387bcc7d5332e124f04693886cc0fad7eb\",\"size\":155},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:6ee262b642769e03cf7062ef702d205ca9c7acfe2f424d547a21323b303b6447\",\"size\":74},{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:25481b76a226bb32d07b08b869a4e92650731b0f9d26c14fd83b2132eca2b9a6\",\"size\":455}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/meditron/blobs/sha256:25481b76a226bb32d07b08b869a4e92650731b0f9d26c14fd83b2132eca2b9a6",
+          "sha256": "25481b76a226bb32d07b08b869a4e92650731b0f9d26c14fd83b2132eca2b9a6",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"llama\",\"model_type\":\"7B\",\"file_type\":\"Q4_0\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:ca7d20b78b4a51111bb532a88e450512de046adfb566b2c188a26e4ac866393d\",\"sha256:a47b02e00552cd7022ea700b1abf8c572bb26c9bc8c1a37e01b566f2344df5dc\",\"sha256:e3d94d483bb9f76c701a17107764a3387bcc7d5332e124f04693886cc0fad7eb\",\"sha256:6ee262b642769e03cf7062ef702d205ca9c7acfe2f424d547a21323b303b6447\"]},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+        }
+      ],
+      "artifactBytes": 3825807072.0,
+      "modelSha256": "ca7d20b78b4a51111bb532a88e450512de046adfb566b2c188a26e4ac866393d",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"llama\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_0\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"7B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "medllama2",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/medllama2/manifests/latest",
+          "sha256": "a53737ec0c72e31e16968f232cad6a13d79b979d7c0cb13404dcd4405214c8f2",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:f3d56c5b85c0ce2c92ea61f4f867ed142c21b936869c14fd4c65d0fb407d47b1\",\"size\":381},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:f050c123dbd6006182412343ad6185c2d01316887e9cd77531d2aaf0060d6756\",\"size\":3825807040},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:4dec76bb1a4744ce1355e7d72a5362e1113eab96a55be46753a2320b7b12c60f\",\"size\":45},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:0644cce03f93ee11a936926c2f71a7f3998c94308002eb04c410228dba12636d\",\"size\":31}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/medllama2/blobs/sha256:f3d56c5b85c0ce2c92ea61f4f867ed142c21b936869c14fd4c65d0fb407d47b1",
+          "sha256": "f3d56c5b85c0ce2c92ea61f4f867ed142c21b936869c14fd4c65d0fb407d47b1",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"llama\",\"model_type\":\"7B\",\"file_type\":\"Q4_0\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:f050c123dbd6006182412343ad6185c2d01316887e9cd77531d2aaf0060d6756\",\"sha256:4dec76bb1a4744ce1355e7d72a5362e1113eab96a55be46753a2320b7b12c60f\",\"sha256:0644cce03f93ee11a936926c2f71a7f3998c94308002eb04c410228dba12636d\"]},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+        }
+      ],
+      "artifactBytes": 3825807040.0,
+      "modelSha256": "f050c123dbd6006182412343ad6185c2d01316887e9cd77531d2aaf0060d6756",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"llama\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_0\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"7B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "megadolphin",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/megadolphin/manifests/latest",
+          "sha256": "8fa55398527b7cd2eab87e557ef08e90337126182c28793b8a45cf510504f535",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:260c5790eb002d91ae50646d903bd45bd3a8e949f8ef8c96696b61f00020a4c4\",\"size\":559},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:c3fb7b7af35d112087fc186d42bd72d1ddce6bbee1c0e06a3a4526a6ebbe5132\",\"size\":67754993504},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:8e76cdb0b2ac2e5a9e216b722d0da1ec5bedc6ec9441c81667e508b6fb94632c\",\"size\":7199},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:a47b02e00552cd7022ea700b1abf8c572bb26c9bc8c1a37e01b566f2344df5dc\",\"size\":106},{\"mediaType\":\"application/vnd.ollama.image.system\",\"digest\":\"sha256:9640c2212a51f7df5840f7929448afa17cb33fbb173cf15e1d74883e932a3466\",\"size\":41},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:f02dd72bb2423204352eabc5637b44d79d17f109fdb510a7c51455892aa2d216\",\"size\":59}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/megadolphin/blobs/sha256:260c5790eb002d91ae50646d903bd45bd3a8e949f8ef8c96696b61f00020a4c4",
+          "sha256": "260c5790eb002d91ae50646d903bd45bd3a8e949f8ef8c96696b61f00020a4c4",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"llama\",\"model_families\":[\"llama\"],\"model_type\":\"120B\",\"file_type\":\"Q4_0\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:c3fb7b7af35d112087fc186d42bd72d1ddce6bbee1c0e06a3a4526a6ebbe5132\",\"sha256:8e76cdb0b2ac2e5a9e216b722d0da1ec5bedc6ec9441c81667e508b6fb94632c\",\"sha256:a47b02e00552cd7022ea700b1abf8c572bb26c9bc8c1a37e01b566f2344df5dc\",\"sha256:9640c2212a51f7df5840f7929448afa17cb33fbb173cf15e1d74883e932a3466\",\"sha256:f02dd72bb2423204352eabc5637b44d79d17f109fdb510a7c51455892aa2d216\"]}}\n"
+        }
+      ],
+      "artifactBytes": 67754993504.0,
+      "modelSha256": "c3fb7b7af35d112087fc186d42bd72d1ddce6bbee1c0e06a3a4526a6ebbe5132",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"llama\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_0\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"120B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "minicpm-v",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/minicpm-v/manifests/latest",
+          "sha256": "c92bfad0120556eda311984f1ac2f0d0a589b8d68c4053c13486b526276aa205",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:175e3bb367ab5983da9bd018ff33850f834bf65cedeaa7ce5b3cd1369e0131f8\",\"size\":566},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:262843d4806aeb402336980badd414a72576b20b1e5d537647da15f16c4a4df0\",\"size\":4429406528},{\"mediaType\":\"application/vnd.ollama.image.projector\",\"digest\":\"sha256:f8a805e9e62085805c69c427287acefc284932eb4abfe6e1b1ce431d27e2f4e0\",\"size\":1044425152},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:60ed67c565f89a3cd5dfa4a142270b88a1f7e9b6e6de416e9961b1ccfcaec360\",\"size\":506},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:8603ca877636626b927fbed6fef315f854f6fc78588c1ad282d57bd465fd37df\",\"size\":5655},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:f02dd72bb2423204352eabc5637b44d79d17f109fdb510a7c51455892aa2d216\",\"size\":59}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/minicpm-v/blobs/sha256:175e3bb367ab5983da9bd018ff33850f834bf65cedeaa7ce5b3cd1369e0131f8",
+          "sha256": "175e3bb367ab5983da9bd018ff33850f834bf65cedeaa7ce5b3cd1369e0131f8",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"qwen2\",\"model_families\":[\"qwen2\",\"clip\"],\"model_type\":\"7.6B\",\"file_type\":\"Q4_0\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:262843d4806aeb402336980badd414a72576b20b1e5d537647da15f16c4a4df0\",\"sha256:f8a805e9e62085805c69c427287acefc284932eb4abfe6e1b1ce431d27e2f4e0\",\"sha256:60ed67c565f89a3cd5dfa4a142270b88a1f7e9b6e6de416e9961b1ccfcaec360\",\"sha256:43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1\",\"sha256:f02dd72bb2423204352eabc5637b44d79d17f109fdb510a7c51455892aa2d216\"]}}\n"
+        }
+      ],
+      "artifactBytes": 5473831680.0,
+      "modelSha256": "262843d4806aeb402336980badd414a72576b20b1e5d537647da15f16c4a4df0",
+      "projectors": [
+        {
+          "bytes": 1044425152,
+          "sha256": "f8a805e9e62085805c69c427287acefc284932eb4abfe6e1b1ce431d27e2f4e0"
+        }
+      ],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"qwen2\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_0\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"7.6B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "ministral-3",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/ministral-3/manifests/latest",
+          "sha256": "1922accd5827ebe6829e536369195db25eaf664528dc66206d646ea3bb386b71",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:22eb5c960e5fcd76cb4916c43224d8589813f3ce02d8707164b807c16210aff6\",\"size\":514},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:3ea32f882c990baebcfe6ab5cda2e3167d54ab16d7937c0b9aa3db11aba01574\",\"size\":6022221312},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:5b74c26b9e0b6358e73d0a7eb2f955105097e7bd10b45fa0d2a50f0a906e0798\",\"size\":3413},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1\",\"size\":11356},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:e0daf17ff83eace4813f9e8554b262f6cc33ad880ff8df41a156ff9ef5522ddb\",\"size\":21}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/ministral-3/blobs/sha256:22eb5c960e5fcd76cb4916c43224d8589813f3ce02d8707164b807c16210aff6",
+          "sha256": "22eb5c960e5fcd76cb4916c43224d8589813f3ce02d8707164b807c16210aff6",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"mistral3\",\"model_families\":[\"mistral3\"],\"model_type\":\"8.9B\",\"file_type\":\"Q4_K_M\",\"parser\":\"ministral\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:3ea32f882c990baebcfe6ab5cda2e3167d54ab16d7937c0b9aa3db11aba01574\",\"sha256:5b74c26b9e0b6358e73d0a7eb2f955105097e7bd10b45fa0d2a50f0a906e0798\",\"sha256:43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1\",\"sha256:e0daf17ff83eace4813f9e8554b262f6cc33ad880ff8df41a156ff9ef5522ddb\"]}}\n"
+        }
+      ],
+      "artifactBytes": 6022221312.0,
+      "modelSha256": "3ea32f882c990baebcfe6ab5cda2e3167d54ab16d7937c0b9aa3db11aba01574",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"mistral3\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_K_M\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"8.9B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "mistral-large",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistral-large/manifests/latest",
+          "sha256": "bbcf36dc47addf03bc2f317b1a5e451a0b5a64417eb9e2de1963ebac4909c238",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:679a26de66f6bef1d81e83649b27e0c7f6c5c15079e62542c9b96e960e8c0657\",\"size\":489},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:f40bfe11b0b1999a1353589c54e9de6aa2216da0d307ff98d9485dcd18ce074e\",\"size\":73219622912},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:96adabcf2c08a0e1a81a2f217bd8443499a940ada2e7820aec248ca87414ab97\",\"size\":896},{\"mediaType\":\"application/vnd.ollama.image.license\",\"digest\":\"sha256:06a6f77f3e9529e5c8826794c2057c2270968fae4c5cb99432d00671082e6ba8\",\"size\":11156},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:ac9aa3c4956dba22deb5330f3dfc21a403d74742ef7227033235a92a3808e4da\",\"size\":47}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistral-large/blobs/sha256:679a26de66f6bef1d81e83649b27e0c7f6c5c15079e62542c9b96e960e8c0657",
+          "sha256": "679a26de66f6bef1d81e83649b27e0c7f6c5c15079e62542c9b96e960e8c0657",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"llama\",\"model_families\":[\"llama\"],\"model_type\":\"122.6B\",\"file_type\":\"Q4_K_M\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:f40bfe11b0b1999a1353589c54e9de6aa2216da0d307ff98d9485dcd18ce074e\",\"sha256:96adabcf2c08a0e1a81a2f217bd8443499a940ada2e7820aec248ca87414ab97\",\"sha256:06a6f77f3e9529e5c8826794c2057c2270968fae4c5cb99432d00671082e6ba8\",\"sha256:ac9aa3c4956dba22deb5330f3dfc21a403d74742ef7227033235a92a3808e4da\"]}}\n"
+        }
+      ],
+      "artifactBytes": 73219622912.0,
+      "modelSha256": "f40bfe11b0b1999a1353589c54e9de6aa2216da0d307ff98d9485dcd18ce074e",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"llama\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_K_M\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"122.6B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "mistral-medium-3.5",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistral-medium-3.5/manifests/latest",
+          "sha256": "0341632adb051badc332bd814779ab931ab78619750bebe3b7c7b1401e9d70df",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:bf51f2aad6d48ca4c8dcc10638cbd0bdf05ffa1bd208079f215ffdea1e33fba7\",\"size\":442},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:a46088eccd0d171cc2694f315f2921bd0fda0ae3577099c4864cbe98f190807e\",\"size\":80241468320},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:20c887c0de3e632fd30dbb5bb41943aa9c9d39f9bd19b9eff7f73915981c90bb\",\"size\":3964},{\"mediaType\":\"application/vnd.ollama.image.system\",\"digest\":\"sha256:a11f7cb278ddf926b4bc8a768030bd4291cea42701520852f6c61fdd4d607e6d\",\"size\":2373}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistral-medium-3.5/blobs/sha256:bf51f2aad6d48ca4c8dcc10638cbd0bdf05ffa1bd208079f215ffdea1e33fba7",
+          "sha256": "bf51f2aad6d48ca4c8dcc10638cbd0bdf05ffa1bd208079f215ffdea1e33fba7",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"mistral3\",\"model_families\":[\"mistral3\"],\"model_type\":\"127.7B\",\"file_type\":\"Q4_K_M\",\"parser\":\"ministral\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:a46088eccd0d171cc2694f315f2921bd0fda0ae3577099c4864cbe98f190807e\",\"sha256:20c887c0de3e632fd30dbb5bb41943aa9c9d39f9bd19b9eff7f73915981c90bb\",\"sha256:a11f7cb278ddf926b4bc8a768030bd4291cea42701520852f6c61fdd4d607e6d\"]}}\n"
+        }
+      ],
+      "artifactBytes": 80241468320.0,
+      "modelSha256": "a46088eccd0d171cc2694f315f2921bd0fda0ae3577099c4864cbe98f190807e",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"mistral3\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_K_M\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"127.7B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "mistral-openorca",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistral-openorca/manifests/latest",
+          "sha256": "12dc6acc14d0c4d3309e035cac6ff83e64c023aa774b21c41e342982699f436c",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:27f65592e7c9dcd0b8238f4038117059cbc3364acefde23a92fbd93828fd7d86\",\"size\":381},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:6504ba23a37160de70db611212815c9aab171864d206b8c013b72fd0b16e19eb\",\"size\":4108927680},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:ecf1d3ca1fb53d793cbaac0d1928dfa4cfea479cb9c746a09823ec5875cee90c\",\"size\":135},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:de6bcd73f9b4d9c3dd5d86f32c55229125ef49a48487d1b741400cb1ea5991eb\",\"size\":58}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistral-openorca/blobs/sha256:27f65592e7c9dcd0b8238f4038117059cbc3364acefde23a92fbd93828fd7d86",
+          "sha256": "27f65592e7c9dcd0b8238f4038117059cbc3364acefde23a92fbd93828fd7d86",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"llama\",\"model_type\":\"7B\",\"file_type\":\"Q4_0\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:6504ba23a37160de70db611212815c9aab171864d206b8c013b72fd0b16e19eb\",\"sha256:ecf1d3ca1fb53d793cbaac0d1928dfa4cfea479cb9c746a09823ec5875cee90c\",\"sha256:de6bcd73f9b4d9c3dd5d86f32c55229125ef49a48487d1b741400cb1ea5991eb\"]},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+        }
+      ],
+      "artifactBytes": 4108927680.0,
+      "modelSha256": "6504ba23a37160de70db611212815c9aab171864d206b8c013b72fd0b16e19eb",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"llama\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_0\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"7B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    },
+    {
+      "repository": "mistral-small3.1",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistral-small3.1/manifests/latest",
+          "sha256": "b9aaf0c2586a8ed8105feab808c0f034bd4d346203822f048e2366165a13f4ea",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:9b6ac0d4e97e3f367b82ed5271ce22f33b7083a14907fdd839673bb85eb356c6\",\"size\":494},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:1fa8532d986d729117d6b5ac2c884824d0717c9468094554fd1d36412c740cfc\",\"size\":15486896384},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:6db27cd4e277c91264572b9c899c1980daa8dea11e902f0070a6f4763f3d13c8\",\"size\":695},{\"mediaType\":\"application/vnd.ollama.image.system\",\"digest\":\"sha256:70a4dab5e1d14953cc95c7d4ee1003f05c2474a39cd07fef2f8975c776455d33\",\"size\":1526},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:a00920c28dfd776d75b999418d3736291dad8f7cede46bd8301cf64738460d0e\",\"size\":17}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/mistral-small3.1/blobs/sha256:9b6ac0d4e97e3f367b82ed5271ce22f33b7083a14907fdd839673bb85eb356c6",
+          "sha256": "9b6ac0d4e97e3f367b82ed5271ce22f33b7083a14907fdd839673bb85eb356c6",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"mistral3\",\"model_families\":[\"mistral3\"],\"model_type\":\"24.0B\",\"file_type\":\"Q4_K_M\",\"architecture\":\"amd64\",\"os\":\"linux\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:1fa8532d986d729117d6b5ac2c884824d0717c9468094554fd1d36412c740cfc\",\"sha256:6db27cd4e277c91264572b9c899c1980daa8dea11e902f0070a6f4763f3d13c8\",\"sha256:70a4dab5e1d14953cc95c7d4ee1003f05c2474a39cd07fef2f8975c776455d33\",\"sha256:a00920c28dfd776d75b999418d3736291dad8f7cede46bd8301cf64738460d0e\"]}}\n"
+        }
+      ],
+      "artifactBytes": 15486896384.0,
+      "modelSha256": "1fa8532d986d729117d6b5ac2c884824d0717c9468094554fd1d36412c740cfc",
+      "projectors": [],
+      "claims": [],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"mistral3\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_K_M\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"24.0B\""
+        }
+      ],
+      "extractionStatus": "disabled",
+      "extractionError": null
+    }
+  ],
+  "nextAfter": "mistral-small3.1",
+  "remainingCandidates": 82
+}

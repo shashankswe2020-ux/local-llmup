@@ -1785,6 +1785,8 @@ input {
 .model-detail,
 #model-detail-content {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   gap: 1rem;
 }
 

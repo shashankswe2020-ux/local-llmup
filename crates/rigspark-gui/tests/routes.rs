@@ -134,3 +134,57 @@ async fn oversized_json_is_rejected_before_storage() {
     );
     assert!(host.sessions.list(false, 0, 50).unwrap().0.is_empty());
 }
+
+#[tokio::test]
+async fn local_benchmark_report_is_not_exposed_by_gui() {
+    let home = tempfile::tempdir().unwrap();
+    let host = Host::new(home.path(), 43210).unwrap();
+    let path = home.path().join("benchmark-report.json");
+    std::fs::write(&path, r#"{"schemaVersion":1,"title":"Comparison","hardware":"Test host","runtime":"Test runtime","settings":{},"models":{},"summary":{},"quality":[],"errors":[],"caveats":[],"completedAt":"2026-10-01T00:00:00Z"}"#).unwrap();
+    for endpoint in ["/api/benchmarks", "/static/benchmarks.js"] {
+        assert_eq!(
+            call(&host, "GET", endpoint, Value::Null).await.0,
+            StatusCode::NOT_FOUND,
+            "{endpoint}"
+        );
+    }
+    assert!(!include_str!("../static/index.html").contains("benchmarks"));
+    assert!(!include_str!("../static/chat.js").contains("RigSparkBenchmarks"));
+}
+
+#[tokio::test]
+async fn catalog_browsing_limit_is_bounded_and_default_stays_eight() {
+    let home = tempfile::tempdir().unwrap();
+    let host = Host::new(home.path(), 43210).unwrap();
+    for limit in ["0", "101", "-1", "invalid"] {
+        assert_eq!(
+            call(
+                &host,
+                "GET",
+                &format!("/api/models/recommended?limit={limit}"),
+                json!({})
+            )
+            .await
+            .0,
+            StatusCode::BAD_REQUEST
+        );
+    }
+    let (status, default) = call(&host, "GET", "/api/models/recommended", json!({})).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(default["models"].as_array().unwrap().len() <= 8);
+    let (status, expanded) =
+        call(&host, "GET", "/api/models/recommended?limit=100", json!({})).await;
+    assert_eq!(status, StatusCode::OK);
+    let default = default["models"].as_array().unwrap();
+    let expanded = expanded["models"].as_array().unwrap();
+    assert!(expanded.len() <= 100);
+    assert!(expanded.len() >= default.len());
+    assert_eq!(
+        default.iter().map(|model| &model["id"]).collect::<Vec<_>>(),
+        expanded
+            .iter()
+            .take(default.len())
+            .map(|model| &model["id"])
+            .collect::<Vec<_>>()
+    );
+}

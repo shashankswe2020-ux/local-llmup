@@ -1,28 +1,80 @@
 {
   "policyVersion": 1,
-  "evaluatedAt": "2026-09-30T17:37:31.170070201Z",
-  "catalogSha256": "1ac2374cc13762271aa048bd3e2373a3c4cccde92a8d26d6fd7025bf32c6a5fb",
-  "evidenceSha256": "83d50a28729fe17ee20c8b43df97e31d614ce08c490ca8babcb15d9c76a23c67",
+  "evaluatedAt": "2026-10-01T19:32:26.435263Z",
+  "catalogSha256": "1d465423f9d6d64e4b761d0a4ad9750333a82f95a0a24b7ce3b22ed7b300156a",
+  "evidenceSha256": "25c688c41c5e7b0e078f248ab18d528f148e51ce27c4dc39e13307a512dc00e6",
   "minimumPercent": 90,
   "evidenceMaxAgeDays": 7,
-  "catalogEntries": 67,
-  "freshEntries": 0,
-  "verifiedEntries": 0,
-  "eligibleVariants": 0,
-  "coveredVariants": 0,
+  "catalogEntries": 69,
+  "freshEntries": 2,
+  "verifiedEntries": 2,
+  "eligibleVariants": 9,
+  "coveredVariants": 2,
   "coveragePercent": null,
-  "recencyPercent": 0.0,
+  "recencyPercent": 2.898550724637681,
   "freshnessPercent": null,
-  "correctnessPercent": 0.0,
+  "correctnessPercent": 2.898550724637681,
   "passed": false,
   "blockers": [
     "Upstream variant inventory is missing, incomplete, empty, or older than 7 days."
   ],
-  "missingVariants": [],
-  "scopes": [],
+  "missingVariants": [
+    "qwen3.5:0.8b",
+    "qwen3.5:122b",
+    "qwen3.5:27b",
+    "qwen3.5:2b",
+    "qwen3.5:35b",
+    "qwen3.5:9b",
+    "qwen3.6:27b"
+  ],
+  "scopes": [
+    {
+      "name": "ollama-local-variants",
+      "checkedAt": "2026-09-30T11:10:26Z",
+      "source": "https://ollama.com/library",
+      "complete": false,
+      "variants": [
+        "qwen3.6:35b",
+        "qwen3.6:27b",
+        "qwen3.5:0.8b",
+        "qwen3.5:2b",
+        "qwen3.5:4b",
+        "qwen3.5:9b",
+        "qwen3.5:27b",
+        "qwen3.5:35b",
+        "qwen3.5:122b"
+      ]
+    }
+  ],
   "entries": [
     {
       "id": "qwen3.6:35b",
+      "checkedAt": "2026-09-30T11:03:28Z",
+      "sources": [
+        "https://huggingface.co/Qwen/Qwen3.6-35B-A3B",
+        "https://huggingface.co/Qwen/Qwen3.6-35B-A3B/blob/995ad96eacd98c81ed38be0c5b274b04031597b0/config.json",
+        "https://ollama.com/library/qwen3.6:35b",
+        "https://registry.ollama.ai/v2/library/qwen3.6/manifests/35b"
+      ],
+      "fresh": true,
+      "verified": true,
+      "reason": "verified"
+    },
+    {
+      "id": "bonsai:8b",
+      "checkedAt": "2026-10-01T12:32:41Z",
+      "sources": [
+        "https://prismml.com/news/bonsai-8b",
+        "https://huggingface.co/prism-ml/Bonsai-8B-gguf/blob/48516770dd04643643e9f9019a2a349cf26c5dbd/README.md",
+        "https://huggingface.co/api/models/prism-ml/Bonsai-8B-gguf/revision/48516770dd04643643e9f9019a2a349cf26c5dbd",
+        "https://huggingface.co/prism-ml/Bonsai-8B-gguf/blob/48516770dd04643643e9f9019a2a349cf26c5dbd/Bonsai-8B-Q1_0.gguf"
+      ],
+      "fresh": true,
+      "verified": true,
+      "reason": "verified"
+    },
+    {
+      "id": "gemma4:e4b-it-qat",
       "checkedAt": null,
       "sources": [],
       "fresh": false,
@@ -30,7 +82,7 @@
       "reason": "missing evidence"
     },
     {
-      "id": "gemma4:e4b-it-qat",
+      "id": "qwen3.5:4b",
       "checkedAt": null,
       "sources": [],
       "fresh": false,

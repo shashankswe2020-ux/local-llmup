@@ -40,6 +40,33 @@
       ]
     },
     {
+      "id": "bonsai:8b",
+      "family": "bonsai",
+      "params": "8.19B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 65536.0,
+      "capabilities": ["chat", "code", "tools"],
+      "releaseDate": "2026-03-31",
+      "source": {
+        "hf": "prism-ml/Bonsai-8B-gguf",
+        "gguf": {
+          "repo": "prism-ml/Bonsai-8B-gguf",
+          "revision": "48516770dd04643643e9f9019a2a349cf26c5dbd",
+          "file": "Bonsai-8B-Q1_0.gguf",
+          "sha256": "284a335aa3fb2ced3b1b01fcb40b08aa783e3b70832767f0dd2e3fdfa134bd54"
+        }
+      },
+      "quantizations": [{
+        "name": "Q1_0",
+        "diskBytes": 1158654496.0,
+        "minRamBytes": 1332452671.0,
+        "minVramBytes": 1332452671.0,
+        "sha256": "284a335aa3fb2ced3b1b01fcb40b08aa783e3b70832767f0dd2e3fdfa134bd54"
+      }]
+    },
+    {
       "id": "gemma4:e4b-it-qat",
       "family": "gemma4",
       "params": "8B",
@@ -75,6 +102,36 @@
         }
       ],
       "benchmarkProxy": 0.52
+    },
+    {
+      "id": "qwen3.5:4b",
+      "family": "qwen3.5",
+      "params": "4.66B",
+      "architecture": "dense",
+      "license": "apache-2.0",
+      "openWeight": true,
+      "contextLength": 262144.0,
+      "capabilities": [
+        "chat",
+        "vision",
+        "reasoning",
+        "tools",
+        "code"
+      ],
+      "releaseDate": "2026-02-27",
+      "source": {
+        "ollama": "qwen3.5:4b",
+        "hf": "Qwen/Qwen3.5-4B"
+      },
+      "quantizations": [
+        {
+          "name": "Q4_K_M",
+          "diskBytes": 3389971840.0,
+          "minRamBytes": 3898467616.0,
+          "minVramBytes": 3898467616.0,
+          "sha256": "81fb60c7daa80fc1123380b98970b320ae233409f0f71a72ed7b9b0d62f40490"
+        }
+      ]
     },
     {
       "id": "kimi-k2-thinking",

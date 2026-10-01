@@ -9,7 +9,10 @@ fn snapshot_entries_build_independently_and_have_pinned_family_offsets() {
     let candidates = parse_candidates(include_str!("../fixtures/registry-snapshot.json")).unwrap();
     let expected = Catalog::parse(include_str!("../fixtures/bootstrap-oracle.json")).unwrap();
     for candidate in candidates {
-        if candidate.id == "qwen3.6:35b" {
+        if matches!(
+            candidate.id.as_str(),
+            "qwen3.6:35b" | "qwen3.5:4b" | "bonsai:8b"
+        ) {
             assert!(rigspark_core::bootstrap::family_quality_offset(&candidate.family).is_none());
             continue;
         }
@@ -54,7 +57,12 @@ fn committed_curated_fields_match_bootstrap_without_overwriting_live_quant_facts
 fn complete_bootstrap_matches_frozen_typescript_oracle() {
     let mut candidates =
         parse_candidates(include_str!("../fixtures/registry-snapshot.json")).unwrap();
-    candidates.retain(|candidate| candidate.id != "qwen3.6:35b");
+    candidates.retain(|candidate| {
+        !matches!(
+            candidate.id.as_str(),
+            "qwen3.6:35b" | "qwen3.5:4b" | "bonsai:8b"
+        )
+    });
     let expected = Catalog::parse(include_str!("../fixtures/bootstrap-oracle.json")).unwrap();
     let actual = build_catalog(&candidates, BOOTSTRAP_CLOCK).unwrap();
     assert_eq!(actual.models.len(), 66);
@@ -127,6 +135,30 @@ fn preserves_exact_geometry_and_unknown_attention_honesty_gate() {
             None
         );
     }
+}
+
+#[test]
+fn includes_the_official_qwen35_4b_ollama_artifact() {
+    let catalog = Catalog::parse(include_str!("../../rigspark-core/data/models.json")).unwrap();
+    let model = catalog
+        .models
+        .iter()
+        .find(|model| model.id == "qwen3.5:4b")
+        .unwrap();
+    assert_eq!(model.family, "qwen3.5");
+    assert_eq!(model.params, "4.66B");
+    assert_eq!(model.context_length, 262_144.0);
+    assert_eq!(model.source.ollama.as_deref(), Some("qwen3.5:4b"));
+    assert_eq!(model.source.hf.as_deref(), Some("Qwen/Qwen3.5-4B"));
+    assert_eq!(model.kv_bytes_per_token, None);
+    assert_eq!(model.quantizations.len(), 1);
+    let quant = &model.quantizations[0];
+    assert_eq!(quant.name, "Q4_K_M");
+    assert_eq!(quant.disk_bytes, 3_389_971_840.0);
+    assert_eq!(
+        quant.sha256.as_deref(),
+        Some("81fb60c7daa80fc1123380b98970b320ae233409f0f71a72ed7b9b0d62f40490")
+    );
 }
 
 #[test]

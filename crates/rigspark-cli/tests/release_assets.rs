@@ -69,7 +69,12 @@ fn checksum_files_are_strict_and_bounded() {
 fn homebrew_formula_pins_every_unix_archive_and_installs_the_trio() {
     let formula = homebrew_formula("1.0.0", &parse_checksums(&checksums()).unwrap()).unwrap();
     assert!(formula.starts_with("class Rigspark < Formula\n"));
-    assert!(formula.contains("  version \"1.0.0\"\n"));
+    let description = formula
+        .lines()
+        .find_map(|line| line.strip_prefix("  desc \"")?.strip_suffix('"'))
+        .unwrap();
+    assert!(description.len() < 80, "{description}");
+    assert!(!formula.contains("  version \""));
     assert!(formula.contains("  license \"MIT\"\n"));
     for (target, sha) in [
         "aarch64-apple-darwin",

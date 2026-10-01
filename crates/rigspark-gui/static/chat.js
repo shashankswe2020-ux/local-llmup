@@ -1374,7 +1374,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const badge = detailElement(
       "span",
       `verdict-badge verdict-${model.verdict}`,
-      verdictLabel(model.verdict),
+      verdictLabel(model.verdict, model.throughput),
     );
     titleRow.appendChild(title);
     titleRow.appendChild(badge);
@@ -1633,7 +1633,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function verdictLabel(verdict) {
+  function verdictLabel(verdict, throughput) {
+    if (verdict !== "no" && throughput?.known === false) {
+      return "Speed unknown";
+    }
     if (verdict === "yes") {
       return "Runs well";
     }
@@ -1687,7 +1690,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!payload.bypass) throw new Error("Installed models require explicit bypass consent");
       }
       if ((payload.bypass || payload.context !== undefined || payload.kvCache) && !globalThis.confirm(
-        `Start ${id} at ${payload.context ?? "default"} context?${payload.bypass ? " Estimated fit may be wrong or unknown; memory exhaustion or CPU offload is possible." : ""}${payload.installed ? " Local manifest integrity will be checked, not catalog provenance." : " Weight integrity checks remain enabled."}${payload.context !== undefined ? " A separate runtime model tag will be created; the source tag stays unchanged." : ""}${payload.kvCache ? ` KV cache ${payload.kvCache} applies only to a runtime rigspark starts; an already running server is refused, not changed.` : ""}`,
+        `Start ${id} at ${payload.context ?? "default"} context?${payload.bypass ? " Estimated fit may be wrong or unknown; memory exhaustion or CPU offload is possible." : ""}${payload.installed ? " Local manifest integrity will be checked, not catalog provenance." : " Weight integrity checks remain enabled."}${payload.context !== undefined && payload.backend === "ollama" ? " A separate runtime model tag will be created; the source tag stays unchanged." : ""}${payload.kvCache ? ` KV cache ${payload.kvCache} applies only to a runtime rigspark starts; an already running server is refused, not changed.` : ""}`,
       )) return;
       const response = await globalThis.fetch("/api/models/up", {
         method: "POST",
@@ -1744,7 +1747,7 @@ document.addEventListener("DOMContentLoaded", () => {
       title.textContent = model.id;
       const badge = document.createElement("span");
       badge.className = `verdict-badge verdict-${model.verdict}`;
-      badge.textContent = verdictLabel(model.verdict);
+      badge.textContent = verdictLabel(model.verdict, model.throughput);
       head.appendChild(title);
       head.appendChild(badge);
 
@@ -1843,6 +1846,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const runtime = selectedRuntime();
       const params = new globalThis.URLSearchParams();
       const installed = modelSource?.value === "installed";
+      if (!installed) params.set("limit", "100");
       if (runtime && !installed) {
         params.set("runtime", runtime);
       }
@@ -1888,11 +1892,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const catalogStatus = document.querySelector("#catalog-status");
   const updateCatalog = document.querySelector("#update-catalog");
   const catalogUpdateError = document.querySelector("#catalog-update-error");
+  const catalogUpdateResult = document.querySelector("#catalog-update-result");
   let catalogUpdating = false;
   let catalogStatusSequence = 0;
+  let currentCatalogStatus = null;
 
   function renderCatalogStatus(status) {
     if (!catalogStatus || !updateCatalog) return;
+    currentCatalogStatus = status;
     const date = status.publishedAt || status.generatedAt;
     const revision = status.revision ? `, revision ${status.revision}` : "";
     catalogStatus.textContent = `Catalog: ${status.source}, ${String(date || "unknown").slice(0, 10)}${revision} (${status.modelCount} models)`;
@@ -1920,11 +1927,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   updateCatalog?.addEventListener("click", async () => {
     if (catalogUpdating) return;
+    const previousCatalog = currentCatalogStatus;
     catalogUpdating = true;
     ++catalogStatusSequence;
     updateCatalog.disabled = true;
     updateCatalog.textContent = "Updating...";
     catalogUpdateError.hidden = true;
+    catalogUpdateResult.hidden = true;
     catalogStatus.textContent = "Downloading and verifying catalog...";
     try {
       const response = await globalThis.fetch("/api/catalog/update", {
@@ -1936,6 +1945,13 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : "Catalog update failed");
       renderCatalogStatus(data.catalog);
       await loadModels();
+      const unchanged = previousCatalog?.source === data.catalog.source
+        && previousCatalog?.revision === data.catalog.revision
+        && previousCatalog?.digest === data.catalog.digest;
+      catalogUpdateResult.textContent = unchanged
+        ? `Already using the latest published catalog: revision ${data.catalog.revision} (${data.catalog.modelCount} models).`
+        : `Catalog updated to revision ${data.catalog.revision} (${data.catalog.modelCount} models).`;
+      catalogUpdateResult.hidden = false;
     } catch (error) {
       catalogUpdateError.textContent = error.message;
       catalogUpdateError.hidden = false;

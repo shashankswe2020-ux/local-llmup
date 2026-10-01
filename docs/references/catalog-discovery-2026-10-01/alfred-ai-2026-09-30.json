@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-30T17:37:26.576175228Z",
+  "inventoryComplete": false,
+  "requiresReview": true,
+  "proposals": [
+    {
+      "repository": "alfred",
+      "status": "candidate",
+      "sources": [
+        {
+          "url": "https://registry.ollama.ai/v2/library/alfred/manifests/latest",
+          "sha256": "e46325710c526db3000ad8ed10f5ae05397f21803c855163efc1218ec490203f",
+          "body": "{\"schemaVersion\":2,\"mediaType\":\"application/vnd.docker.distribution.manifest.v2+json\",\"config\":{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:462c5cd85a4570bc950f5b581086d3458e39ef89cc11cc4832ebfe80e43a56e5\",\"size\":457},\"layers\":[{\"mediaType\":\"application/vnd.ollama.image.model\",\"digest\":\"sha256:cc9f2665d1004eebb89afc3c6b9df4fa923e3dc53ab3fda4aa966665c164085a\",\"size\":23808462528},{\"mediaType\":\"application/vnd.ollama.image.template\",\"digest\":\"sha256:99e602c5c919fb7ca59d786e7ae63780519fd6fcc2ebc507e7be55d5c20604b8\",\"size\":95},{\"mediaType\":\"application/vnd.ollama.image.system\",\"digest\":\"sha256:b50dbd9341ccc0b2bf0205be21a35978b9635019f804115d651662f29a4dbad5\",\"size\":56},{\"mediaType\":\"application/vnd.ollama.image.params\",\"digest\":\"sha256:c5eb2f6a710cee4496ff6f9fef598b579239de8c994e8deba4e6db72caba8970\",\"size\":201},{\"mediaType\":\"application/vnd.docker.container.image.v1+json\",\"digest\":\"sha256:462c5cd85a4570bc950f5b581086d3458e39ef89cc11cc4832ebfe80e43a56e5\",\"size\":457}]}"
+        },
+        {
+          "url": "https://registry.ollama.ai/v2/library/alfred/blobs/sha256:462c5cd85a4570bc950f5b581086d3458e39ef89cc11cc4832ebfe80e43a56e5",
+          "sha256": "462c5cd85a4570bc950f5b581086d3458e39ef89cc11cc4832ebfe80e43a56e5",
+          "body": "{\"model_format\":\"gguf\",\"model_family\":\"falcon\",\"model_type\":\"42B\",\"file_type\":\"Q4_0\",\"rootfs\":{\"type\":\"layers\",\"diff_ids\":[\"sha256:cc9f2665d1004eebb89afc3c6b9df4fa923e3dc53ab3fda4aa966665c164085a\",\"sha256:99e602c5c919fb7ca59d786e7ae63780519fd6fcc2ebc507e7be55d5c20604b8\",\"sha256:b50dbd9341ccc0b2bf0205be21a35978b9635019f804115d651662f29a4dbad5\",\"sha256:c5eb2f6a710cee4496ff6f9fef598b579239de8c994e8deba4e6db72caba8970\"]},\"architecture\":\"amd64\",\"os\":\"linux\"}"
+        }
+      ],
+      "artifactBytes": 23808462528.0,
+      "modelSha256": "cc9f2665d1004eebb89afc3c6b9df4fa923e3dc53ab3fda4aa966665c164085a",
+      "projectors": [
+
+      ],
+      "claims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"falcon\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_0\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"42B\""
+        }
+      ],
+      "sourceClaims": [
+        {
+          "field": "architecture",
+          "pointer": "/model_family",
+          "valueJson": "\"falcon\""
+        },
+        {
+          "field": "quantization",
+          "pointer": "/file_type",
+          "valueJson": "\"Q4_0\""
+        },
+        {
+          "field": "parameters",
+          "pointer": "/model_type",
+          "valueJson": "\"42B\""
+        }
+      ],
+      "extractionStatus": "source-matched-needs-review",
+      "extractionError": null
+    }
+  ],
+  "nextAfter": "alfred",
+  "remainingCandidates": 182
+}

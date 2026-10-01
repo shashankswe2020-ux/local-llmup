@@ -353,7 +353,7 @@ fn visual_picker_fragmented_end_selects_last_model_without_cancelling() {
     for (initial, fragment, expected) in [
         (b"\x1b".as_slice(), b"[F\r".as_slice(), "mistral:7b"),
         (b"\x1b[B\x1b".as_slice(), b"[H\r".as_slice(), "qwen3.6:35b"),
-        (b"\x1b[B".as_slice(), b"\r".as_slice(), "gemma4:e4b-it-qat"),
+        (b"\x1b[B".as_slice(), b"\r".as_slice(), "bonsai:8b"),
     ] {
         let (exit, output) = run_scripted_with_fragment(
             "up",

@@ -20,7 +20,7 @@ fn formats_existing_advice_contracts() {
     assert!(
         catalog_text(&catalog, &hardware, true)
             .unwrap()
-            .starts_with("Catalog (Filter: all, shown: 67/67)")
+            .starts_with("Catalog (Filter: all, shown: 69/69)")
     );
     assert_eq!(strip_control("\u{1b}[31mred\u{1b}[0m\u{202e}\n"), "red");
 }
