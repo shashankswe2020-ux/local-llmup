@@ -1,5 +1,65 @@
 {
   "policyVersion": 1,
-  "scopes": [],
-  "observations": []
+  "scopes": [
+    {
+      "name": "ollama-local-variants",
+      "checkedAt": "2026-09-30T11:10:26Z",
+      "source": "https://ollama.com/library",
+      "complete": false,
+      "variants": [
+        "qwen3.6:35b",
+        "qwen3.6:27b",
+        "qwen3.5:0.8b",
+        "qwen3.5:2b",
+        "qwen3.5:4b",
+        "qwen3.5:9b",
+        "qwen3.5:27b",
+        "qwen3.5:35b",
+        "qwen3.5:122b"
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "id": "qwen3.6:35b",
+      "checkedAt": "2026-09-30T11:03:28Z",
+      "sources": [
+        "https://huggingface.co/Qwen/Qwen3.6-35B-A3B",
+        "https://huggingface.co/Qwen/Qwen3.6-35B-A3B/blob/995ad96eacd98c81ed38be0c5b274b04031597b0/config.json",
+        "https://ollama.com/library/qwen3.6:35b",
+        "https://registry.ollama.ai/v2/library/qwen3.6/manifests/35b"
+      ],
+      "model": {
+        "id": "qwen3.6:35b",
+        "family": "qwen3.6",
+        "params": "35B",
+        "architecture": "moe",
+        "activeParams": "3B",
+        "license": "apache-2.0",
+        "openWeight": true,
+        "contextLength": 262144,
+        "capabilities": ["chat", "vision", "reasoning", "tools", "code"],
+        "releaseDate": "2026-04-15",
+        "source": {
+          "ollama": "qwen3.6:35b",
+          "hf": "Qwen/Qwen3.6-35B-A3B"
+        },
+        "quantizations": [
+          {
+            "name": "Q4_K_M",
+            "diskBytes": 22621302688,
+            "minRamBytes": 26014498092,
+            "minVramBytes": 26014498092,
+            "sha256": "d372de8e934898a59e6ccfabc3368474711384d8f1fd4d22d87a3f0a45400cdc",
+            "projectors": [
+              {
+                "bytes": 902821728,
+                "sha256": "a62390d25b4b4a2d8afd7cc3c90021c11935c1fdd48d7cb0723ab71cd02a598e"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }
