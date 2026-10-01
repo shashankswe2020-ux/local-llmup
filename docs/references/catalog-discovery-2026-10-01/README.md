@@ -15,6 +15,10 @@ This is source evidence, not reviewed catalog admission or a complete variant in
 - Preserved all 19 original batch reports and validated every captured source SHA-256.
 - Consolidated all 182 proposals into the existing `catalog-proposals.json`
   report format, retaining incomplete-inventory and review-required flags.
+- Preserved main's earlier single-candidate AI extraction in
+  `alfred-ai-2026-09-30.json` with its original timestamp and three claims.
+  Its source hashes match the later source-only sweep; it remains review-required
+  and is not relabelled as a new extraction or verification.
 - The final batch reports zero remaining candidates. This means no remaining
   repositories in that discovery sweep, not no remaining model variants.
 - No OpenAI calls, model weight downloads, quality-threshold changes, or automatic
