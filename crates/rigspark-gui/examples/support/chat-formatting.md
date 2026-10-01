@@ -24,6 +24,31 @@ A useful answer supports **bold**, *emphasis*, ~~removed text~~, and `inline cod
 | Typecheck | Passed | 1.2s |
 | Browser tests | Passed | 7.1s |
 
+Inline math: \(a^2 + b^2 = c^2\).
+
+$$
+	ext{LCM} = 2^4 \times 3^2 \times 5
+$$
+
+$$
+\boxed{232892560}
+$$
+
+$$
+\begin{aligned}
+2^4 &= 16 \\
+16 \times 9 &= 144
+\end{aligned}
+$$
+
+$$
+2^4 = 16 \
+3^2 = 9 \
+16 \times 9 = 144
+$$
+
+Malformed math stays readable: \(\notARealCommand{value}\).
+
 ---
 
 ~~~typescript

@@ -25,6 +25,7 @@ const FILES: &[&str] = &[
     "LICENSE",
     "marked.LICENSE.md",
     "dompurify.LICENSE",
+    "katex.LICENSE",
     "crossterm.LICENSE",
     "CROSSTERM-PATCH.md",
     "THIRD-PARTY.md",

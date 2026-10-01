@@ -18,6 +18,14 @@
     "alt", "checked", "class", "disabled", "href", "loading", "src", "title",
     "type",
   ];
+  const MATH_DELIMITERS = [
+    { left: "$$", right: "$$", display: true },
+    { left: "\\(", right: "\\)", display: false },
+    { left: "\\[", right: "\\]", display: true },
+  ];
+  const MATH_ESCAPES = new Map([
+    ["\\(", "\uE000"], ["\\)", "\uE001"], ["\\[", "\uE002"], ["\\]", "\uE003"],
+  ]);
 
   function escapeHtml(text) {
     return String(text)
@@ -58,9 +66,83 @@
     return false;
   }
 
+  function preserveMathDelimiters(source) {
+    let protectedSource = source;
+    for (const [delimiter, placeholder] of MATH_ESCAPES) {
+      protectedSource = protectedSource.replaceAll(delimiter, placeholder);
+    }
+    return protectedSource.replace(/(?<!\\)\\[ \t]*\n/g, "\uE004\n");
+  }
+
+  function restoreMathDelimiters(container) {
+    const walker = scope.document.createTreeWalker(container, scope.NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      for (const [delimiter, placeholder] of MATH_ESCAPES) {
+        walker.currentNode.nodeValue = walker.currentNode.nodeValue.replaceAll(placeholder, delimiter);
+      }
+      walker.currentNode.nodeValue = walker.currentNode.nodeValue.replaceAll("\uE004", "\\");
+    }
+  }
+
+  function normalizeMath(math) {
+    const normalized = math
+      .replace(/\text(?=\{)/g, "\\text")
+      .replace(/(?<!\\)\\[ \t]*\n/g, "\\\\\n");
+    if (normalized.includes("\\\\\n") && !normalized.includes("\\begin{")) {
+      return `\\begin{aligned}${normalized}\\end{aligned}`;
+    }
+    return normalized;
+  }
+
+  function renderMath(container) {
+    restoreMathDelimiters(container);
+    if (typeof scope.renderMathInElement !== "function") {
+      return;
+    }
+    scope.renderMathInElement(container, {
+      delimiters: MATH_DELIMITERS,
+      ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code", "option"],
+      throwOnError: false,
+      strict: "ignore",
+      trust: false,
+      maxExpand: 1000,
+      maxSize: 20,
+      errorCallback: () => {},
+      preProcess: normalizeMath,
+    });
+  }
+
+  function decorateUnmatchedMath(container) {
+    const walker = scope.document.createTreeWalker(container, scope.NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+    while (walker.nextNode()) {
+      if (!walker.currentNode.parentElement?.closest("code, pre, .katex")) {
+        textNodes.push(walker.currentNode);
+      }
+    }
+    for (const node of textNodes) {
+      const parts = node.nodeValue.split(/(\$\$|\\\(|\\\)|\\\[|\\\])/g);
+      if (parts.length === 1) {
+        continue;
+      }
+      const fragment = scope.document.createDocumentFragment();
+      for (const part of parts) {
+        if (/^(?:\$\$|\\\(|\\\)|\\\[|\\\])$/.test(part)) {
+          const code = scope.document.createElement("code");
+          code.className = "unmatched-math-delimiter";
+          code.textContent = part;
+          fragment.appendChild(code);
+        } else if (part) {
+          fragment.appendChild(scope.document.createTextNode(part));
+        }
+      }
+      node.replaceWith(fragment);
+    }
+  }
+
   function createRenderer(marked) {
     const renderer = new marked.Renderer();
-    renderer.html = ({ text }) => escapeHtml(text);
+    renderer.html = ({ text }) => `<code class="raw-html">${escapeHtml(text)}</code>`;
     renderer.link = function renderLink({ href, title, tokens }) {
       const label = this.parser.parseInline(tokens);
       const safe = safeLinkHref(href);
@@ -124,7 +206,7 @@
       return renderPlainText(container, source);
     }
     try {
-      const parsed = marked.parse(source, {
+      const parsed = marked.parse(preserveMathDelimiters(source), {
         async: false,
         breaks: false,
         gfm: true,
@@ -142,6 +224,8 @@
       container.innerHTML = String(clean);
       container.classList.toggle("markdown-fallback", false);
       enforceRenderedPolicies(container);
+      renderMath(container);
+      decorateUnmatchedMath(container);
       return true;
     } catch {
       return renderPlainText(container, source);

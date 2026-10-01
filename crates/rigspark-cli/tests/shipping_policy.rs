@@ -173,6 +173,12 @@ fn vendored_browser_libraries_match_their_pinned_hashes_and_licenses() {
             "DOMPurify 3.4.13",
             "dompurify.LICENSE",
         ),
+        (
+            "katex/katex.min.js",
+            "0.19.0",
+            "exports.katex",
+            "katex.LICENSE",
+        ),
     ] {
         let bytes = fs::read(root().join("crates/rigspark-gui/vendor").join(file)).unwrap();
         let digest = format!("{:x}", Sha256::digest(&bytes));
