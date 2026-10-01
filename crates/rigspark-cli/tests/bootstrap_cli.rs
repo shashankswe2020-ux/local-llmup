@@ -22,7 +22,7 @@ fn native_bootstrap_is_offline_deterministic_and_matches_oracle() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert!(output.stdout.is_empty());
-    assert!(String::from_utf8_lossy(&output.stderr).starts_with("bootstrap: wrote 67 models to "));
+    assert!(String::from_utf8_lossy(&output.stderr).starts_with("bootstrap: wrote 69 models to "));
     let first = fs::read_to_string(&path).unwrap();
     let expected = Catalog::parse(include_str!(
         "../../rigspark-core/fixtures/bootstrap-oracle.json"
@@ -35,7 +35,24 @@ fn native_bootstrap_is_offline_deterministic_and_matches_oracle() {
             .iter()
             .any(|model| model.id == "qwen3.6:35b")
     );
-    historical.models.retain(|model| model.id != "qwen3.6:35b");
+    assert!(
+        historical
+            .models
+            .iter()
+            .any(|model| model.id == "qwen3.5:4b")
+    );
+    assert!(
+        historical
+            .models
+            .iter()
+            .any(|model| model.id == "bonsai:8b")
+    );
+    historical.models.retain(|model| {
+        !matches!(
+            model.id.as_str(),
+            "qwen3.6:35b" | "qwen3.5:4b" | "bonsai:8b"
+        )
+    });
     assert_eq!(
         serde_json::to_value(historical).unwrap(),
         serde_json::to_value(expected).unwrap()

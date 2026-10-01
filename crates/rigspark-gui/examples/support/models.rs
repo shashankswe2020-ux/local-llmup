@@ -151,6 +151,140 @@ pub async fn details(client: &Client, origin: &str, artifacts: &std::path::Path)
     control(client, "/__fixture/recommended-context", "").await
 }
 
+pub async fn bonsai(
+    client: &Client,
+    origin: &str,
+    width: u32,
+    artifacts: &std::path::Path,
+) -> TestResult {
+    open_models(client, origin).await?;
+    let advice = fetch_json(client, "/api/models/recommended?limit=100&context=mid").await?;
+    let model = advice["models"]
+        .as_array()
+        .and_then(|models| models.iter().find(|model| model["id"] == "bonsai:8b"))
+        .ok_or("Bonsai missing from expanded API response")?;
+    if model["throughput"]["known"] != false
+        || model["contextFitKnown"] != false
+        || model["diskBytes"].as_f64() != Some(1_158_654_496.0)
+        || model["backends"] != json!(["llamacpp", "lmstudio"])
+    {
+        return Err(format!("incorrect Bonsai API evidence: {model}").into());
+    }
+    std::fs::write(
+        artifacts.join(format!("bonsai-api-{width}.json")),
+        serde_json::to_vec_pretty(model)?,
+    )?;
+    let selector = ".model-card-item button[aria-label=\"View performance details for bonsai:8b\"]";
+    click(client, selector).await?;
+    wait_for(
+        client,
+        "document.querySelector('#model-detail-title')?.textContent === 'bonsai:8b'",
+    )
+    .await?;
+    let facts = client
+        .execute(
+            "return document.querySelector('#model-detail').innerText;",
+            vec![],
+        )
+        .await?;
+    let text = facts.as_str().ok_or("missing detail text")?;
+    for expected in [
+        "8.19B",
+        "apache-2.0",
+        "Q1_0",
+        "65,536",
+        "llamacpp",
+        "SHA-256 cataloged",
+        "Bonsai-8B-Q1_0.gguf",
+        "Speed unknown",
+    ] {
+        if !text.contains(expected) {
+            return Err(format!("Bonsai detail missing {expected}: {text}").into());
+        }
+    }
+    wait_for(client, "document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('#model-detail .model-backend-select option')].every(option => !['ollama', 'mlx'].includes(option.value)) && [...document.querySelectorAll('.model-detail-metric')].find(node => node.textContent.includes('Decode speed'))?.textContent.includes('unknown')").await?;
+    client
+        .find(fantoccini::Locator::Css(
+            "#model-detail .model-backend-select option[value='llamacpp']",
+        ))
+        .await?
+        .click()
+        .await?;
+    let overflow = client.execute("const parent = document.querySelector('#model-detail').getBoundingClientRect(); return [...document.querySelectorAll('.model-detail-header, .model-detail-actions > *')].filter(node => {const rect = node.getBoundingClientRect(); return rect.right > parent.right + 1 || rect.left < parent.left - 1;}).map(node => ({tag:node.tagName, width:node.getBoundingClientRect().width, parent:parent.width}));", vec![]).await?;
+    if overflow != json!([]) {
+        return Err(format!("Bonsai action overflow at {width}: {overflow}").into());
+    }
+    std::fs::write(
+        artifacts.join(format!("bonsai-detail-{width}.png")),
+        client.screenshot().await?,
+    )?;
+    std::fs::write(artifacts.join(format!("bonsai-detail-{width}.txt")), text)?;
+    let before = fetch_json(client, "/__fixture/model-starts").await?;
+    click(client, "#model-detail .model-detail-actions button").await?;
+    let prompt = tokio::time::timeout(Duration::from_secs(15), async {
+        loop {
+            if let Ok(text) = client.get_alert_text().await {
+                return text;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    })
+    .await
+    .map_err(|_| format!("Bonsai confirmation timeout at {width}"))?;
+    if !prompt.contains("bonsai:8b") || prompt.contains("runtime model tag") {
+        return Err(format!("wrong confirmation: {prompt}").into());
+    }
+    client.dismiss_alert().await?;
+    if fetch_json(client, "/__fixture/model-starts").await? != before {
+        return Err("cancelled Bonsai confirmation sent a start request".into());
+    }
+    if width == 1440 {
+        click(client, "#model-detail-back").await?;
+        client
+            .find(fantoccini::Locator::Css(
+                "#context-window option[value='65536']",
+            ))
+            .await?
+            .click()
+            .await?;
+        click(client, "#refresh-models").await?;
+        wait_for(client, "[...document.querySelectorAll('.model-card-item')].find(node => node.querySelector('.model-card-title')?.textContent === 'bonsai:8b')?.textContent.includes('65,536 context tokens')").await?;
+        click(client, selector).await?;
+        client
+            .find(fantoccini::Locator::Css(
+                "#model-detail .model-backend-select option[value='llamacpp']",
+            ))
+            .await?
+            .click()
+            .await?;
+        click(client, "#model-detail .model-detail-actions button").await?;
+        accept_confirm(client).await?;
+        wait_for_start(
+            client,
+            &json!({"model":"bonsai:8b", "backend":"llamacpp", "context":65536}),
+            true,
+        )
+        .await?;
+        open_models(client, origin).await?;
+        client
+            .find(fantoccini::Locator::Css(
+                "#context-window option[value='mid']",
+            ))
+            .await?
+            .click()
+            .await?;
+        click(client, "#refresh-models").await?;
+        click(client, selector).await?;
+    }
+    click(client, "#model-detail-back").await?;
+    wait_for(
+        client,
+        &format!("{VISIBLE}(document.querySelector('#model-catalog-panel'))"),
+    )
+    .await?;
+    Ok(())
+}
+
 pub async fn narrow_details(
     client: &Client,
     origin: &str,

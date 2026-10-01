@@ -123,6 +123,9 @@ pub fn throughput(
     backend: &str,
 ) -> Result<Throughput, ValidationError> {
     require(BACKENDS.contains(&backend), "unknown backend")?;
+    if quant.name.eq_ignore_ascii_case("Q1_0") {
+        return Ok(Throughput::unknown());
+    }
     let Some(class) = match_perf(hardware, dataset) else {
         return Ok(Throughput::unknown());
     };

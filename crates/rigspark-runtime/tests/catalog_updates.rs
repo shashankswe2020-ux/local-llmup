@@ -36,7 +36,7 @@ fn signed(value: Value) -> Vec<u8> {
 fn signed_catalog_is_verified_before_use() {
     let snapshot = verify(&signed(payload(1)), &key().verifying_key().to_bytes()).unwrap();
     assert_eq!(snapshot.revision, 1);
-    assert_eq!(snapshot.catalog.models.len(), 67);
+    assert_eq!(snapshot.catalog.models.len(), 69);
     assert_eq!(snapshot.digest.len(), 64);
 }
 

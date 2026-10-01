@@ -221,7 +221,15 @@ pub async fn dispatch(host: Arc<Host>, request: Request) -> ApiResult {
         };
         options.validate().map_err(|_| bad())?;
         let perf = PerfDataset::parse(rigspark_core::PERF_JSON).map_err(|_| bad())?;
-        let models = recommended(&catalog, &hardware, &perf, &options, 8).map_err(|_| bad())?;
+        let limit = query
+            .get("limit")
+            .map(|value| value.parse::<usize>().map_err(|_| bad()))
+            .transpose()?
+            .unwrap_or(8);
+        if !(1..=100).contains(&limit) {
+            return Err(bad());
+        }
+        let models = recommended(&catalog, &hardware, &perf, &options, limit).map_err(|_| bad())?;
         return Ok(json_response(
             json!({"models":models,"runtime":query.get("runtime"),"contextPreset":query.get("context"),"kvCache":kv_cache}),
         ));

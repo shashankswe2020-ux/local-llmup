@@ -1374,7 +1374,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const badge = detailElement(
       "span",
       `verdict-badge verdict-${model.verdict}`,
-      verdictLabel(model.verdict),
+      verdictLabel(model.verdict, model.throughput),
     );
     titleRow.appendChild(title);
     titleRow.appendChild(badge);
@@ -1633,7 +1633,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function verdictLabel(verdict) {
+  function verdictLabel(verdict, throughput) {
+    if (verdict !== "no" && throughput?.known === false) {
+      return "Speed unknown";
+    }
     if (verdict === "yes") {
       return "Runs well";
     }
@@ -1687,7 +1690,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!payload.bypass) throw new Error("Installed models require explicit bypass consent");
       }
       if ((payload.bypass || payload.context !== undefined || payload.kvCache) && !globalThis.confirm(
-        `Start ${id} at ${payload.context ?? "default"} context?${payload.bypass ? " Estimated fit may be wrong or unknown; memory exhaustion or CPU offload is possible." : ""}${payload.installed ? " Local manifest integrity will be checked, not catalog provenance." : " Weight integrity checks remain enabled."}${payload.context !== undefined ? " A separate runtime model tag will be created; the source tag stays unchanged." : ""}${payload.kvCache ? ` KV cache ${payload.kvCache} applies only to a runtime rigspark starts; an already running server is refused, not changed.` : ""}`,
+        `Start ${id} at ${payload.context ?? "default"} context?${payload.bypass ? " Estimated fit may be wrong or unknown; memory exhaustion or CPU offload is possible." : ""}${payload.installed ? " Local manifest integrity will be checked, not catalog provenance." : " Weight integrity checks remain enabled."}${payload.context !== undefined && payload.backend === "ollama" ? " A separate runtime model tag will be created; the source tag stays unchanged." : ""}${payload.kvCache ? ` KV cache ${payload.kvCache} applies only to a runtime rigspark starts; an already running server is refused, not changed.` : ""}`,
       )) return;
       const response = await globalThis.fetch("/api/models/up", {
         method: "POST",
@@ -1744,7 +1747,7 @@ document.addEventListener("DOMContentLoaded", () => {
       title.textContent = model.id;
       const badge = document.createElement("span");
       badge.className = `verdict-badge verdict-${model.verdict}`;
-      badge.textContent = verdictLabel(model.verdict);
+      badge.textContent = verdictLabel(model.verdict, model.throughput);
       head.appendChild(title);
       head.appendChild(badge);
 
@@ -1843,6 +1846,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const runtime = selectedRuntime();
       const params = new globalThis.URLSearchParams();
       const installed = modelSource?.value === "installed";
+      if (!installed) params.set("limit", "100");
       if (runtime && !installed) {
         params.set("runtime", runtime);
       }

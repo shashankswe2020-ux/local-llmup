@@ -57,7 +57,12 @@ fn catalog_refresh_matches_frozen_legacy_text_and_never_writes_input() {
         let expected = format(&candidates);
         let historical: Vec<_> = candidates
             .into_iter()
-            .filter(|model| model.id != "qwen3.6:35b")
+            .filter(|model| {
+                !matches!(
+                    model.id.as_str(),
+                    "qwen3.6:35b" | "qwen3.5:4b" | "bonsai:8b"
+                )
+            })
             .collect();
         assert_eq!(format(&historical), case["expected"].as_str().unwrap());
         std::fs::write(&path, &before).unwrap();

@@ -1,4 +1,12 @@
 {
+  "bonsai:8b": {
+    "gguf": {
+      "repo": "prism-ml/Bonsai-8B-gguf",
+      "revision": "48516770dd04643643e9f9019a2a349cf26c5dbd",
+      "file": "Bonsai-8B-Q1_0.gguf",
+      "sha256": "284a335aa3fb2ced3b1b01fcb40b08aa783e3b70832767f0dd2e3fdfa134bd54"
+    }
+  },
   "qwen3:14b": {
     "gguf": {
       "repo": "Qwen/Qwen3-14B-GGUF",
