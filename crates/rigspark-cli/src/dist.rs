@@ -90,6 +90,10 @@ fn native_package_files(root: &Path, release: &Path, extension: &str) -> Vec<(St
             root.join("crates/rigspark-gui/vendor/dompurify.LICENSE"),
         ),
         (
+            "katex.LICENSE".into(),
+            root.join("crates/rigspark-gui/vendor/katex.LICENSE"),
+        ),
+        (
             "THIRD-PARTY.md".into(),
             root.join("crates/rigspark-gui/vendor/README.md"),
         ),

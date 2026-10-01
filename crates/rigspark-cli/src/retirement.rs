@@ -9,6 +9,8 @@ const BROWSER_SCRIPTS: &[&str] = &[
     "site/main.js",
     "apps/desktop/src-tauri/src/dialog-smoke.js",
     "crates/rigspark-gui/vendor/dompurify.min.js",
+    "crates/rigspark-gui/vendor/katex/contrib/auto-render.min.js",
+    "crates/rigspark-gui/vendor/katex/katex.min.js",
     "crates/rigspark-gui/vendor/marked.min.js",
 ];
 

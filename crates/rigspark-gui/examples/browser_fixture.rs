@@ -94,6 +94,7 @@ async fn set_tools(host: &Host, attach: bool) -> Result<(), McpError> {
 }
 
 const FORMATTING: &str = include_str!("support/chat-formatting.md");
+const STRESS_FORMATTING: &str = include_str!("support/chat-stress.md");
 const INCOMPLETE: &str =
     "Before the code.\n\n```typescript\nconst value = 1;\n```\n\nAfter the code.";
 const PIXEL_PNG: [u8; 68] = [
@@ -104,6 +105,10 @@ const PIXEL_PNG: [u8; 68] = [
 
 fn formatting() -> &'static str {
     FORMATTING.trim_end_matches('\n')
+}
+
+fn stress_formatting() -> &'static str {
+    STRESS_FORMATTING.trim_end_matches('\n')
 }
 
 fn scroll_response() -> String {
@@ -126,7 +131,10 @@ fn stream_chunks(text: &str) -> Vec<&str> {
         if offset >= text.len() {
             break;
         }
-        let end = (offset + length).min(text.len());
+        let end = text[offset..]
+            .char_indices()
+            .nth(length)
+            .map_or(text.len(), |(relative, _)| offset + relative);
         chunks.push(&text[offset..end]);
         offset = end;
     }
@@ -206,6 +214,14 @@ impl Engine for Fixture {
                     .collect::<Vec<_>>();
                 stream(parts, cancel, sink).await?;
                 return Ok(formatting().to_owned());
+            }
+            "FORMAT_STRESS_STREAM" => {
+                let parts = stream_chunks(stress_formatting())
+                    .into_iter()
+                    .map(|part| (part.to_owned(), 0))
+                    .collect::<Vec<_>>();
+                stream(parts, cancel, sink).await?;
+                return Ok(stress_formatting().to_owned());
             }
             "FORMAT_MARKDOWN_SCROLL" => {
                 let text = scroll_response();
@@ -447,6 +463,16 @@ mod tests {
         assert!(super::formatting().is_ascii());
         assert!(super::scroll_response().is_ascii());
         assert!(super::formatting().ends_with("PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)"));
+    }
+
+    #[test]
+    fn formatting_stream_preserves_unicode_at_every_chunk_boundary() {
+        let response = "ASCII → café 🚀 汉字 العربية";
+        assert_eq!(super::stream_chunks(response).concat(), response);
+        assert_eq!(
+            super::stream_chunks(super::stress_formatting()).concat(),
+            super::stress_formatting()
+        );
     }
 
     #[test]

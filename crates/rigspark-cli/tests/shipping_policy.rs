@@ -173,6 +173,12 @@ fn vendored_browser_libraries_match_their_pinned_hashes_and_licenses() {
             "DOMPurify 3.4.13",
             "dompurify.LICENSE",
         ),
+        (
+            "katex/katex.min.js",
+            "0.19.0",
+            "exports.katex",
+            "katex.LICENSE",
+        ),
     ] {
         let bytes = fs::read(root().join("crates/rigspark-gui/vendor").join(file)).unwrap();
         let digest = format!("{:x}", Sha256::digest(&bytes));
@@ -206,6 +212,11 @@ fn readme_documents_native_install_and_primary_workflows() {
         "rigspark up",
         "rigspark chat",
         "rigspark catalog",
+        "rigspark catalog --status",
+        "rigspark catalog --update",
+        "recommendations and normal startup remain\noffline",
+        "rigspark catalog --refresh",
+        "docs/references/guide.md#independent-catalog-updates",
         "rigspark gui",
         "`llmup` remains a compatibility alias",
     ] {

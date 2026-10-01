@@ -40,6 +40,8 @@ fn rejects_node_sources_manifests_and_tool_configuration() {
 fn allows_browser_assets_but_rejects_node_imports_in_them() {
     for path in [
         "crates/rigspark-gui/static/chat.js",
+        "crates/rigspark-gui/vendor/katex/contrib/auto-render.min.js",
+        "crates/rigspark-gui/vendor/katex/katex.min.js",
         "site/main.js",
         "apps/desktop/src-tauri/src/dialog-smoke.js",
     ] {

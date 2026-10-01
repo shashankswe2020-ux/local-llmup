@@ -31,6 +31,10 @@ async fn artifacts_are_sandboxed_and_vendor_assets_are_embedded() {
         "/api/images/chart.svg",
         "/vendor/marked.min.js",
         "/vendor/dompurify.min.js",
+        "/vendor/katex/katex.min.css",
+        "/vendor/katex/katex.min.js",
+        "/vendor/katex/contrib/auto-render.min.js",
+        "/vendor/katex/fonts/KaTeX_Main-Regular.woff2",
         "/static/chat.js",
         "/static/calculator-runtime.js",
         "/static/calculator-template.js",
@@ -57,6 +61,12 @@ async fn artifacts_are_sandboxed_and_vendor_assets_are_embedded() {
         assert_eq!(response.headers()["cache-control"], "no-store");
         if path.ends_with(".jpg") {
             assert_eq!(response.headers()["content-type"], "image/jpeg");
+        }
+        if path.ends_with(".css") {
+            assert_eq!(response.headers()["content-type"], "text/css");
+        }
+        if path.ends_with(".woff2") {
+            assert_eq!(response.headers()["content-type"], "font/woff2");
         }
         if path.starts_with("/api/images/") {
             assert_eq!(

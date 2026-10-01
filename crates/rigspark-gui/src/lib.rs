@@ -33,6 +33,8 @@ use tokio_util::sync::CancellationToken;
 
 pub const MAX_REQUEST_BYTES: usize = 64 * 1024;
 static ASSETS: include_dir::Dir<'_> = include_dir::include_dir!("$CARGO_MANIFEST_DIR/static");
+static VENDOR_ASSETS: include_dir::Dir<'_> =
+    include_dir::include_dir!("$CARGO_MANIFEST_DIR/vendor");
 
 pub struct Host {
     pub inference_usage:
@@ -138,7 +140,7 @@ pub fn router(host: Arc<Host>) -> Router {
     Router::new()
         .route("/", get(index))
         .route("/static/{*path}", get(asset))
-        .route("/vendor/{name}", get(vendor))
+        .route("/vendor/{*path}", get(vendor))
         .fallback(api)
         .layer(middleware::from_fn_with_state(host.clone(), boundary))
         .with_state(host)
@@ -244,13 +246,27 @@ async fn asset(axum::extract::Path(path): axum::extract::Path<String>) -> Respon
     };
     ([(header::CONTENT_TYPE, mime)], file.contents()).into_response()
 }
-async fn vendor(axum::extract::Path(name): axum::extract::Path<String>) -> Response {
-    let bytes: &'static [u8] = match name.as_str() {
-        "marked.min.js" => include_bytes!("../vendor/marked.min.js"),
-        "dompurify.min.js" => include_bytes!("../vendor/dompurify.min.js"),
-        _ => return error(StatusCode::NOT_FOUND, "not found"),
+async fn vendor(axum::extract::Path(path): axum::extract::Path<String>) -> Response {
+    if path.contains(['\\', '%']) || path.split('/').any(|part| part == ".." || part == ".") {
+        return error(StatusCode::BAD_REQUEST, "invalid asset path");
+    }
+    let Some(file) = VENDOR_ASSETS.get_file(&path) else {
+        return error(StatusCode::NOT_FOUND, "not found");
     };
-    ([(header::CONTENT_TYPE, "application/javascript")], bytes).into_response()
+    let mime = if path.ends_with(".js") {
+        "application/javascript"
+    } else if path.ends_with(".css") {
+        "text/css"
+    } else if path.ends_with(".woff2") {
+        "font/woff2"
+    } else if path.ends_with(".woff") {
+        "font/woff"
+    } else if path.ends_with(".ttf") {
+        "font/ttf"
+    } else {
+        return error(StatusCode::NOT_FOUND, "not found");
+    };
+    ([(header::CONTENT_TYPE, mime)], file.contents()).into_response()
 }
 async fn api(State(host): State<Arc<Host>>, request: Request) -> Response {
     match routes::dispatch(host, request).await {
