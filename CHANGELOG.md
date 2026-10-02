@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+## 2.2.0 - 2026-10-02
+
+### Catalog quality and automation
+
+- Add source-backed catalog enrichment proposals with bounded official metadata
+  collection, optional extraction, explicit human review, and separate evidence
+  promotion, model admission, and signing steps.
+- Require independently sourced 90% release-quality gates and preserve audit,
+  discovery, tag-inventory, and Hugging Face evidence for reproducible review.
+- Make weekly catalog refreshes resumable and diagnosable with cursor-based
+  batches, deterministic observations, bounded rejection reasons, pending-review
+  protection, and visible partial failures without relaxing publication gates.
+
+### Models and advice
+
+- Add Bonsai and Qwen3.5 catalog entries with pinned provenance and honest GUI
+  advice. Uncalibrated binary throughput remains `unknown`.
+- Distinguish newly installed and already-current signed catalog updates in the
+  GUI, and keep success or failure feedback visible after an update attempt.
+
+### Chat rendering
+
+- Render TeX offline with pinned KaTeX assets while preserving the existing
+  sanitized Markdown boundary.
+- Harden rich-response rendering for malformed and unsafe content, preserve
+  Unicode boundaries in streamed fixture responses, and align response timing
+  metadata with rendered output.
+
+### Distribution
+
+- Align generated Homebrew formula metadata with release archives.
+
 ## 2.1.0 - 2026-09-30
 
 ### Independently Updated Catalogs
