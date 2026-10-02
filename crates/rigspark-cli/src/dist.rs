@@ -352,12 +352,16 @@ mod tests {
         let release = root.join("release");
         for extension in ["", ".exe"] {
             let files = native_package_files(&root, &release, extension);
-            assert_eq!(files.len(), 9);
+            assert_eq!(files.len(), 10);
             for (index, name) in ["llmup", "rigspark", "rigspark-gui"].iter().enumerate() {
                 let name = format!("{name}{extension}");
                 assert_eq!(files[index], (name.clone(), release.join(name)));
             }
             assert_eq!(files[3], ("LICENSE".into(), root.join("LICENSE")));
+            assert!(files.contains(&(
+                "katex.LICENSE".into(),
+                root.join("crates/rigspark-gui/vendor/katex.LICENSE")
+            )));
             assert!(files.contains(&(
                 "crossterm.LICENSE".into(),
                 root.join("vendor/crossterm/LICENSE")
