@@ -74,6 +74,8 @@ RigSpark can activate a signed model catalog independently of an application
 release. Updating is always explicit; recommendations and normal startup remain
 offline.
 
+[Watch the catalog update flow](assets/catalog-update.mp4)
+
 ```bash
 rigspark catalog --status  # show the active source, revision, digest, and model count offline
 rigspark catalog --update  # download, verify, and atomically activate the official catalog
