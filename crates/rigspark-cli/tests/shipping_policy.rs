@@ -271,7 +271,7 @@ fn site_downloads_every_release_archive_through_stable_latest_links() {
 #[test]
 fn site_is_indexable_and_offers_only_native_installs() {
     let site = read("site/index.html");
-    let canonical = "https://shashankswe2020-ux.github.io/rigspark/";
+    let canonical = "https://www.rigspark.si/";
     assert!(site.contains(&format!("<link rel=\"canonical\" href=\"{canonical}\" />")));
     assert!(site.contains(&format!(
         "<meta property=\"og:image\" content=\"{canonical}assets/"
