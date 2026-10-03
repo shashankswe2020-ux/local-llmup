@@ -322,7 +322,8 @@ kbd { font: 600 0.8rem var(--mono); color: var(--text); background: var(--bg-2);
 .cta p { margin-top: 6px; opacity: 0.75; }
 .cta-actions { display: flex; flex-wrap: wrap; gap: 12px; }
 .cta .btn-primary { background: var(--ink); color: #fff; }
-.cta .btn-ghost { color: var(--ink); border-color: rgba(27, 21, 18, 0.35); }
+.cta .btn-ghost,
+.nav-links .nav-cta { background: var(--peach); color: var(--ink); border-color: rgba(27, 21, 18, 0.35); }
 
 /* Footer */
 .footer { border-top: 1px solid var(--line); padding: 32px 0 48px; }
@@ -338,6 +339,7 @@ kbd { font: 600 0.8rem var(--mono); color: var(--text); background: var(--bg-2);
 
 @media (hover: hover) and (pointer: fine) {
   .nav-links a:hover { color: var(--text); background: rgba(255, 255, 255, 0.05); }
+  .nav-links .nav-cta:hover { color: var(--ink); background: var(--peach); }
   .btn:hover { transform: translateY(-1px); }
   .btn-primary:hover { background: #9ceabd; }
   .btn-ghost:hover { border-color: var(--accent); }
