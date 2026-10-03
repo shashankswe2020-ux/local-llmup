@@ -10,6 +10,8 @@
     <meta name="theme-color" content="#060608" />
     <link rel="icon" type="image/jpeg" href="assets/mascot-avatar.jpg" />
     <link rel="apple-touch-icon" href="assets/mascot-avatar.jpg" />
+    <link rel="preload" href="assets/fonts/schibsted-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="assets/fonts/commit-mono-v143.woff2" as="font" type="font/woff2" crossorigin />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="RigSpark" />
     <meta property="og:url" content="https://shashankswe2020-ux.github.io/rigspark/" />
@@ -32,7 +34,7 @@
         "description": "Hardware-aware CLI, terminal UI and browser workspace that tells you which local LLMs will run on your machine, with yes / slow / no verdicts and estimated tokens per second, then verifies, serves and chats with them.",
         "applicationCategory": "DeveloperApplication",
         "operatingSystem": "macOS, Linux, Windows",
-        "softwareVersion": "2.0.0",
+        "softwareVersion": "2.2.0",
         "license": "https://opensource.org/licenses/MIT",
         "url": "https://shashankswe2020-ux.github.io/rigspark/",
         "downloadUrl": "https://github.com/shashankswe2020-ux/rigspark/releases/latest",
@@ -82,6 +84,7 @@
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
+    <div class="scroll-progress" aria-hidden="true"></div>
 
     <header class="nav-wrap">
       <nav class="nav frame" aria-label="Primary">
@@ -93,6 +96,7 @@
           <span></span><span></span>
         </button>
         <div class="nav-links" id="site-nav">
+          <a href="#latest">What&rsquo;s new</a>
           <a href="#how">How it works</a>
           <a href="#tui">Terminal UI</a>
           <a href="#workspace">Workspace</a>
@@ -113,14 +117,14 @@
         <div class="frame hero-grid">
           <div class="hero-copy">
             <a class="pill-link" href="https://github.com/shashankswe2020-ux/rigspark/releases/latest">
-              <span class="pill-tag">v2.0.0</span> llmup is now RigSpark &rarr;
+              <span class="pill-tag">v2.2.0</span> Signed catalog updates and richer chat &rarr;
             </a>
-            <h1>Which local LLMs can your computer&nbsp;run?</h1>
+            <p class="hero-kicker">Hardware-aware local inference</p>
+            <h1>Run the right local model. <span>Before you download.</span></h1>
             <p class="lede">
               RigSpark scores your hardware and gives every model a
               <b class="t-yes">yes</b>, <b class="t-slow">slow</b> or <b class="t-no">no</b> verdict
-              with an estimated tok/s range, before you download the weights. Then it verifies,
-              serves and chats with the model you pick.
+              with estimated tok/s before you download. Then it verifies, serves and chats with your pick.
             </p>
             <div class="copy-line" data-copy="cargo binstall rigspark-cli rigspark-gui">
               <span class="prompt" aria-hidden="true">$</span>
@@ -129,15 +133,13 @@
             </div>
             <div class="hero-actions">
               <a class="btn btn-primary" href="#install">Download for your OS</a>
-              <a class="btn btn-ghost" href="#demo">Watch the 20-second demo</a>
+              <a class="btn btn-ghost" href="#demo" aria-label="Watch the 20-second demo">Watch demo</a>
             </div>
-            <ul class="hero-facts" aria-label="Highlights">
-              <li>Offline, deterministic advice</li>
-              <li>CLI, terminal UI and browser workspace</li>
-              <li>Agents, skills and MCP tools</li>
-              <li>Ollama &middot; llama.cpp &middot; MLX &middot; LM Studio</li>
-              <li>macOS &middot; Linux &middot; Windows</li>
-            </ul>
+            <dl class="hero-stats" aria-label="RigSpark at a glance">
+              <div><dt>69</dt><dd>curated models</dd></div>
+              <div><dt>4</dt><dd>native runtimes</dd></div>
+              <div><dt>0</dt><dd>network calls for advice</dd></div>
+            </dl>
           </div>
 
           <figure class="hero-media" id="demo">
@@ -153,17 +155,76 @@
       <!-- Verdicts -->
       <section class="verdicts frame" aria-label="Verdicts">
         <article class="verdict v-yes">
+          <span class="verdict-index" aria-hidden="true">01</span>
           <span class="vpill"><span class="dot"></span>yes</span>
           <p>Fits in memory and meets bandwidth. Shows an estimated tok/s range.</p>
         </article>
         <article class="verdict v-slow">
+          <span class="verdict-index" aria-hidden="true">02</span>
           <span class="vpill"><span class="dot"></span>slow</span>
           <p>Fits, but memory bandwidth limits speed. Still shows the estimate.</p>
         </article>
         <article class="verdict v-no">
+          <span class="verdict-index" aria-hidden="true">03</span>
           <span class="vpill"><span class="dot"></span>no</span>
           <p>Won&rsquo;t fit. You see the binding reason, so you can skip the download.</p>
         </article>
+      </section>
+
+      <!-- Product evidence -->
+      <section class="product-tour" id="product-tour" aria-labelledby="tour-title">
+        <div class="frame">
+          <header class="tour-head">
+            <div>
+              <p class="eyebrow">One engine, three views</p>
+              <h2 id="tour-title">See the decision, not just the dashboard.</h2>
+            </div>
+            <p>Real RigSpark screens, from hardware fit to verified local chat.</p>
+          </header>
+          <div class="tour-canvas" role="region" aria-label="RigSpark product screens" tabindex="0">
+            <figure class="tour-shot">
+              <div class="tour-meta"><span>01</span><b>Rank</b><code>rigspark recommend</code></div>
+              <img src="assets/screenshot-recommend.png" alt="RigSpark terminal UI ranking local models for the detected hardware" width="1200" height="1100" loading="lazy" />
+            </figure>
+            <figure class="tour-shot tour-shot-featured">
+              <div class="tour-meta"><span>02</span><b>Inspect</b><code>model evidence</code></div>
+              <img src="assets/model-performance.png" alt="RigSpark model details with recommendation score, hardware fit, throughput evidence and memory sizing" width="1440" height="757" loading="lazy" />
+            </figure>
+            <figure class="tour-shot">
+              <div class="tour-meta"><span>03</span><b>Run</b><code>local workspace</code></div>
+              <img src="assets/screenshot-workspace.png" alt="RigSpark local browser workspace ready to chat with a selected model" width="1440" height="857" loading="lazy" />
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- Latest release -->
+      <section class="section section-alt" id="latest">
+        <div class="frame release-grid">
+          <div class="release-copy">
+            <p class="eyebrow">New in 2.2.0</p>
+            <h2>Update the catalog without replacing RigSpark</h2>
+            <p class="sub">
+              Catalog updates are explicit, signed and activated atomically. Normal startup and recommendations
+              stay offline, while failed or incompatible updates leave your current verified snapshot untouched.
+            </p>
+            <ul class="release-points">
+              <li><b>Visible provenance.</b> Inspect the active source, revision, digest and model count in the CLI or Models view.</li>
+              <li><b>New model families.</b> Bonsai and Qwen3.5 join the curated catalog; unsourced throughput remains <code>unknown</code>.</li>
+              <li><b>Richer local chat.</b> Pinned KaTeX renders TeX offline behind the existing sanitized Markdown boundary.</li>
+            </ul>
+            <div class="release-actions">
+              <a class="btn btn-primary" href="#install">Install 2.2.0</a>
+              <a class="btn btn-ghost" href="https://github.com/shashankswe2020-ux/rigspark/blob/main/CHANGELOG.md">Read the changelog</a>
+            </div>
+          </div>
+          <figure class="release-media">
+            <div class="release-video-shell">
+              <video src="assets/catalog-update.mp4" muted loop playsinline controls preload="metadata" aria-label="RigSpark Models view updating and activating a signed model catalog"></video>
+            </div>
+            <figcaption>Update from the Models view, or run <code>rigspark catalog --update</code>.</figcaption>
+          </figure>
+        </div>
       </section>
 
       <!-- How it works -->
@@ -294,6 +355,21 @@ Run the top pick:  <span class="t-acc">rigspark up qwen3:30b-a3b</span>
               <h3>Inline images &amp; graphs</h3>
               <p>Let an agent run code in your workspace; generated images and graphs render in the chat, served from a loopback-only artifacts endpoint.</p>
             </article>
+            <article class="card">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 20h14" /></svg>
+              <h3>Signed catalog updates</h3>
+              <p>Explicitly download and atomically activate a verified catalog without replacing the app. Revision rollback and verified fallback protect advice.</p>
+            </article>
+            <article class="card">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M8 10l4 8 4-8" /><path d="M6 18h12" /></svg>
+              <h3>Offline TeX rendering</h3>
+              <p>Pinned KaTeX assets render equations locally while malformed or unsafe rich responses stay behind the sanitized Markdown boundary.</p>
+            </article>
+            <article class="card">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h13" /><circle cx="18" cy="12" r="2" /></svg>
+              <h3>Evidence-backed models</h3>
+              <p>Bonsai, Qwen3.5 and Qwen3.6 carry pinned provenance. Unsourced throughput and attention geometry remain visibly <code>unknown</code>.</p>
+            </article>
           </div>
         </div>
       </section>
@@ -388,14 +464,15 @@ Run the top pick:  <span class="t-acc">rigspark up qwen3:30b-a3b</span>
         <div class="frame split split-even">
           <div>
             <p class="eyebrow">Curated catalog</p>
-            <h2>66 models. Evidence attached.</h2>
+            <h2>69 models. Evidence attached.</h2>
             <p class="sub">
               The catalog is an offline, reviewable dataset, not a scrape. Each entry ties a model to its
               architecture, context, quantizations, artifact size, integrity digest and official sources.
-              <code>--kv-cache q8_0</code> or <code>q4_0</code> re-sizes advice for quantized KV caches.
+              Activate independently published snapshots with <code>catalog --update</code>, or use
+              <code>--kv-cache q8_0</code> or <code>q4_0</code> to re-size advice for quantized KV caches.
             </p>
             <dl class="stats">
-              <div><dt>66</dt><dd>curated models</dd></div>
+              <div><dt>69</dt><dd>curated models</dd></div>
               <div><dt>4</dt><dd>runtimes</dd></div>
               <div><dt>SHA-256</dt><dd>artifact integrity</dd></div>
               <div><dt>Weekly</dt><dd>coverage audit</dd></div>
@@ -493,6 +570,10 @@ Run the top pick:  <span class="t-acc">rigspark up qwen3:30b-a3b</span>
           </p>
 
           <div class="install-grid">
+            <div class="copy-block" data-copy="brew install shashankswe2020-ux/tap/rigspark">
+              <p>Homebrew, on macOS or Linux</p>
+              <div class="copy-line"><span class="prompt" aria-hidden="true">$</span><code>brew install shashankswe2020-ux/tap/rigspark</code><button class="copy-btn" type="button" aria-label="Copy Homebrew install command">Copy</button></div>
+            </div>
             <div class="copy-block" data-copy="cargo binstall rigspark-cli rigspark-gui">
               <p>Prebuilt, with cargo-binstall</p>
               <div class="copy-line"><span class="prompt" aria-hidden="true">$</span><code>cargo binstall rigspark-cli rigspark-gui</code><button class="copy-btn" type="button" aria-label="Copy cargo binstall command">Copy</button></div>
@@ -521,7 +602,7 @@ Run the top pick:  <span class="t-acc">rigspark up qwen3:30b-a3b</span>
             <div><dt>recommend</dt><dd>Default. Ranks the catalog for this machine; filter with <code>--task</code>, size context with <code>--context N</code>.</dd></div>
             <div><dt>can-run</dt><dd>One verdict with the binding reason and est. tok/s. Exits non-zero only on <em>no</em>.</dd></div>
             <div><dt>doctor</dt><dd>AI Hardware Score, bottleneck diagnosis, backend status and environment checks.</dd></div>
-            <div><dt>catalog</dt><dd>Browse models with quantizations, sizes, context lengths and backend availability.</dd></div>
+            <div><dt>catalog</dt><dd>Browse models, inspect provenance with <code>--status</code>, or explicitly activate a signed snapshot with <code>--update</code>.</dd></div>
             <div><dt>up</dt><dd>Pull with SHA-256 verification, then serve on <code>127.0.0.1</code>.</dd></div>
             <div><dt>chat</dt><dd>Terminal chat with streaming, multi-line input (<kbd>Ctrl+J</kbd>) and session memory.</dd></div>
             <div><dt>gui</dt><dd>Open the loopback-only browser workspace.</dd></div>
@@ -556,7 +637,7 @@ Run the top pick:  <span class="t-acc">rigspark up qwen3:30b-a3b</span>
             </details>
             <details>
               <summary>Does RigSpark send my data anywhere?</summary>
-              <p>No. Recommendations, <code>can-run</code> and <code>doctor</code> make no network calls and use a bundled offline catalog. Model servers and the browser workspace bind to <code>127.0.0.1</code> only.</p>
+              <p>Recommendations, <code>can-run</code> and <code>doctor</code> make no network calls and use a verified local catalog. The explicit <code>catalog --update</code> action downloads a signed snapshot; normal startup does not. Model servers and the browser workspace bind to <code>127.0.0.1</code> only.</p>
             </details>
             <details>
               <summary>Is RigSpark the same project as llmup?</summary>
@@ -585,7 +666,7 @@ Run the top pick:  <span class="t-acc">rigspark up qwen3:30b-a3b</span>
         <div class="brand">
           <img src="assets/mascot-avatar.jpg" alt="" width="24" height="24" loading="lazy" />
           <span>RigSpark</span>
-          <small>v2.0.0 &middot; MIT &middot; Native Rust</small>
+          <small>v2.2.0 &middot; MIT &middot; Native Rust</small>
         </div>
         <nav aria-label="Footer">
           <a href="https://github.com/shashankswe2020-ux/rigspark#readme">Docs</a>
@@ -597,6 +678,6 @@ Run the top pick:  <span class="t-acc">rigspark up qwen3:30b-a3b</span>
       </div>
     </footer>
 
-    <script src="main.js"></script>
+    <script src="main.js?v=2.2.0"></script>
   </body>
 </html>

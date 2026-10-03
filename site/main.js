@@ -2,6 +2,7 @@ const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // Copy buttons: the nearest [data-copy] holds the exact command.
 document.querySelectorAll(".copy-btn").forEach((btn) => {
+  btn.setAttribute("aria-live", "polite");
   btn.addEventListener("click", async () => {
     const text = btn.closest("[data-copy]")?.getAttribute("data-copy") ?? "";
     try {
@@ -55,8 +56,11 @@ document.querySelectorAll("[data-tabs]").forEach((root) => {
     tab.addEventListener("click", () => select(tab));
     tab.addEventListener("keydown", (event) => {
       const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
-      if (!step) return;
-      const next = tabs[(index + step + tabs.length) % tabs.length];
+      let next = step ? tabs[(index + step + tabs.length) % tabs.length] : null;
+      if (event.key === "Home") next = tabs[0];
+      if (event.key === "End") next = tabs.at(-1);
+      if (!next) return;
+      event.preventDefault();
       select(next);
       next.focus();
     });
@@ -105,6 +109,10 @@ if (!reduceMotion && "IntersectionObserver" in window) {
   document
     .querySelectorAll(".section-head, .card, .terminal, .tabs, .downloads, .commands, .faq, .cta, .gallery, .table-scroll")
     .forEach((el) => {
+      if (el.matches(".card")) {
+        const index = [...el.parentElement.children].indexOf(el);
+        el.style.setProperty("--reveal-delay", `${Math.min(index % 4, 3) * 55}ms`);
+      }
       el.classList.add("reveal");
       observer.observe(el);
     });
