@@ -1,10 +1,12 @@
+use crate::tui_theme::{self, Theme};
 use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 use futures_util::{Stream, StreamExt, stream};
 use ratatui::{
     Frame, Terminal,
     backend::Backend,
     layout::{Constraint, Layout},
-    style::{Color, Modifier, Style},
+    style::Style,
+    text::{Line, Span},
     widgets::{Paragraph, Wrap},
 };
 use rigspark_core::reports::strip_control;
@@ -296,7 +298,7 @@ pub async fn run_visual(
     )));
     let input = visual_input(input_owner.clone());
     let signals = stream::once(async { terminal_signals.recv().await.map(Control::Cancel) });
-    drive_visual(
+    let outcome = drive_visual(
         (&mut terminal, || {
             input_owner
                 .lock()
@@ -311,7 +313,12 @@ pub async fn run_visual(
         events,
         &diagnostics,
     )
-    .await
+    .await;
+    if view.started.elapsed() >= Duration::from_secs(10) {
+        // Audible cue that a long pull or start finished while the user looked away.
+        let _ = io::Write::write_all(&mut io::stderr(), b"\x07");
+    }
+    outcome
 }
 
 fn visual_input<Events>(
@@ -365,6 +372,13 @@ fn resize_controls(enabled: bool) -> impl Stream<Item = io::Result<Control>> {
 fn visual_control(event: Event) -> Control {
     if let Event::Resize(columns, rows) = event {
         return resize_control(columns, rows, false);
+    }
+    if let Event::Mouse(mouse) = event {
+        return match mouse.kind {
+            crossterm::event::MouseEventKind::ScrollUp => Control::Redraw(-3),
+            crossterm::event::MouseEventKind::ScrollDown => Control::Redraw(3),
+            _ => Control::Redraw(0),
+        };
     }
     if let Event::Key(key) = event
         && key.kind != KeyEventKind::Release
@@ -431,6 +445,8 @@ struct LifecycleView {
     omitted_events: usize,
     scroll: u16,
     color: bool,
+    started: std::time::Instant,
+    frames: usize,
 }
 
 impl LifecycleView {
@@ -448,6 +464,8 @@ impl LifecycleView {
             omitted_events: 0,
             scroll: 0,
             color,
+            started: std::time::Instant::now(),
+            frames: 0,
         }
     }
 
@@ -474,34 +492,95 @@ impl LifecycleView {
             Constraint::Length(2),
         ])
         .areas(frame.area());
-        let accent = if self.color {
-            Style::default().fg(Color::Cyan)
-        } else {
-            Style::default()
+        let theme = Theme::new(self.color);
+        let (badge, status_text, status_style) = match self.phase {
+            Phase::Cancelling => (
+                "cancelling",
+                "Cancellation requested. Waiting for runtime cleanup; effects not yet known.",
+                theme.warning(),
+            ),
+            Phase::Completed => (
+                "completed",
+                "Runtime returned success. Final evidence follows.",
+                theme.success(),
+            ),
+            Phase::Failed => (
+                "failed",
+                "Runtime returned an error. Cleanup success is not confirmed.",
+                theme.error(),
+            ),
+            _ => (
+                "running",
+                "Running. Observed stages are best-effort and may be incomplete.",
+                theme.accent(),
+            ),
         };
-        frame.render_widget(
-            Paragraph::new(self.title.as_str()).style(accent.add_modifier(Modifier::BOLD)),
+        self.frames = self.frames.wrapping_add(1);
+        let elapsed = self.started.elapsed().as_secs();
+        theme.header(
+            frame,
             header,
+            &format!("rigspark / {}", self.title),
+            &format!("{badge} · {}:{:02}", elapsed / 60, elapsed % 60),
         );
-        let status_text = match self.phase {
-            Phase::Cancelling => {
-                "Cancellation requested. Waiting for runtime cleanup; effects not yet known."
-            }
-            Phase::Completed => "Runtime returned success. Final evidence follows.",
-            Phase::Failed => "Runtime returned an error. Cleanup success is not confirmed.",
-            _ => "Running. Observed stages are best-effort and may be incomplete.",
-        };
         frame.render_widget(
-            Paragraph::new(status_text).wrap(Wrap { trim: false }),
+            Paragraph::new(Line::styled(format!(" {status_text}"), status_style))
+                .wrap(Wrap { trim: false }),
             status,
         );
-        let latest = self
-            .history
-            .back()
-            .copied()
-            .map(event_text)
-            .unwrap_or_else(|| "No stage observed yet.".into());
-        frame.render_widget(Paragraph::new(latest).wrap(Wrap { trim: false }), current);
+        let latest = self.history.back().copied();
+        frame.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(" Latest ", theme.muted()),
+                match latest {
+                    Some(event) => Span::styled(event_text(event), event_style(event, theme)),
+                    None => Span::styled("No stage observed yet.", theme.muted()),
+                },
+            ]))
+            .wrap(Wrap { trim: false }),
+            current,
+        );
+        let inner = theme.panel(frame, body, "Stages");
+        let width = usize::from(inner.width.max(1)).saturating_sub(2).max(1);
+        let mut stages: Vec<LifecycleEvent> = Vec::new();
+        for event in &self.history {
+            match stages
+                .iter_mut()
+                .find(|seen| seen.scope == event.scope && seen.stage == event.stage)
+            {
+                Some(seen) => seen.status = event.status,
+                None => stages.push(*event),
+            }
+        }
+        const SPINNER: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+        let running = matches!(self.phase, Phase::Running);
+        let mut lines: Vec<Line<'static>> = Vec::new();
+        for event in &stages {
+            let symbol = match event.status {
+                LifecycleStatus::Completed => "✓",
+                LifecycleStatus::Failed => "✗",
+                LifecycleStatus::Started if running => SPINNER[self.frames % SPINNER.len()],
+                // Started but never confirmed once the runtime stopped reporting.
+                LifecycleStatus::Started => "○",
+            };
+            let style = event_style(*event, theme);
+            for (index, piece) in tui_theme::wrap(&event_text(*event), width)
+                .into_iter()
+                .enumerate()
+            {
+                let lead = if index == 0 { symbol } else { " " };
+                lines.push(Line::from(vec![
+                    Span::styled(format!("{lead} "), style),
+                    Span::styled(piece, style),
+                ]));
+            }
+        }
+        if stages.is_empty() {
+            lines.push(Line::styled(
+                "Waiting for the first stage report…",
+                theme.muted(),
+            ));
+        }
         let mut text = diagnostics.text();
         if self.omitted_events > 0 {
             text.push_str(&format!(
@@ -509,26 +588,49 @@ impl LifecycleView {
                 self.omitted_events
             ));
         }
-        text.push_str("Observed stages (newest first):\n");
-        for event in self.history.iter().rev() {
-            text.push_str(&event_text(*event));
-            text.push('\n');
+        if !text.trim().is_empty() {
+            lines.push(Line::default());
+            for line in text.lines() {
+                lines.extend(
+                    tui_theme::wrap(line, width + 2)
+                        .into_iter()
+                        .map(|piece| Line::styled(piece, theme.muted())),
+                );
+            }
         }
-        let lines: Vec<_> = text
-            .lines()
-            .flat_map(|line| {
-                line.as_bytes()
-                    .chunks(usize::from(body.width.max(1)))
-                    .map(|chunk| String::from_utf8_lossy(chunk).into_owned())
-            })
-            .collect();
-        let maximum = lines.len().saturating_sub(usize::from(body.height));
+        let maximum = lines.len().saturating_sub(usize::from(inner.height));
         self.scroll = self.scroll.min(u16::try_from(maximum).unwrap_or(u16::MAX));
-        frame.render_widget(
-            Paragraph::new(lines.join("\n")).scroll((self.scroll, 0)),
+        let total = lines.len();
+        frame.render_widget(Paragraph::new(lines).scroll((self.scroll, 0)), inner);
+        tui_theme::scrollbar(
+            frame,
             body,
+            total,
+            usize::from(self.scroll),
+            usize::from(inner.height),
+            theme,
         );
-        frame.render_widget(Paragraph::new("Final result is authoritative, not stage completion.\nCtrl-C / Esc / q cancel; Up/Down scroll").style(accent), footer);
+        frame.render_widget(
+            Paragraph::new(vec![
+                Line::styled(
+                    " Final result is authoritative, not stage completion.",
+                    theme.muted(),
+                ),
+                theme.hints(
+                    &[("Ctrl-C / Esc / q", "cancel"), ("Up/Down/wheel", "scroll")],
+                    footer.width,
+                ),
+            ]),
+            footer,
+        );
+    }
+}
+
+fn event_style(event: LifecycleEvent, theme: Theme) -> Style {
+    match event.status {
+        LifecycleStatus::Started => Style::default(),
+        LifecycleStatus::Completed => theme.success(),
+        LifecycleStatus::Failed => theme.error(),
     }
 }
 
@@ -1683,5 +1785,40 @@ mod tests {
         assert!(!text.contains("Endpoint:"));
         assert!(!text.contains("%"));
         assert!(!text.contains('\u{1b}'));
+    }
+
+    #[test]
+    fn checklist_deduplicates_stages_and_never_confirms_unfinished_starts() {
+        let started = LifecycleEvent {
+            scope: LifecycleScope::Runtime,
+            stage: LifecycleStage::Readiness,
+            status: LifecycleStatus::Started,
+        };
+        let mut view = LifecycleView::new("up", "model", false);
+        let diagnostics = DiagnosticObserver::default();
+        let render = |view: &mut LifecycleView| {
+            let mut terminal =
+                ratatui::Terminal::new(ratatui::backend::TestBackend::new(90, 20)).unwrap();
+            terminal
+                .draw(|frame| view.render(frame, &diagnostics.snapshot()))
+                .unwrap();
+            terminal.backend().to_string()
+        };
+        view.update(Phase::Event(started));
+        view.update(Phase::Event(LifecycleEvent {
+            status: LifecycleStatus::Completed,
+            ..started
+        }));
+        let done = render(&mut view);
+        assert_eq!(done.matches("Runtime / Readiness").count(), 2, "{done}");
+        assert!(done.contains("✓ Runtime / Readiness: completed"), "{done}");
+        view.update(Phase::Event(LifecycleEvent {
+            stage: LifecycleStage::Stop,
+            ..started
+        }));
+        view.update(Phase::Failed);
+        let failed = render(&mut view);
+        assert!(failed.contains("○ Runtime / Stop: started"), "{failed}");
+        assert!(failed.contains("failed · 0:00"), "{failed}");
     }
 }

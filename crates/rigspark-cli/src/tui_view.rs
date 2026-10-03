@@ -1,6 +1,10 @@
+use crate::tui_theme::{SyncWriter, Theme};
 use crossterm::{
     cursor::{Hide, Show},
-    event::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
+    event::{
+        Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent,
+        MouseEventKind,
+    },
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -8,9 +12,9 @@ use futures_util::StreamExt;
 use ratatui::{
     Frame, Terminal,
     backend::CrosstermBackend,
-    layout::{Constraint, Layout},
-    style::{Color, Modifier, Style},
-    widgets::{List, ListItem, ListState, Paragraph},
+    layout::{Constraint, Layout, Position, Rect},
+    text::{Line, Span},
+    widgets::{HighlightSpacing, List, ListItem, ListState},
 };
 use rigspark_core::reports::strip_control;
 use std::io;
@@ -23,8 +27,10 @@ pub struct ReportView {
     query: String,
     searching: bool,
     color: bool,
+    picker: bool,
     horizontal: usize,
     page: usize,
+    list_area: Rect,
 }
 
 impl ReportView {
@@ -43,8 +49,10 @@ impl ReportView {
             query: String::new(),
             searching: false,
             color,
+            picker: false,
             horizontal: 0,
             page: 10,
+            list_area: Rect::default(),
         })
     }
     pub fn selected(&self) -> usize {
@@ -67,6 +75,28 @@ impl ReportView {
             }
         }
     }
+}
+
+/// Wheel scrolls; clicking a row selects it. Returns true when an already-selected row is clicked again.
+pub fn handle_mouse(view: &mut ReportView, mouse: MouseEvent) -> bool {
+    match mouse.kind {
+        MouseEventKind::ScrollDown => view.select(view.selected().saturating_add(3)),
+        MouseEventKind::ScrollUp => view.select(view.selected().saturating_sub(3)),
+        MouseEventKind::Down(MouseButton::Left)
+            if view
+                .list_area
+                .contains(Position::new(mouse.column, mouse.row)) =>
+        {
+            let row = view.state.offset() + usize::from(mouse.row - view.list_area.y);
+            if row < view.lines.len() {
+                let again = row == view.selected();
+                view.select(row);
+                return again;
+            }
+        }
+        _ => (),
+    }
+    false
 }
 
 pub fn handle_key(view: &mut ReportView, key: KeyEvent) -> bool {
@@ -118,46 +148,105 @@ pub fn handle_key(view: &mut ReportView, key: KeyEvent) -> bool {
 }
 
 pub fn render(frame: &mut Frame<'_>, view: &mut ReportView) {
+    let area = frame.area();
     let [header, body, footer] = Layout::vertical([
         Constraint::Length(1),
         Constraint::Min(1),
-        Constraint::Length(1),
+        Constraint::Length(if area.height >= 4 { 1 } else { 0 }),
     ])
-    .areas(frame.area());
-    view.page = usize::from(body.height.max(1));
-    let accent = if view.color {
-        Style::default().fg(Color::Cyan)
-    } else {
-        Style::default()
-    };
-    frame.render_widget(
-        Paragraph::new(view.title.as_str()).style(accent.add_modifier(Modifier::BOLD)),
+    .areas(area);
+    let theme = Theme::new(view.color);
+    theme.header(
+        frame,
         header,
+        &format!("rigspark / {}", view.title),
+        if view.picker { "Select" } else { "Report" },
     );
+    let inner = theme.panel(frame, body, if view.picker { "Choices" } else { "Output" });
+    view.page = usize::from(inner.height.max(1));
+    view.list_area = inner;
+    let query = view.query.to_lowercase();
     let items: Vec<_> = view
         .lines
         .iter()
         .map(|line| {
-            ListItem::new(
-                line.graphemes(true)
-                    .skip(view.horizontal)
-                    .collect::<String>(),
-            )
+            let visible: String = line.graphemes(true).skip(view.horizontal).collect();
+            ListItem::new(Line::from(matched(&visible, &query, theme)))
         })
         .collect();
     frame.render_stateful_widget(
         List::new(items)
-            .highlight_symbol("> ")
-            .highlight_style(accent.add_modifier(Modifier::REVERSED)),
-        body,
+            .highlight_symbol("▸ ")
+            .highlight_spacing(HighlightSpacing::Always)
+            .highlight_style(theme.selection()),
+        inner,
         &mut view.state,
     );
-    let status = if view.searching {
-        format!("/{}", view.query)
+    crate::tui_theme::scrollbar(
+        frame,
+        body,
+        view.lines.len(),
+        view.state.offset(),
+        usize::from(inner.height),
+        theme,
+    );
+    let position = Line::styled(
+        format!("{}/{} ", view.selected() + 1, view.lines.len()),
+        theme.muted(),
+    );
+    let left = if view.searching {
+        Line::from(vec![
+            Span::styled(" /", theme.title()),
+            Span::raw(view.query.clone()),
+            Span::styled("▌", theme.accent()),
+        ])
+    } else if view.picker {
+        theme.hints(
+            &[
+                ("Enter", "select"),
+                ("↑↓", "move"),
+                ("/", "find"),
+                ("n", "next"),
+                ("q", "cancel"),
+            ],
+            footer.width.saturating_sub(10),
+        )
     } else {
-        format!("{} / {}", view.selected() + 1, view.lines.len())
+        theme.hints(
+            &[
+                ("q", "close"),
+                ("↑↓", "scroll"),
+                ("/", "find"),
+                ("n", "next"),
+                ("←→", "pan"),
+            ],
+            footer.width.saturating_sub(10),
+        )
     };
-    frame.render_widget(Paragraph::new(status), footer);
+    theme.bar(frame, footer, left, position);
+}
+
+/// Highlights case-insensitive occurrences of `query`; non-ASCII case folds that change length are left plain.
+fn matched(line: &str, query: &str, theme: Theme) -> Vec<Span<'static>> {
+    let lower = line.to_lowercase();
+    if query.is_empty() || lower.len() != line.len() {
+        return vec![Span::raw(line.to_owned())];
+    }
+    let mut spans = Vec::new();
+    let mut cursor = 0;
+    for (start, _) in lower.match_indices(query) {
+        if start < cursor || !line.is_char_boundary(start) {
+            continue;
+        }
+        spans.push(Span::raw(line[cursor..start].to_owned()));
+        spans.push(Span::styled(
+            line[start..start + query.len()].to_owned(),
+            theme.highlight(),
+        ));
+        cursor = start + query.len();
+    }
+    spans.push(Span::raw(line[cursor..].to_owned()));
+    spans
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -166,14 +255,45 @@ pub(crate) enum TerminalResource {
     Alternate,
     Cursor,
     Paste,
+    Mouse,
 }
 
-const TERMINAL_RESOURCES: [TerminalResource; 4] = [
+const TERMINAL_RESOURCES: [TerminalResource; 5] = [
     TerminalResource::Raw,
     TerminalResource::Alternate,
     TerminalResource::Cursor,
     TerminalResource::Paste,
+    TerminalResource::Mouse,
 ];
+
+/// Mouse capture blocks native text selection, so users can opt out.
+pub(crate) fn mouse_enabled() -> bool {
+    std::env::var_os("RIGSPARK_NO_MOUSE").is_none_or(|value| value.is_empty())
+}
+
+fn set_mouse(enabled: bool) -> io::Result<()> {
+    #[cfg(windows)]
+    {
+        if enabled {
+            execute!(io::stderr(), crossterm::event::EnableMouseCapture)
+        } else {
+            execute!(io::stderr(), crossterm::event::DisableMouseCapture)
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        use std::io::Write;
+        // Press and wheel reports only (SGR encoding); motion tracking would flood redraws.
+        let sequence: &[u8] = if enabled {
+            b"\x1b[?1000h\x1b[?1006h"
+        } else {
+            b"\x1b[?1006l\x1b[?1000l"
+        };
+        let mut stderr = io::stderr();
+        stderr.write_all(sequence)?;
+        stderr.flush()
+    }
+}
 
 pub(crate) trait TerminalControl {
     fn raw(&self) -> io::Result<bool>;
@@ -200,6 +320,9 @@ impl TerminalControl for SystemTerminal {
             (TerminalResource::Paste, false) => {
                 execute!(io::stderr(), crossterm::event::DisableBracketedPaste)
             }
+            (TerminalResource::Mouse, true) if mouse_enabled() => set_mouse(true),
+            (TerminalResource::Mouse, true) => Ok(()),
+            (TerminalResource::Mouse, false) => set_mouse(false),
         }
     }
 }
@@ -235,10 +358,11 @@ impl<Control: TerminalControl> Drop for RestoreTerminal<Control> {
     }
 }
 
-pub(crate) fn enter_terminal()
--> io::Result<(Terminal<CrosstermBackend<io::Stderr>>, RestoreTerminal)> {
+pub(crate) type TerminalBackend = CrosstermBackend<SyncWriter<io::Stderr>>;
+
+pub(crate) fn enter_terminal() -> io::Result<(Terminal<TerminalBackend>, RestoreTerminal)> {
     let restore = RestoreTerminal::acquire(SystemTerminal)?;
-    let terminal = Terminal::new(CrosstermBackend::new(io::stderr()))?;
+    let terminal = Terminal::new(CrosstermBackend::new(SyncWriter::new(io::stderr())))?;
     Ok((terminal, restore))
 }
 
@@ -253,6 +377,9 @@ pub async fn show_report(title: &str, text: &str, color: bool) -> io::Result<u8>
             code = signals.recv() => return code,
             event = events.next() => event.ok_or_else(|| io::Error::other("terminal input ended"))??,
         };
+        if let Event::Mouse(mouse) = event {
+            handle_mouse(&mut view, mouse);
+        }
         if let Event::Key(key) = event {
             let interrupted =
                 key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c');
@@ -315,6 +442,7 @@ pub(crate) async fn next_navigation_event(
 pub async fn pick(title: &str, choices: &[String], color: bool) -> io::Result<(Option<usize>, u8)> {
     crate::accessible::validate_picker_choices(choices, 8192)?;
     let mut view = ReportView::new(title, &choices.join("\n"), color)?;
+    view.picker = true;
     let mut signals = crate::cancellation::TerminalSignals::new()?;
     let (mut terminal, _restore) = enter_terminal()?;
     let mut events = crate::terminal_events::terminal_events();
@@ -324,6 +452,12 @@ pub async fn pick(title: &str, choices: &[String], color: bool) -> io::Result<(O
             code = signals.recv() => return Ok((None, code?)),
             event = next_navigation_event(&mut events) => event?,
         };
+        if let Event::Mouse(mouse) = event
+            && handle_mouse(&mut view, mouse)
+            && !view.searching
+        {
+            return Ok((Some(view.selected()), 0));
+        }
         if let Event::Key(key) = event {
             if key.kind == KeyEventKind::Release {
                 continue;
@@ -376,7 +510,7 @@ mod resource_tests {
     #[test]
     fn partial_acquisition_restores_each_owned_resource_and_original_raw_mode() {
         use TerminalResource::*;
-        for fail in [Raw, Alternate, Cursor, Paste] {
+        for fail in [Raw, Alternate, Cursor, Paste, Mouse] {
             let state = Rc::new(RefCell::new(State::default()));
             assert!(
                 RestoreTerminal::acquire(Control {
@@ -387,7 +521,7 @@ mod resource_tests {
             );
             let state = state.borrow();
             assert!(!state.raw);
-            for resource in [Raw, Alternate, Cursor, Paste] {
+            for resource in [Raw, Alternate, Cursor, Paste, Mouse] {
                 let acquired = state.calls.contains(&(resource, true));
                 assert_eq!(
                     state
@@ -417,7 +551,7 @@ mod resource_tests {
     #[test]
     fn restoration_continues_after_independent_output_failure_and_repeated_sessions() {
         use TerminalResource::*;
-        for failed in [Paste, Cursor, Alternate, Raw] {
+        for failed in [Mouse, Paste, Cursor, Alternate, Raw] {
             let state = Rc::new(RefCell::new(State::default()));
             for _ in 0..20 {
                 let restore = RestoreTerminal::acquire(Control {
@@ -429,7 +563,7 @@ mod resource_tests {
                 drop(restore);
                 assert!(!state.borrow().raw);
             }
-            for resource in [Raw, Alternate, Cursor, Paste] {
+            for resource in [Raw, Alternate, Cursor, Paste, Mouse] {
                 assert_eq!(
                     state
                         .borrow()

@@ -42,6 +42,7 @@ struct CatalogRow {
     summary: String,
     evidence: String,
     search: String,
+    need: f64,
 }
 
 #[derive(Debug)]
@@ -51,6 +52,7 @@ pub struct CatalogPresentation {
     total: usize,
     rows: Vec<CatalogRow>,
     refresh: String,
+    usable: f64,
 }
 
 fn invalid(message: &str) -> io::Error {
@@ -387,6 +389,7 @@ pub fn build_catalog(
             ),
             evidence,
             search,
+            need: required,
         });
     }
     let (kind, usable) = memory_capacity(hardware);
@@ -422,10 +425,19 @@ pub fn build_catalog(
         total: catalog.models.len(),
         rows,
         refresh,
+        usable,
     })
 }
 
 impl CatalogPresentation {
+    pub fn usable_bytes(&self) -> f64 {
+        self.usable
+    }
+
+    pub fn need_bytes(&self) -> impl Iterator<Item = f64> + '_ {
+        self.rows.iter().map(|row| row.need)
+    }
+
     pub fn visual_rows(&self) -> impl ExactSizeIterator<Item = (&str, &str, &str, &str)> {
         self.rows.iter().map(|row| {
             (

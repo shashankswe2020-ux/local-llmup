@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Terminal UI
+
+- Replace the model list with a sortable table (rank, quant, memory need,
+  verdict, tok/s, score) that drops low-priority columns on narrow terminals;
+  add verdict filters, fuzzy name search with highlighted matches, a memory fit
+  gauge, side-by-side comparison, and copy of the model id, `rigspark up`
+  command, or a 72-column shareable card over OSC 52.
+- Stream chat replies with lightweight markdown, scrollback, copy of the last
+  reply, and locally measured first-output and total time.
+- Show `up`, `switch`, and `down` progress as a stage checklist with elapsed
+  time; unfinished stages stay unconfirmed.
+- Add mouse support (opt out with `RIGSPARK_NO_MOUSE`), scrollbars,
+  synchronized output, and `RIGSPARK_THEME` light and high-contrast palettes.
+
 ## 2.2.0 - 2026-10-02
 
 ### Catalog quality and automation

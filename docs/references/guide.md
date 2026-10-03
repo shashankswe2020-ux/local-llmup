@@ -328,11 +328,14 @@ terminal (TTY with ≥60 columns, ≥16 rows).
 
 | Feature | Description |
 |---------|-------------|
-| **Interactive model list** | Search, filter, scroll through ranked models with keyboard |
-| **Model details & comparison** | Mark models and compare side-by-side |
-| **Lifecycle progress** | Real-time pull/verify/serve progress with cancellation |
-| **Chat screen** | Multi-line input, streaming responses, session summary |
+| **Sortable model table** | Rank, quant, memory need, verdict, tok/s and score columns; low-priority columns drop first on narrow terminals |
+| **Fuzzy search & verdict filter** | Fuzzy match on model names with highlighted hits; cycle `yes` / `slow` / `no` / `unknown` filters |
+| **Memory fit gauge** | Required vs usable memory bar in model evidence; an unsourced need shows as `need unknown` |
+| **Model details & comparison** | Key-aligned evidence; mark 2–4 models and compare them side-by-side |
+| **Lifecycle progress** | Stage checklist (✓ done, ✗ failed, ○ unconfirmed) with spinner, elapsed time and cancellation |
+| **Chat screen** | Streaming replies, markdown (headings, lists, code), scrollback, copy last reply, first-output and total timing |
 | **Doctor dashboard** | Box-drawn diagnostics with backend table and score breakdown |
+| **Mouse** | Wheel scrolls; click selects, click again opens; click a column header to sort |
 | **Accessible mode** | Cooked line-oriented fallback for screen readers (`--accessible`) |
 | **Graceful degradation** | Falls back to plain text in non-TTY / piped / CI environments |
 
@@ -344,7 +347,10 @@ terminal (TTY with ≥60 columns, ≥16 rows).
 | `PgUp` / `PgDn`, `Home` / `End` | Jump by page or to either end |
 | `Enter` / `→` / `Tab` | Open model details |
 | `Esc` / `←` / `Backspace` | Back (quits from the list) |
-| `/` | Search / filter (`Ctrl+U` resets the filter) |
+| `/` | Search / filter (`Ctrl+U` resets search and verdict filter) |
+| `s` / `S` | Sort by the next column / reverse the sort |
+| `v` | Cycle the verdict filter |
+| `y` / `Y` / `e` | Copy model id / `rigspark up <id>` / a 72-column shareable card (OSC 52 clipboard) |
 | `Space` | Mark model for comparison (up to 4) |
 | `c` | Compare 2–4 marked models |
 | `i` | Machine and scope overview |
@@ -352,6 +358,18 @@ terminal (TTY with ≥60 columns, ≥16 rows).
 | `?` | Keyboard help |
 | `q` | Quit |
 | `Ctrl+C` | Interrupt (exit 130) |
+
+In chat: `PgUp` / `PgDn` scroll the transcript, `End` follows new output, and `Ctrl+Y` copies the last reply.
+
+### Appearance and input
+
+| Variable | Effect |
+|----------|--------|
+| `RIGSPARK_THEME` | `default`, `light` (for light backgrounds) or `high-contrast` |
+| `RIGSPARK_NO_MOUSE` | Any non-empty value disables mouse capture, restoring native text selection |
+| `NO_COLOR` / `--no-color` | Monochrome rendering (bold, dim and reverse only) |
+
+Clipboard copy uses the OSC 52 terminal sequence; terminals that do not support it ignore the request.
 
 ### Screenshots
 

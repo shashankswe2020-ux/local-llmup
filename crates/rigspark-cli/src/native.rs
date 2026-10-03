@@ -347,6 +347,16 @@ impl rigspark_cli::terminal::ChatEngine for TerminalEngine {
         messages: &[rigspark_runtime::harness::HarnessMessage],
         cancel: &tokio_util::sync::CancellationToken,
     ) -> Result<rigspark_cli::terminal::ChatReply, String> {
+        let (deltas, _ignored) = tokio::sync::mpsc::unbounded_channel();
+        self.reply_streaming(messages, cancel, deltas).await
+    }
+
+    async fn reply_streaming(
+        &self,
+        messages: &[rigspark_runtime::harness::HarnessMessage],
+        cancel: &tokio_util::sync::CancellationToken,
+        deltas: tokio::sync::mpsc::UnboundedSender<String>,
+    ) -> Result<rigspark_cli::terminal::ChatReply, String> {
         let (message, history) = messages.split_last().ok_or("empty conversation")?;
         let expected = if self.provider == "local" {
             let config =
@@ -375,7 +385,11 @@ impl rigspark_cli::terminal::ChatEngine for TerminalEngine {
             Some(history),
             expected.as_ref(),
             cancel,
-            &mut |_| Ok(()),
+            &mut |text| {
+                // A closed receiver only means nobody is rendering partial output.
+                let _ = deltas.send(text.to_owned());
+                Ok(())
+            },
         )
         .await
         .map_err(|error| error.to_string())?;

@@ -20,6 +20,7 @@ pub mod tui_chat;
 pub mod tui_lifecycle;
 pub mod tui_mode;
 pub mod tui_models;
+mod tui_theme;
 pub mod tui_view;
 
 pub const MAX_INPUT_BYTES: usize = 8 * 1024 * 1024;

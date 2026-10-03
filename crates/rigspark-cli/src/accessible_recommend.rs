@@ -32,6 +32,7 @@ struct Row {
     summary: String,
     search: String,
     evidence: String,
+    need: f64,
 }
 
 #[derive(Debug)]
@@ -42,6 +43,7 @@ pub struct Recommendation {
     wont_fit: Vec<String>,
     command: Option<String>,
     final_text: String,
+    usable: f64,
 }
 
 fn invalid(message: &str) -> io::Error {
@@ -291,9 +293,10 @@ pub fn build_recommendation(
         )
         .to_lowercase();
         rows.push(Row {
+            need: number(&entry["requiredBytes"])?,
             display,
             summary: format!(
-                "#{} | {} | {} | {verdict} | {} | score {}",
+                "#{} | {} | {} | {verdict} | {} | {}",
                 number(&entry["rank"])?,
                 single_line(text(&entry["quant"])?)?,
                 gib(number(&entry["requiredBytes"])?),
@@ -325,7 +328,18 @@ pub fn build_recommendation(
         wont_fit,
         command,
         final_text,
+        usable,
     })
+}
+
+impl Recommendation {
+    pub fn usable_bytes(&self) -> f64 {
+        self.usable
+    }
+
+    pub fn need_bytes(&self) -> impl Iterator<Item = f64> + '_ {
+        self.rows.iter().map(|row| row.need)
+    }
 }
 
 impl Recommendation {

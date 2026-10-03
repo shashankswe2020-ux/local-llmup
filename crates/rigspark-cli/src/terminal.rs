@@ -48,6 +48,17 @@ pub trait ChatEngine {
         messages: &[HarnessMessage],
         cancel: &CancellationToken,
     ) -> impl std::future::Future<Output = Result<ChatReply, String>>;
+
+    /// Like `reply`, also forwarding partial output as it arrives; the final reply stays authoritative.
+    fn reply_streaming(
+        &self,
+        messages: &[HarnessMessage],
+        cancel: &CancellationToken,
+        deltas: mpsc::UnboundedSender<String>,
+    ) -> impl std::future::Future<Output = Result<ChatReply, String>> {
+        drop(deltas);
+        self.reply(messages, cancel)
+    }
 }
 #[derive(Default)]
 pub struct ChatSummary {

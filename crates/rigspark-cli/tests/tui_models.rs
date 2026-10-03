@@ -80,6 +80,14 @@ fn renders_evidence_and_handles_tiny_resizes_in_monochrome() {
     }
 }
 
+/// True when one rendered row shows `key` followed later by `value` (side-by-side compare cells).
+fn row_has(output: &str, key: &str, value: &str) -> bool {
+    output.lines().any(|line| {
+        line.find(key)
+            .is_some_and(|start| line[start + key.len()..].contains(value))
+    })
+}
+
 fn draw(view: &mut ModelView, width: u16, height: u16) -> String {
     let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
     terminal.draw(|frame| render(frame, view)).unwrap();
@@ -134,9 +142,9 @@ fn comparison_uses_marked_evidence_even_when_filter_hides_models() {
     assert!(output.contains("Compare 2 models"));
     assert!(output.contains("alpha"));
     assert!(output.contains("KV unknown"));
-    assert!(output.contains("license MIT"));
+    assert!(row_has(&output, "license", "MIT"), "{output}");
     assert!(output.contains("beta"));
-    assert!(output.contains("throughput unknown"));
+    assert!(row_has(&output, "throughput", "unknown"), "{output}");
     key(&mut view, KeyCode::Char('?'));
     assert_eq!(key(&mut view, KeyCode::Esc), None);
     assert!(draw(&mut view, 100, 24).contains("Compare 2 models"));
@@ -468,7 +476,10 @@ fn recommendation_adapter_only_returns_the_existing_safe_top_pick() {
                     .split("; ")
                     .find(|line| line.starts_with("scores quality "))
                     .unwrap();
-                assert!(output.contains(scores));
+                assert!(
+                    row_has(&output, "scores", scores.trim_start_matches("scores ")),
+                    "{output}"
+                );
             }
             key(&mut view, KeyCode::Char('?'));
             assert!(
@@ -778,4 +789,124 @@ fn adapter_details_scroll_and_help_restore_across_small_monochrome_terminals() {
             Some(ModelOutcome::Exit { code: 130 })
         );
     }
+}
+
+#[test]
+fn list_and_evidence_panels_keep_gutters_badges_and_aligned_word_wrapped_fields() {
+    let fixture: serde_json::Value =
+        serde_json::from_str(include_str!("accessible-recommend-oracle.json")).unwrap();
+    let case = fixture["cases"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .max_by_key(|case| case["catalog"]["models"].as_array().map_or(0, Vec::len))
+        .unwrap();
+    let presentation = accessible_recommend::build_recommendation(
+        &serde_json::from_value(case["catalog"].clone()).unwrap(),
+        &serde_json::from_value(case["hardware"].clone()).unwrap(),
+        &rigspark_core::catalog::PerfDataset::parse(&case["perf"].to_string()).unwrap(),
+        &serde_json::from_value(case["options"].clone()).unwrap(),
+    )
+    .unwrap();
+    let (label, summary, _, _) = presentation.visual_rows().next().unwrap();
+    let verdict = summary.split(" | ").nth(3).unwrap();
+    let mut view = ModelView::from_recommendation(&presentation, false).unwrap();
+    let output = draw(&mut view, 140, 40);
+    let lines: Vec<&str> = output.lines().collect();
+    let column = |needle: &str| {
+        lines.iter().find_map(|line| {
+            line.find(needle)
+                .map(|index| line[..index].chars().count() + needle.chars().count())
+        })
+    };
+    assert!(lines.iter().any(|line| line.contains("││")), "{output}");
+    for header in ["Model", "Rank", "Need", "Verdict", "Tok/s", "Score"] {
+        assert!(output.contains(header), "missing {header}: {output}");
+    }
+    assert!(
+        lines
+            .iter()
+            .any(|line| line.contains(label) && line.contains(&format!(" {verdict} "))),
+        "{output}"
+    );
+    assert!(output.contains("Memory"), "{output}");
+    assert!(output.contains("/ 22.0 GiB"), "{output}");
+    assert!(output.contains("reasoning"), "{output}");
+    assert_eq!(column("rank "), column("verdict "), "{output}");
+    assert_eq!(column("rank "), column("capabilities "), "{output}");
+}
+
+#[test]
+fn sorting_verdict_filter_copy_and_card_are_keyboard_driven_and_bounded() {
+    let rows = ["gamma", "alpha", "beta"]
+        .into_iter()
+        .map(|label| ModelRow::new(label, label, &format!("{label}; license MIT")).unwrap())
+        .collect();
+    let mut view = ModelView::new("Models", vec![], rows, false).unwrap();
+    let labels = |view: &mut ModelView| {
+        key(view, KeyCode::Home);
+        let mut seen = Vec::new();
+        for _ in 0..view.visible_count() {
+            seen.push(view.selected().unwrap().label().to_owned());
+            key(view, KeyCode::Down);
+        }
+        seen
+    };
+    key(&mut view, KeyCode::Char('s'));
+    assert_eq!(labels(&mut view), ["alpha", "beta", "gamma"]);
+    assert!(draw(&mut view, 100, 24).contains("sort model ▲"));
+    key(&mut view, KeyCode::Char('S'));
+    assert_eq!(labels(&mut view), ["gamma", "beta", "alpha"]);
+    key(&mut view, KeyCode::Char('s'));
+    assert_eq!(labels(&mut view), ["gamma", "alpha", "beta"]);
+    key(&mut view, KeyCode::Home);
+    key(&mut view, KeyCode::Char('y'));
+    assert_eq!(view.take_clipboard().as_deref(), Some("gamma"));
+    assert!(draw(&mut view, 100, 24).contains("Copied model id"));
+    key(&mut view, KeyCode::Char('Y'));
+    assert_eq!(view.take_clipboard().as_deref(), Some("rigspark up gamma"));
+    key(&mut view, KeyCode::Char('e'));
+    let card = view.take_clipboard().unwrap();
+    assert!(card.starts_with("rigspark / Models / gamma\n"));
+    assert!(card.contains("LICENSE   MIT"));
+    assert!(
+        card.lines().all(|line| line.chars().count() <= 72),
+        "{card}"
+    );
+    key(&mut view, KeyCode::Char('/'));
+    for character in "gma".chars() {
+        key(&mut view, KeyCode::Char(character));
+    }
+    assert_eq!(view.visible_count(), 1);
+    assert_eq!(view.selected().unwrap().label(), "gamma");
+
+    let installed = accessible_installed::build_installed(
+        &serde_json::json!({"models":[
+            {"id":"local:alpha", "fit":"yes"},
+            {"id":"local:beta", "fit":"unknown"},
+            {"id":"local:gamma", "fit":"no"}
+        ]}),
+        accessible_installed::InstalledCommand::Recommend,
+    )
+    .unwrap();
+    let mut view = ModelView::from_installed(&installed, false).unwrap();
+    assert!(draw(&mut view, 100, 24).contains("Fit"));
+    for (expected, verdict) in [(1, "yes"), (0, "slow"), (1, "no"), (1, "unknown"), (3, "")] {
+        key(&mut view, KeyCode::Char('v'));
+        assert_eq!(view.visible_count(), expected, "{verdict}");
+    }
+    key(&mut view, KeyCode::Char('v'));
+    key(&mut view, KeyCode::Char('v'));
+    let empty = draw(&mut view, 100, 24);
+    assert!(empty.contains("No results") && empty.contains("Ctrl+U resets"));
+    handle_key(
+        &mut view,
+        KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL),
+    );
+    assert_eq!(view.visible_count(), 3);
+    key(&mut view, KeyCode::Char('Y'));
+    assert_eq!(
+        view.take_clipboard().as_deref(),
+        Some("rigspark up local:alpha")
+    );
 }

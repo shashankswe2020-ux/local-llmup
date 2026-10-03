@@ -236,3 +236,119 @@ fn chat_renders_pending_response_and_input_with_bounded_layout() {
         assert!(terminal.backend().to_string().contains("answer"));
     }
 }
+
+#[test]
+fn long_replies_word_wrap_under_role_labels_instead_of_truncating() {
+    let mut view = ChatView::new("local");
+    view.insert("question").unwrap();
+    view.submit().unwrap();
+    view.finish(Ok(ChatReply {
+        content: "word ".repeat(40),
+        memory_warning: false,
+    }));
+    let mut terminal = Terminal::new(TestBackend::new(40, 24)).unwrap();
+    terminal.draw(|frame| render(frame, &view, false)).unwrap();
+    let text = terminal.backend().to_string();
+    assert_eq!(text.matches("word").count(), 40, "{text}");
+    assert!(text.contains(" you"), "{text}");
+    assert!(text.contains(" assistant"), "{text}");
+    assert!(text.contains("rigspark / chat / local"), "{text}");
+}
+
+struct Streamer;
+impl rigspark_cli::terminal::ChatEngine for Streamer {
+    async fn reply(
+        &self,
+        _: &[rigspark_runtime::harness::HarnessMessage],
+        _: &tokio_util::sync::CancellationToken,
+    ) -> Result<ChatReply, String> {
+        unreachable!("the TUI must request streaming replies")
+    }
+    async fn reply_streaming(
+        &self,
+        _: &[rigspark_runtime::harness::HarnessMessage],
+        _: &tokio_util::sync::CancellationToken,
+        deltas: tokio::sync::mpsc::UnboundedSender<String>,
+    ) -> Result<ChatReply, String> {
+        for delta in ["hel", "lo"] {
+            deltas.send(delta.into()).unwrap();
+            tokio::task::yield_now().await;
+        }
+        Ok(ChatReply {
+            content: "hello".into(),
+            memory_warning: false,
+        })
+    }
+}
+
+#[tokio::test]
+async fn streamed_deltas_render_before_the_authoritative_reply_replaces_them() {
+    let mut terminal = Terminal::new(TestBackend::new(60, 16)).unwrap();
+    let mut view = ChatView::new("local");
+    let code = rigspark_cli::tui_chat::drive(
+        &mut terminal,
+        &mut events(),
+        &Streamer,
+        &mut view,
+        false,
+        &tokio_util::sync::CancellationToken::new(),
+    )
+    .await
+    .unwrap();
+    assert_eq!(code, 0);
+    assert_eq!(view.history().last().unwrap().content, "hello");
+    assert_eq!(view.streaming(), "");
+    let mut view = ChatView::new("local");
+    view.insert("question").unwrap();
+    view.submit().unwrap();
+    view.stream("partial answer");
+    terminal.draw(|frame| render(frame, &view, false)).unwrap();
+    let text = terminal.backend().to_string();
+    assert!(text.contains("partial answer"), "{text}");
+    assert!(text.contains("first output"), "{text}");
+}
+
+#[test]
+fn markdown_scrollback_and_copy_are_rendered_without_altering_history() {
+    let reply = "# Title\n- item `code` **bold**\n```\nlet x = 1;\n```\n".to_owned()
+        + &(0..60)
+            .map(|index| format!("line {index}\n"))
+            .collect::<String>();
+    let mut view = ChatView::new("local");
+    view.insert("question").unwrap();
+    view.submit().unwrap();
+    view.finish(Ok(ChatReply {
+        content: reply.clone(),
+        memory_warning: false,
+    }));
+    let mut terminal = Terminal::new(TestBackend::new(60, 20)).unwrap();
+    terminal.draw(|frame| render(frame, &view, false)).unwrap();
+    let bottom = terminal.backend().to_string();
+    assert!(bottom.contains("line 59"), "{bottom}");
+    assert!(bottom.contains("total"), "{bottom}");
+    for _ in 0..10 {
+        handle_key(
+            &mut view,
+            KeyEvent::new(KeyCode::PageUp, KeyModifiers::NONE),
+        );
+    }
+    terminal.draw(|frame| render(frame, &view, false)).unwrap();
+    let top = terminal.backend().to_string();
+    assert!(top.contains("Title"), "{top}");
+    assert!(top.contains("• item code bold"), "{top}");
+    assert!(top.contains("let x = 1;"), "{top}");
+    assert!(!top.contains("**"), "{top}");
+    assert!(top.contains("End follows"), "{top}");
+    handle_key(&mut view, KeyEvent::new(KeyCode::End, KeyModifiers::NONE));
+    terminal.draw(|frame| render(frame, &view, false)).unwrap();
+    assert!(terminal.backend().to_string().contains("line 59"));
+    assert_eq!(
+        handle_key(
+            &mut view,
+            KeyEvent::new(KeyCode::Char('y'), KeyModifiers::CONTROL)
+        ),
+        InputAction::Continue
+    );
+    assert_eq!(view.take_clipboard().as_deref(), Some(reply.as_str()));
+    assert_eq!(view.history().last().unwrap().content, reply);
+}
