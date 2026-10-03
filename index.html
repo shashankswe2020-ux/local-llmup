@@ -184,7 +184,7 @@
           <div class="tour-canvas" role="region" aria-label="RigSpark product screens" tabindex="0">
             <figure class="tour-shot">
               <div class="tour-meta"><span>01</span><b>Rank</b><code>rigspark recommend</code></div>
-              <img src="assets/screenshot-recommend.png" alt="RigSpark terminal UI ranking local models for the detected hardware" width="1200" height="1100" loading="lazy" />
+              <img src="assets/tui-recommend.png" alt="RigSpark terminal UI ranking local models in a sortable table with memory need, verdict, tok/s and score beside a memory fit gauge" width="1400" height="900" loading="lazy" />
             </figure>
             <figure class="tour-shot tour-shot-featured">
               <div class="tour-meta"><span>02</span><b>Inspect</b><code>model evidence</code></div>
@@ -272,28 +272,50 @@ Run the top pick:  <span class="t-acc">rigspark up qwen3:30b-a3b</span>
       <section class="section section-alt" id="tui">
         <div class="frame">
           <div class="section-head">
-            <p class="eyebrow">Terminal UI</p>
-            <h2>A real terminal UI, not just pretty text</h2>
+            <p class="eyebrow">Terminal UI <span class="pill-tag">Next release</span></p>
+            <h2>A keyboard-first terminal UI, not just pretty text</h2>
             <p class="sub">
               Run <code>rigspark</code> with no arguments and a native terminal UI opens when your terminal is at least
-              60&times;16. Accessible mode (<code>--accessible</code>) serves screen readers, and CI or piped output
-              falls back to plain text automatically.
+              60&times;16. Sort and filter a ranked table, read memory fit at a glance, and compare models side by side,
+              by keyboard or mouse. Accessible mode (<code>--accessible</code>) serves screen readers, and CI or piped
+              output falls back to plain text automatically.
             </p>
           </div>
 
           <div class="tabs" data-tabs>
             <div class="tab-list" role="tablist" aria-label="Terminal UI views">
               <button role="tab" id="tab-recommend" aria-controls="panel-recommend" aria-selected="true">recommend</button>
+              <button role="tab" id="tab-search" aria-controls="panel-search" aria-selected="false" tabindex="-1">search</button>
+              <button role="tab" id="tab-compare" aria-controls="panel-compare" aria-selected="false" tabindex="-1">compare</button>
               <button role="tab" id="tab-doctor" aria-controls="panel-doctor" aria-selected="false" tabindex="-1">doctor</button>
               <button role="tab" id="tab-canrun" aria-controls="panel-canrun" aria-selected="false" tabindex="-1">can-run</button>
             </div>
             <div class="tab-panels tui-panels">
               <figure role="tabpanel" id="panel-recommend" aria-labelledby="tab-recommend">
-                <img src="assets/screenshot-recommend.png" alt="rigspark recommend terminal UI showing a searchable ranked model list" width="1200" height="1100" loading="lazy" />
+                <img src="assets/tui-recommend.png" alt="rigspark recommend terminal UI: a sortable table of 55 ranked models with rank, memory need, verdict, tok/s and score columns beside an evidence panel with a memory fit gauge" width="1400" height="900" loading="lazy" />
                 <figcaption>
-                  <b>Searchable ranked model list.</b> Every catalog model scored for your hardware. Search, mark models to
-                  compare, and open evidence panels; verdicts update live.
-                  <span class="keys"><kbd>&uarr;&darr;</kbd> navigate <kbd>/</kbd> search <kbd>m</kbd> mark <kbd>c</kbd> compare <kbd>d</kbd> details <kbd>q</kbd> quit</span>
+                  <b>Sortable ranked table.</b> Every catalog model scored for your hardware, with rank, memory need,
+                  colour-coded verdict, est. tok/s and score. The evidence panel shows a memory gauge of need against
+                  usable memory; an unsourced need stays <code>unknown</code>.
+                  <span class="keys"><kbd>&uarr;&darr;</kbd> navigate <kbd>s</kbd> sort <kbd>v</kbd> verdict filter <kbd>Enter</kbd> evidence <kbd>y</kbd> copy id <kbd>q</kbd> quit</span>
+                </figcaption>
+              </figure>
+              <figure role="tabpanel" id="panel-search" aria-labelledby="tab-search" hidden>
+                <img src="assets/tui-search.png" alt="rigspark terminal UI filtering the model table to 18 qwen models with matched characters highlighted" width="1400" height="900" loading="lazy" />
+                <figcaption>
+                  <b>Fuzzy search with highlighted matches.</b> Type to narrow the table; matched characters are
+                  underlined, and verdict filters combine with search. Click a row to select it, click again to open it,
+                  or click a column header to sort.
+                  <span class="keys"><kbd>/</kbd> search <kbd>Ctrl+U</kbd> reset <kbd>S</kbd> reverse sort <kbd>Y</kbd> copy <code>rigspark up</code></span>
+                </figcaption>
+              </figure>
+              <figure role="tabpanel" id="panel-compare" aria-labelledby="tab-compare" hidden>
+                <img src="assets/tui-compare.png" alt="rigspark terminal UI comparing three marked models side by side, aligned by rank, verdict, throughput, backends, license, context and scores" width="1400" height="900" loading="lazy" />
+                <figcaption>
+                  <b>Side-by-side comparison.</b> Mark up to four models and compare their evidence in aligned columns:
+                  verdict, throughput, backends, license, context and scores. Copy a 72-column card to paste into an
+                  issue or chat.
+                  <span class="keys"><kbd>Space</kbd> mark <kbd>c</kbd> compare <kbd>e</kbd> copy card <kbd>?</kbd> help</span>
                 </figcaption>
               </figure>
               <figure role="tabpanel" id="panel-doctor" aria-labelledby="tab-doctor" hidden>
@@ -369,6 +391,21 @@ Run the top pick:  <span class="t-acc">rigspark up qwen3:30b-a3b</span>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h13" /><circle cx="18" cy="12" r="2" /></svg>
               <h3>Evidence-backed models</h3>
               <p>Bonsai, Qwen3.5 and Qwen3.6 carry pinned provenance. Unsourced throughput and attention geometry remain visibly <code>unknown</code>.</p>
+            </article>
+            <article class="card">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M7 9l3 3-3 3M12 15h5" /></svg>
+              <h3>Keyboard-first TUI <span class="pill-tag">Next</span></h3>
+              <p>Sort any column, filter by verdict, fuzzy-search names and compare up to four models side by side. Mouse, light and high-contrast themes (<code>RIGSPARK_THEME</code>) included.</p>
+            </article>
+            <article class="card">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z" /><path d="M8 9h8M8 12h5" /></svg>
+              <h3>Streaming terminal chat <span class="pill-tag">Next</span></h3>
+              <p>Replies stream as they arrive with headings, lists and code rendered. Scroll back with <kbd>PgUp</kbd>, copy the last reply with <kbd>Ctrl+Y</kbd>, and see first-output and total time.</p>
+            </article>
+            <article class="card">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7l2 2 4-4M5 14l2 2 4-4" /><path d="M14 8h6M14 15h6" /></svg>
+              <h3>Live lifecycle checklist <span class="pill-tag">Next</span></h3>
+              <p><code>up</code>, <code>switch</code> and <code>down</code> show each observed stage as done, failed or unconfirmed, with elapsed time. Stage completion never claims overall success.</p>
             </article>
           </div>
         </div>
