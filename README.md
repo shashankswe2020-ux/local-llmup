@@ -100,6 +100,10 @@ external tools can send data to their providers.
 
 ![RigSpark browser GUI Models view with Runs well and Runs slowly verdicts](assets/screenshot-gui.png)
 
+## Star History
+
+[![RigSpark GitHub star history](https://api.star-history.com/svg?repos=shashankswe2020-ux/rigspark&type=Date)](https://www.star-history.com/#shashankswe2020-ux/rigspark&Date)
+
 ## References
 
 - [Commands, installed Ollama models, and custom context](docs/references/guide.md#commands)
